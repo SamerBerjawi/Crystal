@@ -1,6 +1,6 @@
 import type {
   Account, BillPayment, Currency, LoanPaymentOverrides, RecurrenceFrequency, RecurringTransaction,
-  RecurringTransactionOverride, Transaction, WeekendAdjustment,
+  RecurringTransactionOverride, ScheduledItem, Transaction, WeekendAdjustment,
 } from '../types';
 import {
   adjustDateForWeekend, advanceRecurrenceDate, convertCurrency, generateSyntheticCreditCardPayments,
@@ -70,6 +70,9 @@ export interface OccurrenceInput {
 }
 
 export const iso = (d: Date) => toLocalISOString(d);
+
+/** Series that count: paused ones are left out of totals, forecasts and reminders (D-093). */
+export const liveSeries = <T extends { pausedAt?: string }>(series: T[]) => series.filter(rt => !rt.pausedAt);
 const dayMs = 24 * 60 * 60 * 1000;
 const daysBetween = (a: string, b: string) => Math.round((parseLocalDate(b).getTime() - parseLocalDate(a).getTime()) / dayMs);
 export const addDays = (d: Date, n: number) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; };
@@ -240,7 +243,7 @@ export const buildOccurrences = (input: OccurrenceInput): Occurrence[] => {
   const todayStr = iso(today);
   const accountsById = new Map(accounts.map(a => [a.id, a]));
   const overrideMap = new Map(overrides.map(o => [`${o.recurringTransactionId}|${o.originalDate}`, o]));
-  const allSeries = [...recurring, ...(includeSynthetic ? syntheticSeries(accounts, transactions, input.loanPaymentOverrides) : [])];
+  const allSeries = [...liveSeries(recurring), ...(includeSynthetic ? syntheticSeries(accounts, transactions, input.loanPaymentOverrides) : [])];
   const seriesById = new Map(allSeries.map(rt => [rt.id, rt]));
   const lookBack = iso(addDays(today, -overdueDays));
   const fromStr = iso(from) < lookBack ? iso(from) : lookBack;
@@ -490,7 +493,7 @@ export const seriesGroups = (recurring: RecurringTransaction[], synthetic: Recur
     expense: { id: 'expense', label: 'Spending', rows: [], monthlyIn: 0, monthlyOut: 0 },
     transfer: { id: 'transfer', label: 'Transfers', rows: [], monthlyIn: 0, monthlyOut: 0 },
     accounts: { id: 'accounts', label: 'From your accounts', rows: [], monthlyIn: 0, monthlyOut: 0 },
-    ended: { id: 'ended', label: 'Ended', rows: [], monthlyIn: 0, monthlyOut: 0 },
+    ended: { id: 'ended', label: 'Paused or ended', rows: [], monthlyIn: 0, monthlyOut: 0 },
   };
   const tally = (g: SeriesGroup, row: SeriesRow) => {
     const value = convert(row.monthly, row.series.currency);
@@ -498,7 +501,7 @@ export const seriesGroups = (recurring: RecurringTransaction[], synthetic: Recur
     else if (row.flow === 'out') g.monthlyOut = safeAdd(g.monthlyOut, value);
   };
   for (const rt of recurring) {
-    const ended = !!rt.endDate && rt.endDate < todayStr;
+    const ended = !!rt.pausedAt || (!!rt.endDate && rt.endDate < todayStr);
     const next = ended ? undefined : nextDates(rt, today, 1)[0];
     const row: SeriesRow = { series: rt, source: 'recurring', monthly: monthlyEquivalent(rt), next, ended, flow: classifyFlow(rt.type, rt.accountId, rt.toAccountId, accountsById) };
     const g = ended ? groups.ended : groups[rt.type];
@@ -768,3 +771,70 @@ export const paymentHistory = (rt: RecurringTransaction, transactions: Transacti
     .sort((a, b) => (a.date > b.date ? -1 : 1))
     .slice(0, n)
     .map(t => ({ transaction: t, daysLate: t.recurringOccurrenceDate ? daysBetween(t.recurringOccurrenceDate, t.date) : 0 }));
+
+/** Move the whole series by the same number of days, keeping its day of the month in step. */
+export const moveSeries = (rt: RecurringTransaction, originalDate: string, toDate: string): RecurringTransaction => {
+  const shift = daysBetween(originalDate, toDate);
+  return {
+    ...rt,
+    nextDueDate: iso(addDays(parseLocalDate(rt.nextDueDate), shift)),
+    dueDateOfMonth: rt.dueDateOfMonth ? parseLocalDate(toDate).getDate() : rt.dueDateOfMonth,
+  };
+};
+
+/** "This and future": the old series stops before this occurrence, and a new one carries on from the new date. */
+export const moveFuture = (rt: RecurringTransaction, originalDate: string, toDate: string) => {
+  const { id: _id, ...rest } = rt;
+  const { ended, started } = splitSeriesAt(rt, originalDate, rest);
+  return {
+    ended,
+    started: { ...started, startDate: toDate, nextDueDate: toDate, dueDateOfMonth: rt.dueDateOfMonth ? parseLocalDate(toDate).getDate() : rt.dueDateOfMonth },
+  };
+};
+
+export type HeatKind = 'none' | 'in' | 'out' | 'move' | 'mixed';
+
+/** A day's colour on the heatmap: what kind of money moves. */
+export const heatKind = (day: Pick<DayCommitted, 'in' | 'out' | 'moves'>): HeatKind => {
+  const kinds = [day.in > 0, day.out > 0, day.moves > 0].filter(Boolean).length;
+  if (kinds === 0) return 'none';
+  if (kinds > 1) return 'mixed';
+  return day.in > 0 ? 'in' : day.out > 0 ? 'out' : 'move';
+};
+
+/** The fields the transaction form opens with when you post an occurrence (SCH-11). */
+export const postDetails = (o: Occurrence) => {
+  const type: 'income' | 'expense' | 'transfer' = o.type === 'deposit' ? 'income' : o.type === 'payment' ? 'expense' : o.type;
+  return {
+    initialType: type,
+    initialFromAccountId: type === 'income' ? undefined : o.accountId,
+    initialToAccountId: type === 'income' ? o.accountId : o.toAccountId,
+    initialCategory: o.bill ? (type === 'income' ? 'Income' : 'Bills & Utilities') : o.category,
+    initialDetails: { date: o.date, amount: round2(o.amount).toFixed(2), description: o.description, merchant: o.merchant ?? '' },
+  };
+};
+
+/** Where a series' next due date goes once `o` is paid, given what else is open or paid (E-09). */
+export const nextDueAfterPosting = (o: Occurrence, all: Occurrence[]) => {
+  const siblings = all.filter(item => item.sourceId === o.sourceId && item.key !== o.key);
+  return nextDueAfterPaying(o.series!, o.originalDate, siblings.filter(isOpen).map(item => item.originalDate), siblings.filter(item => item.status === 'paid').map(item => item.originalDate));
+};
+
+/** An occurrence in the shape the one-date form takes. */
+export const scheduledItemOf = (o: Occurrence, accountName: string): ScheduledItem => ({
+  id: o.key,
+  isRecurring: o.source === 'recurring',
+  date: o.date,
+  description: o.description,
+  amount: o.flow === 'in' ? o.amount : -o.amount,
+  accountName,
+  type: o.type,
+  originalItem: (o.series ?? o.bill)!,
+  isTransfer: o.type === 'transfer',
+  isOverride: o.isOverride,
+  originalDateForOverride: o.originalDate,
+  isSkipped: o.status === 'skipped',
+  category: o.category,
+  merchant: o.merchant,
+  accountId: o.accountId,
+});

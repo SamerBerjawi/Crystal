@@ -152,6 +152,11 @@ Used to weigh priorities. None of this removes any feature.
 | D-087 | 2026-10-31 | Accents come from Rapport in both themes: ink or cream pills for main buttons and active states, pine for feature cards, butter and tomato as highlights. Tilvo adds blue, rose, teal and amber, plus its soft tints. Colours used as text keep AA over the tint, so light money in and out, and dark money out, are slightly adjusted from the source | Owner | Replaces the old accent palette. `--primary` is now the readable accent for text and lines, and `bg-pill` or `bg-pine` are the fills |
 | D-088 | 2026-10-31 | Every page uses Rapport's header: title, up to three live figures beside it, actions on the right. Titles rise letter by letter (0.85 s), figures fade up, numbers count from zero (1.4 s, then 0.9 s for changes), lines wipe in (1.4 s), bars grow (0.9 s) and arcs sweep (1 s). All of it replays on each visit and stops with reduced motion. Long titles now match the navigation | Owner | Replaces the count-up rule in `D-062` |
 | D-089 | 2026-10-31 | Module order changes: Planning is 6, Investments 7, Reports 8, Settings and data 9, Rules 10. PIN lock, Any currency and Clean-up stay 11 to 13. The Rules page keeps its current design until module 10 | Owner | Rebuilding Rules still starts with tests (`D-009`) |
+| D-090 | 2026-10-31 | Forecast offers 30, 60 and 90 days, 6 months, end of year and 1 year. Bubbles group by week on the long ranges | Owner | Refines `D-010`, keeps every `FCT-01` range |
+| D-091 | 2026-10-31 | The Forecast buffer and the Safe to spend cushion are one number | Owner | No new saved field |
+| D-092 | 2026-10-31 | Dragging a recurring item on the Forecast asks every time: this one, this and future, or the whole series | Owner | Uses `EditRecurrenceModal` (`FCT-06`) |
+| D-093 | 2026-10-31 | Paused subscriptions leave totals, Safe to spend and the Forecast until resumed. Crystal only records the pause and cancels nothing with the provider | Owner | Refines `D-028`. Adds a saved field to recurring items |
+| D-094 | 2026-10-31 | Goal status comes from each goal's own saved amount and contributions, never an account balance. Goals with no contribution show No plan yet. Bucket status is its items' worst | Owner | Changes statuses from the old page. Uses `goalsModel.ts` |
 
 ## Open questions
 

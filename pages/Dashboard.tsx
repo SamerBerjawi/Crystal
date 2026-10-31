@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { Page, User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
 import PageHeader from '../components/PageHeader';
+import { liveSeries } from '../utils/scheduleModel';
 import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
@@ -35,7 +36,6 @@ import GoalScenarioModal from '../components/GoalScenarioModal';
 import FinancialGoalCard from '../components/FinancialGoalCard';
 import ConfirmationModal, { useConfirm } from '../components/ConfirmationModal';
 import GoalContributionPlan from '../components/GoalContributionPlan';
-import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import { useIsMobile } from '../hooks/useIsMobile';
 import BudgetModal from '../components/BudgetModal';
@@ -155,7 +155,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { financialGoals, saveFinancialGoal } = useGoalsContext();
   const {
-    recurringTransactions,
+    recurringTransactions: everySeries,
     recurringTransactionOverrides,
     loanPaymentOverrides,
     billsAndPayments,
@@ -271,6 +271,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [aggregateCacheMax]);
 
   // Combine all recurring items (user-defined + synthetic)
+  const recurringTransactions = useMemo(() => liveSeries(everySeries), [everySeries]);
+
   const monthFlow = useMemo(() => {
     const monthPrefix = toLocalISOString(new Date()).slice(0, 7);
     return transactions.reduce((flow, tx) => {

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { liveSeries } from '../utils/scheduleModel';
 import { Account, Transaction } from '../types';
 import {
   convertCurrency,
@@ -34,7 +35,8 @@ interface HistoricalBalanceTrendProps {
 }
 
 const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account, transactions }) => {
-  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
+  const { recurringTransactions: everySeries, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
+  const recurringTransactions = useMemo(() => liveSeries(everySeries), [everySeries]);
   const { financialGoals } = useGoalsContext();
   const { accounts } = useAccountsContext();
   const conversionRates = usePreferencesSelector((p) => p.conversionRates);

@@ -39,6 +39,7 @@ const pageRegistry = {
   Reports: { path: '/reports', loader: () => import('./pages/Reports') },
   Budget: { path: '/budget', loader: () => import('./pages/Budgeting') },
   Forecasting: { path: '/forecasting', loader: () => import('./pages/Forecasting') },
+  Goals: { path: '/goals', loader: () => import('./pages/Goals') },
   Challenges: { path: '/challenges', loader: () => import('./pages/Challenges') },
   Settings: { path: '/settings', loader: () => import('./pages/Settings') },
   'Schedule & Bills': { path: '/schedule', loader: () => import('./pages/Schedule') },
@@ -66,6 +67,7 @@ const Transactions = lazyWithRetry(pageRegistry.Transactions.loader);
 const ReportsPage = lazyWithRetry(pageRegistry.Reports.loader);
 const Budgeting = lazyWithRetry(pageRegistry.Budget.loader);
 const Forecasting = lazyWithRetry(pageRegistry.Forecasting.loader);
+const GoalsPage = lazyWithRetry(pageRegistry.Goals.loader);
 const ChallengesPage = lazyWithRetry(pageRegistry.Challenges.loader);
 const SettingsPage = lazyWithRetry(pageRegistry.Settings.loader);
 const SchedulePage = lazyWithRetry(pageRegistry['Schedule & Bills'].loader);
@@ -2928,6 +2930,7 @@ const App: React.FC = () => {
       case 'Reports': return <ReportsPage setCurrentPage={setCurrentPage} />;
       case 'Budget': return <Budgeting />;
       case 'Forecasting': return <Forecasting />;
+      case 'Goals': return <GoalsPage />;
       case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
       case 'Settings': return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills': return <SchedulePage />;
@@ -2939,7 +2942,7 @@ const App: React.FC = () => {
       case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
       case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} priceHistory={priceHistory} />;
-      case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} setCurrentPage={setCurrentPage} />;
+      case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation': return <Documentation setCurrentPage={setCurrentPage} />;
       case 'Subscriptions': return <SubscriptionsPage />;
       case 'Quotes & Invoices': return <InvoicesPage />;

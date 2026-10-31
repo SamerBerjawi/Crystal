@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import {
   Cell,
   Column,
@@ -95,6 +96,38 @@ export const Row: React.FC<{
   );
   const styles = cn('flex min-h-16 w-full items-center gap-3 px-1 py-2', isSelected && 'bg-primary-soft', className);
   return onPress ? <button type="button" onClick={onPress} className={cn(styles, 'cursor-pointer active:bg-inset')}>{body}</button> : <div className={styles}>{body}</div>;
+};
+
+/** A progress ring that sweeps round on arrival, with its label in the middle. */
+export const ProgressRing: React.FC<{ value: number; size?: number; tone?: 'pine' | 'amber' | 'loss'; label: string; caption?: string }> = ({ value, size = 128, tone = 'pine', label, caption }) => {
+  const radius = 44;
+  const length = 2 * Math.PI * radius;
+  const share = Math.min(100, Math.max(0, value)) / 100;
+  const stroke = { pine: 'var(--primary)', amber: 'var(--amber)', loss: 'var(--money-out)' }[tone];
+  return (
+    <div role="img" aria-label={`${label}${caption ? ` ${caption}` : ''}`} style={{ width: size, height: size }} className="relative shrink-0">
+      <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden="true">
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--inset)" strokeWidth="9" />
+        <motion.circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="9"
+          strokeLinecap="round"
+          strokeDasharray={length}
+          initial={{ strokeDashoffset: length }}
+          animate={{ strokeDashoffset: length * (1 - share) }}
+          transition={{ duration: 1.3, ease: [0.77, 0, 0.175, 1] }}
+        />
+      </svg>
+      <span aria-hidden="true" className="absolute inset-0 flex flex-col items-center justify-center text-ink">
+        <span className="text-[1.3125rem] font-semibold leading-none tracking-[-.01em]">{label}</span>
+        {caption && <span className="type-caption text-muted">{caption}</span>}
+      </span>
+    </div>
+  );
 };
 
 /** A sticky day heading in a phone list, or a subheader above a table section. */

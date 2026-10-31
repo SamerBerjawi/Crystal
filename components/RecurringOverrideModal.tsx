@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
-import Modal from './Modal';
-import { RecurringTransaction, RecurringTransactionOverride, ScheduledItem } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
-import { safeRound } from '../utils';
+import { parseLocalDate, safeRound } from '../utils';
+import type { RecurringTransaction, RecurringTransactionOverride, ScheduledItem } from '../types';
+import { Button } from './ui/Actions';
+import { AmountInput, DateInput, TextInput } from './ui/Fields';
+import { Dialog } from './ui/Overlays';
 
 interface RecurringOverrideModalProps {
   item: ScheduledItem;
@@ -13,101 +13,62 @@ interface RecurringOverrideModalProps {
   recurringTransactionOverrides: RecurringTransactionOverride[];
 }
 
+/** One date in a series: change it, skip it, or put it back (SCH-10). */
 const RecurringOverrideModal: React.FC<RecurringOverrideModalProps> = ({ item, onClose, onSave, onDelete, recurringTransactionOverrides }) => {
-    const existingOverride = recurringTransactionOverrides.find(
-        (o: RecurringTransactionOverride) => o.recurringTransactionId === (item.originalItem as RecurringTransaction).id && o.originalDate === item.originalDateForOverride
-    );
+  const recurringTransactionId = (item.originalItem as RecurringTransaction).id;
+  const originalDate = item.originalDateForOverride!;
+  const existing = recurringTransactionOverrides.find(override => override.recurringTransactionId === recurringTransactionId && override.originalDate === originalDate);
 
-    const [date, setDate] = useState(existingOverride?.date || item.date);
-    const [amount, setAmount] = useState(safeRound(Math.abs(existingOverride?.amount ?? item.amount), 2).toFixed(2));
-    const [description, setDescription] = useState(existingOverride?.description || item.description);
-    const [isSkipped, setIsSkipped] = useState(existingOverride?.isSkipped || false);
+  const startAmount = safeRound(Math.abs(existing?.amount ?? item.amount), 2).toFixed(2);
+  const startDate = existing?.date || item.date;
+  const startDescription = existing?.description || item.description;
+  const [date, setDate] = useState(startDate);
+  const [amount, setAmount] = useState(startAmount);
+  const [description, setDescription] = useState(startDescription);
+  const isSkipped = !!existing?.isSkipped;
+  const sign = item.amount < 0 ? -1 : 1;
 
-    const recurringTransactionId = (item.originalItem as RecurringTransaction).id;
-    const originalDate = item.originalDateForOverride!;
+  const handleSave = () => {
+    onSave({ recurringTransactionId, originalDate, date, amount: sign * safeRound(parseFloat(amount) || 0, 2), description, isSkipped });
+    onClose();
+  };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const newAmount = safeRound(parseFloat(amount) || 0, 2);
-        onSave({
-            recurringTransactionId,
-            originalDate,
-            date,
-            amount: item.amount < 0 ? -newAmount : newAmount,
-            description,
-            isSkipped,
-        });
-        onClose();
-    };
+  const toggleSkip = () => {
+    onSave({ recurringTransactionId, originalDate, isSkipped: !isSkipped, date, amount: existing?.amount ?? sign * safeRound(Math.abs(item.amount), 2), description });
+    onClose();
+  };
 
-    const handleDelete = () => {
-        onDelete(recurringTransactionId, originalDate);
-        onClose();
-    };
+  const originalLabel = parseLocalDate(originalDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 
-    const handleSkipToggle = () => {
-      const shouldSkip = !isSkipped;
-      setIsSkipped(shouldSkip);
-      // Immediately save if skipping/unskipping
-      onSave({
-          recurringTransactionId,
-          originalDate,
-          isSkipped: shouldSkip,
-          // Retain other override data in case they unskip later
-          date: existingOverride?.date || date,
-          amount: existingOverride?.amount !== undefined ? safeRound(existingOverride.amount, 2) : (item.amount < 0 ? -safeRound(parseFloat(amount) || 0, 2) : safeRound(parseFloat(amount) || 0, 2)),
-          description: existingOverride?.description || description,
-      });
-      onClose();
-    };
-
-    const labelStyle = "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5";
-    
-    return (
-        <Modal onClose={onClose} title="Edit Occurrence">
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                    You are editing a single occurrence of "{item.description}". Original date was {originalDate}.
-                </p>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="override-date" className={labelStyle}>Date</label>
-                        <input id="override-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} disabled={isSkipped} />
-                    </div>
-                    <div>
-                        <label htmlFor="override-amount" className={labelStyle}>Amount</label>
-                        <input id="override-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} disabled={isSkipped} />
-                    </div>
-                </div>
-
-                <div>
-                    <label htmlFor="override-description" className={labelStyle}>Description</label>
-                    <input id="override-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} disabled={isSkipped} />
-                </div>
-                
-                <div className="flex justify-between items-center pt-4 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={handleDelete} className={`${BTN_SECONDARY_STYLE} h-11 px-4 text-xs font-bold uppercase tracking-wider text-rose-500 hover:text-rose-600`}>
-                        Revert to Original
-                    </button>
-                    <div className="flex gap-3">
-                        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-5 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
-                        <button type="submit" className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`} disabled={isSkipped}>Save Changes</button>
-                    </div>
-                </div>
-            </form>
-             <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <p className="font-bold text-xs text-light-text dark:text-dark-text">Skip this occurrence</p>
-                        <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary">This will remove the transaction for this date only.</p>
-                    </div>
-                     <button type="button" onClick={handleSkipToggle} className={isSkipped ? `${BTN_SECONDARY_STYLE} h-10 px-4 text-xs font-bold uppercase tracking-wider` : `${BTN_DANGER_STYLE} h-10 px-4 text-xs font-bold uppercase tracking-wider`}>
-                        {isSkipped ? 'Un-skip Occurrence' : 'Skip Occurrence'}
-                    </button>
-                </div>
-             </div>
-        </Modal>
-    );
+  return (
+    <Dialog
+      isOpen
+      onClose={onClose}
+      title={`Change ${item.description}`}
+      description={`Just the payment planned for ${originalLabel}.`}
+      isDirty={date !== startDate || amount !== startAmount || description !== startDescription}
+      footer={close => (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex gap-1">
+            <Button variant="ghost" onPress={toggleSkip}>{isSkipped ? 'Include it' : 'Skip it'}</Button>
+            {existing && <Button variant="ghost" onPress={() => { onDelete(recurringTransactionId, originalDate); onClose(); }}>Put it back</Button>}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" onPress={close}>Cancel</Button>
+            <Button onPress={handleSave}>Save changes</Button>
+          </div>
+        </div>
+      )}
+    >
+      <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
+        <div className="grid grid-cols-2 gap-3">
+          <DateInput label="Date" value={date} onChange={setDate} />
+          <AmountInput label="Amount" value={amount} onChange={setAmount} />
+        </div>
+        <TextInput label="Description" value={description} onChange={setDescription} />
+      </form>
+    </Dialog>
+  );
 };
+
 export default RecurringOverrideModal;

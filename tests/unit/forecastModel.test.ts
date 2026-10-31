@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Account, BillPayment, FinancialGoal, RecurringTransaction } from '../../types';
-import { buildOccurrences, makeConverter } from '../../utils/scheduleModel';
+import { buildOccurrences, iso, makeConverter, moveFuture, moveSeries } from '../../utils/scheduleModel';
 import {
-  chartSeries, daysBelow, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
+  chartSeries, daysBelow, forecastBubbles, horizonSummary, moveSuggestion, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
 } from '../../utils/forecastModel';
 import {
   accountCoverage, goalTree, monthlyTargets, moveGoal, planGoal, projectGoal, summaryRings, emptyGoalDraft,
@@ -176,4 +176,73 @@ test('goal order moves and the goal form', () => {
   assert.equal(planGoal({ ...draft, name: 'Pension', amount: '10', timing: 'ongoing' }).ok, false);
   const bucket = planGoal({ ...draft, name: 'Holidays', category: 'bucket' });
   assert.ok(bucket.ok && bucket.goal.isBucket && bucket.goal.amount === 0);
+});
+
+/* The Forecast page. */
+
+const event = (over: Partial<ForecastEvent>): ForecastEvent => ({
+  key: 'k', date: '2026-11-02', dueDate: '2026-11-02', kind: 'recurring', seriesKey: 's', description: 'Rent', amount: -500,
+  legs: [], native: { amount: -500, currency: 'EUR' }, overdue: false, balanceAfter: 0, ...over,
+});
+const days = (totals: [string, number][]): ForecastDay[] => totals.map(([date, total]) => ({ date, total, byAccount: {}, net: 0, events: [] }));
+
+test('ranges cover days and months, and the saved period maps onto them', () => {
+  assert.equal(iso(rangeEnd('30', TODAY)), '2026-11-28');
+  assert.equal(iso(rangeEnd('6M', TODAY)), '2027-04-29');
+  assert.equal(iso(rangeEnd('EOY', TODAY)), '2026-12-31');
+  assert.equal(rangeFromDuration('3M'), '90');
+  assert.equal(rangeFromDuration('EOY'), 'EOY');
+  assert.equal(rangeFromDuration(undefined), '1Y');
+});
+
+test('bubbles sit in lanes, and only bills and recurring items can move', () => {
+  const bubbles = forecastBubbles([
+    event({ key: 'a' }),
+    event({ key: 'b', amount: 800 }),
+    event({ key: 'c', kind: 'loan' }),
+    event({ key: 'd', amount: 0 }),
+    event({ key: 'e', occurrence: { isReadOnly: true } as ForecastEvent['occurrence'] }),
+  ], false, TODAY);
+  assert.deepEqual(bubbles.map(b => [b.key, b.lane, b.isMovable]), [['a', 'out', true], ['b', 'in', true], ['c', 'fixed', false], ['e', 'out', false]]);
+});
+
+test('long ranges group bubbles by lane and week, and those cannot be dragged', () => {
+  const bubbles = forecastBubbles([event({ key: 'a', date: '2026-11-01' }), event({ key: 'b', date: '2026-11-03', amount: -100 }), event({ key: 'c', date: '2026-11-20' })], true, TODAY);
+  assert.equal(bubbles.length, 2);
+  assert.equal(bubbles[0].amount, 600);
+  assert.equal(bubbles[0].label, '2 items');
+  assert.equal(bubbles[0].isMovable, false);
+  assert.equal(bubbles[1].label, 'Rent');
+});
+
+test('the summary adds what comes in and goes out, and counts days under the buffer', () => {
+  const projection = { start: 100, startByAccount: {}, days: days([['2026-10-29', 100], ['2026-10-30', 40], ['2026-10-31', 90]]), events: [event({ amount: 50 }), event({ amount: -60 })] };
+  const summary = horizonSummary(projection, 50);
+  assert.equal(summary.today, 100);
+  assert.equal(summary.expectedIn, 50);
+  assert.equal(summary.goingOut, -60);
+  assert.equal(summary.end, 90);
+  assert.deepEqual(summary.lowest, { value: 40, date: '2026-10-30' });
+  assert.equal(summary.below.count, 1);
+});
+
+test('a dip under the buffer suggests moving the largest movable payment past the next income', () => {
+  const rent = event({ key: 'rent', date: '2026-11-01', amount: -500 });
+  const loan = event({ key: 'loan', date: '2026-11-01', amount: -900, kind: 'loan' });
+  const pay = event({ key: 'pay', date: '2026-11-05', amount: 2000, kind: 'recurring' });
+  const projection = { start: 100, startByAccount: {}, days: days([['2026-11-01', -10], ['2026-11-05', 1990]]), events: [loan, rent, pay] };
+  assert.deepEqual(moveSuggestion(projection, 0), { event: rent, toDate: '2026-11-06' });
+  assert.equal(moveSuggestion(projection, -100), null);
+});
+
+test('moving a series shifts it, and moving the future splits it', () => {
+  const rt = series({ dueDateOfMonth: 1 });
+  const moved = moveSeries(rt, '2026-11-01', '2026-11-04');
+  assert.equal(moved.nextDueDate, '2026-11-04');
+  assert.equal(moved.dueDateOfMonth, 4);
+  const { ended, started } = moveFuture(rt, '2026-12-01', '2026-12-04');
+  assert.equal(ended.endDate, '2026-11-30');
+  assert.equal(started.startDate, '2026-12-04');
+  assert.equal(started.nextDueDate, '2026-12-04');
+  assert.equal('id' in started, false);
 });

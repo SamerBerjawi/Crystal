@@ -1,19 +1,19 @@
-
-import React, { useState, useMemo } from 'react';
-import { Task, TaskStatus, TaskPriority } from '../types';
-import { BTN_PRIMARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
-import TasksHeatmap from '../components/TasksHeatmap';
+import React, { useMemo, useState } from 'react';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { Task, TaskStatus } from '../types';
+import PageHeader, { type PageStat } from '../components/PageHeader';
 import TaskItem from '../components/TaskItem';
-import ConfirmationModal from '../components/ConfirmationModal';
-import Card from '../components/Card';
-import { parseLocalDate } from '../utils';
 import TaskModal from '../components/TaskModal';
-import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
-import HeaderButton from '../components/HeaderButton';
-import HeroMetricCard from '../components/ui/HeroMetricCard';
-import MetricCardRow from '../components/ui/MetricCardRow';
-import EmptyState from '../components/EmptyState';
-import Icon from '../components/ui/Icon';
+import TasksHeatmap from '../components/TasksHeatmap';
+import { Button } from '../components/ui/Actions';
+import { CountPill } from '../components/ui/Display';
+import { ConfirmDialog } from '../components/ui/Overlays';
+import { Select } from '../components/ui/Pickers';
+import SegmentedControl from '../components/ui/SegmentedControl';
+import { EmptyState } from '../components/ui/States';
+import { placeTask, sortTasks, statusAfterTick, taskStats, type TaskSort } from '../utils/tasksModel';
 
 interface TasksProps {
   tasks: Task[];
@@ -23,351 +23,121 @@ interface TasksProps {
   setTaskOrder: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-const PRIORITY_ORDER: Record<TaskPriority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
-const STATUS_ORDER: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
+type Filter = 'all' | TaskStatus;
 
-const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder, setCurrentPage }) => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('priority-desc');
-    const [justCompletedTaskId, setJustCompletedTaskId] = useState<string | null>(null);
-    const [draggedItem, setDraggedItem] = useState<Task | null>(null);
-    const [dragOverItem, setDragOverItem] = useState<Task | null>(null);
-    
-    // Delete Confirmation State
-    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
+const STATUSES: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
+const VIEWS = [{ id: 'list', label: 'List' }, { id: 'board', label: 'Board' }];
+const FILTERS = [{ id: 'all', label: 'All' }, ...STATUSES.map(id => ({ id, label: id }))];
+const SORTS = [{ id: 'priority', label: 'Priority' }, { id: 'due', label: 'Due date' }, { id: 'manual', label: 'Your order' }];
 
-    // Derived Statistics
-    const stats = useMemo(() => {
-        const total = tasks.length;
-        const completed = tasks.filter(t => t.status === 'Done').length;
-        const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-        const pendingHigh = tasks.filter(t => t.priority === 'High' && t.status !== 'Done').length;
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const next7Days = new Date(today);
-        next7Days.setDate(today.getDate() + 7);
+const SortableTask: React.FC<{ task: Task; canDrag: boolean; row: (handle?: React.ReactNode) => React.ReactNode }> = ({ task, canDrag, row }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: !canDrag });
+  const handle = canDrag ? <span {...attributes} {...listeners} aria-label={`Move ${task.title}`} className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center text-muted">⠿</span> : undefined;
+  return <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}>{row(handle)}</li>;
+};
 
-        const dueSoon = tasks.filter(t => {
-            if (t.status === 'Done' || !t.dueDate) return false;
-            const d = parseLocalDate(t.dueDate);
-            return d >= today && d <= next7Days;
-        }).length;
+/** A checklist of what's on your plate (Rapport's Today), with a board view too. */
+const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder }) => {
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sort, setSort] = useState<TaskSort>('priority');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [view, setView] = useState('list');
 
-        return { total, completed, rate, pendingHigh, dueSoon };
-    }, [tasks]);
+  const today = useMemo(() => new Date(), []);
+  const stats = useMemo(() => taskStats(tasks, today), [tasks, today]);
+  const sorted = useMemo(() => sortTasks(tasks, sort, taskOrder), [tasks, sort, taskOrder]);
+  const shown = useMemo(() => (filter === 'all' ? sorted : sorted.filter(task => task.status === filter)), [sorted, filter]);
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-    const handleOpenModal = (task?: Task) => {
-        setEditingTask(task || null);
-        setIsModalOpen(true);
-    };
+  const openForm = (task?: Task) => {
+    setEditingTask(task ?? null);
+    setFormOpen(true);
+  };
 
-    const handleSave = (taskData: Omit<Task, 'id'> & { id?: string }) => {
-        const originalTask = tasks.find(t => t.id === taskData.id);
-        if (originalTask && originalTask.status !== 'Done' && taskData.status === 'Done' && taskData.id) {
-            setJustCompletedTaskId(taskData.id);
-            setTimeout(() => {
-                setJustCompletedTaskId(null);
-            }, 1000); // Duration matches the animation
-        }
-        saveTask(taskData);
-        setIsModalOpen(false);
-    };
-    
-    const handleDeleteRequest = (id: string) => {
-        setTaskToDeleteId(id);
-        setIsDeleteConfirmOpen(true);
-    };
+  const tick = (task: Task) => saveTask({ ...task, status: statusAfterTick(task) });
+  const move = (task: Task, status: TaskStatus) => saveTask({ ...task, status });
 
-    const handleConfirmDelete = () => {
-        if (taskToDeleteId) {
-            deleteTask(taskToDeleteId);
-            setIsDeleteConfirmOpen(false);
-            setIsModalOpen(false);
-            setTaskToDeleteId(null);
-        }
-    };
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over) return;
+    setTaskOrder(placeTask(sorted.map(task => task.id), String(active.id), String(over.id)));
+  };
 
-    const groupedAndSortedTasks = useMemo(() => {
-        const grouped = tasks.reduce((acc, task) => {
-            (acc[task.status] = acc[task.status] || []).push(task);
-            return acc;
-        }, {} as Record<TaskStatus, Task[]>);
+  const row = (task: Task, handle?: React.ReactNode) => (
+    <TaskItem task={task} today={today} onEdit={openForm} onTick={tick} onMove={move} onDelete={setDeletingId} reorder={handle} />
+  );
 
-        for (const status in grouped) {
-            grouped[status as TaskStatus].sort((a, b) => {
-                if (sortBy === 'manual') {
-                    const aIndex = taskOrder.indexOf(a.id);
-                    const bIndex = taskOrder.indexOf(b.id);
-                    if (aIndex === -1 && bIndex === -1) return 0;
-                    if (aIndex === -1) return 1;
-                    if (bIndex === -1) return -1;
-                    return aIndex - bIndex;
-                }
-                if (sortBy === 'priority-desc') {
-                    return PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority];
-                }
-                if (sortBy === 'dueDate-asc') {
-                    if (!a.dueDate) return 1;
-                    if (!b.dueDate) return -1;
-                    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-                }
-                return 0;
-            });
-        }
-        return grouped;
-    }, [tasks, sortBy, taskOrder]);
-    
-    const handleDragStart = (e: React.DragEvent, task: Task) => {
-        setDraggedItem(task);
-        e.dataTransfer.effectAllowed = 'move';
-    };
+  const pageStats: PageStat[] = [
+    { label: 'Open tasks', icon: 'task', value: stats.open, ...(stats.pendingHigh ? { badge: `${stats.pendingHigh} high`, badgeTone: 'tomato' as const } : {}) },
+    { label: 'Due in 7 days', icon: 'schedule', value: stats.dueSoon, ...(stats.overdue ? { badge: `${stats.overdue} overdue`, badgeTone: 'butter' as const } : {}) },
+    { label: 'Completed', icon: 'check_circle', value: stats.rate, format: 'percent' },
+  ];
 
-    const handleDragOver = (e: React.DragEvent, task: Task) => {
-        e.preventDefault();
-        if (draggedItem && draggedItem.id !== task.id && draggedItem.status === task.status) {
-            setDragOverItem(task);
-        }
-    };
+  return (
+    <div className="space-y-6 pb-8 max-md:space-y-4">
+      <PageHeader title="Tasks" stats={pageStats} className="!mb-0" actions={<Button icon="add" onPress={() => openForm()}>New task</Button>} />
 
-    const handleDragLeave = () => {
-        setDragOverItem(null);
-    };
-
-    const handleDragEnd = () => {
-        setDraggedItem(null);
-        setDragOverItem(null);
-    };
-
-    const handleDrop = (targetTask: Task) => {
-        if (!draggedItem || draggedItem.id === targetTask.id || draggedItem.status !== targetTask.status) {
-            handleDragEnd();
-            return;
-        }
-
-        const currentOrder = [...taskOrder];
-        const draggedId = draggedItem.id;
-        
-        const newOrder = currentOrder.filter(id => id !== draggedId);
-        
-        const targetIndex = newOrder.indexOf(targetTask.id);
-
-        if (targetIndex !== -1) {
-            newOrder.splice(targetIndex, 0, draggedId);
-            setTaskOrder(newOrder);
-        }
-        handleDragEnd();
-    };
-
-    return (
-        <div className="w-full pb-24 space-y-12 animate-fade-in-up px-4">
-            {isModalOpen && (
-                <TaskModal 
-                    task={editingTask} 
-                    onSave={handleSave} 
-                    onClose={() => setIsModalOpen(false)} 
-                    onDelete={handleDeleteRequest} 
-                />
-            )}
-            
-            <ConfirmationModal 
-                isOpen={isDeleteConfirmOpen}
-                onClose={() => setIsDeleteConfirmOpen(false)}
-                onConfirm={handleConfirmDelete}
-                title="Delete Task"
-                message="Are you sure you want to delete this task? This action cannot be undone."
-                confirmButtonText="Delete"
-                confirmButtonVariant="danger"
-            />
-
-            {/* Header */}
-            <SettingsSubpageHeader
-                accentColor="indigo"
-                markerIcon="check_circle"
-                markerLabel="Operational Protocols"
-                title="Tasks"
-                stats={[
-                  { label: 'Open tasks', icon: 'task', value: stats.total - stats.completed },
-                  { label: 'Due in 7 days', icon: 'schedule', value: stats.dueSoon },
-                  { label: 'Completed', icon: 'check_circle', value: stats.rate, format: 'percent' },
-                ]}
-                setCurrentPage={setCurrentPage}
-                actions={
-                    <HeaderButton
-                        variant="primary"
-                        icon="PlusCircle"
-                        onClick={() => handleOpenModal()}
-                    >
-                        New Task
-                    </HeaderButton>
-                }
-            />
-            
-            {/* Productivity Metrics */}
-            <MetricCardRow columns={4}>
-                <HeroMetricCard 
-                    variant="primary"
-                    label="Completion Matrix" 
-                    value={`${stats.rate}%`} 
-                    subtext={`${stats.completed} nodes verified`} 
-                    icon="check_circle" 
-                    iconColor="blue"
-                    badgeText={`${stats.completed}/${stats.total}`}
-                    badgeVariant="optimal"
-                />
-                <HeroMetricCard 
-                    variant="secondary"
-                    label="Priority Signals" 
-                    value={stats.pendingHigh} 
-                    subtext="Critical latency items" 
-                    icon="alert_circle" 
-                    iconColor={stats.pendingHigh > 0 ? "rose" : "emerald"}
-                    badgeText={stats.pendingHigh > 0 ? `${stats.pendingHigh} High` : 'Clear'}
-                    badgeVariant={stats.pendingHigh > 0 ? "elevated" : "optimal"}
-                />
-                <HeroMetricCard 
-                    variant="secondary"
-                    label="Temporal Window" 
-                    value={stats.dueSoon} 
-                    subtext="Due in 7-day cycle" 
-                    icon="Hourglass01" 
-                    iconColor="amber"
-                />
-                <HeroMetricCard 
-                    variant="secondary"
-                    label="Active Workload" 
-                    value={stats.total - stats.completed} 
-                    subtext="Unreconciled nodes" 
-                    icon="bar_chart" 
-                    iconColor="purple"
-                />
-            </MetricCardRow>
-
-            {/* Controls Bar */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6 px-2">
-                <div className="flex items-center gap-3">
-                    <div className="w-2 h-6 bg-primary-500 rounded-full"></div>
-                    <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight opacity-60">Execution Queue</h3>
-                </div>
-                
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                     <div className="relative flex-grow min-w-[200px]">
-                        <select 
-                            aria-label="Sort tasks"
-                            value={sortBy} 
-                            onChange={e => setSortBy(e.target.value as any)} 
-                            className="w-full glass-tile rounded-2xl px-4 py-3 text-xs font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-card"
-                        >
-                            <option value="manual">Manual order</option>
-                            <option value="priority-desc">Priority</option>
-                            <option value="dueDate-asc">Due date</option>
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                            <Icon name="sliders" className="text-lg" />
-                        </div>
-                    </div>
-                </div>
+      {tasks.length === 0 ? (
+        <EmptyState icon="task" title="No tasks yet" description="Keep financial to-dos, tax deadlines and reminders in one place." actionLabel="New task" onAction={() => openForm()} />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="flex flex-wrap items-end gap-3">
+              {view === 'list' && <SegmentedControl items={FILTERS} activeId={filter} onChange={id => setFilter(id as Filter)} scrollable />}
+              <Select className="w-44" label="Sort by" options={SORTS} value={sort} onChange={id => setSort(id as TaskSort)} />
             </div>
+            <span className="max-md:hidden"><SegmentedControl items={VIEWS} activeId={view} onChange={setView} /></span>
+          </div>
 
-            {/* Heatmap Section */}
-            <section className="space-y-6">
-                <div className="flex items-center gap-3 px-2">
-                    <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Temporal Density</h3>
-                </div>
-                <div className="w-full overflow-x-auto flex justify-center py-2">
-                    <TasksHeatmap tasks={tasks} />
-                </div>
+          {view === 'board' ? (
+            <div className="no-scrollbar -mx-1 flex gap-4 overflow-x-auto px-1 pb-1 lg:grid lg:grid-cols-3">
+              {STATUSES.map(status => {
+                const column = sorted.filter(task => task.status === status);
+                return (
+                  <section key={status} aria-label={status} className="surface-card w-80 shrink-0 self-start rounded-[var(--radius-xl)] p-4 lg:w-auto">
+                    <h2 className="type-card-title flex items-center gap-2 text-ink">{status} <CountPill count={column.length} /></h2>
+                    {column.length ? <ul className="mt-1 divide-y divide-line">{column.map(task => <li key={task.id}>{row(task)}</li>)}</ul> : <p className="type-body mt-2 text-muted">Nothing here.</p>}
+                  </section>
+                );
+              })}
+            </div>
+          ) : (
+            <section aria-label="Tasks" className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
+              {shown.length === 0 ? (
+                <p className="type-body text-muted">Nothing here.</p>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={shown.map(task => task.id)} strategy={verticalListSortingStrategy}>
+                    <ul className="divide-y divide-line">
+                      {shown.map(task => <SortableTask key={task.id} task={task} canDrag={sort === 'manual'} row={handle => row(task, handle)} />)}
+                    </ul>
+                  </SortableContext>
+                </DndContext>
+              )}
             </section>
+          )}
 
-            {/* Kanban Board */}
-            {tasks.length === 0 ? (
-                <EmptyState
-                    icon="task"
-                    title="No Tasks Found"
-                    description="Organize your financial to-dos, tax deadlines, and bill payment reminders in one place."
-                    actionLabel="Create First Task"
-                    onAction={() => handleOpenModal()}
-                />
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                {STATUS_ORDER.map(status => {
-                    const tasksInColumn = groupedAndSortedTasks[status] || [];
-                    const statusColorMap: Record<TaskStatus, string> = {
-                        'To Do': 'bg-slate-500',
-                        'In Progress': 'bg-blue-500',
-                        'Done': 'bg-emerald-500'
-                    };
-                    
-                    return (
-                        <div key={status} className="space-y-6">
-                            <header className="flex justify-between items-center px-4">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-2 h-2 rounded-full ${statusColorMap[status]}`}></div>
-                                    <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">
-                                        {status}
-                                    </h3>
-                                    <span className="text-xs font-semibold bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-lg text-light-text-secondary dark:text-dark-text-secondary">
-                                        {tasksInColumn.length}
-                                    </span>
-                                </div>
-                                {status === 'To Do' && (
-                                    <button aria-label="Add task" onClick={() => handleOpenModal()} className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all">
-                                        <Icon name="add" className="text-lg" />
-                                    </button>
-                                )}
-                            </header>
-                            
-                            <div className="space-y-4 min-h-[400px]">
-                                {tasksInColumn.length === 0 ? (
-                                    <div className="h-40 border-2 border-dashed border-black/5 dark:border-white/5 rounded-[2rem] flex flex-col items-center justify-center gap-2 opacity-20">
-                                        <Icon name="task_alt" className="text-3xl" />
-                                        <span className="text-xs font-semibold uppercase tracking-wider">Queue Clear</span>
-                                    </div>
-                                ) : (
-                                    tasksInColumn.map(task => {
-                                        const isDraggable = sortBy === 'manual' && (task.status === 'To Do' || task.status === 'In Progress');
-                                        const isBeingDragged = draggedItem?.id === task.id;
-                                        const isDragOver = dragOverItem?.id === task.id;
-                                        
-                                        return (
-                                            <div
-                                                key={task.id}
-                                                className={`transition-all duration-300 ${isDragOver ? 'pt-4' : ''}`}
-                                                onDragOver={(e) => isDraggable && handleDragOver(e, task)}
-                                                onDrop={() => isDraggable && handleDrop(task)}
-                                                onDragLeave={isDraggable ? handleDragLeave : undefined}
-                                            >
-                                                {isDragOver && (
-                                                    <div className="h-24 border-2 border-dashed border-primary-500/20 rounded-3xl mb-4 bg-primary-500/5 animate-pulse"></div>
-                                                )}
-                                                <div
-                                                    draggable={isDraggable}
-                                                    onDragStart={(e) => isDraggable && handleDragStart(e, task)}
-                                                    onDragEnd={isDraggable ? handleDragEnd : undefined}
-                                                    className={`${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isBeingDragged ? 'opacity-40 scale-95 blur-sm' : ''}`}
-                                                >
-                                                    <TaskItem 
-                                                        task={task} 
-                                                        onEdit={handleOpenModal} 
-                                                        isJustCompleted={task.id === justCompletedTaskId}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-            )}
+          <section aria-label="Tasks by date" className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
+            <h2 className="type-card-title text-ink">The year ahead</h2>
+            <TasksHeatmap tasks={tasks} />
+          </section>
+        </>
+      )}
 
-        </div>
-    );
+      {isFormOpen && <TaskModal task={editingTask} onSave={data => { saveTask(data); setFormOpen(false); }} onClose={() => setFormOpen(false)} onDelete={setDeletingId} />}
+
+      <ConfirmDialog
+        isOpen={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={() => { if (deletingId) deleteTask(deletingId); setDeletingId(null); setFormOpen(false); }}
+        title="Delete this task?"
+        message="You can't undo this."
+        confirmLabel="Delete task"
+        isDestructive
+      />
+    </div>
+  );
 };
 
 export default Tasks;

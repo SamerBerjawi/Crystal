@@ -16,7 +16,7 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 3 | Overview | Summary, hero, Needs you, Safe to spend, grid | Done |
 | 4 | Accounts | Hub tabs, account frame, one account form | Done |
 | 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Done, with the detail panel left |
-| 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Not started |
+| 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Done, on `feat/redesign-rapport-look`, uncommitted |
 | 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Not started |
 | 8 | Reports | Reports, Invoices, Challenges | Not started |
 | 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Not started |
@@ -278,3 +278,59 @@ Phase 10 (final QA) follows module 13.
 - `PageHeader` takes `stats` and owns the title and figure animation. `CountUp` in `Money.tsx` handles non-currency figures. Chart timing lives in `src/components/charts/animation.ts`, with `LINE_MOTION`, `BAR_MOTION` and `ARC_MOTION` for the Recharts charts.
 - Pages without figures: the settings subpages keep title only. Old screens can repeat a figure in their own cards until they're rebuilt. Account detail keeps its own hero (`D-038`).
 - Recharts can't copy Rapport's bar stagger or exact easing curves, so those charts use the nearest built-in easing.
+
+### Module 6: Planning
+
+Built so far: Budget. One responsive page replaces `MobileBudgetView` and `QuickBudgetModal`.
+
+- Rivet's layout (`D-015`): ring and sentence, then category rows with a pace tick, filters for All, Near or over and No cap, and sorting. `BudgetRow`, `ProgressRing` and a shorter `BudgetModal` are new or rebuilt.
+- Quick budget is a menu with the four periods, your default first, then a confirmation.
+- Budget's spending figures keep the old page's calculation. `spendByCategory` in `budgetModel.ts` also nets refunds, and switching to it would change the numbers.
+- `BudgetModal` showed a notes field that never saved, so it's gone. The old Watchlist is now the Near or over filter.
+- Checked at 1440×900, 768×1024 and 390×844 in dark: no overflow, phone targets at 44 px or more, filters, month change and the edit form work. Saving a budget, Quick budget and delete weren't run in the browser, and light theme wasn't seen.
+
+Goals is its own page at `/goals`, between Forecast and Calendar (`D-017`, `D-042`).
+
+- `goalsModel.ts`, `forecastModel.ts` and `scheduleModel.ts` already existed, tested but unused by any page. Goals now uses `goalsModel.ts`, with `goalCardView`, `planLine`, `monthlyNeed` and `completionChanges` added. Forecast and Calendar should build on the other two.
+- `GoalCard` follows Rivolo: ring, saved, target, months left, and a line on what a month gets you. Buckets expand. Table view, by-bucket grouping, account filter, include in forecast, include all, reorder and monthly targets all stay. Reorder has a drag handle and arrows for touch.
+- `GoalScenarioModal` and `GoalTable` are rebuilt, keeping their file names. Goal totals never mix saving, spending and income.
+- Rivolo's Add money and Move back aren't built, because Crystal has no such function.
+- The Forecast page's goals section and phone Goals tab are gone. `FinancialGoalCard` stays until the Forecast rebuild, which also removes its old projection code.
+- Checked at 1440×900 in dark: cards, table, bucket expand, saving an edit, the include switch, include all and monthly targets. Phone and tablet widths have no overflow. Drag reorder, delete, duplicate, and creating a goal or bucket weren't run in the browser. Light theme wasn't seen.
+
+Forecast is rebuilt on `forecastModel.ts` and `scheduleModel.ts` (`D-010`, `D-090` to `D-092`), as one responsive page. `MobileForecastView` and `ForecastChart` are gone.
+
+- `ForecastHorizonChart`: the line, buffer, lowest point, In, Out and Fixed bubble lanes, day hover, a 1.4 s wipe, goal markers and a by-account view. Bills drag, with left and right arrows then Enter from the keyboard. Long ranges group by week and can't be dragged.
+- Panels: What moves the line, buffer status with a move suggestion, Cash buffer, Biggest ahead and Low points. `ForecastDayPanel` opens a day or bubble, with a date field for moving. `ForecastList` marks the lowest day overall and in each month. Phones get the chart without bubbles, above the list.
+- The Scenario Playground is removed (`D-010`).
+- Figures now come from `projectBalances`, not `generateBalanceForecast`. Overdue items land on today, so the demo's 1-year low went from −€311.75 to −€694.75. Overview's Forecast widget still uses the old engine and can disagree until it moves over.
+- Checked at 1440×900 in dark: a real drag and Just this one, the buffer warning, day panel, list, and the 90-day and 1-year ranges. Phone and tablet have no overflow. This one and later, The whole series, the move suggestion button, keyboard moves and by-account lines have unit tests or none in the browser. Light theme wasn't seen.
+
+Calendar is rebuilt on `scheduleModel.ts` as one responsive page with four tabs. `MobileScheduleView` and `ScheduledItemRow` are gone.
+
+- Calendar: day bars for the next 30 days, a year heatmap behind a toggle (`D-033`), the month grid and a day panel beside it (`D-007`). Phones get a week strip and the day below. Goals show on their dates.
+- Upcoming: overdue, today, next 7 days, then months, with search, a money filter and the overdue filter. Scheduled: Income, Spending, Transfers, From your accounts and Ended (`D-043`). Archive: expired bills, with restore, mark as paid and delete.
+- `OccurrenceRow` has Post, plus a menu for edit, skip, end series, expire and delete. `RecurringTransactionModal`, `RecurringOverrideModal` and `EditRecurrenceModal` are rebuilt, keeping their names.
+- Overdue recurring items still look back 7 days. A skipped overdue item leaves the list, so the toast has Undo. Posting uses `nextDueAfterPaying`, which keeps earlier unpaid dates open.
+- `CalendarView` and `ScheduleHeatmap` remain for Overview.
+- Checked at 1440×900 in dark: month grid, selecting a day, month change, heatmap, Upcoming, opening Post, one-date edit, skip with Undo, adding a one-time bill, Scheduled and Archive. Phone and tablet have no overflow, and phone targets are 44 px or more. Saving a posted transaction, This one and later, End series, delete, restore, saving a recurring item and light theme weren't run in the browser.
+
+Subscriptions is rebuilt as one responsive page (`D-028`, `D-093`). `MobileSubscriptionsView` is gone.
+
+- New `utils/subscriptionsModel.ts` with tests: detection moved over unchanged, plus totals, renewals, and pause, resume and cancel.
+- Tabs: Active, with subscriptions found in transactions, the 30-day renewal line (a list on phones) and service cards; Paused & cancelled, with Saved by pausing; Wallet, with cards grouped by category. `LoyaltyCard` and `MembershipModal` are rebuilt.
+- `pausedAt` is a new optional field on recurring items. The server schema already passes unknown fields through, so no backend change. `liveSeries` leaves paused items out of the Calendar, Forecast, Overview, account pages, bill reminders and bill matching.
+- Saving merges into the old record, so clearing a field means saving it as `undefined`, not leaving it out. `resumeService` and Undo do this, and a test guards it.
+- Monthly totals now use `monthlyEquivalent`, the same as the Calendar, so weekly and biweekly items differ slightly from before.
+- Mark as cancelled sets an end date. Rivet's Trim nudge isn't built.
+- Checked at 1440×900 in dark: pause, its effect on Calendar and Forecast, resume, cancel with Undo, the Wallet and the add card form. Phone and tablet have no overflow. Track and Ignore weren't run, because the demo has nothing to detect, and they have unit tests. Saving a card, delete and light theme weren't run.
+
+Tasks is rebuilt as one responsive page, on a new `utils/tasksModel.ts` with tests.
+
+- A checklist in Rapport's style: tick to finish, with filters by status, sort by priority, due date or your order. A Board view stays on tablet and desktop. `TaskItem` and `TaskModal` are rebuilt, and `TasksHeatmap` is now a plain grid, because the chart library drew its cells at zero opacity.
+- Tasks left the Settings breadcrumb, because it sits in Planning (`D-017`).
+- The heatmap shows open tasks only, and the four summary cards are now the header KPIs.
+- Drag to reorder works in Your order, on the list, and moves between statuses are in each task's menu.
+- Checked at 1440×900 in dark: tick and untick, add, delete, filter and board. Phone and tablet have no overflow. Drag reorder, editing and light theme weren't run in the browser.
+
+Module 6 is complete. Tasks, Forecast and Calendar were seen in light at 1440×900. Budget, Goals and Subscriptions weren't. Overview's forecast widget still uses the old engine, and `FinancialGoalCard`, `CalendarView`, `ScheduleHeatmap` and `ForecastOverview` stay for Overview until Module 13 or an Overview pass.

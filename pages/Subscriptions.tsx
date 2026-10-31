@@ -1,920 +1,263 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
-import { RecurringTransaction, Transaction, RecurrenceFrequency, Currency, Membership } from '../types';
-import { formatCurrency, convertToEur, parseLocalDate, toLocalISOString } from '../utils';
-import Card from '../components/Card';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
-import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import React, { useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import type { Membership, RecurringTransaction } from '../types';
+import { convertToEur, parseLocalDate } from '../utils';
 import MembershipModal from '../components/MembershipModal';
 import LoyaltyCard from '../components/LoyaltyCard';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
-import { useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import PageHeader, { type PageStat } from '../components/PageHeader';
-import HeaderButton from '../components/HeaderButton';
-import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
-import { motion, AnimatePresence } from 'motion/react';
-import { useConfirm } from '../components/ConfirmationModal';
-import Icon from '../components/ui/Icon';
-import { BentoCard, BentoGrid } from '../components/ui/bento-grid';
+import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import RenewalTimeline from '../components/RenewalTimeline';
+import ServiceCard, { BrandMark } from '../components/ServiceCard';
+import { Button } from '../components/ui/Actions';
+import { Badge } from '../components/ui/Display';
+import { Amount } from '../components/ui/Money';
+import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
-import { MobileSubscriptionsView } from '../components/MobileSubscriptionsView';
+import { EmptyState } from '../components/ui/States';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useCategoryContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { nextDates } from '../utils/scheduleModel';
+import {
+  cancelService, detectSubscriptions, expiringCards, pauseService, renewals, resumeService, savedByPausing, seriesFromDetected, serviceStatus, serviceTotals, services,
+  type DetectedSubscription,
+} from '../utils/subscriptionsModel';
 
-// --- Helper Types for Detection ---
-interface DetectedSubscription {
-  key: string; // Normalized name
-  merchant: string;
-  amount: number;
-  frequency: RecurrenceFrequency;
-  confidence: 'high' | 'medium';
-  averageDay: number;
-  lastDate: string;
-  occurrences: number;
-  accountId: string;
-  currency: Currency;
-}
+type Tab = 'active' | 'stopped' | 'wallet';
+type SeriesDraft = Omit<RecurringTransaction, 'id'> & { id?: string };
 
-const normalizeString = (str: string) => {
-    if (!str) return '';
-    // 1. Lowercase
-    let clean = str.toLowerCase();
-    
-    // 2. Remove common transaction prefixes/gateway noise
-    clean = clean.replace(/^(paypal\s*\*|stripe\s*\*|sq\s*\*|apple\s+bill\s*|google\s*\*|amzn\s*\*|amazon\s*\*|g\.co\/helppay#?)/g, '');
-    
-    // 3. Remove card numbers and ending details (e.g. *1234, x1234, ending in 1234)
-    clean = clean.replace(/(ending\s+in\s+\d+|[\s*-]*[x*]+\d{2,4}\b)/g, '');
-    
-    // 4. Remove transaction reference codes and dates (e.g. #12345, 12-34, 20240401)
-    clean = clean.replace(/(#[a-z0-9_-]+|\b\d{4}-\d{2}-\d{2}\b|\b\d{2}\/\d{2}\/\d{4}\b|\b\d{8,}\b)/g, '');
-    
-    // 5. Remove common corporate suffixes at the end of words or strings
-    clean = clean.replace(/\b(inc|llc|ltd|corp|gmbh|co|com|net|org|srl|sas|se|nl|de|fr|uk|holding|holdings|services|group|pay|payment|bill|billing|subscription|member|membership)\b/g, '');
-    
-    // 6. Keep only a-z and 0-9 to normalize
-    clean = clean.replace(/[^a-z0-9]/g, '');
-    
-    return clean.trim();
-};
+const convert = (amount: number, currency: Parameters<typeof convertToEur>[1]) => convertToEur(amount, currency);
+const FREQUENCY_LABEL: Record<string, string> = { daily: 'Daily', weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', yearly: 'Yearly' };
+const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-const calculateFrequency = (intervals: number[]): RecurrenceFrequency | null => {
-    if (intervals.length === 0) return null;
-    
-    const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    // Standard deviation to ensure consistency
-    const variance = intervals.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / intervals.length;
-    const stdDev = Math.sqrt(variance);
-
-    // Set variable tolerances based on subscription frequency average interval (in days)
-    // - Daily: avg ~1 day, max stdDev = 0.5
-    // - Weekly: avg ~7 days, max stdDev = 2.5 (allows 1-2 days weekend shifts)
-    // - Biweekly: avg ~14 days, max stdDev = 3.5 (allows weekend shifts)
-    // - Monthly: avg ~30 days, max stdDev = 6.0 (allows variable month lengths + weekends)
-    // - Yearly: avg ~365 days, max stdDev = 15.0
-    let maxStdDev = 5;
-    if (avg >= 0.8 && avg <= 1.5) maxStdDev = 0.5;
-    else if (avg >= 5 && avg <= 9) maxStdDev = 2.5;
-    else if (avg >= 12 && avg <= 16) maxStdDev = 3.5;
-    else if (avg >= 25 && avg <= 35) maxStdDev = 6.0;
-    else if (avg >= 350 && avg <= 380) maxStdDev = 15.0;
-
-    if (stdDev > maxStdDev) return null;
-
-    if (avg >= 0.8 && avg <= 1.5) return 'daily';
-    if (avg >= 5.5 && avg <= 8.5) return 'weekly';
-    if (avg >= 12 && avg <= 16) return 'biweekly';
-    if (avg >= 25 && avg <= 35) return 'monthly';
-    if (avg >= 350 && avg <= 380) return 'yearly';
-    
-    return null;
-};
-
-type SubscriptionSegment = 'all' | 'recurring' | 'loyalty';
-
+/** Services and cards in one place (D-028). Pausing changes what Crystal counts, and cancels nothing with the provider (D-093). */
 const Subscriptions: React.FC = () => {
-    const isMobile = useIsMobile();
-    const { transactions } = useTransactionsContext();
-    const { accounts } = useAccountsContext();
-    const { confirm, ConfirmDialog } = useConfirm();
-    const { 
-        recurringTransactions, 
-        saveRecurringTransaction, 
-        deleteRecurringTransaction,
-        memberships,
-        saveMembership,
-        deleteMembership
-    } = useScheduleContext();
-    const { incomeCategories, expenseCategories } = useCategoryContext();
-    const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-    const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-    
-    const [ignoredSubscriptions, setIgnoredSubscriptions] = useLocalStorage<string[]>('ignored-subscriptions', []);
-    const [detectedSubscriptions, setDetectedSubscriptions] = useState<DetectedSubscription[]>([]);
-    const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
-    
-    const [activeSegment, setActiveSegment] = useState<SubscriptionSegment>('all');
+  const { transactions } = useTransactionsContext();
+  const { accounts } = useAccountsContext();
+  const { recurringTransactions, saveRecurringTransaction, deleteRecurringTransaction, memberships, saveMembership, deleteMembership } = useScheduleContext();
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const isPhone = useIsMobile();
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [subscriptionToEdit, setSubscriptionToEdit] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
+  const today = useMemo(() => new Date(), []);
+  const [tab, setTab] = useState<Tab>('active');
+  const [ignored, setIgnored] = useLocalStorage<string[]>('ignored-subscriptions', []);
+  const [editing, setEditing] = useState<SeriesDraft | null>(null);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [isCardFormOpen, setCardFormOpen] = useState(false);
+  const [cardToEdit, setCardToEdit] = useState<Membership | null>(null);
+  const [stopping, setStopping] = useState<RecurringTransaction | null>(null);
+  const [deletingCard, setDeletingCard] = useState<Membership | null>(null);
 
-    const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
-    const [membershipToEdit, setMembershipToEdit] = useState<Membership | null>(null);
+  const detected = useMemo(() => detectSubscriptions(transactions, recurringTransactions, ignored, today), [transactions, recurringTransactions, ignored, today]);
 
-    // --- 1. Detection Logic ---
-    useEffect(() => {
-        const detect = () => {
-            const groups: Record<string, Transaction[]> = {};
-            const expenseTransactions = transactions.filter(t => t.type === 'expense' && !t.transferId);
+  const allServices = useMemo(() => services(recurringTransactions), [recurringTransactions]);
+  const active = useMemo(() => allServices.filter(item => serviceStatus(item, today) === 'active'), [allServices, today]);
+  const paused = useMemo(() => allServices.filter(item => serviceStatus(item, today) === 'paused'), [allServices, today]);
+  const cancelled = useMemo(() => allServices.filter(item => serviceStatus(item, today) === 'cancelled'), [allServices, today]);
+  const stopped = [...paused, ...cancelled];
 
-            // Group by normalized merchant/description
-            expenseTransactions.forEach(tx => {
-                const targetStr = tx.merchant || tx.description;
-                let key = normalizeString(targetStr);
-                if (key.length < 3) {
-                    // Fallback to simpler normalization of description if it was too aggressively cleaned
-                    key = tx.description.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12);
-                }
-                if (key.length >= 3) {
-                    if (!groups[key]) groups[key] = [];
-                    groups[key].push(tx);
-                }
-            });
+  const totals = useMemo(() => serviceTotals(active, today, convert), [active, today]);
+  const coming = useMemo(() => renewals(active, today, convert), [active, today]);
+  const saved = useMemo(() => savedByPausing(paused, convert), [paused]);
+  const expiring = useMemo(() => expiringCards(memberships, today), [memberships, today]);
 
-            const candidates: DetectedSubscription[] = [];
-            const today = new Date();
+  const cardGroups = useMemo(() => {
+    const groups = new Map<string, Membership[]>();
+    memberships.forEach(card => {
+      const category = card.category || 'Other';
+      groups.set(category, [...(groups.get(category) ?? []), card]);
+    });
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [memberships]);
 
-            Object.entries(groups).forEach(([key, groupTxs]) => {
-                // Need at least 2 occurrences to detect a pattern
-                if (groupTxs.length < 2) return;
+  const accountName = (id: string) => accounts.find(account => account.id === id)?.name;
+  const openForm = (service: SeriesDraft | null) => {
+    setEditing(service);
+    setFormOpen(true);
+  };
 
-                // Check if already tracked or ignored
-                const isTracked = recurringTransactions.some(rt => {
-                    const rtStr = rt.merchant || rt.description;
-                    let rtKey = normalizeString(rtStr);
-                    if (rtKey.length < 3) {
-                        rtKey = rt.description.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12);
-                    }
-                    return rtKey.includes(key) || key.includes(rtKey);
-                });
-                if (isTracked || ignoredSubscriptions.includes(key)) return;
+  const pause = (service: RecurringTransaction) => {
+    saveRecurringTransaction(pauseService(service, today));
+    toast.success(`${service.merchant || service.description} paused`, { action: { label: 'Undo', onClick: () => saveRecurringTransaction({ ...service, pausedAt: undefined }) } });
+  };
+  const resume = (service: RecurringTransaction) => {
+    saveRecurringTransaction(resumeService(service, today));
+    toast.success(`${service.merchant || service.description} is back on`);
+  };
+  const cancel = (service: RecurringTransaction) => {
+    saveRecurringTransaction(cancelService(service, today));
+    toast.success(`${service.merchant || service.description} marked as cancelled`, { action: { label: 'Undo', onClick: () => saveRecurringTransaction({ ...service, endDate: service.endDate }) } });
+  };
 
-                // Sort by date ascending
-                groupTxs.sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
+  const track = (candidate: DetectedSubscription) => openForm(seriesFromDetected(candidate, today));
 
-                // Calculate intervals
-                const intervals: number[] = [];
-                let lastDate = parseLocalDate(groupTxs[0].date);
-                
-                for (let i = 1; i < groupTxs.length; i++) {
-                    const currentDate = parseLocalDate(groupTxs[i].date);
-                    const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    intervals.push(diffDays);
-                    lastDate = currentDate;
-                }
-                
-                const frequency = calculateFrequency(intervals);
-                
-                if (frequency) {
-                    // Calculate amounts
-                    const amounts = groupTxs.map(t => Math.abs(t.amount));
-                    const totalAmount = amounts.reduce((sum, a) => sum + a, 0);
-                    const avgAmount = totalAmount / amounts.length;
-                    
-                    // Amount consistency check: real subscriptions have predictable recurring pricing.
-                    // Discard random shopping / variable spending clustered at the same merchant.
-                    const minAmount = Math.min(...amounts);
-                    const maxAmount = Math.max(...amounts);
-                    const amountVariance = amounts.reduce((sum, a) => sum + Math.pow(a - avgAmount, 2), 0) / amounts.length;
-                    const amountStdDev = Math.sqrt(amountVariance);
-                    
-                    // Allow up to 20% stdDev or <=25% max/min spread (for slight FX or tier adjustments)
-                    const isAmountAcceptable = amountStdDev <= (avgAmount * 0.20) || ((maxAmount - minAmount) / (avgAmount || 1) <= 0.25);
-                    if (!isAmountAcceptable && groupTxs.length > 2) return;
+  const tabs = [
+    { id: 'active', label: `Active (${active.length})` },
+    { id: 'stopped', label: `Paused & cancelled (${stopped.length})` },
+    { id: 'wallet', label: `Wallet (${memberships.length})` },
+  ];
 
-                    // Recency check: only detect actively ongoing subscriptions.
-                    // If the service hasn't billed in > 2.5 cycles, it was likely cancelled/abandoned.
-                    const lastTx = groupTxs[groupTxs.length - 1];
-                    const lastTxDate = parseLocalDate(lastTx.date);
-                    const daysSinceLast = Math.round((today.getTime() - lastTxDate.getTime()) / (1000 * 60 * 60 * 24));
-                    
-                    const maxDaysSinceLast = 
-                        frequency === 'daily' ? 7 :
-                        frequency === 'weekly' ? 21 :
-                        frequency === 'biweekly' ? 35 :
-                        frequency === 'monthly' ? 65 : 400;
+  const pageStats: PageStat[] = [
+    { label: 'Every month', icon: 'payments', value: totals.monthly, format: 'money' },
+    { label: 'Over a year', icon: 'calendar_today', value: totals.yearly, format: 'money' },
+    { label: 'Renewing in 30 days', icon: 'refresh', value: totals.renewing, format: 'money', ...(totals.dueSoon ? { badge: `${totals.dueSoon} due soon`, badgeTone: 'butter' as const } : {}) },
+  ];
 
-                    if (daysSinceLast > maxDaysSinceLast) return;
+  return (
+    <div className="space-y-6 pb-8 max-md:space-y-4">
+      <PageHeader
+        title="Subscriptions"
+        stats={pageStats}
+        className="!mb-0"
+        actions={tab === 'wallet'
+          ? <Button icon="add" onPress={() => { setCardToEdit(null); setCardFormOpen(true); }}>Add a card</Button>
+          : <Button icon="add" onPress={() => openForm(null)}>Add a service</Button>}
+      />
 
-                    const isAmountConsistent = amountStdDev <= (avgAmount * 0.06); // <=6% variation
-                    const hasManyOccurrences = groupTxs.length >= 3;
-                    
-                    // Timing consistency check based on standard deviation of intervals
-                    const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-                    const intervalVariance = intervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / intervals.length;
-                    const intervalStdDev = Math.sqrt(intervalVariance);
-                    const isTimingConsistent = intervalStdDev <= (frequency === 'weekly' ? 1.0 : frequency === 'biweekly' ? 2.0 : frequency === 'monthly' ? 3.0 : 7.0);
+      <SegmentedControl items={tabs} activeId={tab} onChange={id => setTab(id as Tab)} scrollable />
 
-                    const confidence = (isAmountConsistent && hasManyOccurrences && isTimingConsistent) ? 'high' : 'medium';
-
-                    // Use the latest transaction amount to reflect current subscription tier/pricing
-                    const detectedAmount = Math.round(Math.abs(lastTx.amount) * 100) / 100;
-
-                    candidates.push({
-                        key,
-                        merchant: lastTx.merchant || lastTx.description, // Use the most recent description
-                        amount: detectedAmount,
-                        frequency,
-                        confidence,
-                        averageDay: lastDate.getDate(),
-                        lastDate: lastTx.date,
-                        occurrences: groupTxs.length,
-                        accountId: lastTx.accountId,
-                        currency: lastTx.currency
-                    });
-                }
-            });
-            
-            setDetectedSubscriptions(candidates);
-        };
-        
-        detect();
-    }, [transactions, recurringTransactions, ignoredSubscriptions]);
-
-    // --- 2. Metrics Calculation ---
-    const activeSubscriptions = useMemo(() => {
-        return recurringTransactions.filter(rt => rt.type === 'expense' && !rt.isSynthetic).sort((a, b) => {
-            return parseLocalDate(a.nextDueDate).getTime() - parseLocalDate(b.nextDueDate).getTime();
-        });
-    }, [recurringTransactions]);
-
-    const { monthlySpend, yearlySpend, totalCount, dueSoonCount } = useMemo(() => {
-        let monthly = 0;
-        let dueSoon = 0;
-        const today = new Date();
-        const next7Days = new Date();
-        next7Days.setDate(today.getDate() + 7);
-
-        activeSubscriptions.forEach(sub => {
-            const amount = convertToEur(sub.amount, sub.currency);
-            if (sub.frequency === 'monthly') monthly += amount;
-            else if (sub.frequency === 'yearly') monthly += amount / 12;
-            else if (sub.frequency === 'weekly') monthly += amount * 4.33;
-            else if (sub.frequency === 'biweekly') monthly += amount * 2.165;
-            else if (sub.frequency === 'daily') monthly += amount * 30;
-
-            const nextDue = parseLocalDate(sub.nextDueDate);
-            if (nextDue >= today && nextDue <= next7Days) {
-                dueSoon++;
-            }
-        });
-        return { monthlySpend: monthly, yearlySpend: monthly * 12, totalCount: activeSubscriptions.length, dueSoonCount: dueSoon };
-    }, [activeSubscriptions]);
-    
-    // Calculate which days of the month have subscriptions (1-31)
-    const subscriptionDays = useMemo(() => {
-        const days = new Set<number>();
-        activeSubscriptions.forEach(sub => {
-            const date = parseLocalDate(sub.nextDueDate);
-            days.add(date.getDate());
-        });
-        return days;
-    }, [activeSubscriptions]);
-    
-    // Loyalty Metrics
-    const expiringMemberships = useMemo(() => {
-        const now = new Date();
-        const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        
-        return memberships.filter(m => {
-            if (!m.expiryDate) return false;
-            const exp = new Date(m.expiryDate);
-            return exp > now && exp <= nextMonth;
-        }).length;
-    }, [memberships]);
-    
-    // Group memberships by category
-    const groupedMemberships = useMemo(() => {
-        const groups: Record<string, Membership[]> = {};
-        memberships.forEach(m => {
-            const cat = m.category || 'Other';
-            if (!groups[cat]) groups[cat] = [];
-            groups[cat].push(m);
-        });
-        return groups;
-    }, [memberships]);
-
-    const sortedMembershipCategories = useMemo(() => Object.keys(groupedMemberships).sort(), [groupedMemberships]);
-
-
-    // --- Handlers ---
-    const handleIgnore = (key: string) => {
-        setIgnoredSubscriptions(prev => [...prev, key]);
-        setDetectedSubscriptions(prev => prev.filter(s => s.key !== key));
-    };
-
-    const handleTrack = (candidate: DetectedSubscription) => {
-        const account = accounts.find(a => a.id === candidate.accountId);
-        // Find next due date starting from last transaction date
-        const last = parseLocalDate(candidate.lastDate);
-        const next = new Date(last);
-
-        const advanceDate = (d: Date) => {
-            if (candidate.frequency === 'monthly') d.setMonth(d.getMonth() + 1);
-            else if (candidate.frequency === 'yearly') d.setFullYear(d.getFullYear() + 1);
-            else if (candidate.frequency === 'biweekly') d.setDate(d.getDate() + 14);
-            else if (candidate.frequency === 'weekly') d.setDate(d.getDate() + 7);
-            else if (candidate.frequency === 'daily') d.setDate(d.getDate() + 1);
-        };
-
-        advanceDate(next);
-
-        // If next due date is in the past, roll it forward until today or future
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        let iterations = 0;
-        while (next < now && iterations < 36) {
-            advanceDate(next);
-            iterations++;
-        }
-
-        const newSub: Omit<RecurringTransaction, 'id'> = {
-            accountId: candidate.accountId,
-            description: candidate.merchant, // Initial description is merchant name
-            merchant: candidate.merchant, // Pre-fill merchant field
-            amount: candidate.amount,
-            type: 'expense',
-            category: 'Subscriptions', // Default assumption, user can change
-            currency: candidate.currency || 'EUR',
-            frequency: candidate.frequency,
-            frequencyInterval: 1,
-            startDate: candidate.lastDate,
-            nextDueDate: toLocalISOString(next),
-            weekendAdjustment: 'after',
-        };
-        
-        setSubscriptionToEdit(newSub);
-        setIsModalOpen(true);
-    };
-
-    const handleEditActive = (sub: RecurringTransaction) => {
-        setSubscriptionToEdit(sub);
-        setIsModalOpen(true);
-    };
-
-    const handleDeleteActive = async (id: string) => {
-        const confirmed = await confirm({
-            title: 'Stop Tracking Subscription?',
-            message: 'This will remove the subscription from your tracked services. You can always re-add it later.',
-            confirmLabel: 'Stop Tracking',
-            variant: 'danger',
-            icon: 'autorenew',
-        });
-        if (confirmed) deleteRecurringTransaction(id);
-    };
-    
-    const handleSave = (data: Omit<RecurringTransaction, 'id'> & { id?: string }) => {
-        saveRecurringTransaction(data);
-        setIsModalOpen(false);
-        // Remove from detected if it matches (cleanup)
-        if (!data.id) {
-             // Just added a new one, clear matching detected items immediately for UX
-             const targetStr = data.merchant || data.description;
-             let key = normalizeString(targetStr);
-             if (key.length < 3) {
-                 key = data.description.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12);
-             }
-             setDetectedSubscriptions(prev => prev.filter(d => d.key !== key));
-        }
-    };
-    
-    // Loyalty Handlers
-    const handleAddMembership = () => {
-        setMembershipToEdit(null);
-        setIsMembershipModalOpen(true);
-    };
-    
-    const handleEditMembership = (membership: Membership) => {
-        setMembershipToEdit(membership);
-        setIsMembershipModalOpen(true);
-    };
-    
-    const handleDeleteMembershipRequest = async (id: string) => {
-        const confirmed = await confirm({
-            title: 'Delete Membership Card?',
-            message: 'This card will be permanently removed from your wallet.',
-            confirmLabel: 'Delete',
-            variant: 'danger',
-            icon: 'refresh',
-        });
-        if (confirmed) deleteMembership(id);
-    };
-
-    const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
-
-    const segments: { id: SubscriptionSegment; label: string; icon: string; count: number }[] = [
-        { id: 'all', label: 'Overview', icon: 'layout_alt', count: totalCount + memberships.length },
-        { id: 'recurring', label: 'Payments', icon: 'CreditCard01', count: totalCount },
-        { id: 'loyalty', label: 'Wallet', icon: 'wallet', count: memberships.length },
-    ];
-
-    // Dynamic glow color for hero card based on active segment
-    const heroGlowColor = activeSegment === 'recurring'
-        ? 'rgba(244, 63, 94, 0.12)'
-        : activeSegment === 'loyalty'
-            ? 'rgba(245, 158, 11, 0.12)'
-            : 'rgba(var(--primary-500-rgb), 0.12)';
-
-    const heroAccentClass = activeSegment === 'recurring'
-        ? 'text-rose-500'
-        : activeSegment === 'loyalty'
-            ? 'text-amber-500'
-            : 'text-primary-500';
-
-    const pageStats: PageStat[] = [
-      { label: 'A month', icon: 'payments', value: monthlySpend, format: 'money' },
-      { label: 'A year', icon: 'calendar_today', value: yearlySpend, format: 'money' },
-      { label: 'Active', icon: 'refresh', value: totalCount, ...(dueSoonCount ? { badge: `${dueSoonCount} due soon`, badgeTone: 'butter' as const } : {}) },
-    ];
-
-    return (
-        <div className="relative">
-            {/* Shared Modals for Mobile & Desktop */}
-            {isModalOpen && (
-                <RecurringTransactionModal
-                    onClose={() => setIsModalOpen(false)}
-                    onSave={handleSave}
-                    accounts={accounts}
-                    incomeCategories={incomeCategories}
-                    expenseCategories={expenseCategories}
-                    recurringTransactionToEdit={subscriptionToEdit}
-                />
-            )}
-            {isMembershipModalOpen && (
-                <MembershipModal
-                    onClose={() => setIsMembershipModalOpen(false)}
-                    onSave={(m) => { saveMembership(m); setIsMembershipModalOpen(false); }}
-                    membershipToEdit={membershipToEdit}
-                />
-            )}
-
-            {/* Responsive View Switch */}
-            {isMobile ? (
-                <MobileSubscriptionsView
-          stats={pageStats}
-                    subscriptions={activeSubscriptions}
-                    totalMonthlyCost={monthlySpend}
-                    totalAnnualCost={yearlySpend}
-                    onAddSubscription={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}
-                    onEditSubscription={handleEditActive}
-                    onDeleteSubscription={handleDeleteActive}
-                    memberships={memberships}
-                    onAddMembership={handleAddMembership}
-                    onEditMembership={handleEditMembership}
-                    onDeleteMembership={handleDeleteMembershipRequest}
-                />
-            ) : (
-                <div className="space-y-6 pb-12 animate-fade-in-up">
-
-                <PageHeader 
-                    markerIcon="refresh"
-                    markerLabel="Subscriptions & Memberships"
-                    title="Subscriptions"
-                    stats={pageStats}
-                    actions={
-                        <div className="flex items-center gap-2">
-                            {activeSegment === 'loyalty' ? (
-                                <HeaderButton
-                                    variant="primary"
-                                    icon="PlusCircle"
-                                    onClick={handleAddMembership}
-                                >
-                                    Add Card
-                                </HeaderButton>
-                            ) : (
-                                <HeaderButton
-                                    variant="primary"
-                                    icon="PlusCircle"
-                                    onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}
-                                >
-                                    New Service
-                                </HeaderButton>
-                            )}
-                        </div>
-                    }
-                />
-
-                {/* ── Pill Segment Tab Bar ── */}
-                <SegmentedControl
-                  items={segments}
-                  activeId={activeSegment}
-                  onChange={(id) => setActiveSegment(id as SubscriptionSegment)}
-                  className="w-fit"
-                />
-
-                {/* ── Glassmorphic Hero Metrics Bento Card ── */}
-                <BentoCard 
-                    className="!p-0 min-h-[220px]"
-                >
-                    <div className="relative z-10 flex flex-col justify-between h-full">
-                        {/* Primary Metric */}
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Icon name="autorenew" className={`text-sm ${heroAccentClass}`} />
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Monthly Commitment</span>
-                                </div>
-                                <div className="flex items-baseline gap-3">
-                                    <h2 className="text-4xl md:text-5xl font-black font-mono tracking-tight privacy-blur text-light-text dark:text-dark-text">
-                                        {formatCurrency(monthlySpend, 'EUR')}
-                                    </h2>
-                                    <span className="text-sm font-semibold text-light-text-secondary/50 dark:text-dark-text-secondary/50 tracking-tight">/mo</span>
-                                </div>
-                                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-50 mt-1.5 tracking-tight privacy-blur">
-                                    {formatCurrency(yearlySpend, 'EUR')} projected annually
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Stats Grid */}
-                        <BentoGrid className="grid-cols-2 sm:grid-cols-4 auto-rows-auto gap-4 pt-6 border-t border-slate-200/60 dark:border-white/5">
-                            <AnimatePresence mode="wait">
-                                <motion.div 
-                                    key={activeSegment}
-                                    initial={{ opacity: 0, y: 4 }} 
-                                    animate={{ opacity: 1, y: 0 }} 
-                                    exit={{ opacity: 0, y: -4 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="contents"
-                                >
-                                    {activeSegment === 'loyalty' ? (
-                                        <>
-                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
-                                                <Icon name="wallet" className="text-lg text-amber-500 shrink-0" />
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Total Cards</span>
-                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{memberships.length}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-orange-500/[0.04] dark:bg-orange-500/[0.03]">
-                                                <Icon name="timer" className="text-lg text-orange-500 shrink-0" />
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Expiring 30d</span>
-                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{expiringMemberships}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
-                                                <Icon name="category" className="text-lg text-primary-500 shrink-0" />
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Categories</span>
-                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{sortedMembershipCategories.length}</span>
-                                                </div>
-                                            </div>
-                                            <div className="hidden sm:flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/[0.04] dark:bg-emerald-500/[0.03]">
-                                                <Icon name="loyalty" className="text-lg text-emerald-500 shrink-0" />
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Active</span>
-                                                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{memberships.length - expiringMemberships}</span>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-rose-500/[0.04] dark:bg-rose-500/[0.03]">
-                                                <Icon name="event_upcoming" className="text-lg text-rose-500 shrink-0" />
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Due 7 Days</span>
-                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{dueSoonCount}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
-                                                <Icon name="subscriptions" className="text-lg text-primary-500 shrink-0" />
-                                                <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Active</span>
-                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{totalCount}</span>
-                                                </div>
-                                            </div>
-                                            {detectedSubscriptions.length > 0 && (
-                                                <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
-                                                    <div className="relative shrink-0">
-                                                        <Icon name="radar" className="text-lg text-amber-500" />
-                                                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse border-2 border-white dark:border-dark-card" />
-                                                    </div>
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Detected</span>
-                                                        <span className="text-lg font-bold text-amber-700 dark:text-amber-400 tabular-nums">{detectedSubscriptions.length}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div className="hidden sm:flex items-center gap-3 p-3 rounded-2xl">
-                                                <div className="flex flex-col gap-1.5">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Calendar</span>
-                                                    <div className="flex flex-wrap gap-[3px] max-w-[140px]">
-                                                        {Array.from({ length: 31 }).map((_, i) => (
-                                                            <div 
-                                                                key={i} 
-                                                                className={`w-2 h-2 rounded-sm transition-all ${subscriptionDays.has(i + 1) ? 'bg-primary-500 shadow-[0_0_4px_rgba(var(--primary-500-rgb),0.6)]' : 'bg-black/[0.04] dark:bg-white/[0.04]'}`}
-                                                                title={`Day ${i + 1}`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </motion.div>
-                            </AnimatePresence>
-                        </BentoGrid>
+      {tab === 'active' && (
+        <>
+          {detected.length > 0 && (
+            <section aria-label="Found in your transactions" className="surface-card rounded-[var(--radius-xl)] p-5">
+              <h2 className="type-card-title text-ink">Found in your transactions</h2>
+              <p className="type-caption text-muted">These look like subscriptions you aren't tracking yet.</p>
+              <ul className="mt-2 divide-y divide-line">
+                {detected.map(candidate => (
+                  <li key={candidate.key} className="flex flex-wrap items-center gap-3 py-2">
+                    <BrandMark name={candidate.merchant} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex min-w-0 items-center gap-2">
+                        <span className="type-body-strong truncate text-ink">{candidate.merchant}</span>
+                        <Badge tone={candidate.confidence === 'high' ? 'positive' : 'attention'}>{candidate.confidence === 'high' ? 'Likely' : 'Possible'}</Badge>
+                      </p>
+                      <p className="type-caption truncate text-muted">{FREQUENCY_LABEL[candidate.frequency]}, {candidate.occurrences} payments, last {shortDay(candidate.lastDate)}</p>
                     </div>
-                </BentoCard>
+                    <span className="type-figure-row shrink-0 text-ink"><Amount value={candidate.amount} currency={candidate.currency} /></span>
+                    <div className="flex shrink-0 gap-1">
+                      <Button variant="ghost" size="sm" onPress={() => setIgnored(prev => [...prev, candidate.key])}>Ignore</Button>
+                      <Button variant="secondary" size="sm" onPress={() => track(candidate)}>Track</Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
-                <div className="space-y-8">
-                    <AnimatePresence mode="wait">
-                    {/* ── Main Subscriptions Views ── */}
-                    {activeSegment !== 'loyalty' && (
-                        <motion.div 
-                            key="services" 
-                            initial={{ opacity: 0, y: 10 }} 
-                            animate={{ opacity: 1, y: 0 }} 
-                            exit={{ opacity: 0, y: -10 }} 
-                            transition={{ duration: 0.25 }} 
-                            className="space-y-8"
-                        >
-                            
-                            {/* ── Smart Detection Section ── */}
-                            {detectedSubscriptions.length > 0 && activeSegment !== 'recurring' && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 12 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="glass-section rounded-2xl border border-primary-500/20 dark:border-primary-400/10 shadow-card overflow-hidden relative"
-                                >
-                                    {/* Gradient accent bar */}
-                                    <div className="h-1 bg-gradient-to-r from-primary-500 via-violet-500 to-primary-600" />
-                                    
-                                    <div className="relative z-10 p-6 md:p-8">
-                                        <div className="flex items-center justify-between mb-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative shrink-0">
-                                                    <Icon name="radar" className="text-lg text-primary-500" />
-                                                    <span className="absolute inset-0 rounded-xl border border-primary-500/30 animate-ping opacity-30" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Smart Detection</h3>
-                                                    <p className="text-xs font-medium text-light-text-secondary/80 dark:text-dark-text-secondary/80">
-                                                        {detectedSubscriptions.length} potential subscription{detectedSubscriptions.length !== 1 ? 's' : ''} found
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {detectedSubscriptions.map((sub, index) => {
-                                                const logoUrl = getMerchantLogoUrl(sub.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
-                                                const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
-                                                return (
-                                                    <motion.div 
-                                                        key={sub.key}
-                                                        initial={{ opacity: 0, y: 8 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ delay: index * 0.05 }}
-                                                        className="group flex flex-col justify-between glass-tile rounded-2xl p-4 border border-slate-200/80 dark:border-white/10 hover:border-primary-500/30 hover:shadow-md transition-all duration-200"
-                                                    >
-                                                        <div className="flex items-start justify-between gap-3 mb-4">
-                                                            <div className="flex items-center gap-3 min-w-0">
-                                                                <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-primary-500/10'}`}>
-                                                                    {hasLogo ? (
-                                                                        <img src={logoUrl!} alt="" className="w-full h-full object-cover p-0 border-0" onError={() => handleLogoError(logoUrl!)} />
-                                                                    ) : (
-                                                                        <span className="text-base font-bold text-primary-500">{sub.merchant.charAt(0).toUpperCase()}</span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <h4 className="font-bold text-sm text-light-text dark:text-dark-text truncate leading-tight tracking-tight">{sub.merchant}</h4>
-                                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-semibold tracking-wide ${
-                                                                            sub.confidence === 'high' 
-                                                                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' 
-                                                                                : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
-                                                                        }`}>
-                                                                            {sub.confidence}
-                                                                        </span>
-                                                                        <span className="text-xs font-semibold text-light-text-secondary/50 dark:text-dark-text-secondary/50">{sub.frequency}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums shrink-0 privacy-blur">{formatCurrency(sub.amount, sub.currency)}</p>
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <button 
-                                                                onClick={() => handleIgnore(sub.key)} 
-                                                                className="flex-1 h-8 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-all active:scale-[0.98]"
-                                                            >
-                                                                Ignore
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleTrack(sub)} 
-                                                                className="flex-1 h-8 text-xs font-semibold bg-primary-600 dark:bg-primary-500 text-white rounded-lg shadow-sm shadow-primary-600/20 hover:bg-primary-500 dark:hover:bg-primary-400 transition-all active:scale-[0.98]"
-                                                            >
-                                                                Track
-                                                            </button>
-                                                        </div>
-                                                    </motion.div>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
+          <RenewalTimeline items={coming} today={today} isPhone={isPhone} onOpen={item => openForm(item.service)} />
 
-                            {/* ── Active Subscriptions Grid ── */}
-                            <div className="glass-section rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-card overflow-hidden">
-                                <div className="flex items-center justify-between p-6 md:px-8 md:pt-8 pb-0">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center">
-                                            <Icon name="subscriptions" className="text-base text-primary-500" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Active Subscriptions</h3>
-                                            <p className="text-xs font-medium text-light-text-secondary/80 dark:text-dark-text-secondary/80">{totalCount} service{totalCount !== 1 ? 's' : ''} tracked</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="p-6 md:p-8">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {activeSubscriptions.length === 0 ? (
-                                            <div className="col-span-full py-16 text-center">
-                                                <Icon name="subscriptions" className="text-4xl text-light-text-secondary/30 dark:text-dark-text-secondary/30 block mx-auto mb-4" />
-                                                <h4 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight mb-1">No active services</h4>
-                                                <p className="text-xs text-light-text-secondary/50 dark:text-dark-text-secondary/50 mb-6">Add your first subscription to start tracking.</p>
-                                                <HeaderButton variant="primary" icon="add" onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}>
-                                                    New Service
-                                                </HeaderButton>
-                                            </div>
-                                        ) : (
-                                            activeSubscriptions.map((sub, index) => {
-                                                const nextDueDate = parseLocalDate(sub.nextDueDate);
-                                                const daysUntil = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                                const isDueSoon = daysUntil >= 0 && daysUntil <= 3;
-                                                const isOverdue = daysUntil < 0;
-                                                const merchantName = sub.merchant || sub.description;
-                                                const logoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
-                                                const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
-                                                
-                                                const statusColor = isOverdue ? 'rose' : isDueSoon ? 'amber' : 'emerald';
-                                                const statusLabel = isOverdue ? 'Overdue' : isDueSoon ? `${daysUntil}d left` : `Due ${nextDueDate.toLocaleDateString()}`;
-                                                
-                                                // Use inline styles for dynamic status colors since Tailwind can't handle string interpolation
-                                                const statusDotStyle: React.CSSProperties = {
-                                                    backgroundColor: isOverdue ? 'rgb(244, 63, 94)' : isDueSoon ? 'rgb(245, 158, 11)' : 'rgb(16, 185, 129)',
-                                                    boxShadow: `0 0 6px ${isOverdue ? 'rgba(244, 63, 94, 0.4)' : isDueSoon ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
-                                                };
-                                                const accentBarStyle: React.CSSProperties = {
-                                                    backgroundColor: isOverdue ? 'rgb(244, 63, 94)' : isDueSoon ? 'rgb(245, 158, 11)' : 'rgb(16, 185, 129)',
-                                                };
-                                                
-                                                return (
-                                                    <motion.div 
-                                                        key={sub.id}
-                                                        initial={{ opacity: 0, y: 8 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ delay: index * 0.03, duration: 0.3 }}
-                                                        onClick={() => handleEditActive(sub)}
-                                                        className="group cursor-pointer relative glass-tile rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-primary-500/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
-                                                    >
-                                                        {/* Left accent bar */}
-                                                        <div 
-                                                            className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full transition-all group-hover:top-2 group-hover:bottom-2"
-                                                            style={accentBarStyle}
-                                                        />
-                                                        
-                                                        <div className="p-4 pl-5 flex flex-col h-full justify-between gap-4">
-                                                            {/* Top: Logo + Name + Amount */}
-                                                            <div className="flex items-start justify-between gap-3">
-                                                                <div className="flex items-center gap-3 min-w-0">
-                                                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gray-100 dark:bg-white/5'}`}>
-                                                                        {hasLogo ? (
-                                                                            <img src={logoUrl!} alt="" className="w-full h-full object-cover p-0 border-0" onError={() => handleLogoError(logoUrl!)} />
-                                                                        ) : (
-                                                                            <span className="text-lg font-bold text-gray-400 dark:text-gray-500">{merchantName.charAt(0)}</span>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="min-w-0">
-                                                                        <h4 className="font-bold text-sm text-light-text dark:text-dark-text truncate leading-tight tracking-tight">{merchantName}</h4>
-                                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-semibold tracking-wide mt-1 bg-black/[0.03] dark:bg-white/[0.04] text-light-text-secondary dark:text-dark-text-secondary">
-                                                                            {sub.frequency}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <p className="font-black font-mono text-lg text-light-text dark:text-dark-text tracking-tighter tabular-nums shrink-0 privacy-blur">{formatCurrency(sub.amount, sub.currency)}</p>
-                                                            </div>
-
-                                                            {/* Bottom: Status + Delete */}
-                                                            <div className="flex items-center justify-between pt-3 border-t border-black/[0.04] dark:border-white/[0.04]">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span 
-                                                                        className={`w-2 h-2 rounded-full ${isOverdue ? 'animate-pulse' : ''}`}
-                                                                        style={statusDotStyle}
-                                                                    />
-                                                                    <span className="text-xs font-semibold text-light-text-secondary/80 dark:text-dark-text-secondary/80 tracking-wide">
-                                                                        {statusLabel}
-                                                                    </span>
-                                                                </div>
-                                                                <button 
-                                                                    aria-label={`Delete ${sub.description || 'subscription'}`}
-                                                                    onClick={(e) => { e.stopPropagation(); handleDeleteActive(sub.id); }}
-                                                                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all p-1.5 hover:bg-rose-500/10 hover:text-rose-500 rounded-lg text-light-text-secondary/30 active:scale-[0.95]"
-                                                                >
-                                                                    <Icon name="delete" className="text-sm" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                )
-                                            })
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* ── Membership Views ── */}
-                    {activeSegment !== 'recurring' && (
-                        <motion.div key="loyalty" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="space-y-8">
-                             {memberships.length > 0 ? (
-                                <div className="space-y-8">
-                                    {sortedMembershipCategories.map((category, catIndex) => {
-                                        const cards = groupedMemberships[category];
-                                        return (
-                                            <motion.div 
-                                                key={category} 
-                                                initial={{ opacity: 0, y: 8 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: catIndex * 0.08 }}
-                                                className="space-y-5"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <h4 className="text-xs font-bold tracking-[0.15em] uppercase text-light-text-secondary dark:text-dark-text-secondary">
-                                                        {category}
-                                                    </h4>
-                                                    <span className="px-2 py-0.5 rounded-lg bg-primary-500/10 text-primary-600 dark:text-primary-400 text-xs font-bold tabular-nums">
-                                                        {cards.length}
-                                                    </span>
-                                                    <div className="flex-1 h-px bg-black/5 dark:bg-white/5" />
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                                    {cards.map((m, i) => (
-                                                        <motion.div
-                                                            key={m.id}
-                                                            initial={{ opacity: 0, y: 6 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ delay: i * 0.04 }}
-                                                        >
-                                                            <LoyaltyCard 
-                                                                membership={m}
-                                                                onEdit={handleEditMembership}
-                                                                onDelete={handleDeleteMembershipRequest}
-                                                            />
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="py-20 text-center bg-white dark:bg-dark-card rounded-3xl border border-dashed border-black/10 dark:border-white/10">
-                                    <motion.div 
-                                        initial={{ scale: 0.9, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        transition={{ type: 'spring', stiffness: 200 }}
-                                        className="w-20 h-20 bg-light-fill dark:bg-dark-fill rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner"
-                                    >
-                                        <Icon name="loyalty" className="text-4xl text-light-text-secondary/20 dark:text-dark-text-secondary/20" />
-                                    </motion.div>
-                                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Your wallet is empty</h3>
-                                    <p className="text-sm text-light-text-secondary/80 dark:text-dark-text-secondary/80 max-w-xs mx-auto mt-2 font-medium leading-relaxed">
-                                        Keep your membership cards and loyalty programs in one place.
-                                    </p>
-                                    <div className="mt-8">
-                                        <HeaderButton variant="primary" icon="add" onClick={handleAddMembership}>
-                                            Add Card
-                                        </HeaderButton>
-                                    </div>
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                </div>
+          {active.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {active.map(service => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  status="active"
+                  accountName={accountName(service.accountId)}
+                  nextDate={nextDates(service, today, 1)[0]}
+                  onEdit={() => openForm(service)}
+                  actions={[
+                    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => openForm(service) },
+                    { id: 'pause', label: 'Pause', icon: 'pause', onAction: () => pause(service) },
+                    { id: 'cancel', label: 'Mark as cancelled', icon: 'event_busy', onAction: () => cancel(service) },
+                    { id: 'stop', label: 'Stop tracking', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setStopping(service) },
+                  ]}
+                />
+              ))}
             </div>
-            )}
-            <ConfirmDialog />
-        </div>
-    );
+          ) : (
+            <EmptyState icon="refresh" title="No services yet" description="Add one, or track what Crystal finds in your transactions." actionLabel="Add a service" onAction={() => openForm(null)} />
+          )}
+        </>
+      )}
+
+      {tab === 'stopped' && (
+        <>
+          {paused.length > 0 && (
+            <section aria-label="Saved by pausing" className="surface-card flex flex-wrap items-baseline justify-between gap-2 rounded-[var(--radius-xl)] p-5">
+              <div>
+                <h2 className="type-label text-muted">Saved by pausing</h2>
+                <p className="type-figure-lg text-ink"><Amount value={saved} currency="EUR" /> <span className="type-caption text-muted">a month</span></p>
+              </div>
+              <p className="type-caption max-w-sm text-muted">Paused services leave your totals and forecast. Crystal doesn't cancel anything with the provider.</p>
+            </section>
+          )}
+          {stopped.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {stopped.map(service => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  status={serviceStatus(service, today)}
+                  accountName={accountName(service.accountId)}
+                  onEdit={() => openForm(service)}
+                  actions={[
+                    { id: 'resume', label: service.pausedAt ? 'Resume' : 'Start again', icon: 'play_arrow', onAction: () => resume(service) },
+                    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => openForm(service) },
+                    { id: 'stop', label: 'Stop tracking', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setStopping(service) },
+                  ]}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon="pause" title="Nothing paused" description="Pause a service from its menu, and it moves here." />
+          )}
+        </>
+      )}
+
+      {tab === 'wallet' && (
+        memberships.length > 0 ? (
+          <div className="space-y-5">
+            {expiring.length > 0 && <p className="type-body text-ink"><Badge tone="attention">{expiring.length} expiring soon</Badge></p>}
+            {cardGroups.map(([category, cards]) => (
+              <section key={category} aria-label={category}>
+                <h2 className="type-card-title mb-2 text-ink">{category}</h2>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {cards.map(card => <LoyaltyCard key={card.id} membership={card} onEdit={item => { setCardToEdit(item); setCardFormOpen(true); }} onDelete={id => setDeletingCard(memberships.find(item => item.id === id) ?? null)} />)}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <EmptyState icon="wallet" title="No cards yet" description="Keep your loyalty and membership numbers here." actionLabel="Add a card" onAction={() => { setCardToEdit(null); setCardFormOpen(true); }} />
+        )
+      )}
+
+      {isFormOpen && (
+        <RecurringTransactionModal
+          onClose={() => setFormOpen(false)}
+          onSave={saveRecurringTransaction}
+          accounts={accounts}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          recurringTransactionToEdit={editing}
+        />
+      )}
+
+      {isCardFormOpen && <MembershipModal onClose={() => setCardFormOpen(false)} onSave={saveMembership} membershipToEdit={cardToEdit} />}
+
+      <ConfirmDialog
+        isOpen={!!stopping}
+        onClose={() => setStopping(null)}
+        onConfirm={() => { if (stopping) deleteRecurringTransaction(stopping.id); setStopping(null); }}
+        title={`Stop tracking ${stopping?.merchant || stopping?.description || 'this service'}?`}
+        message="This removes it from your services and calendar. You can add it again later."
+        confirmLabel="Stop tracking"
+        isDestructive
+      />
+
+      <ConfirmDialog
+        isOpen={!!deletingCard}
+        onClose={() => setDeletingCard(null)}
+        onConfirm={() => { if (deletingCard) deleteMembership(deletingCard.id); setDeletingCard(null); }}
+        title={`Delete the ${deletingCard?.provider ?? ''} card?`}
+        message="It's permanently removed from your Wallet."
+        confirmLabel="Delete card"
+        isDestructive
+      />
+    </div>
+  );
 };
 
 export default Subscriptions;
