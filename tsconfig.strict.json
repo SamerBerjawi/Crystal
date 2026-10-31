@@ -17,6 +17,8 @@
     "utils/investments.ts",
     "utils/newRoutes.ts",
     "utils/transactionsModel.ts",
-    "utils/scheduleModel.ts"
+    "utils/scheduleModel.ts",
+    "utils/forecastModel.ts",
+    "utils/goalsModel.ts"
   ]
 }

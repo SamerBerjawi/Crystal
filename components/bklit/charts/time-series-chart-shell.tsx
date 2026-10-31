@@ -75,8 +75,10 @@ import {
   groupLinesByYAxisId,
 } from "./y-axis-scales";
 import {
+  collectNumericExtents,
   computeYDomainsByAxis,
   resolveTimeSeriesYDomain,
+  type YDomain,
 } from "./y-domain-utils";
 
 /**
@@ -130,6 +132,8 @@ export interface TimeSeriesChartInnerProps {
   loadingLabel?: string;
   /** Animate y-domain on status / data transitions. Default: true */
   yDomainTween?: boolean;
+  /** Crystal patch: fit the y axis to the data instead of anchoring it at zero. */
+  fitYDomain?: boolean;
   yDomainTweenDuration?: number;
   /** Visible x-domain for brush zoom. When set, y-domain and series use data in this range. */
   xDomain?: [Date, Date];
@@ -174,6 +178,7 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
   chartStatus = DEFAULT_CHART_STATUS,
   loadingLabel,
   yDomainTween = true,
+  fitYDomain = false,
   yDomainTweenDuration = DEFAULT_Y_DOMAIN_TWEEN_MS,
   xDomain,
   xDomainSlotCount,
@@ -196,9 +201,17 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
         usesDefaultOnly && yScaleDomainMax != null
           ? yScaleDomainMax
           : undefined;
+      if (fitYDomain) {
+        // Crystal patch: a balance of 45,000 moving by 1,500 should not look flat.
+        const { minValue, maxValue } = collectNumericExtents(sourceData, dataKeys);
+        if (Number.isFinite(minValue) && Number.isFinite(maxValue)) {
+          const padding = (maxValue - minValue) * 0.12 || Math.abs(maxValue) * 0.05 || 1;
+          return [minValue - padding, maxValue + padding] as YDomain;
+        }
+      }
       return resolveTimeSeriesYDomain(sourceData, dataKeys, domainMax);
     },
-    [lines, yScaleDomainMax]
+    [lines, yScaleDomainMax, fitYDomain]
   );
 
   const skeletonData = useMemo(() => {

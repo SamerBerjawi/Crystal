@@ -5,7 +5,7 @@ import type { Summary, DayCommitted } from '../../../utils/scheduleModel';
 import type { ScheduleData } from '../../../hooks/useScheduleData';
 import { ComposedChart } from '../../bklit/charts/composed-chart';
 import { SeriesBar } from '../../bklit/charts/series-bar';
-import { ChartTooltip, Line, XAxis, curveMonotoneX } from '../../bklit/charts';
+import { Background, ChartTooltip, Line, XAxis, curveMonotoneX } from '../../bklit/charts';
 import { NvIcon, type NvIconName } from '../NvIcon';
 import { ACCENT, Card, Money, type Accent } from '../ui';
 import { relativeDay } from './parts';
@@ -52,6 +52,7 @@ const CommittedChart: React.FC<{ days: DayCommitted[]; currency: string; onPickD
       }}
     >
       <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 28, left: 8 }} aspectRatio="2.4 / 1" barGap={0.25}>
+        <Background pattern="dots" opacity={0.85} />
         <SeriesBar dataKey="Out" fill="var(--nv-orange)" radius={3} />
         <SeriesBar dataKey="In" fill="var(--nv-green)" radius={3} />
         <Line dataKey="netSoFar" stroke="var(--nv-ink)" strokeWidth={2} curve={curveMonotoneX} />

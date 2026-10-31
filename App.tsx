@@ -59,6 +59,7 @@ const AccountDetailNew = lazyWithRetry(() => import('./pages/new/AccountDetailNe
 const TransactionsNew = lazyWithRetry(() => import('./pages/new/TransactionsNew').then(m => ({ default: m.TransactionsNew })));
 const BudgetNew = lazyWithRetry(() => import('./pages/new/BudgetNew').then(m => ({ default: m.BudgetNew })));
 const ScheduleNew = lazyWithRetry(() => import('./pages/new/ScheduleNew').then(m => ({ default: m.ScheduleNew })));
+const ForecastingNew = lazyWithRetry(() => import('./pages/new/ForecastingNew').then(m => ({ default: m.ForecastingNew })));
 const SignUp = lazyWithRetry(() => import('./pages/SignUp'));
 const pageRegistry = {
   Dashboard: { path: '/', loader: () => import('./pages/Dashboard') },
@@ -3201,6 +3202,7 @@ const App: React.FC = () => {
     const newPage = newRoute.kind === 'page' ? newRoute.page : null;
     return (
       <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
+        <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
         <Suspense fallback={null}>
           <ShellNew
             page={newPage}
@@ -3224,9 +3226,11 @@ const App: React.FC = () => {
               : newRoute.page === 'Transactions' ? <TransactionsNew user={currentUser!} initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />
               : newRoute.page === 'Budget' ? <BudgetNew />
               : newRoute.page === 'Schedule & Bills' ? <ScheduleNew />
+              : newRoute.page === 'Forecasting' ? <ForecastingNew />
               : <PlaceholderNew title={NEW_PAGE_TITLES[newRoute.page]} classicPath={classicPath} />}
           </ShellNew>
         </Suspense>
+        </InsightsViewProvider>
       </FinancialDataProvider>
     );
   }

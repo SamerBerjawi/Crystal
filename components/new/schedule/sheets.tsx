@@ -214,7 +214,7 @@ const WEEKEND: { value: WeekendAdjustment; label: string }[] = [
 ];
 
 export type FormTarget =
-  | { mode: 'new' }
+  | { mode: 'new'; startDate?: string }
   | { mode: 'series'; series: RecurringTransaction }
   | { mode: 'future'; series: RecurringTransaction; originalDate: string }
   | { mode: 'bill'; bill: BillPayment };
@@ -228,7 +228,8 @@ export const ScheduleFormSheet: React.FC<{ target: FormTarget | null; data: Sche
     setError(null);
     if (target.mode === 'new') {
       const account = (data.openAccounts.find(a => a.type === 'Checking') ?? data.openAccounts[0])?.id ?? '';
-      setDraft(emptySeriesDraft(account, currencyOf(data, account), data.today));
+      const draft = emptySeriesDraft(account, currencyOf(data, account), data.today);
+      setDraft(target.startDate ? { ...draft, startDate: target.startDate } : draft);
     } else if (target.mode === 'bill') setDraft(draftFromBill(target.bill));
     else setDraft({ ...draftFromSeries(target.series), ...(target.mode === 'future' ? { startDate: target.originalDate } : {}) });
   }, [target]); // eslint-disable-line react-hooks/exhaustive-deps

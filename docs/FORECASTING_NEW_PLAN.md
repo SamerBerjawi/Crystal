@@ -1,6 +1,25 @@
 # ForecastingNew plan (`/forecasting-new`)
 
-Written 2026-10-29. Planning only. Shared rules, the shared engines (step 0) and the library inventory are in [NEW_PAGES_PLAN_INDEX.md](NEW_PAGES_PLAN_INDEX.md). This page reuses Schedule's sheets ([SCHEDULE_NEW_PLAN.md](SCHEDULE_NEW_PLAN.md) §6).
+Written 2026-10-29. Shared rules, the shared engines (step 0) and the library inventory are in [NEW_PAGES_PLAN_INDEX.md](NEW_PAGES_PLAN_INDEX.md). This page reuses Schedule's sheets ([SCHEDULE_NEW_PLAN.md](SCHEDULE_NEW_PLAN.md) §6).
+
+## Status (2026-10-29, branch `feat/forecasting-new`, not committed)
+
+Phases F1–F5 built, except what the table says. Migration notes: `UI_UX_DESIGN_REFERENCE.md` §24.
+
+| Item | Status |
+|---|---|
+| F1 models (`utils/forecastModel.ts`, `utils/goalsModel.ts`, strict-typed, 17 tests) | Built on the Schedule engine. **Not done:** `generateBalanceForecast` is not yet a wrapper, so classic Forecasting and the classic Dashboard keep their own numbers (X-Q3 still open) |
+| E-01…E-05, E-08, F-01…F-11 | Built. F-08 needs the new optional `FinancialGoal.destinationAccountId` (Q-F2); without it a savings contribution still leaves the payment account, as before |
+| F-12 | Built (the hook memoises on explicit inputs) |
+| C1 chart | Built: one area, solid history, dashed from today; scenario as a second line. Bklit got a Crystal patch, `fitYDomain` on `AreaChart` / `LineChart`, so a €45,000 balance moving by €1,500 is not drawn flat. **Not built:** the cushion and below-zero shaded areas, goal flag markers on the chart (N4), the lowest-point ring |
+| C3 goal rings | Plain SVG (Budget's approach) instead of a KokonutUI `apple-activity-card` port: that component colours rings by position, here each ring has a meaning |
+| C5 What moves the line | Bar rows (one layout on every width) instead of a Bklit horizontal bar chart |
+| Q-F1 cushion | Built as a field in the Filters sheet (not the chart's ⋯ menu) |
+| Q-F4 likely range (band) | **Not built** |
+| Goals: drag to reorder | **Not built**: Move up / Move down in each goal's menu |
+| Goals: "Only goals of the selected accounts" filter | **Not built** |
+| Accounts in Filters | Presets + chips, not `FilterList` |
+| InsightsViewProvider | Now also wraps the New shell (`App.tsx`), so the goals switched on in the forecast are shared with classic pages and the coming DashboardNew |
 
 | | |
 |---|---|

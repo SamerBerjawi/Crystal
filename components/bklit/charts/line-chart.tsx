@@ -49,6 +49,8 @@ export interface LineChartProps {
   yDomainTweenDuration?: number;
   /** Animate y-domain when status or target domain changes. Default: true */
   yDomainTween?: boolean;
+  /** Crystal patch: fit the y axis to the data instead of anchoring it at zero (balances far from zero). */
+  fitYDomain?: boolean;
   /** Visible x-domain for brush zoom. */
   xDomain?: [Date, Date];
   /** Full dataset length for x-scale padding when `xDomain` is set. */
@@ -153,6 +155,7 @@ interface ChartInnerProps {
   loadingLabel?: string;
   yDomainTweenDuration: number;
   yDomainTween: boolean;
+  fitYDomain?: boolean;
   xDomain?: [Date, Date];
   xDomainSlotCount?: number;
   tweenYDomainOnXDomainChange?: boolean;
@@ -176,6 +179,7 @@ function ChartInner({
   loadingLabel,
   yDomainTweenDuration,
   yDomainTween,
+  fitYDomain,
   xDomain,
   xDomainSlotCount,
   tweenYDomainOnXDomainChange,
@@ -208,6 +212,7 @@ function ChartInner({
       xDomain={xDomain}
       xDomainSlotCount={xDomainSlotCount}
       yDomainTween={yDomainTween}
+      fitYDomain={fitYDomain}
       yDomainTweenDuration={yDomainTweenDuration}
     >
       {children}
@@ -229,6 +234,7 @@ export function LineChart({
   loadingLabel,
   yDomainTweenDuration = DEFAULT_Y_DOMAIN_TWEEN_MS,
   yDomainTween = true,
+  fitYDomain,
   xDomain,
   xDomainSlotCount,
   tweenYDomainOnXDomainChange = false,
@@ -288,6 +294,7 @@ export function LineChart({
             xDomain={xDomain}
             xDomainSlotCount={xDomainSlotCount}
             yDomainTween={yDomainTween}
+            fitYDomain={fitYDomain}
             yDomainTweenDuration={yDomainTweenDuration}
             currency={currency}
           >

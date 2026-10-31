@@ -440,6 +440,8 @@ export interface FinancialGoal {
   parentId?: string;
   isBucket?: boolean;
   paymentAccountId?: string;
+  /** Savings goals: the account the money goes into. Contributions are a transfer from `paymentAccountId` (F-08). */
+  destinationAccountId?: string;
   // One-time
   date?: string;
   // Recurring
@@ -647,6 +649,8 @@ export interface AppPreferences {
   hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden
   isPrivacyMode?: boolean;
   excludeTransfersFromAnalytics?: boolean;
+  /** Forecasting: a balance to stay above, in the display currency (Q-F1). */
+  forecastCushion?: number;
   dashboardLayouts?: Record<string, WidgetConfig[]>;
   /** Widget ids the user removed, per layout key; they are not re-added automatically. */
   dashboardHiddenWidgets?: Record<string, string[]>;

@@ -46,10 +46,12 @@ const COMPLIANT = [
   'pages/new/AccountDetailNew.tsx',
   'pages/new/BudgetNew.tsx',
   'pages/new/ScheduleNew.tsx',
+  'pages/new/ForecastingNew.tsx',
   'components/new/PageToolbar.tsx',
   ...walk('components/new/accounts'),
   ...walk('components/new/budget'),
   ...walk('components/new/schedule'),
+  ...walk('components/new/forecast'),
 ];
 // Files that only render inside a sheet may keep the sheet's one call to action (R7).
 const SHEET_FILES = /(?:sheets|AccountFormSheet|detailShared)\.tsx$/;
