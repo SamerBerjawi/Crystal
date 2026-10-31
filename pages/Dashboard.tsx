@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
+import { Page, User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
 import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import WidgetWrapper from '../components/WidgetWrapper';
 import OutflowsChart from '../components/OutflowsChart';
@@ -13,15 +13,12 @@ import TransactionList from '../components/TransactionList';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialOverview from '../components/FinancialOverview';
 import ForecastOverview from '../components/ForecastOverview';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 import AddWidgetModal from '../components/AddWidgetModal';
 import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
 import { useSyncedBillMatcher, SyncedBillMatchSuggestion } from '../hooks/useSyncedBillMatcher';
 import { useMatcherConfig } from '../hooks/useMatcherConfig';
-import UnifiedPendingMatcherCard from '../components/UnifiedPendingMatcherCard';
 import UnifiedPendingMatchesModal from '../components/UnifiedPendingMatchesModal';
 import PendingMatchesView from '../components/PendingMatchesView';
-import Card from '../components/Card';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
@@ -42,15 +39,24 @@ import ConfirmationModal, { useConfirm } from '../components/ConfirmationModal';
 import GoalContributionPlan from '../components/GoalContributionPlan';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
-import { MobileDashboardView } from '../components/MobileDashboardView';
 import { useIsMobile } from '../hooks/useIsMobile';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
-import PageHeader from '../components/PageHeader';
-import HeaderButton from '../components/HeaderButton';
-import { Responsive, WidthProvider } from 'react-grid-layout';
-
-const ResponsiveGridLayout = WidthProvider(Responsive);
+import { Skeleton } from '../components/ui/States';
+import PullToRefresh from '../components/PullToRefresh';
+import AssetAllocationWidget from '../components/AssetAllocationWidget';
+import { Button, IconButton } from '../components/ui/Actions';
+import { Switch } from '../components/ui/Fields';
+import { Amount, PrivacyContext, useFirstVisit } from '../components/ui/Money';
+import { BottomSheet, FullPanel, Popover } from '../components/ui/Overlays';
+import { MultiSelect, Select } from '../components/ui/Pickers';
+import { AccountsSummary, KeyRatios, NeedsYou, NetWorthHero, SafeToSpendWidget, WrittenSummary } from '../components/ui/Summaries';
+import WidgetGrid, { type WidgetGridItem, type WidgetLayoutItem } from '../components/ui/WidgetGrid';
+import { Button as AriaButton } from 'react-aria-components';
+import { useBillNotifications } from '../hooks/useBillNotifications';
+import { computeSafeToSpend } from '../utils/safeToSpend';
+import { buildSummaryFacts, isUncategorised } from '../utils/overviewSummary';
+import { OVERVIEW_LAYOUT_KEY, OVERVIEW_PHONE_LAYOUT_KEY, OVERVIEW_WIDGETS, resolveOverviewLayout, toConfig } from '../utils/overviewLayout';
 
 // Analysis widgets
 import MerchantParetoWidget from '../components/MerchantParetoWidget';
@@ -59,10 +65,6 @@ import WealthVelocityWidget from '../components/WealthVelocityWidget';
 
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 import Icon from '../components/ui/Icon';
-import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
-import HeroMetricCard from '../components/ui/HeroMetricCard';
-import MetricCardRow from '../components/ui/MetricCardRow';
-import SegmentedControl from '../components/ui/SegmentedControl';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -77,7 +79,8 @@ interface DashboardProps {
   loanPaymentOverrides: LoanPaymentOverrides;
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
-  onTogglePrivacyMode?: () => void;
+  setCurrentPage: (page: Page) => void;
+  onOpenAccount: (id: string) => void;
   onSyncBanks?: () => void | Promise<void>;
   isSyncingBanks?: boolean;
 }
@@ -113,7 +116,6 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 }
 
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
-type DashboardTab = 'overview' | 'analysis' | 'activity' | 'pending_matches';
 
 const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statements }) => {
   if (statements.length === 0) return null;
@@ -147,15 +149,7 @@ const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statement
   );
 };
 
-const WIDGET_TABS: Record<DashboardTab, string[]> = {
-  overview: ['financialOverview', 'todayWidget', 'netWorthOverTime', 'forecastHorizon', 'creditCardStatements'],
-  analysis: ['budgetOverview', 'financialRunway', 'wealthVelocity'],
-  activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey'],
-  pending_matches: []
-};
-
-
-const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks, isSyncingBanks }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBanks, isSyncingBanks, setCurrentPage, onOpenAccount }) => {
   const { confirm, ConfirmDialog } = useConfirm();
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
@@ -183,25 +177,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const [showForecast, setShowForecast] = useState(true);
   const [showGoals, setShowGoals] = useState(true);
   const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
-  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const isPrivate = React.useContext(PrivacyContext);
+  const isFirstVisit = useFirstVisit('overview');
   const isMobile = useIsMobile();
-
-  // Touch Pull-to-Refresh
-  const touchStartRef = useRef<number | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current = e.touches[0].clientY;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartRef.current === null) return;
-    const touchEnd = e.changedTouches[0].clientY;
-    const diff = touchEnd - touchStartRef.current;
-    if (diff > 90 && onSyncBanks && !isSyncingBanks) {
-      onSyncBanks();
-    }
-    touchStartRef.current = null;
-  };
-
-  const layoutKey = useMemo(() => `${activeTab}-${isMobile ? 'mobile' : 'pc'}`, [activeTab, isMobile]);
 
   // Sync Forecast Duration with Historical Duration by default
   useEffect(() => {
@@ -241,6 +219,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isPhoneEditOpen, setPhoneEditOpen] = useState(false);
+  const [isMatchesPanelOpen, setMatchesPanelOpen] = useState(false);
   const [isUnifiedPendingModalOpen, setIsUnifiedPendingModalOpen] = useState(false);
   const [unifiedModalInitialFilter, setUnifiedModalInitialFilter] = useState<'all' | 'transfer' | 'bill'>('all');
 
@@ -1175,6 +1155,66 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     window.dispatchEvent(new PopStateEvent('popstate'));
   }, []);
 
+  const { liquidityRatio, savingsRate } = useMemo(() => {
+    const openAccounts = analyticsAccounts.filter(acc => acc.status !== 'closed');
+    const liquidCash = openAccounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
+      .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+
+    const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const expenseTxs = analyticsTransactions.filter(t => {
+      const d = parseLocalDate(t.date);
+      return d >= threeMonthsAgo && t.type === 'expense' && !t.transferId;
+    });
+    const totalSpend = expenseTxs.reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+    const avgMonthlySpend = totalSpend / 3;
+
+    const liquidityRatio = avgMonthlySpend > 0 ? (liquidCash / avgMonthlySpend) : 0;
+
+    let totalIncomePeriod = 0;
+    let totalExpensePeriod = 0;
+    const { start, end } = getDateRange(duration, analyticsTransactions);
+    const periodTxs = analyticsTransactions.filter(t => {
+      const d = parseLocalDate(t.date);
+      return d >= start && d <= end && !t.transferId;
+    });
+    periodTxs.forEach(tx => {
+      const val = convertToEur(tx.amount, tx.currency);
+      if (tx.type === 'income') totalIncomePeriod += val;
+      else totalExpensePeriod += Math.abs(val);
+    });
+    const netFlowPeriod = totalIncomePeriod - totalExpensePeriod;
+    const savingsRate = totalIncomePeriod > 0 ? (netFlowPeriod / totalIncomePeriod) * 100 : 0;
+
+    return { liquidityRatio, savingsRate };
+
+  }, [analyticsAccounts, analyticsTransactions, duration]);
+
+  const eurToDisplay = useCallback((eur: number) => convertCurrency(eur, 'EUR', preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
+  const toPreferred = useCallback((amount: number, from: Currency) => convertCurrency(amount, from, preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
+
+  const setCushion = useCallback((amount: number) => {
+    setPreferences(prev => ({ ...prev, safeToSpendCushion: amount }));
+  }, [setPreferences]);
+
+  const safeToSpend = useMemo(() => computeSafeToSpend({
+    accounts,
+    transactions,
+    recurringItems: allRecurringItems,
+    bills: billsAndPayments,
+    overrides: recurringTransactionOverrides,
+    cushion: preferences.safeToSpendCushion ?? 0,
+  }), [accounts, transactions, allRecurringItems, billsAndPayments, recurringTransactionOverrides, preferences.safeToSpendCushion]);
+
+  const keyRatios = useMemo(() => {
+    const { totalAssets: assets, totalDebt: debt } = calculateAccountTotals(analyticsAccounts, analyticsTransactions);
+    return [
+      { label: 'Liquidity', value: `${liquidityRatio.toFixed(1)} months`, context: 'Runway at your average spend' },
+      { label: 'Savings rate', value: `${savingsRate.toFixed(0)}%`, context: 'Of income this period' },
+      { label: 'Debt ratio', value: `${(assets > 0 ? (Math.abs(debt) / assets) * 100 : 0).toFixed(1)}%`, context: 'Debts against assets' },
+      { label: 'Net flow', value: <Amount value={eurToDisplay(safeRound(income - expenses, 2))} currency={preferredCurrency} tone="flow" />, context: 'Income less spending this period' },
+    ];
+  }, [analyticsAccounts, analyticsTransactions, liquidityRatio, savingsRate, income, expenses, eurToDisplay, preferredCurrency]);
+
   // --- Widget Management ---
   const allWidgets: Widget[] = useMemo(() => [
     {
@@ -1195,6 +1235,42 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         expenseSparkline,
         currency: 'EUR'
       }
+    },
+    {
+      id: 'safeToSpend',
+      name: 'Safe to spend',
+      description: 'What is left until your next income',
+      defaultW: 2,
+      defaultH: 3,
+      component: SafeToSpendWidget,
+      props: { data: safeToSpend, currency: preferredCurrency, toDisplay: eurToDisplay, countUp: isFirstVisit, onCushionChange: setCushion }
+    },
+    {
+      id: 'accountsSummary',
+      name: 'Accounts',
+      description: 'Your biggest accounts',
+      defaultW: 2,
+      defaultH: 4,
+      component: AccountsSummary,
+      props: { accounts: selectedAccounts, toDisplay: toPreferred, currency: preferredCurrency, onOpen: onOpenAccount, onAll: () => setCurrentPage('Accounts') }
+    },
+    {
+      id: 'overviewKpis',
+      name: 'Key ratios',
+      description: 'Liquidity, savings, debt and net flow',
+      defaultW: 6,
+      defaultH: 2,
+      component: KeyRatios,
+      props: { items: keyRatios }
+    },
+    {
+      id: 'assetAllocation',
+      name: 'Asset allocation',
+      description: 'Assets and debts by group',
+      defaultW: 6,
+      defaultH: 7,
+      component: AssetAllocationWidget,
+      props: { allocation: assetAllocationData, assetGroups, liabilityGroups, totalAssets: globalTotalAssets, totalDebt: globalTotalDebt, currency: preferredCurrency, toDisplay: eurToDisplay }
     },
     {
       id: 'todayWidget',
@@ -1266,227 +1342,40 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     { id: 'financialRunway', name: 'Financial Runway', icon: 'hourglass', description: 'Days until zero balance', defaultW: 6, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
     { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'shopping_bag', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
     { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'zap', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
-  ], [netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
+  ], [safeToSpend, eurToDisplay, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
-  const initialLayouts = useMemo(() => {
-    return allWidgets.map((w, index) => ({
-      id: w.id,
-      title: w.name,
-      x: (index % 2) * 6,
-      y: Math.floor(index / 2) * 2,
-      w: w.defaultW,
-      h: w.defaultH
-    }));
-  }, [allWidgets]);
+  const layout = useMemo(() => resolveOverviewLayout(preferences, isMobile), [preferences.dashboardLayouts, preferences.dashboardHiddenWidgets, isMobile]);
+  const layoutKey = isMobile ? OVERVIEW_PHONE_LAYOUT_KEY : OVERVIEW_LAYOUT_KEY;
 
-  const widgets = useMemo(() => {
-    const rawWidgets = preferences.dashboardLayouts?.[layoutKey] ||
-      preferences.dashboardLayouts?.[activeTab] || // Fallback to old layout for migration
-      initialLayouts.filter(w => WIDGET_TABS[activeTab].includes(w.id));
-
-    // Migration: Scale up old 4-column layout to 12-column layout
-    // Heuristic: If every widget is within the old 4x4 coordinate space, assume it's an old legacy layout.
-    if (rawWidgets.length > 0 && rawWidgets.every(w => w.w <= 4 && (w.x + w.w) <= 4)) {
-      return rawWidgets.map(w => ({
-        ...w,
-        x: w.x * 3,
-        w: w.w * 3
-      }));
-    }
-
-    return rawWidgets;
-  }, [preferences.dashboardLayouts, activeTab, initialLayouts]);
-
-  const saveLayouts = useCallback((newWidgets: WidgetConfig[]) => {
-    setPreferences(prev => ({
-      ...prev,
-      dashboardLayouts: {
-        ...(prev.dashboardLayouts || {}),
-        [layoutKey]: newWidgets
-      }
-    }));
+  const saveLayout = useCallback((next: WidgetConfig[]) => {
+    setPreferences(prev => ({ ...prev, dashboardLayouts: { ...(prev.dashboardLayouts || {}), [layoutKey]: next } }));
   }, [layoutKey, setPreferences]);
 
-  // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
-  useEffect(() => {
-    if (!widgets.length) return;
-
-    const requiredWidgets = WIDGET_TABS[activeTab];
-    const currentIds = new Set(widgets.map(w => w.id));
-    const hiddenIds = new Set(preferences.dashboardHiddenWidgets?.[layoutKey] || []);
-    // Widgets the user removed on purpose stay removed (AUD-50).
-    const missing = requiredWidgets.filter(id => !currentIds.has(id) && !hiddenIds.has(id));
-
-    let newWidgets = widgets.filter(w => requiredWidgets.includes(w.id));
-    let changed = false;
-
-    if (newWidgets.length !== widgets.length) changed = true;
-
-    // Net worth chart specifically needs more width to be readable in overview
-    newWidgets = newWidgets.map(w => {
-      if (activeTab === 'overview' && w.id === 'netWorthOverTime' && w.w < 6) {
-        changed = true;
-        return { ...w, w: 12 };
-      }
-      return w;
-    });
-
-    if (missing.length) {
-      changed = true;
-      const additions = missing
-        .map((id, index) => {
-          const widgetDef = allWidgets.find(w => w.id === id);
-          const yOffset = Math.max(0, ...newWidgets.map(w => w.y + w.h));
-          return widgetDef ? { id: widgetDef.id, title: widgetDef.name, x: (index % 2) * 6, y: yOffset + index, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
-        })
-        .filter(Boolean) as WidgetConfig[];
-      newWidgets = [...newWidgets, ...additions];
-    }
-
-    if (changed) {
-      saveLayouts(newWidgets);
-    }
-  }, [activeTab, allWidgets, widgets, saveLayouts, preferences.dashboardHiddenWidgets, layoutKey]);
-
-
-  const [currentBreakpoint, setCurrentBreakpoint] = useState<string>('lg');
-  const GRID_COLS = useMemo(() => ({ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }), []);
-
-  const getBreakpointLayout = useCallback((bp: 'lg' | 'md' | 'sm' | 'xs' | 'xxs', baseWidgets: WidgetConfig[]) => {
-    const saved = preferences.dashboardLayouts?.[`${activeTab}-${bp}`];
-    if (saved && saved.length > 0) {
-      return saved.map(w => ({
-        i: w.id,
-        x: w.x,
-        y: w.y,
-        w: w.w,
-        h: w.h,
-        isResizable: isEditMode
-      }));
-    }
-    const maxCols = GRID_COLS[bp];
-    return baseWidgets.map((w, idx) => {
-      const colWidth = Math.min(w.w, maxCols);
-      return {
-        i: w.id,
-        x: (idx * colWidth) % maxCols,
-        y: Math.floor((idx * colWidth) / maxCols) * w.h,
-        w: colWidth,
-        h: w.h,
-        isResizable: isEditMode
-      };
-    });
-  }, [preferences.dashboardLayouts, activeTab, isEditMode, GRID_COLS]);
-
-  const responsiveLayouts = useMemo(() => {
-    const activeWidgets = widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id));
-    return {
-      lg: getBreakpointLayout('lg', activeWidgets),
-      md: getBreakpointLayout('md', activeWidgets),
-      sm: getBreakpointLayout('sm', activeWidgets),
-      xs: getBreakpointLayout('xs', activeWidgets),
-      xxs: getBreakpointLayout('xxs', activeWidgets),
-    };
-  }, [getBreakpointLayout, widgets, activeTab]);
-
-  const setWidgetHidden = (widgetId: string, hidden: boolean) => {
-    setPreferences(prev => {
-      const current = prev.dashboardHiddenWidgets?.[layoutKey] || [];
-      const next = hidden ? Array.from(new Set([...current, widgetId])) : current.filter(id => id !== widgetId);
-      return { ...prev, dashboardHiddenWidgets: { ...(prev.dashboardHiddenWidgets || {}), [layoutKey]: next } };
-    });
-  };
-
-  const removeWidget = (widgetId: string) => {
-    setWidgetHidden(widgetId, true);
-    saveLayouts(widgets.filter(w => w.id !== widgetId));
-  };
-
-  const updateWidgetWidth = (widgetId: string, newWidth: number) => {
-    saveLayouts(widgets.map(w => w.id === widgetId ? { ...w, w: newWidth } : w));
-  };
+  const removeWidget = useCallback((widgetId: string) => {
+    saveLayout(layout.filter(widget => widget.id !== widgetId));
+  }, [layout, saveLayout]);
 
   const addWidget = (widgetId: string) => {
-    const widgetToAdd = allWidgets.find(w => w.id === widgetId);
-    if (widgetToAdd) {
-      const yOffset = Math.max(0, ...widgets.map(w => w.y + w.h));
-      const newWidget = { id: widgetToAdd.id, title: widgetToAdd.name, x: 0, y: yOffset, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH };
-      setWidgetHidden(widgetId, false);
-      saveLayouts([...widgets, newWidget]);
-    }
+    saveLayout([...layout, toConfig(widgetId, OVERVIEW_WIDGETS[widgetId].span, layout.length)]);
     setIsAddWidgetModalOpen(false);
   };
 
-  const handleLayoutChange = useCallback((currentLayout: any[]) => {
-    if (!isEditMode) return;
-    const bpKey = `${activeTab}-${currentBreakpoint}`;
-    const updated = widgets.map(w => {
-      const layoutItem = currentLayout.find(l => l.i === w.id);
-      if (layoutItem) {
-        return { ...w, x: layoutItem.x, y: layoutItem.y, w: layoutItem.w, h: layoutItem.h };
-      }
-      return w;
-    });
-    setPreferences(prev => ({
-      ...prev,
-      dashboardLayouts: {
-        ...(prev.dashboardLayouts || {}),
-        [bpKey]: updated,
-        ...(currentBreakpoint === 'lg' ? { [layoutKey]: updated } : {})
-      }
-    }));
-  }, [isEditMode, activeTab, currentBreakpoint, widgets, layoutKey, setPreferences]);
+  const moveWidget = (widgetId: string, step: number) => {
+    const index = layout.findIndex(widget => widget.id === widgetId);
+    const target = index + step;
+    if (index < 0 || target < 0 || target >= layout.length) return;
+    const next = [...layout];
+    next.splice(target, 0, next.splice(index, 1)[0]);
+    saveLayout(next);
+  };
 
   const availableWidgetsToAdd = useMemo(() => {
-    const currentWidgetIds = widgets.map(w => w.id);
-    const allowedWidgets = WIDGET_TABS[activeTab];
-    return allWidgets.filter(w => !currentWidgetIds.includes(w.id) && allowedWidgets.includes(w.id));
-  }, [widgets, allWidgets, activeTab]);
+    const shown = new Set(layout.map(widget => widget.id));
+    return allWidgets
+      .filter(widget => !shown.has(widget.id) && OVERVIEW_WIDGETS[widget.id])
+      .map(widget => ({ ...widget, name: OVERVIEW_WIDGETS[widget.id].title }));
+  }, [layout, allWidgets]);
 
-  const { liquidityRatio, savingsRate } = useMemo(() => {
-    const openAccounts = analyticsAccounts.filter(acc => acc.status !== 'closed');
-    const liquidCash = openAccounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
-      .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-
-    const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    const expenseTxs = analyticsTransactions.filter(t => {
-      const d = parseLocalDate(t.date);
-      return d >= threeMonthsAgo && t.type === 'expense' && !t.transferId;
-    });
-    const totalSpend = expenseTxs.reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
-    const avgMonthlySpend = totalSpend / 3;
-
-    const liquidityRatio = avgMonthlySpend > 0 ? (liquidCash / avgMonthlySpend) : 0;
-
-    let totalIncomePeriod = 0;
-    let totalExpensePeriod = 0;
-    const { start, end } = getDateRange(duration, analyticsTransactions);
-    const periodTxs = analyticsTransactions.filter(t => {
-      const d = parseLocalDate(t.date);
-      return d >= start && d <= end && !t.transferId;
-    });
-    periodTxs.forEach(tx => {
-      const val = convertToEur(tx.amount, tx.currency);
-      if (tx.type === 'income') totalIncomePeriod += val;
-      else totalExpensePeriod += Math.abs(val);
-    });
-    const netFlowPeriod = totalIncomePeriod - totalExpensePeriod;
-    const savingsRate = totalIncomePeriod > 0 ? (netFlowPeriod / totalIncomePeriod) * 100 : 0;
-
-    return { liquidityRatio, savingsRate };
-
-  }, [analyticsAccounts, analyticsTransactions, duration]);
-
-  const allocationData: { name: string; value: number; color: string }[] = useMemo(() => {
-    return budgets.map(b => {
-      const cat = expenseCategories.find(c => c.name === b.categoryName);
-      return {
-        name: b.categoryName,
-        value: b.amount,
-        color: cat?.color || '#cbd5e1'
-      };
-    }).sort((a, b) => b.value - a.value);
-  }, [budgets, expenseCategories]);
 
   const filteredBillSuggestions = useMemo(() => {
     if (selectedAccountIds.length === 0) return billSuggestions;
@@ -1531,7 +1420,83 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   }, [filteredTransferSuggestions, filteredBillSuggestions]);
 
   const totalPendingMatchesCount = dedupedTransferSuggestions.length + dedupedBillSuggestions.length;
-  const tabs: DashboardTab[] = ['overview', 'analysis', 'activity', 'pending_matches'];
+  const { notificationCount: billsDue } = useBillNotifications({ recurringTransactions, billsAndPayments });
+
+  const toCategorise = useMemo(
+    () => analyticsTransactions.filter(tx => isUncategorised(tx) && analyticsSelectedAccountIds.includes(tx.accountId)).length,
+    [analyticsTransactions, analyticsSelectedAccountIds]
+  );
+
+  const tasksDue = useMemo(() => {
+    const today = toLocalISOString(new Date());
+    return tasks.filter(task => task.status !== 'Done' && !!task.dueDate && task.dueDate <= today).length;
+  }, [tasks]);
+
+  const incomeYesterday = useMemo(() => {
+    const day = new Date();
+    day.setDate(day.getDate() - 1);
+    const yesterday = toLocalISOString(day);
+    return safeRound(analyticsTransactions
+      .filter(tx => tx.date === yesterday && tx.type === 'income' && !tx.transferId && analyticsSelectedAccountIds.includes(tx.accountId))
+      .reduce((sum, tx) => sum + convertToEur(tx.amount, tx.currency), 0), 2);
+  }, [analyticsTransactions, analyticsSelectedAccountIds]);
+
+  const openMatches = useCallback((filter: 'all' | 'transfer' | 'bill') => {
+    setUnifiedModalInitialFilter(filter);
+    setIsUnifiedPendingModalOpen(true);
+  }, []);
+
+  const summaryFacts = buildSummaryFacts({
+    incomeYesterday: incomeYesterday > 0 ? formatCurrency(eurToDisplay(incomeYesterday), preferredCurrency) : null,
+    billsDue,
+    toReview: toCategorise + dedupedTransferSuggestions.length + dedupedBillSuggestions.length,
+    tasksDue,
+  });
+
+  const heroParts = useMemo(() => {
+    const sumOf = (types: AccountType[]) => calculateAccountTotals(analyticsSelectedAccounts.filter(acc => types.includes(acc.type)), analyticsTransactions, loanPaymentOverrides).totalAssets;
+    const cash = sumOf(['Checking', 'Savings']);
+    const investments = sumOf(['Investment']);
+    return [
+      { label: 'Cash', value: eurToDisplay(cash) },
+      { label: 'Investments', value: eurToDisplay(investments) },
+      { label: 'Property and other', value: eurToDisplay(Math.max(0, totalAssets - cash - investments)) },
+    ];
+  }, [analyticsSelectedAccounts, analyticsTransactions, loanPaymentOverrides, totalAssets, eurToDisplay]);
+
+  const netWorthChange = useMemo(() => {
+    const history = netWorthData.filter(point => point.value !== undefined);
+    return history.length < 2 ? null : safeRound(netWorth - history[0].value!, 2);
+  }, [netWorthData, netWorth]);
+
+  const periodLabel = (DURATION_OPTIONS.find(option => option.value === duration)?.label ?? 'this period').toLowerCase();
+
+  const gridItems = useMemo<WidgetGridItem[]>(() => layout.flatMap(entry => {
+    const widget = allWidgets.find(item => item.id === entry.id);
+    const meta = OVERVIEW_WIDGETS[entry.id];
+    if (!widget || !meta || (entry.id === 'creditCardStatements' && creditCardStatements.length === 0)) return [];
+    const Component = widget.component;
+    return [{
+      id: entry.id,
+      title: meta.title,
+      defaultSpan: meta.span,
+      rows: meta.rows,
+      render: size => (
+        <WidgetErrorBoundary widgetTitle={meta.title}>
+          <Suspense fallback={<Skeleton variant="card" />}>
+            <Component {...widget.props} size={size} />
+          </Suspense>
+        </WidgetErrorBoundary>
+      ),
+    }];
+  }), [layout, allWidgets, creditCardStatements.length]);
+
+  const gridLayout = useMemo<WidgetLayoutItem[]>(() => layout.map(entry => ({ id: entry.id, span: entry.w })), [layout]);
+
+  const handleGridChange = useCallback((next: WidgetLayoutItem[]) => {
+    saveLayout(next.map((entry, index) => toConfig(entry.id, entry.span, index)));
+  }, [saveLayout]);
+
 
   const highConfidencePendingCount = useMemo(() => {
     const highTransfers = dedupedTransferSuggestions.filter(s => s.matchScore >= 80).length;
@@ -1552,12 +1517,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   }, [dismissAllSuggestions, dismissAllBillMatches]);
 
   return (
-    <div
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      className="space-y-6 pb-12 animate-fade-in-up relative z-0"
-    >
-      {/* ... existing modals */}
+    <div className="relative">
       {isTransactionModalOpen && (
         <AddTransactionModal
           onClose={handleCloseTransactionModal}
@@ -1612,7 +1572,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           onDismissAll={handleDismissAllPending}
           onOpenFullPageTab={() => {
             setIsUnifiedPendingModalOpen(false);
-            setActiveTab('pending_matches');
+            setMatchesPanelOpen(true);
           }}
         />
       )}
@@ -1663,504 +1623,158 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
       {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
 
-      {isMobile ? (
-        <MobileDashboardView
-          userProfile={user}
-          categories={allCategories}
-          accounts={accounts}
-          transactions={transactions}
-          analyticsAccounts={analyticsAccounts}
-          analyticsTransactions={analyticsTransactions}
-          selectedAccountIds={selectedAccountIds}
-          setSelectedAccountIds={setSelectedAccountIds}
-          netWorthData={netWorthData}
-          duration={duration}
-          setDuration={setDuration}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          tabs={tabs}
-          forecastDuration={forecastDuration}
-          setForecastDuration={setForecastDuration}
-          showForecast={showForecast}
-          setShowForecast={setShowForecast}
-          showGoals={showGoals}
-          setShowGoals={setShowGoals}
-          globalTotalAssets={globalTotalAssets}
-          globalTotalDebt={globalTotalDebt}
-          liquidityRatio={liquidityRatio}
-          savingsRate={savingsRate}
-          widgets={widgets}
-          allWidgets={allWidgets}
-          WIDGET_TABS={WIDGET_TABS}
-          removeWidget={removeWidget}
-          updateWidgetWidth={updateWidgetWidth}
-          isEditMode={isEditMode}
-          setIsEditMode={setIsEditMode}
-          setIsAddWidgetModalOpen={setIsAddWidgetModalOpen}
-          isPrivacyMode={!!preferences.isPrivacyMode}
-          setIsPrivacyMode={(val) => {
-            if (onTogglePrivacyMode) onTogglePrivacyMode();
-            else setPreferences(prev => ({ ...prev, isPrivacyMode: val }));
-          }}
-          formatCurrency={formatCurrency}
-          convertCurrency={convertCurrency}
-          preferredCurrency={preferredCurrency}
-          conversionRates={conversionRates}
-          handleOpenTransactionModal={handleOpenTransactionModal}
-          isSyncingBanks={isSyncingBanks}
-          onSyncBanks={onSyncBanks}
-          suggestions={dedupedTransferSuggestions}
-          setIsMatcherModalOpen={setIsUnifiedPendingModalOpen}
-          dismissAllSuggestions={handleDismissAllPending}
-          billSuggestions={dedupedBillSuggestions}
-          setIsBillMatcherModalOpen={setIsUnifiedPendingModalOpen}
-          dismissAllBillMatches={handleDismissAllPending}
-          calculateAccountTotals={calculateAccountTotals}
-          assetAllocationData={allocationData}
-          assetGroups={assetGroups}
-          liabilityGroups={liabilityGroups}
-          FORECAST_DURATION_OPTIONS={FORECAST_DURATION_OPTIONS}
-          SELECT_WRAPPER_STYLE={SELECT_WRAPPER_STYLE}
-          SELECT_STYLE={SELECT_STYLE}
-          SELECT_ARROW_STYLE={SELECT_ARROW_STYLE}
-          brandfetchClientId={preferences.brandfetchClientId}
-        />
-      ) : (
-        <div>
-        {/* Header Section */}
-        <div className="mb-6 mt-2 md:mt-0">
-          <PageHeader
-            accentColor="emerald"
-            markerIcon="Command"
-            markerLabel="Command Center"
-            title="Dashboard"
-            subtitle="Real-time financial pulse across accounts, investments, and commitments."
-            actions={
-              <div className="flex items-center gap-2">
-                <HeaderButton
-                  variant={isEditMode ? 'primary' : 'ghost'}
-                  icon={isEditMode ? 'CheckCircle' : 'Grid01'}
-                  onClick={() => setIsEditMode(!isEditMode)}
-                  title={isEditMode ? 'Finish Editing' : 'Edit Layout'}
-                >
-                  {isEditMode ? 'Finish Editing' : 'Customize'}
-                </HeaderButton>
+      {(() => {
+        const chartOptions = (
+          <div className="flex flex-col gap-2">
+            <Select label="Forecast period" options={FORECAST_DURATION_OPTIONS.map(option => ({ id: option.value, label: option.label }))} value={forecastDuration} onChange={id => setForecastDuration(id as ForecastDuration)} />
+            <Switch isSelected={showForecast} onChange={setShowForecast}>Show forecast</Switch>
+            <Switch isSelected={showGoals} onChange={setShowGoals}>Show goals</Switch>
+          </div>
+        );
 
-                {isEditMode && (
-                  <HeaderButton
-                    variant="secondary"
-                    icon="PlusSquare"
-                    onClick={() => setIsAddWidgetModalOpen(true)}
-                  >
-                    Add Widget
-                  </HeaderButton>
-                )}
+        const page = (
+          <div className="space-y-6">
+            <h1 className="sr-only">Overview</h1>
+            <WrittenSummary
+              facts={summaryFacts}
+              isPrivate={isPrivate}
+              onFact={fact => {
+                if (fact === 'bills') setCurrentPage('Schedule & Bills');
+                else if (fact === 'tasks') setCurrentPage('Tasks');
+                else if (fact === 'income' || toCategorise > 0) setCurrentPage('Transactions');
+                else openMatches('all');
+              }}
+            />
 
-                <HeaderButton
-                  variant="emerald"
-                  icon="sync"
-                  isLoading={isSyncingBanks}
-                  onClick={() => {
-                    if (onSyncBanks) {
-                      onSyncBanks();
-                    } else {
-                      const syncBtn = document.querySelector('[data-eb-sync-all]');
-                      if (syncBtn) (syncBtn as HTMLElement).click();
-                    }
-                  }}
-                  title="Sync Connected Banks"
-                >
-                  {isSyncingBanks ? 'Syncing...' : 'Sync Banks'}
-                </HeaderButton>
-
-                <HeaderButton
-                  variant="primary"
-                  icon="PlusCircle"
-                  onClick={() => handleOpenTransactionModal()}
-                >
-                  Add Transaction
-                </HeaderButton>
+            <div className={`grid gap-6 max-md:gap-4 lg:grid-cols-3 ${isFirstVisit ? 'crystal-stagger' : ''}`}>
+              <div className="lg:col-span-2">
+                <NetWorthHero
+                  value={eurToDisplay(netWorth)}
+                  change={netWorthChange === null ? null : eurToDisplay(netWorthChange)}
+                  period={periodLabel}
+                  parts={heroParts}
+                  debts={eurToDisplay(Math.abs(totalDebt))}
+                  currency={preferredCurrency}
+                  countUp={isFirstVisit}
+                  onOpen={() => setCurrentPage('Accounts')}
+                />
               </div>
-            }
-          />
-        </div>
-
-        {(dedupedTransferSuggestions.length > 0 || dedupedBillSuggestions.length > 0) && (
-          <UnifiedPendingMatcherCard
-            transferCount={dedupedTransferSuggestions.length}
-            billCount={dedupedBillSuggestions.length}
-            highConfidenceCount={highConfidencePendingCount}
-            onReview={(filter = 'all') => {
-              setUnifiedModalInitialFilter(filter);
-              setIsUnifiedPendingModalOpen(true);
-            }}
-            onDismissAll={handleDismissAllPending}
-            onQuickReconcileHighConfidence={handleQuickReconcileHighConfidence}
-          />
-        )}
-
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 bg-white/60 dark:bg-black/20 backdrop-blur-xl p-1.5 sm:p-2 rounded-2xl sm:rounded-[2rem] border border-slate-200/60 dark:border-white/5 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] relative z-30">
-            {/* Unified Tabs (SegmentedControl) */}
-            <div className="w-full lg:w-auto overflow-x-auto no-scrollbar">
-              <SegmentedControl
-                mode="tabs"
+              <NeedsYou
                 items={[
-                  { id: 'overview', label: 'Overview', icon: 'layout_alt' },
-                  { id: 'analysis', label: 'Analysis', icon: 'bar_chart' },
-                  { id: 'activity', label: 'Activity', icon: 'receipt' },
-                  {
-                    id: 'pending_matches',
-                    label: 'Pending Matches',
-                    icon: 'file_check',
-                    badge: totalPendingMatchesCount > 0 ? totalPendingMatchesCount : undefined,
-                  },
+                  { id: 'categorise', label: 'To categorise', count: toCategorise, onOpen: () => setCurrentPage('Transactions') },
+                  { id: 'transfers', label: 'Transfers to match', count: dedupedTransferSuggestions.length, onOpen: () => openMatches('transfer') },
+                  { id: 'bill-matches', label: 'Bills to match', count: dedupedBillSuggestions.length, onOpen: () => openMatches('bill') },
+                  { id: 'bills', label: 'Bills due soon', count: billsDue, onOpen: () => setCurrentPage('Schedule & Bills') },
+                  { id: 'tasks', label: 'Tasks due', count: tasksDue, onOpen: () => setCurrentPage('Tasks') },
                 ]}
-                activeTab={activeTab}
-                onTabChange={(id) => setActiveTab(id as DashboardTab)}
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end px-0.5 lg:px-0">
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-1 bg-slate-900/[0.03] dark:bg-white/[0.03] border border-slate-900/[0.06] dark:border-white/[0.06] p-1 rounded-2xl sm:rounded-[1.5rem] w-full sm:w-auto min-h-[48px] sm:h-12">
-                {/* Forecast Controls (Only visible in overview) */}
-                {activeTab === 'overview' && (
+                footer={totalPendingMatchesCount > 0 && (
                   <>
-                    <div className="relative flex-1 sm:flex-initial h-10">
-                      <select
-                        aria-label="Forecast horizon"
-                        value={forecastDuration}
-                        onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)}
-                        className="appearance-none bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white h-10 pl-3.5 pr-8 rounded-xl sm:rounded-[1.25rem] text-xs font-bold tracking-wide transition-all cursor-pointer border-0 outline-none focus:ring-2 focus:ring-primary-500/30"
-                      >
-                        {FORECAST_DURATION_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{opt.label}</option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 dark:text-slate-500">
-                        <Icon name="expand_more" className="text-base" />
-                      </div>
-                    </div>
-
-                    <div className="w-[1px] h-5 bg-slate-200 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => setShowForecast(!showForecast)}
-                        className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showForecast ? 'bg-white/95 dark:bg-white/[0.1] shadow-xs border border-slate-200/80 dark:border-white/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-black/5'}`}
-                        title={showForecast ? "Hide Forecast" : "Show Forecast"}
-                        aria-label="Toggle Forecast"
-                      >
-                        <Icon name="candlestick_chart" className={`text-lg sm:text-xl ${showForecast ? '' : ''}`} />
-                      </button>
-
-                      <button
-                        onClick={() => setShowGoals(!showGoals)}
-                        className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showGoals ? 'bg-white/95 dark:bg-white/[0.1] shadow-xs border border-slate-200/80 dark:border-white/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-black/5'}`}
-                        title={showGoals ? "Hide Goals" : "Show Goals"}
-                        aria-label="Toggle Goals"
-                      >
-                        <Icon name="target" className={`text-lg sm:text-xl ${showGoals ? '' : ''}`} />
-                      </button>
-                    </div>
-
-                    <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
+                    {highConfidencePendingCount > 0 && <Button size="sm" variant="soft" onPress={handleQuickReconcileHighConfidence}>Confirm {highConfidencePendingCount} likely</Button>}
+                    <Button size="sm" variant="ghost" onPress={handleDismissAllPending}>Dismiss matches</Button>
                   </>
                 )}
+              />
+            </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0 relative z-50 shrink-0">
+            <div className="relative z-30 flex flex-wrap items-center justify-between gap-2">
+              {isMobile ? (
+                <Popover
+                  title="Filters"
+                  trigger={
+                    <AriaButton className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface px-4 text-sm font-bold text-ink">
+                      <Icon name="filter_list" size={20} />
+                      Filter
+                    </AriaButton>
+                  }
+                >
+                  <div className="flex flex-col gap-4">
+                    <MultiSelect label="Accounts" options={accounts.map(account => ({ id: account.id, label: account.name }))} value={selectedAccountIds} onChange={setSelectedAccountIds} />
+                    <Select label="Period" options={DURATION_OPTIONS.map(option => ({ id: option.value, label: option.label }))} value={duration} onChange={id => setDuration(id as Duration)} />
+                    {chartOptions}
+                  </div>
+                </Popover>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                   <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
+                  <Popover title="Chart options" trigger={<IconButton icon="tune" label="Chart options" />}>
+                    <div className="w-64">{chartOptions}</div>
+                  </Popover>
                 </div>
+              )}
+              <div className="flex items-center gap-2">
+                {isEditMode && <Button variant="secondary" icon="add" onPress={() => setIsAddWidgetModalOpen(true)}>Add widget</Button>}
+                {isMobile
+                  ? <Button variant="ghost" icon="tune" onPress={() => setPhoneEditOpen(true)}>Customise</Button>
+                  : <Button variant={isEditMode ? 'primary' : 'ghost'} icon={isEditMode ? 'check' : 'tune'} onPress={() => setIsEditMode(!isEditMode)}>{isEditMode ? 'Done' : 'Customise'}</Button>}
               </div>
             </div>
-          </div>
-        </div>
 
-        {activeTab === 'analysis' && (
-          <div className="space-y-8 animate-fade-in-up">
-            <MetricCardRow columns={4}>
-              <HeroMetricCard
-                variant="primary"
-                label="Liquidity Ratio"
-                value={`${liquidityRatio.toFixed(1)} months`}
-                subtext="Runway based on avg. spend"
-                icon="clock"
-                iconColor="blue"
-                privacyBlur
-              />
-              <HeroMetricCard
-                variant="secondary"
-                label="Savings Rate"
-                value={`${savingsRate.toFixed(0)}%`}
-                subtext={`of total income (${duration})`}
-                icon="piggy_bank"
-                iconColor="emerald"
-                privacyBlur
-                trend={savingsRate >= 20 ? 'up' : savingsRate <= 0 ? 'down' : 'neutral'}
-              />
-              <HeroMetricCard
-                variant="secondary"
-                label="Debt Ratio"
-                value={`${(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth > 0 ? (Math.abs(calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalDebt) / calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalAssets) * 100 : 0).toFixed(1)}%`}
-                subtext="Liabilities / Assets"
-                icon="scale"
-                iconColor="purple"
-                privacyBlur
-              />
-              <HeroMetricCard
-                variant="secondary"
-                label="Net Flow"
-                value={formatCurrency(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth - calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth, 'EUR')}
-                subtext="Period change"
-                icon="coins_stacked"
-                iconColor="amber"
-                privacyBlur
-              />
-            </MetricCardRow>
-
-            {/* Dynamic widgets grid */}
-            {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
-              <ResponsiveGridLayout
-                className="layout"
-                layouts={responsiveLayouts}
-                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                cols={{ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }}
-                rowHeight={180}
-                isDraggable={isEditMode}
-                isResizable={isEditMode}
-                onBreakpointChange={setCurrentBreakpoint}
-                onLayoutChange={handleLayoutChange}
-                draggableHandle=".drag-handle"
-                margin={isMobile ? [12, 12] : [24, 24]}
-                containerPadding={[0, 0]}
-              >
-                {widgets
-                  .filter(widget => WIDGET_TABS.analysis.includes(widget.id))
-                  .map(widget => {
-                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
-                    if (!widgetDetails) return null;
-                    const WidgetComponent = widgetDetails.component;
-                    const isCompactValue = ['forecastHorizon', 'creditCardStatements'].includes(widget.id);
-
-                    return (
-                      <div key={widget.id}>
-                        <WidgetWrapper
-                          title={widget.title}
-                          subtitle={widgetDetails.description}
-                          icon={widgetDetails.icon}
-                          onRemove={() => removeWidget(widget.id)}
-                          onWidthChange={(w) => updateWidgetWidth(widget.id, w)}
-                          currentWidth={widget.w}
-                          isEditMode={isEditMode}
-                          isCompact={isCompactValue}
-                          className="h-full"
-                        >
-                          <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
-                            <WidgetComponent {...widgetDetails.props as any} />
-                          </Suspense>
-                        </WidgetWrapper>
-                      </div>
-                    );
-                  })}
-              </ResponsiveGridLayout>
-            )}
-
-            <Card className="overflow-hidden rounded-[2.5rem] p-8 mt-8">
-              <div className="flex flex-col lg:flex-row gap-8">
-                <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
-                  <h3 className="text-lg font-semibold tracking-tight text-light-text dark:text-dark-text mb-8 self-start">Asset allocation</h3>
-                  <div className="h-64 w-full relative flex items-center justify-center">
-                    <BklitPieChart
-                      data={assetAllocationData.map((item: any) => ({
-                        label: item.name,
-                        value: item.value,
-                        color: item.color,
-                      }))}
-                      innerRadius={70}
-                      cornerRadius={6}
-                      padAngle={assetAllocationData.length > 1 ? 0.04 : 0}
-                      className="w-full h-64"
-                    >
-                      {assetAllocationData.map((_: any, index: number) => (
-                        <PieSlice key={index} index={index} showGlow />
-                      ))}
-                      <PieCenter defaultLabel="Net worth">
-                        {({ value, label, isHovered }) => (
-                          <div className="flex flex-col items-center justify-center text-center">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-gray-400 opacity-70">
-                              {label}
-                            </span>
-                            <span className="text-xl lg:text-2xl font-bold text-light-text dark:text-white tracking-tight privacy-blur leading-tight">
-                              {formatCurrency(
-                                convertCurrency(isHovered ? value : globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates),
-                                preferredCurrency
-                              )}
-                            </span>
-                          </div>
-                        )}
-                      </PieCenter>
-                    </BklitPieChart>
-                  </div>
-                  <div className="w-full mt-10 grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1">Assets</p>
-                      <p className="text-lg font-semibold text-emerald-700 dark:text-emerald-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1">Liabilities</p>
-                      <p className="text-lg font-semibold text-rose-700 dark:text-rose-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-10">
-                  <div>
-                    <h4 className="text-base font-semibold text-light-text dark:text-dark-text mb-6 tracking-tight">Assets breakdown</h4>
-                    <div className="space-y-5">
-                      {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
-                        if (group.value === 0) return null;
-                        return (
-                          <div key={name} className="group">
-                            <div className="flex justify-between text-sm mb-2">
-                              <div className="flex items-center gap-3">
-                                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm ring-1 ring-white/10" style={{ backgroundColor: group.color }}>
-                                  <Icon name={group.icon} className="text-base" />
-                                </div>
-                                <span className="font-semibold text-light-text dark:text-dark-text tracking-tight">{name}</span>
-                              </div>
-                              <span className="font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
-                            </div>
-                            <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
-                            </div>
-                            <div className="flex justify-end mt-1">
-                              <span className="text-xs font-medium text-light-text-secondary dark:text-gray-400 opacity-70 group-hover:opacity-100 transition-opacity">
-                                {((group.value / globalTotalAssets) * 100).toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {globalTotalAssets === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">No assets found.</p>}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-base font-semibold text-light-text dark:text-dark-text mb-6 tracking-tight">Liabilities breakdown</h4>
-                    <div className="space-y-5">
-                      {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
-                        if (group.value === 0) return null;
-                        return (
-                          <div key={name} className="group">
-                            <div className="flex justify-between text-sm mb-2">
-                              <div className="flex items-center gap-3">
-                                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm ring-1 ring-white/10" style={{ backgroundColor: group.color }}>
-                                  <Icon name={group.icon} className="text-base" />
-                                </div>
-                                <span className="font-semibold text-light-text dark:text-dark-text tracking-tight">{name}</span>
-                              </div>
-                              <span className="font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
-                            </div>
-                            <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
-                            </div>
-                            <div className="flex justify-end mt-1">
-                              <span className="text-xs font-medium text-light-text-secondary dark:text-gray-400 opacity-70 group-hover:opacity-100 transition-opacity">
-                                {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {globalTotalDebt === 0 && (
-                        <div className="p-6 text-center text-xs text-light-text-secondary bg-black/5 dark:bg-white/5 rounded-2xl border border-dashed border-black/10">
-                          No liabilities recorded.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'pending_matches' && (
-          <PendingMatchesView
-            billSuggestions={dedupedBillSuggestions}
-            transferSuggestions={dedupedTransferSuggestions}
-            accounts={analyticsAccounts}
-            config={matcherConfig}
-            onUpdateConfig={updateMatcherConfig}
-            onResetConfig={resetMatcherConfig}
-            onConfirmBillMatch={confirmBillMatch}
-            onDismissBillMatch={dismissBillMatch}
-            onConfirmSelectedBillMatches={confirmSelectedBillMatches}
-            onDismissSelectedBillMatches={dismissSelectedBillMatches}
-            onConfirmTransferMatch={confirmMatch}
-            onDismissTransferMatch={dismissSuggestion}
-            onConfirmSelectedTransferMatches={confirmSelectedMatches}
-            onDismissSelectedTransferMatches={dismissSelectedMatches}
-          />
-        )}
-
-        {(activeTab === 'overview' || activeTab === 'activity') && (
-          <div className="animate-fade-in-up">
-            <ResponsiveGridLayout
-              className="layout"
-              layouts={responsiveLayouts}
-              breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-              cols={{ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }}
-              rowHeight={180}
-              isDraggable={isEditMode}
-              isResizable={isEditMode}
-              onBreakpointChange={setCurrentBreakpoint}
-              onLayoutChange={handleLayoutChange}
-              draggableHandle=".drag-handle"
-              margin={isMobile ? [12, 12] : [24, 24]}
-              containerPadding={[0, 0]}
-            >
-              {widgets
-                .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
-                .map(widget => {
-                  const widgetDetails = allWidgets.find(w => w.id === widget.id);
-                  if (!widgetDetails) return null;
-                  const WidgetComponent = widgetDetails.component;
-
-                  const isCompactValue = ['forecastHorizon', 'creditCardStatements'].includes(widget.id);
+            {isMobile ? (
+              <div className="space-y-4">
+                {gridItems.map(item => {
+                  const height = OVERVIEW_WIDGETS[item.id].phoneHeight;
                   return (
-                    <div key={widget.id}>
-                      <WidgetWrapper
-                        title={widget.title}
-                        subtitle={widgetDetails.description}
-                        icon={widgetDetails.icon}
-                        onRemove={() => removeWidget(widget.id)}
-                        onWidthChange={(w) => updateWidgetWidth(widget.id, w)}
-                        currentWidth={widget.w}
-                        isEditMode={isEditMode}
-                        isCompact={isCompactValue}
-                        className="h-full"
-                      >
-                        <WidgetErrorBoundary widgetTitle={(widgetDetails as any).title || widget.id}>
-                          <Suspense fallback={(
-                            <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
-                              Loading widget...
-                            </div>
-                          )}>
-                            <WidgetComponent {...widgetDetails.props as any} />
-                          </Suspense>
-                        </WidgetErrorBoundary>
-                      </WidgetWrapper>
-                    </div>
+                    <section key={item.id} aria-label={item.title} className="flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-line bg-surface p-5" style={{ height }}>
+                      <h2 className="type-card-title mb-3 shrink-0 text-ink">{item.title}</h2>
+                      <div className="min-h-0 flex-1">{item.render('m')}</div>
+                    </section>
                   );
                 })}
-            </ResponsiveGridLayout>
+              </div>
+            ) : (
+              <WidgetGrid
+                className={isFirstVisit ? 'crystal-stagger-grid' : undefined}
+                items={gridItems}
+                layout={gridLayout}
+                onLayoutChange={handleGridChange}
+                isEditing={isEditMode}
+                onRemove={removeWidget}
+              />
+            )}
           </div>
-        )}
-      </div>
-      )}
+        );
+
+        return isMobile && onSyncBanks ? <PullToRefresh onRefresh={async () => { await onSyncBanks(); }}>{page}</PullToRefresh> : page;
+      })()}
+
+      <BottomSheet
+        isOpen={isPhoneEditOpen}
+        onClose={() => setPhoneEditOpen(false)}
+        title="Customise Overview"
+        footer={<Button block size="lg" variant="secondary" icon="add" onPress={() => setIsAddWidgetModalOpen(true)} isDisabled={availableWidgetsToAdd.length === 0}>Add a widget</Button>}
+      >
+        <ul className="divide-y divide-line">
+          {layout.map((entry, index) => (
+            <li key={entry.id} className="flex min-h-14 items-center gap-1">
+              <span className="type-body-strong min-w-0 flex-1 truncate text-ink">{OVERVIEW_WIDGETS[entry.id].title}</span>
+              <IconButton icon="arrow_upward" label={`Move ${OVERVIEW_WIDGETS[entry.id].title} up`} isDisabled={index === 0} onPress={() => moveWidget(entry.id, -1)} />
+              <IconButton icon="arrow_downward" label={`Move ${OVERVIEW_WIDGETS[entry.id].title} down`} isDisabled={index === layout.length - 1} onPress={() => moveWidget(entry.id, 1)} />
+              <IconButton icon="visibility_off" label={`Hide ${OVERVIEW_WIDGETS[entry.id].title}`} onPress={() => removeWidget(entry.id)} />
+            </li>
+          ))}
+        </ul>
+      </BottomSheet>
+
+      <FullPanel isOpen={isMatchesPanelOpen} onClose={() => setMatchesPanelOpen(false)} title="Pending matches">
+        <PendingMatchesView
+          billSuggestions={dedupedBillSuggestions}
+          transferSuggestions={dedupedTransferSuggestions}
+          accounts={analyticsAccounts}
+          config={matcherConfig}
+          onUpdateConfig={updateMatcherConfig}
+          onResetConfig={resetMatcherConfig}
+          onConfirmBillMatch={confirmBillMatch}
+          onDismissBillMatch={dismissBillMatch}
+          onConfirmSelectedBillMatches={confirmSelectedBillMatches}
+          onDismissSelectedBillMatches={dismissSelectedBillMatches}
+          onConfirmTransferMatch={confirmMatch}
+          onDismissTransferMatch={dismissSuggestion}
+          onConfirmSelectedTransferMatches={confirmSelectedMatches}
+          onDismissSelectedTransferMatches={dismissSelectedMatches}
+        />
+      </FullPanel>
+
       <ConfirmDialog />
     </div>
   );

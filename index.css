@@ -1437,3 +1437,12 @@ img {
 /* Toasts sit bottom centre and move above the selection bar and the phone bar (D-066). */
 :root { --toast-bottom: 24px; --toast-phone-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
 html[data-selection-bar] { --toast-bottom: 88px; --toast-phone-bottom: calc(164px + env(safe-area-inset-bottom, 0px)); }
+
+/* Cards rise and fade in on the first visit, up to six (D-062). */
+@keyframes crystal-card-in { from { opacity: 0; transform: translateY(8px); } }
+.crystal-stagger > *, .crystal-stagger-grid > div > * { animation: crystal-card-in var(--duration-slow) var(--ease-standard) backwards; }
+.crystal-stagger > :nth-child(2), .crystal-stagger-grid > div > :nth-child(1) { animation-delay: var(--stagger); }
+.crystal-stagger-grid > div > :nth-child(2) { animation-delay: calc(var(--stagger) * 2); }
+.crystal-stagger-grid > div > :nth-child(3) { animation-delay: calc(var(--stagger) * 3); }
+.crystal-stagger-grid > div > :nth-child(4) { animation-delay: calc(var(--stagger) * 4); }
+.crystal-stagger-grid > div > :nth-child(n+5) { animation-delay: calc(var(--stagger) * 5); }

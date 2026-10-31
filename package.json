@@ -1,7 +1,7 @@
 {
   "name": "crystal",
   "private": true,
-  "version": "2.261031.3",
+  "version": "2.261031.4",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -28,7 +28,6 @@
     "@number-flow/react": "^0.6.2",
     "@react-aria/i18n": "^3.13.1",
     "@tanstack/react-query": "^5.66.7",
-    "@types/react-grid-layout": "^1.3.6",
     "@versatiles/style": "^7.0.1",
     "@visx/curve": "^4.0.1-alpha.0",
     "@visx/event": "^4.0.0",
@@ -57,7 +56,6 @@
     "react": "^19.2.0",
     "react-aria-components": "^1.20.0",
     "react-dom": "^19.2.0",
-    "react-grid-layout": "^1.5.0",
     "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.3.0",

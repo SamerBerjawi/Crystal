@@ -138,6 +138,9 @@ Used to weigh priorities. None of this removes any feature.
 | D-073 | 2026-10-31 | The Design System Specification, Component Inventory and Responsive Specification are approved | Owner | Phase 8 complete |
 | D-074 | 2026-10-31 | Proposed: Privacy moves to the profile menu on desktop and tablet, as Hide amounts. It stays in More on phones | Mapping `NAV-10` | The eight rail tools don't include it, and the sidebar that held it is gone. Awaiting the owner |
 | D-075 | 2026-10-31 | Proposed: the logo hides under 900 px, so the seven pills keep their 12 px padding. Overview does the same job | None | Awaiting the owner |
+| D-076 | 2026-10-31 | Safe to spend is cash in the primary checking and cash accounts, less everything due before the next income, less a cushion you set. With no scheduled income it runs to the end of the month | Owner | New function. Other accounts, including savings, don't count. With no primary set, every checking account counts |
+| D-077 | 2026-10-31 | The grid test passed, so KokonutUI's Widget Grid replaces react-grid-layout, with an edit mode, row spans and three columns on tablets added | KokonutUI | Confirms `D-035`. The source is the registry's `bento-grid`, MIT |
+| D-078 | 2026-10-31 | Overview has no tabs. Analysis and Activity widgets join one grid. Pending Matches opens from Needs you until the Review queue exists | Direction section 3 | Saved layouts carry over. Old keys stay in place |
 
 ## Open questions
 
