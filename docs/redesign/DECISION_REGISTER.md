@@ -158,6 +158,9 @@ Used to weigh priorities. None of this removes any feature.
 | D-093 | 2026-10-31 | Paused subscriptions leave totals, Safe to spend and the Forecast until resumed. Crystal only records the pause and cancels nothing with the provider | Owner | Refines `D-028`. Adds a saved field to recurring items |
 | D-094 | 2026-10-31 | Goal status comes from each goal's own saved amount and contributions, never an account balance. Goals with no contribution show No plan yet. Bucket status is its items' worst | Owner | Changes statuses from the old page. Uses `goalsModel.ts` |
 | D-095 | 2026-10-31 | A holding's price currency is set once, by its first trade. Later trades keep their own currency, and quotes in another currency are converted to the holding's. Existing holdings stay EUR | Claude | Refines `D-026`. Changing it later would misread the whole price log. Any currency in Module 12 can revisit this |
+| D-096 | 2026-10-31 | Reports fixes four sums: comparisons cover the report's own filters, the pace chart follows the account filter, the forecast stops at today, and monthly budgets scale to the period | Claude | Filtered reports show different numbers from before, and those were wrong |
+| D-097 | 2026-10-31 | Invoice totals convert to EUR and separate what you're owed from what you owe. Paid this month checks the year, and a sent invoice past its due date reads as overdue without changing its saved status | Claude | The old sums mixed currencies and counted bills as income |
+| D-098 | 2026-10-31 | Challenges fixes four faults: sprints match categories by words such as restaurant or grocer, Forecaster unlocks on making a prediction, cards and results share one value, and over-budget categories have no level | Claude | Sprints can now fail on real spending, where most used to pass |
 
 ## Open questions
 

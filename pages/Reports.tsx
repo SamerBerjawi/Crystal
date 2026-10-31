@@ -1,1349 +1,252 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  Legend
-} from 'recharts';
-import {
-  PieChart as BklitPieChart,
-  PieSlice,
-  PieCenter,
-  LineChart as BklitLineChart,
-  Line as BklitLine,
-  Grid as BklitGrid,
-  XAxis as BklitXAxis,
-  YAxis as BklitYAxis,
-  ChartTooltip as BklitChartTooltip,
-} from '../src/components/charts';
-import { useTransactionSelector, usePreferencesSelector, useAccountSelector } from '../contexts/DomainProviders';
+import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import type { Page } from '../types';
+import { toLocalISOString } from '../utils';
+import { automaticReports, buildReport, dailySpend, expensesIn, MAX_SAVED_VIEWS, NO_FILTERS, reportTiles, type GroupBy, type ReportFilters, type ReportId, type SavedReportView } from '../utils/reportsModel';
+import { warnIgnored } from '../utils/logging';
+import { useAccountSelector, usePreferencesContext, useTransactionSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE } from '../constants';
-import { Category, Account, MerchantRule, Page } from '../types';
-import { convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
-import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
-import Card from '../components/Card';
-import PageHeader from '../components/PageHeader';
-import HeroMetricCard from '../components/ui/HeroMetricCard';
-import MetricCardRow from '../components/ui/MetricCardRow';
-import FilterBar from '../components/ui/FilterBar';
-import SegmentedControl from '../components/ui/SegmentedControl';
-import { motion } from 'motion/react';
+import { useIsMobile } from '../hooks/useIsMobile';
+import PageHeader, { type PageStat } from '../components/PageHeader';
+import ReportPanel from '../components/ReportPanel';
+import { Button, IconButton } from '../components/ui/Actions';
+import { CountPill, Sparkline } from '../components/ui/Display';
+import { DateInput, TextInput } from '../components/ui/Fields';
 import Icon from '../components/ui/Icon';
+import { Amount } from '../components/ui/Money';
+import { Dialog, SidePanel } from '../components/ui/Overlays';
+import { Select } from '../components/ui/Pickers';
+import { cn } from '../lib/utils';
 
-const SAVED_REPORTS_KEY = 'reports.savedViews.v1';
+const LEGACY_VIEWS_KEY = 'reports.savedViews.v1';
 
-const getDefaultStartDate = () => {
-  const d = new Date();
-  d.setDate(d.getDate() - 30);
-  return toLocalISOString(d);
-};
+const TILES: { id: ReportId; label: string; icon: string }[] = [
+  { id: 'summary', label: 'Summary', icon: 'analytics' },
+  { id: 'spending', label: 'Spending pace', icon: 'trending_up' },
+  { id: 'categories', label: 'Categories', icon: 'pie_chart' },
+  { id: 'usual', label: 'Compared with usual', icon: 'compare_arrows' },
+  { id: 'needs', label: 'Needs and wants', icon: 'balance' },
+  { id: 'breakdown', label: 'Spend breakdown', icon: 'receipt' },
+  { id: 'cashflow', label: 'Cash flow', icon: 'swap_horiz' },
+  { id: 'budget', label: 'Budget and actual', icon: 'savings' },
+  { id: 'recurring', label: 'Repeat spending', icon: 'refresh' },
+  { id: 'unusual', label: 'Unusual payments', icon: 'error' },
+  { id: 'forecast', label: 'Month-end forecast', icon: 'calendar_today' },
+];
 
-type GroupBy = 'merchant' | 'category';
-
-type SavedReportView = {
-  id: string;
+interface LibraryCardProps {
   name: string;
-  startDate: string;
-  endDate: string;
-  merchantFilter: string;
-  categoryFilter: string;
-  accountFilter: string;
-  groupBy: GroupBy;
-};
+  amount: number;
+  trend: { value: number }[];
+  isActive: boolean;
+  onOpen: () => void;
+  onDelete?: () => void;
+}
 
-type InsightItem = {
-  id: string;
-  tone: 'neutral' | 'positive' | 'warning';
-  text: string;
-};
-
-const readSavedViews = (): SavedReportView[] => {
-  if (typeof window === 'undefined') return [];
-  const raw = window.localStorage.getItem(SAVED_REPORTS_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeSavedViews = (views: SavedReportView[]) => {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(views));
-};
-
-const ChartTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
-        {label && (
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2 text-neutral-500 dark:text-neutral-400">
-            {typeof label === 'number' ? `Day ${label}` : label}
-          </p>
-        )}
-        <div className="space-y-1.5">
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center justify-between gap-6">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
-                <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">{entry.name}:</span>
-              </div>
-              <span className="text-xs font-bold text-neutral-800 dark:text-neutral-100 privacy-blur">
-                €{entry.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
-
+const LibraryCard: React.FC<LibraryCardProps> = ({ name, amount, trend, isActive, onOpen, onDelete }) => (
+  <div className={cn('surface-card relative w-44 shrink-0 rounded-[var(--radius-lg)] p-3 transition-colors duration-[var(--duration-fast)]', isActive && 'border-primary')}>
+    <button type="button" aria-pressed={isActive} onClick={onOpen} className="block w-full cursor-pointer text-left after:absolute after:inset-0">
+      <span className="type-label block truncate pr-6 text-muted">{name}</span>
+      <span className="type-figure-row mt-0.5 block text-ink"><Amount value={amount} currency="EUR" /></span>
+    </button>
+    <Sparkline data={trend} isPositive className="mt-2" width={150} height={28} />
+    {onDelete && <span className="absolute right-1 top-1 z-10"><IconButton icon="close" label={`Delete ${name}`} tooltipPlacement="left" onPress={onDelete} /></span>}
+  </div>
+);
 
 interface ReportsProps {
   setCurrentPage?: (page: Page) => void;
 }
 
+/** Orvel's tiles and "What it says", Talvo's library and Rivolo's comparison with usual (D-027). */
 const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
   const transactions = useTransactionSelector(tx => tx);
   const accounts = useAccountSelector(acc => acc);
-  const defaultCurrency = usePreferencesSelector(p => p.currency || 'EUR');
-  const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId);
-  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
-  const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
+  const { preferences, setPreferences } = usePreferencesContext();
   const { budgets } = useBudgetsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
+  const isPhone = useIsMobile();
+  const showAdjustments = preferences.showBalanceAdjustments ?? true;
+  const today = toLocalISOString(new Date());
+  const automatic = useMemo(() => automaticReports(today, preferences.financialYearStartMonth), [today, preferences.financialYearStartMonth]);
+  const savedViews: SavedReportView[] = preferences.savedReportViews ?? [];
 
-  const [startDate, setStartDate] = useState(getDefaultStartDate());
-  const [endDate, setEndDate] = useState(toLocalISOString(new Date()));
-  const [merchantFilter, setMerchantFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [accountFilter, setAccountFilter] = useState('all');
+  const [filters, setFilters] = useState<ReportFilters>({ startDate: automatic[1].startDate, endDate: automatic[1].endDate, ...NO_FILTERS });
   const [groupBy, setGroupBy] = useState<GroupBy>('merchant');
-  const [savedViews, setSavedViews] = useState<SavedReportView[]>(() => readSavedViews());
-  const [reportName, setReportName] = useState('');
-  const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, true>>({});
+  const [activeId, setActiveId] = useState<ReportId>('summary');
+  const [isPhoneReportOpen, setPhoneReportOpen] = useState(false);
+  const [isFilterOpen, setFilterOpen] = useState(false);
+  const [isSaving, setSaving] = useState(false);
+  const [viewName, setViewName] = useState('');
 
-  const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
-
-  const findCategoryByName = useCallback((name: string, categories: Category[]): Category | undefined => {
-    for (const category of categories) {
-      if (category.name === name) return category;
-      if (category.subCategories?.length) {
-        const nested = findCategoryByName(name, category.subCategories);
-        if (nested) return nested;
-      }
+  // Saved views used to live in this browser only (S-002).
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LEGACY_VIEWS_KEY);
+      if (!stored) return;
+      const local = JSON.parse(stored) as (Omit<SavedReportView, 'merchant' | 'category' | 'accountId'> & { merchantFilter?: string; categoryFilter?: string; accountFilter?: string })[];
+      const moved = (Array.isArray(local) ? local : []).map(({ merchantFilter, categoryFilter, accountFilter, ...view }) => ({ ...view, merchant: merchantFilter ?? '', category: categoryFilter ?? 'all', accountId: accountFilter ?? 'all' }));
+      setPreferences(prev => ({ ...prev, savedReportViews: [...(prev.savedReportViews ?? []), ...moved.filter(view => !prev.savedReportViews?.some(saved => saved.id === view.id))].slice(0, MAX_SAVED_VIEWS) }));
+      localStorage.removeItem(LEGACY_VIEWS_KEY);
+    } catch (error) {
+      warnIgnored('moving saved report views', error);
     }
-    return undefined;
-  }, []);
+  }, [setPreferences]);
 
-  const effectiveMerchantLogoOverrides = useMemo(() => {
-    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
-      if (rule?.logo) acc[merchantKey] = rule.logo;
-      return acc;
-    }, {} as Record<string, string>);
+  const report = useMemo(() => buildReport(transactions, budgets, filters, showAdjustments, groupBy, today), [transactions, budgets, filters, showAdjustments, groupBy, today]);
+  const tiles = useMemo(() => reportTiles(report), [report]);
+  const cashflowTransactions = useMemo(
+    () => transactions.filter(tx => tx.date >= filters.startDate && tx.date <= filters.endDate && (filters.accountId === 'all' || tx.accountId === filters.accountId) && (showAdjustments || !tx.isBalanceAdjustment)),
+    [transactions, filters, showAdjustments]
+  );
 
-    return {
-      ...merchantLogoOverrides,
-      ...ruleLogoOverrides,
+  const library = useMemo(() => {
+    const summarise = (scope: ReportFilters) => {
+      const rows = expensesIn(transactions, scope, showAdjustments);
+      const trend = dailySpend(rows, scope.startDate, scope.endDate);
+      return { amount: trend.reduce((sum, point) => sum + point.value, 0), trend };
     };
-  }, [merchantLogoOverrides, merchantRules]);
-
-  const merchantLogoUrls = useMemo(() => {
-    return transactions.reduce((acc, tx) => {
-      const key = normalizeMerchantKey(tx.merchant || tx.description);
-      if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(tx.merchant || tx.description, brandfetchClientId, effectiveMerchantLogoOverrides, {
-        fallback: 'lettermark',
-        type: 'icon',
-        width: 64,
-        height: 64,
-      });
-      if (url) acc[key] = url;
-      return acc;
-    }, {} as Record<string, string>);
-  }, [brandfetchClientId, effectiveMerchantLogoOverrides, transactions]);
-
-  const handleLogoError = useCallback((logoUrl: string) => {
-    setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
-  }, []);
-
-  const merchantVisual = useCallback((merchantLabel: string) => {
-    const merchantKey = normalizeMerchantKey(merchantLabel);
-    const merchantLogoUrl = merchantKey ? merchantLogoUrls[merchantKey] : null;
-    const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
-    const merchantInitial = merchantLabel?.trim().charAt(0)?.toUpperCase() || '?';
-    return { merchantLogoUrl, showMerchantLogo, merchantInitial };
-  }, [merchantLogoUrls, logoLoadErrors]);
-
-  const rangeDays = useMemo(() => {
-    const start = parseLocalDate(startDate);
-    const end = parseLocalDate(endDate);
-    const ms = end.getTime() - start.getTime();
-    return Math.max(1, Math.floor(ms / (1000 * 60 * 60 * 24)) + 1);
-  }, [startDate, endDate]);
-
-  const filteredExpenses = useMemo(() => {
-    const start = startDate ? parseLocalDate(startDate).getTime() : Number.NEGATIVE_INFINITY;
-    const end = endDate ? parseLocalDate(endDate).getTime() : Number.POSITIVE_INFINITY;
-    const merchantQuery = merchantFilter.trim().toLowerCase();
-
-    return transactions.filter(tx => {
-      if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-      if (tx.type !== 'expense' || tx.transferId) return false;
-
-      const txTime = parseLocalDate(tx.date).getTime();
-      if (txTime < start || txTime > end) return false;
-
-      if (categoryFilter !== 'all' && tx.category !== categoryFilter) return false;
-
-      if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
-
-      if (merchantQuery) {
-        const merchant = (tx.merchant || tx.description || '').toLowerCase();
-        if (!merchant.includes(merchantQuery)) return false;
-      }
-
-      return true;
-    });
-  }, [transactions, startDate, endDate, categoryFilter, accountFilter, merchantFilter]);
-
-  const previousPeriodTotals = useMemo(() => {
-    const start = parseLocalDate(startDate);
-    const prevEnd = new Date(start);
-    prevEnd.setDate(start.getDate() - 1);
-    const prevStart = new Date(prevEnd);
-    prevStart.setDate(prevEnd.getDate() - (rangeDays - 1));
-
-    const startTs = prevStart.getTime();
-    const endTs = prevEnd.getTime();
-
-    const totalSpendEur = transactions
-      .filter(tx => {
-        if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-        return tx.type === 'expense' && !tx.transferId;
-      })
-      .filter(tx => {
-        if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
-        const txTs = parseLocalDate(tx.date).getTime();
-        return txTs >= startTs && txTs <= endTs;
-      })
-      .reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
-
     return {
-      start: toLocalISOString(prevStart),
-      end: toLocalISOString(prevEnd),
-      totalSpendEur,
+      automatic: automatic.map(item => ({ ...item, ...summarise({ ...item, ...NO_FILTERS }) })),
+      saved: savedViews.map(view => ({ view, ...summarise(view) })),
     };
-  }, [transactions, startDate, rangeDays, accountFilter]);
+  }, [automatic, savedViews, transactions, showAdjustments]);
 
-  const totals = useMemo(() => {
-    const totalSpendEur = filteredExpenses.reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
-    const averageEur = filteredExpenses.length > 0 ? totalSpendEur / filteredExpenses.length : 0;
-    const changePct = previousPeriodTotals.totalSpendEur > 0
-      ? ((totalSpendEur - previousPeriodTotals.totalSpendEur) / previousPeriodTotals.totalSpendEur) * 100
-      : null;
+  const isSame = (scope: ReportFilters) => scope.startDate === filters.startDate && scope.endDate === filters.endDate && scope.merchant === filters.merchant && scope.category === filters.category && scope.accountId === filters.accountId;
+  const activeFilters = [filters.merchant.trim(), filters.category !== 'all', filters.accountId !== 'all'].filter(Boolean).length;
+  const update = (patch: Partial<ReportFilters>) => setFilters(prev => ({ ...prev, ...patch }));
 
-    return {
-      totalSpendEur,
-      transactionCount: filteredExpenses.length,
-      averageEur,
-      changePct,
-    };
-  }, [filteredExpenses, previousPeriodTotals.totalSpendEur]);
-
-  const groupedRows = useMemo(() => {
-    const map = new Map<string, { label: string; totalEur: number; count: number }>();
-
-    for (const tx of filteredExpenses) {
-      const key = groupBy === 'merchant'
-        ? (tx.merchant?.trim() || tx.description || 'Unknown merchant')
-        : (tx.category || 'Uncategorized');
-
-      const current = map.get(key) || { label: key, totalEur: 0, count: 0 };
-      current.totalEur += Math.abs(convertToEur(tx.amount, tx.currency));
-      current.count += 1;
-      map.set(key, current);
+  const saveView = () => {
+    const name = viewName.trim();
+    if (!name) {
+      toast.error('Name this view');
+      return;
     }
-
-    return Array.from(map.values()).sort((a, b) => b.totalEur - a.totalEur);
-  }, [filteredExpenses, groupBy]);
-
-  const budgetVsActual = useMemo(() => {
-    const actualByCategory = new Map<string, number>();
-
-    for (const tx of filteredExpenses) {
-      const current = actualByCategory.get(tx.category) || 0;
-      actualByCategory.set(tx.category, current + Math.abs(convertToEur(tx.amount, tx.currency)));
-    }
-
-    return budgets
-      .map(budget => {
-        const budgetEur = Math.abs(convertToEur(budget.amount, budget.currency));
-        const actualEur = actualByCategory.get(budget.categoryName) || 0;
-        const varianceEur = budgetEur - actualEur;
-
-        return {
-          categoryName: budget.categoryName,
-          budgetEur,
-          actualEur,
-          varianceEur,
-        };
-      })
-      .sort((a, b) => Math.abs(a.varianceEur) - Math.abs(b.varianceEur));
-  }, [filteredExpenses, budgets]);
-
-  const recurringCandidates = useMemo(() => {
-    const byMerchant = new Map<string, { date: string; amountEur: number }[]>();
-
-    for (const tx of filteredExpenses) {
-      const merchant = tx.merchant?.trim() || tx.description || 'Unknown merchant';
-      const list = byMerchant.get(merchant) || [];
-      list.push({ date: tx.date, amountEur: Math.abs(convertToEur(tx.amount, tx.currency)) });
-      byMerchant.set(merchant, list);
-    }
-
-    const results: { merchant: string; frequency: string; averageEur: number; estimatedMonthlyEur: number; occurrences: number }[] = [];
-
-    byMerchant.forEach((rows, merchant) => {
-      if (rows.length < 3) return;
-
-      const sorted = rows
-        .map(r => ({ ...r, ts: parseLocalDate(r.date).getTime() }))
-        .sort((a, b) => a.ts - b.ts);
-
-      const gaps: number[] = [];
-      for (let i = 1; i < sorted.length; i++) {
-        const gap = Math.round((sorted[i].ts - sorted[i - 1].ts) / (1000 * 60 * 60 * 24));
-        if (gap > 0) gaps.push(gap);
-      }
-
-      if (gaps.length < 2) return;
-
-      const avgGap = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
-      let frequency = '';
-      let monthlyMultiplier = 0;
-
-      if (avgGap >= 25 && avgGap <= 35) {
-        frequency = 'Monthly';
-        monthlyMultiplier = 1;
-      } else if (avgGap >= 12 && avgGap <= 16) {
-        frequency = 'Bi-weekly';
-        monthlyMultiplier = 2.17;
-      } else if (avgGap >= 6 && avgGap <= 8) {
-        frequency = 'Weekly';
-        monthlyMultiplier = 4.33;
-      }
-
-      if (!frequency) return;
-
-      const averageEur = sorted.reduce((sum, row) => sum + row.amountEur, 0) / sorted.length;
-      results.push({
-        merchant,
-        frequency,
-        averageEur,
-        estimatedMonthlyEur: averageEur * monthlyMultiplier,
-        occurrences: sorted.length,
-      });
-    });
-
-    return results.sort((a, b) => b.estimatedMonthlyEur - a.estimatedMonthlyEur);
-  }, [filteredExpenses]);
-
-  const categoryTotals = useMemo(() => {
-    const totalsByCategory = new Map<string, number>();
-    for (const tx of filteredExpenses) {
-      totalsByCategory.set(
-        tx.category,
-        (totalsByCategory.get(tx.category) || 0) + Math.abs(convertToEur(tx.amount, tx.currency))
-      );
-    }
-    return Array.from(totalsByCategory.entries())
-      .map(([category, totalEur]) => ({ category, totalEur }))
-      .sort((a, b) => b.totalEur - a.totalEur);
-  }, [filteredExpenses]);
-
-  const forecast = useMemo(() => {
-    if (!endDate) return null;
-
-    const end = parseLocalDate(endDate);
-    const monthStart = new Date(end.getFullYear(), end.getMonth(), 1);
-    const monthEnd = new Date(end.getFullYear(), end.getMonth() + 1, 0);
-    const elapsedDays = Math.max(1, end.getDate());
-    const totalDays = monthEnd.getDate();
-    const remainingDays = Math.max(0, totalDays - elapsedDays);
-
-    const mtdSpendEur = transactions
-      .filter(tx => {
-        if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-        return tx.type === 'expense' && !tx.transferId;
-      })
-      .filter(tx => {
-        if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
-        const txDate = parseLocalDate(tx.date);
-        return txDate >= monthStart && txDate <= end;
-      })
-      .reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
-
-    const dailyAverage = mtdSpendEur / elapsedDays;
-    const projectedMonthEnd = mtdSpendEur + (dailyAverage * remainingDays);
-
-    return {
-      monthStart: toLocalISOString(monthStart),
-      monthEnd: toLocalISOString(monthEnd),
-      mtdSpendEur,
-      dailyAverage,
-      projectedMonthEnd,
-      remainingDays,
-    };
-  }, [transactions, endDate, accountFilter]);
-
-  const anomalyCandidates = useMemo(() => {
-    const rows = filteredExpenses.map(tx => ({
-      id: tx.id,
-      date: tx.date,
-      merchant: tx.merchant?.trim() || tx.description || 'Unknown merchant',
-      category: tx.category,
-      amountEur: Math.abs(convertToEur(tx.amount, tx.currency)),
-    }));
-
-    if (rows.length < 8) return [];
-
-    const amounts = rows.map(r => r.amountEur);
-    const mean = amounts.reduce((sum, value) => sum + value, 0) / amounts.length;
-    const variance = amounts.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / amounts.length;
-    const stdDev = Math.sqrt(variance);
-    if (stdDev === 0) return [];
-
-    return rows
-      .map(row => ({
-        ...row,
-        zScore: (row.amountEur - mean) / stdDev,
-      }))
-      .filter(row => row.zScore >= 2)
-      .sort((a, b) => b.zScore - a.zScore)
-      .slice(0, 10);
-  }, [filteredExpenses]);
-
-  // --- NEW DATA PROCESSING FOR SUGGESTIONS ---
-
-  const incomeTotalEur = useMemo(() => {
-    const start = startDate ? parseLocalDate(startDate).getTime() : Number.NEGATIVE_INFINITY;
-    const end = endDate ? parseLocalDate(endDate).getTime() : Number.POSITIVE_INFINITY;
-    return transactions
-      .filter(tx => {
-        if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-        return tx.type === 'income' && !tx.transferId;
-      })
-      .filter(tx => {
-        if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
-        const txTime = parseLocalDate(tx.date).getTime();
-        return txTime >= start && txTime <= end;
-      })
-      .reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
-  }, [transactions, startDate, endDate, accountFilter]);
-
-  const savingsRate = useMemo(() => {
-    if (incomeTotalEur <= 0) return 0;
-    const savings = incomeTotalEur - totals.totalSpendEur;
-    return (savings / incomeTotalEur) * 100;
-  }, [incomeTotalEur, totals.totalSpendEur]);
-
-  const needsWantsData = useMemo(() => {
-    const needsCategories = [
-      'Housing', 'Bills & Utilities', 'Utilities', 'Groceries', 'Supermarket',
-      'Transportation', 'Public Transport', 'Transport', 'Insurance', 'Health',
-      'Rent', 'Mortgage', 'Medical', 'Pharmacy', 'Childcare', 'School Fees',
-      'Tuition', 'Taxes', 'Maintenance', 'Repair'
-    ];
-    const wantsCategories = [
-      'Dining', 'Cafes', 'Takeaway', 'Entertainment', 'Shopping', 'Lifestyle',
-      'Travel', 'Flights', 'Accommodation', 'Hobbies', 'Gifts', 'Subscriptions',
-      'Streaming', 'Fitness', 'Gym', 'Beauty', 'Electronics', 'Clothing',
-      'Concert', 'Sports', 'Activities'
-    ];
-
-    let needs = 0;
-    let wants = 0;
-    let others = 0;
-
-    filteredExpenses.forEach(tx => {
-      const amount = Math.abs(convertToEur(tx.amount, tx.currency));
-      const cat = tx.category || '';
-      if (needsCategories.some(n => cat.toLowerCase().includes(n.toLowerCase()))) needs += amount;
-      else if (wantsCategories.some(w => cat.toLowerCase().includes(w.toLowerCase()))) wants += amount;
-      else others += amount;
-    });
-
-    const total = needs + wants + others;
-    if (total === 0) return [];
-
-    return [
-      { name: 'Needs', value: needs, color: '#10B981', target: 50, description: 'Essentials: Housing, Groceries, Utilities, Health' },
-      { name: 'Wants', value: wants, color: '#F59E0B', target: 30, description: 'Lifestyle: Dining, Travel, Shopping, Entertainment' },
-      { name: 'Others', value: others, color: '#6366F1', target: 20, description: 'Uncategorized, Investments & Miscellaneous' }
-    ];
-  }, [filteredExpenses, convertToEur]);
-
-  const velocityData = useMemo(() => {
-    const dailyMap = new Map<string, number>();
-    const prevDailyMap = new Map<string, number>();
-
-    // Current Period
-    filteredExpenses.forEach(tx => {
-      const current = dailyMap.get(tx.date) || 0;
-      dailyMap.set(tx.date, current + Math.abs(convertToEur(tx.amount, tx.currency)));
-    });
-
-    // Previous Period (for comparison)
-    const start = parseLocalDate(startDate);
-    const prevStart = new Date(start);
-    prevStart.setDate(start.getDate() - rangeDays);
-    const prevEnd = new Date(start);
-    prevEnd.setDate(start.getDate() - 1);
-
-    const prevStartTs = prevStart.getTime();
-    const prevEndTs = prevEnd.getTime();
-
-    transactions
-      .filter(tx => {
-        if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-        return tx.type === 'expense' && !tx.transferId;
-      })
-      .filter(tx => {
-        const txTs = parseLocalDate(tx.date).getTime();
-        return txTs >= prevStartTs && txTs <= prevEndTs;
-      })
-      .forEach(tx => {
-        // We need to "shift" the date to align it for comparison chart
-        const txDate = parseLocalDate(tx.date);
-        const diffDays = Math.floor((txDate.getTime() - prevStartTs) / (1000 * 3600 * 24));
-        const key = `day-${diffDays}`;
-        const current = prevDailyMap.get(key) || 0;
-        prevDailyMap.set(key, current + Math.abs(convertToEur(tx.amount, tx.currency)));
-      });
-
-    // Generate combined array
-    const result = [];
-    const currentStartTs = parseLocalDate(startDate).getTime();
-    for (let i = 0; i < rangeDays; i++) {
-      const date = new Date(currentStartTs + (i * 1000 * 3600 * 24));
-      const dateStr = toLocalISOString(date).split('T')[0];
-      result.push({
-        day: i + 1,
-        date: parseLocalDate(dateStr),
-        dateStr,
-        current: dailyMap.get(dateStr) || 0,
-        previous: prevDailyMap.get(`day-${i}`) || 0
-      });
-    }
-    return result;
-  }, [filteredExpenses, transactions, startDate, rangeDays]);
-
-  const merchantLoyalty = useMemo(() => {
-    const map = new Map<string, { label: string; totalEur: number; count: number }>();
-    filteredExpenses.forEach(tx => {
-      const key = tx.merchant?.trim() || tx.description || 'Unknown';
-      const current = map.get(key) || { label: key, totalEur: 0, count: 0 };
-      current.totalEur += Math.abs(convertToEur(tx.amount, tx.currency));
-      current.count += 1;
-      map.set(key, current);
-    });
-
-    return Array.from(map.values())
-      .map(m => ({
-        ...m,
-        avgPerVisit: m.totalEur / m.count,
-        loyaltyScore: (m.count * 0.7) + (m.totalEur * 0.001) // Simple heuristic
-      }))
-      .sort((a, b) => b.loyaltyScore - a.loyaltyScore)
-      .slice(0, 5);
-  }, [filteredExpenses]);
-
-  const insights = useMemo((): InsightItem[] => {
-    const result: InsightItem[] = [];
-
-    if (totals.changePct !== null) {
-      if (totals.changePct > 15) {
-        result.push({
-          id: 'spend-up',
-          tone: 'warning',
-          text: `Spending is up ${totals.changePct.toFixed(1)}% vs the previous period.`,
-        });
-      } else if (totals.changePct < -10) {
-        result.push({
-          id: 'spend-down',
-          tone: 'positive',
-          text: `Spending is down ${Math.abs(totals.changePct).toFixed(1)}% vs the previous period.`,
-        });
-      }
-    }
-
-    const topCategory = categoryTotals[0];
-    if (topCategory && totals.totalSpendEur > 0) {
-      const share = (topCategory.totalEur / totals.totalSpendEur) * 100;
-      result.push({
-        id: 'top-category',
-        tone: 'neutral',
-        text: `${topCategory.category} represents ${share.toFixed(1)}% of selected spend.`,
-      });
-    }
-
-    const topRecurring = recurringCandidates[0];
-    if (topRecurring) {
-      result.push({
-        id: 'top-recurring',
-        tone: 'warning',
-        text: `Highest recurring impact is ${topRecurring.merchant} at ~€${topRecurring.estimatedMonthlyEur.toFixed(2)}/month.`,
-      });
-    }
-
-    if (forecast) {
-      result.push({
-        id: 'forecast',
-        tone: 'neutral',
-        text: `Projected end-of-month spend is €${forecast.projectedMonthEnd.toFixed(2)} (based on current daily average).`,
-      });
-    }
-
-    return result.slice(0, 4);
-  }, [totals.changePct, totals.totalSpendEur, categoryTotals, recurringCandidates, forecast]);
-
-  const handleSaveView = () => {
-    const trimmedName = reportName.trim();
-    if (!trimmedName) return;
-
-    const next: SavedReportView[] = [
-      {
-        id: `${Date.now()}`,
-        name: trimmedName,
-        startDate,
-        endDate,
-        merchantFilter,
-        categoryFilter,
-        accountFilter,
-        groupBy,
-      },
-      ...savedViews,
-    ].slice(0, 15);
-
-    setSavedViews(next);
-    writeSavedViews(next);
-    setReportName('');
+    setPreferences(prev => ({ ...prev, savedReportViews: [{ id: `${Date.now()}`, name, groupBy, ...filters }, ...(prev.savedReportViews ?? [])].slice(0, MAX_SAVED_VIEWS) }));
+    setViewName('');
+    setSaving(false);
+    toast.success('View saved');
   };
 
-  const applyView = (view: SavedReportView) => {
-    setStartDate(view.startDate);
-    setEndDate(view.endDate);
-    setMerchantFilter(view.merchantFilter);
-    setCategoryFilter(view.categoryFilter);
-    setAccountFilter(view.accountFilter || 'all');
-    setGroupBy(view.groupBy);
+  const stats: PageStat[] = [
+    { label: 'Total spend', icon: 'credit_card', value: report.totalSpend, format: 'money', currency: 'EUR', ...(report.changePct === null ? {} : { badge: `${report.changePct >= 0 ? '+' : '−'}${Math.abs(report.changePct).toFixed(1)}%`, badgeTone: report.changePct > 0 ? 'tomato' as const : 'pine' as const }) },
+    { label: 'Savings rate', icon: 'savings', value: report.savingsRate, format: 'percent' },
+    { label: 'Transactions', icon: 'receipt', value: report.count, format: 'number' },
+  ];
+
+  const openTile = (id: ReportId) => {
+    setActiveId(id);
+    setPhoneReportOpen(true);
   };
-
-  const deleteView = (id: string) => {
-    const next = savedViews.filter(view => view.id !== id);
-    setSavedViews(next);
-    writeSavedViews(next);
-  };
-
-  const setPredefinedPeriod = (period: string) => {
-    const now = new Date();
-    let start = new Date();
-    let end = new Date();
-
-    switch (period) {
-      case 'last7':
-        start.setDate(now.getDate() - 7);
-        break;
-      case 'last30':
-        start.setDate(now.getDate() - 30);
-        break;
-      case 'thisMonth':
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-      case 'lastMonth':
-        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        end = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-      case 'thisYear':
-        start = new Date(now.getFullYear(), 0, 1);
-        end = new Date(now.getFullYear(), 11, 31);
-        break;
-      case 'lastYear':
-        start = new Date(now.getFullYear() - 1, 0, 1);
-        end = new Date(now.getFullYear() - 1, 11, 31);
-        break;
-      default:
-        return;
-    }
-
-    setStartDate(toLocalISOString(start));
-    setEndDate(toLocalISOString(end));
-  };
+  const active = TILES.find(tile => tile.id === activeId)!;
+  const showPicker = !isPhone || !isPhoneReportOpen;
+  const showReport = !isPhone || isPhoneReportOpen;
 
   return (
-    <div className="space-y-6 pb-8 animate-fade-in-up">
+    <div className="space-y-6 pb-8 max-md:space-y-4">
       <PageHeader
-        markerIcon="analytics"
-        markerLabel="Insights"
         title="Reports"
-        stats={[
-          { label: 'Total spend', icon: 'credit_card', value: totals.totalSpendEur, format: 'money' },
-          { label: 'Savings rate', icon: 'piggy_bank', value: savingsRate, format: 'percent' },
-          { label: 'Transactions', icon: 'receipt', value: totals.transactionCount },
-        ]}
+        stats={stats}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" icon="tune" onPress={() => setFilterOpen(true)}>
+              <span className="flex items-center gap-1.5">Filters{activeFilters > 0 && <CountPill count={activeFilters} />}</span>
+            </Button>
+            <Button variant="secondary" onPress={() => setSaving(true)}>Save view</Button>
+          </div>
+        }
       />
 
-      {/* Hero Section: Key Metrics */}
-      <MetricCardRow columns={2}>
-        <HeroMetricCard
-          label="Avg. Transaction"
-          value={`€${totals.averageEur.toFixed(2)}`}
-          icon="calculator"
-          iconColor="purple"
-          subtext="Per expense item"
-        />
-
-        <HeroMetricCard
-          label="Recurring Impact"
-          value={`€${(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}`}
-          icon="clock"
-          iconColor="rose"
-          subtext="Est. Monthly Total"
-        />
-      </MetricCardRow>
-
-      {/* Filters & Saved Views */}
-      <FilterBar>
-        {/* Header with Predefined Periods */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xs sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">Configuration</h2>
-            <p className="text-base sm:text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Report parameters</p>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { label: 'Last 7 Days', value: 'last7' },
-              { label: 'Last 30 Days', value: 'last30' },
-              { label: 'This Month', value: 'thisMonth' },
-              { label: 'Last Month', value: 'lastMonth' },
-              { label: 'This Year', value: 'thisYear' },
-              { label: 'Last Year', value: 'lastYear' },
-            ].map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => setPredefinedPeriod(p.value)}
-                className="px-3 py-1.5 rounded-xl glass-tile text-xs font-semibold hover:border-primary-500/60 hover:text-primary-500 transition-all shadow-xs cursor-pointer min-h-[36px]"
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Saved Views Bar */}
-        {savedViews.length > 0 && (
-          <FilterBar.SavedViews
-            views={savedViews}
-            onSelect={applyView}
-            onDelete={deleteView}
+      <section aria-label="Ready-made reports and saved views" className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar md:mx-0 md:px-0">
+        {library.automatic.map(item => (
+          <LibraryCard key={item.id} name={item.name} amount={item.amount} trend={item.trend} isActive={isSame({ ...item, ...NO_FILTERS })} onOpen={() => setFilters({ startDate: item.startDate, endDate: item.endDate, ...NO_FILTERS })} />
+        ))}
+        {library.saved.map(({ view, amount, trend }) => (
+          <LibraryCard
+            key={view.id}
+            name={view.name}
+            amount={amount}
+            trend={trend}
+            isActive={isSame(view)}
+            onOpen={() => { setFilters({ startDate: view.startDate, endDate: view.endDate, merchant: view.merchant, category: view.category, accountId: view.accountId }); setGroupBy(view.groupBy); }}
+            onDelete={() => setPreferences(prev => ({ ...prev, savedReportViews: (prev.savedReportViews ?? []).filter(saved => saved.id !== view.id) }))}
           />
+        ))}
+      </section>
+
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[240px_minmax(0,1fr)] min-[1100px]:grid-cols-[300px_minmax(0,1fr)]">
+        {showPicker && (
+          <nav aria-label="Reports" className="min-w-0">
+            <ul className="space-y-1.5">
+              {TILES.map(tile => {
+                const isActive = !isPhone && tile.id === activeId;
+                return (
+                  <li key={tile.id}>
+                    <button
+                      type="button"
+                      aria-current={isActive ? 'true' : undefined}
+                      onClick={() => openTile(tile.id)}
+                      className={cn('surface-card flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] px-3 py-2 text-left transition-colors duration-[var(--duration-fast)]', isActive && 'border-primary')}
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-inset text-muted"><Icon name={tile.icon} size={18} /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="type-body-strong block truncate text-ink">{tile.label}</span>
+                        <span className="type-caption block truncate text-muted">{tiles[tile.id].value}</span>
+                      </span>
+                      {isPhone && <Icon name="chevron_right" size={18} className="shrink-0 text-muted" />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         )}
 
-        {/* Multi-Field Filter Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 pt-2">
-          <FilterBar.Field label="Account">
-            <FilterBar.Select
-              value={accountFilter}
-              onChange={(e) => setAccountFilter(e.target.value)}
-            >
-              <option value="all">All Accounts</option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.name}
-                </option>
-              ))}
-            </FilterBar.Select>
-          </FilterBar.Field>
-
-          <FilterBar.Field label="Start date">
-            <FilterBar.Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </FilterBar.Field>
-
-          <FilterBar.Field label="End date">
-            <FilterBar.Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </FilterBar.Field>
-
-          <FilterBar.Field label="Merchant">
-            <FilterBar.Input
-              type="text"
-              value={merchantFilter}
-              onChange={(e) => setMerchantFilter(e.target.value)}
-              placeholder="Filter by name..."
-            />
-          </FilterBar.Field>
-
-          <FilterBar.Field label="Category">
-            <FilterBar.Select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="all">All Categories</option>
-              <optgroup label="Expenses">
-                {expenseCategories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Income">
-                {incomeCategories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </optgroup>
-            </FilterBar.Select>
-          </FilterBar.Field>
-
-          <FilterBar.Field label="Group by">
-            <FilterBar.Select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-            >
-              <option value="merchant">Merchant</option>
-              <option value="category">Category</option>
-            </FilterBar.Select>
-          </FilterBar.Field>
-        </div>
-
-        {/* Save Report View Sub-Bar */}
-        <FilterBar.SaveView
-          value={reportName}
-          onChange={setReportName}
-          onSave={handleSaveView}
-          placeholder="Name this report view to save it..."
-        />
-      </FilterBar>
-
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-5 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none group-hover:bg-primary-500/10 transition-colors duration-500"></div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 relative z-10 gap-4">
-            <div>
-              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Spending Velocity</h2>
-              <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Daily intensity vs previous period</p>
-            </div>
-            <div className="flex items-center gap-6 bg-black/5 dark:bg-white/5 p-3 rounded-2xl border border-black/5 dark:border-white/5">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-1.5 rounded-full bg-primary-500 shadow-sm shadow-primary-500/40" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text opacity-60">Current</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-1.5 rounded-full bg-gray-300 dark:bg-white/20" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text opacity-60">Previous</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 w-full relative z-10 flex flex-col" style={{ minHeight: 320 }}>
-            <BklitLineChart
-              data={velocityData}
-              xDataKey="date"
-              aspectRatio=""
-              className="w-full h-full"
-              style={{ minHeight: 320 }}
-              margin={{ top: 20, right: 20, bottom: 30, left: 20 }}
-              yDomainTween
-            >
-              <BklitGrid horizontal stroke="rgba(128,128,128,0.08)" />
-              <BklitXAxis
-                tickFormatter={(d: Date) => {
-                  const idx = velocityData.findIndex(v => v.date === d);
-                  return idx >= 0 ? `Day ${velocityData[idx].day}` : '';
-                }}
-              />
-              <BklitYAxis />
-              <BklitLine dataKey="current" stroke="#6366F1" strokeWidth={3} />
-              <BklitLine dataKey="previous" stroke="#94A3B8" strokeWidth={2} strokeDasharray="4,4" />
-              <BklitChartTooltip valueFormatter={(v) => `€${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-            </BklitLineChart>
-          </div>
-        </Card>
-
-        <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-5 relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] -ml-32 -mt-32 pointer-events-none group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
-
-          <div className="mb-4 relative z-10">
-            <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Category Allocation</h2>
-            <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Total spend distribution</p>
-          </div>
-
-          <div className="h-44 w-full relative flex items-center justify-center">
-            <BklitPieChart
-              data={categoryTotals.slice(0, 5).map((cat, i) => ({
-                label: cat.category,
-                value: cat.totalEur,
-                color: ['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6'][i % 5],
-              }))}
-              innerRadius={55}
-              cornerRadius={6}
-              padAngle={0.04}
-              className="w-full h-44"
-            >
-              {categoryTotals.slice(0, 5).map((_, index) => (
-                <PieSlice key={index} index={index} showGlow />
-              ))}
-              <PieCenter defaultLabel="Total">
-                {({ value, label, isHovered }) => (
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <span className="text-xs font-semibold uppercase tracking-wider opacity-60">
-                      {label}
-                    </span>
-                    <span className="text-xl font-bold tracking-tighter">
-                      €{isHovered ? value.toFixed(0) : totals.totalSpendEur.toFixed(0)}
-                    </span>
-                  </div>
-                )}
-              </PieCenter>
-            </BklitPieChart>
-          </div>
-
-          <div className="mt-8 space-y-3 relative z-10">
-            {categoryTotals.slice(0, 4).map((cat, i) => (
-              <div key={cat.category} className="flex items-center justify-between p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group/row hover:bg-white dark:hover:bg-dark-card transition-colors duration-300">
-                <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: ['#6366F1', '#10B981', '#F59E0B', '#EC4899'][i % 4] }} />
-                  <span className="text-xs font-medium text-light-text dark:text-dark-text opacity-70 group-hover/row:opacity-100 transition-opacity">{cat.category}</span>
-                </div>
-                <span className="text-xs font-semibold text-light-text dark:text-dark-text">€{cat.totalEur.toFixed(0)}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
-
-      {/* Behavioral Insights & Merchant Loyalty */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-        <Card className="h-fit flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
-
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <div>
-              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Needs vs. wants</h2>
-              <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">50/30/20 Rule Analysis</p>
-            </div>
-            <div className={`px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-black/5 dark:border-white/5 ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600 shadow-sm shadow-rose-500/10'}`}>
-              {savingsRate >= 20 ? 'Balanced' : 'Over-Spending'}
-            </div>
-          </div>
-          <div className="space-y-6 relative z-10">
-            {needsWantsData.map(item => {
-              const share = totals.totalSpendEur > 0 ? (item.value / totals.totalSpendEur) * 100 : 0;
-              const isOver = share > item.target && item.name !== 'Others';
-              return (
-                <div key={item.name} className="space-y-3 group/item">
-                  <div className="flex justify-between items-end">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-semibold text-light-text dark:text-dark-text">{item.name}</span>
-                        <div className="opacity-0 group-hover/item:opacity-100 transition-opacity duration-300">
-                          <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-black/5 dark:border-white/5">
-                            {(item as any).description}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs opacity-60 font-medium leading-none">Target: {item.target}%</p>
-                    </div>
-                    <div className="text-right flex flex-col items-end gap-1">
-                      <span className={`text-base font-bold tracking-tighter ${isOver ? 'text-rose-500 animate-pulse' : 'text-light-text dark:text-dark-text'}`}>{share.toFixed(1)}%</span>
-                      <p className="text-xs opacity-60 font-medium leading-none">€{item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-                    </div>
-                  </div>
-                  <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden flex shadow-inner">
-                    <div
-                      className="h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(0,0,0,0.1)]"
-                      style={{ width: `${share}%`, backgroundColor: item.color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-auto pt-10">
-            <div className="p-5 bg-black/5 dark:bg-white/5 rounded-[1.5rem] border border-dashed border-black/10 dark:border-white/10 relative group-hover:border-primary-500/30 transition-colors">
-              <div className="absolute top-4 right-4 text-primary-500/20 group-hover:text-primary-500/40 transition-colors">
-                <Icon name="auto_awesome" className="text-2xl" />
-              </div>
-              <p className="text-xs font-medium leading-relaxed text-light-text-secondary dark:text-dark-text-secondary opacity-80 group-hover:opacity-100 transition-opacity">
-                {(() => {
-                  const wants = needsWantsData.find(d => d.name === 'Wants');
-                  const wantsShare = wants ? (wants.value / totals.totalSpendEur) * 100 : 0;
-                  const needs = needsWantsData.find(d => d.name === 'Needs');
-                  const needsShare = needs ? (needs.value / totals.totalSpendEur) * 100 : 0;
-
-                  if (wantsShare > 30) {
-                    const targetValue = totals.totalSpendEur * 0.3;
-                    const potentialSavings = wants!.value - targetValue;
-                    return `Your "Wants" spending is ${wantsShare.toFixed(1)}%, which is above the 30% target. Reducing this to the target level could save you €${potentialSavings.toFixed(0)} per month.`;
-                  } else if (needsShare > 50) {
-                    return `Your "Needs" are ${needsShare.toFixed(1)}% of your expenses. Consider reviewing recurring bills to bring this closer to the 50% benchmark.`;
-                  } else if (totals.totalSpendEur > 0) {
-                    return `Excellent balance! Your spending follows the 50/30/20 rule perfectly. You're maintaining a healthy ratio.`;
-                  }
-                  return "Start tracking your expenses to see your personalized analysis.";
-                })()}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
-
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <div>
-              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Merchant loyalty</h2>
-              <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Frequency vs. impact leaderboard</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 relative z-10">
-            {merchantLoyalty.map((m, i) => {
-              const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(m.label);
-              return (
-                <div
-                  key={m.label}
-                  onClick={() => setCurrentPage?.('Merchants')}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group/row hover:bg-white dark:hover:bg-dark-card transition-all duration-300 hover:shadow-xl hover:shadow-black/5 cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-xs font-bold opacity-20 group-hover/row:opacity-50 transition-opacity w-3">{i + 1}</div>
-                    <div className={`w-9 h-9 rounded-xl shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
-                      {showMerchantLogo && merchantLogoUrl ? (
-                        <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover p-0 border-0" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
-                      ) : (
-                        <span className="text-sm font-bold">{merchantInitial}</span>
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold tracking-tight truncate max-w-[150px] leading-none mb-1">{m.label}</h4>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium opacity-60">{m.count} visits</span>
-                        <span className="w-0.5 h-0.5 rounded-full bg-black/20 dark:bg-white/20" />
-                        <span className="text-xs font-medium opacity-60">€{m.avgPerVisit.toFixed(0)} avg</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right flex flex-col items-end justify-center">
-                    <div className="text-base font-bold tracking-tighter leading-none mb-1">€{m.totalEur.toFixed(0)}</div>
-                    <div className="text-xs font-semibold text-primary-700 dark:text-primary-400 tracking-wider px-2 py-0.5 rounded-full bg-primary-500/10">Score: {m.loyaltyScore.toFixed(0)}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-auto pt-6 relative z-10">
-            <button
-              type="button"
-              onClick={() => setCurrentPage?.('Merchants')}
-              className="w-full py-3 rounded-2xl border border-dashed border-black/10 dark:border-white/10 text-xs font-semibold uppercase tracking-wider opacity-60 hover:opacity-100 hover:border-primary-500/50 hover:bg-primary-500/5 transition-all cursor-pointer"
-            >
-              View detailed profile leaderboard
-            </button>
-          </div>
-        </Card>
-      </section>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10 mb-8">
-        {/* Left Column: Detailed Breakdowns */}
-        <div className="space-y-8">
-          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 rounded-[2rem] shadow-xl">
-            <div className="p-8 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
-              <div>
-                <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Spend breakdown</h2>
-                <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">By {groupBy}</p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80">{groupBy === 'merchant' ? 'Merchant' : 'Category'}</th>
-                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 text-right">Qty</th>
-                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 text-right">Total</th>
-                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 text-right">Share</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                  {groupedRows.map(row => {
-                    const share = totals.totalSpendEur > 0 ? (row.totalEur / totals.totalSpendEur) * 100 : 0;
-                    const category = findCategoryByName(row.label, allCategories);
-                    const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.label);
-                    return (
-                      <tr key={row.label} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300">
-                        <td className="py-4 px-8">
-                          {groupBy === 'merchant' ? (
-                            <div className="flex items-center gap-4">
-                              <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
-                                {showMerchantLogo && merchantLogoUrl ? (
-                                  <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover p-0 border-0" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
-                                ) : (
-                                  <span className="text-xs font-bold tracking-widest">{merchantInitial}</span>
-                                )}
-                              </div>
-                              <span className="text-sm font-semibold tracking-tight text-light-text dark:text-dark-text truncate max-w-[150px]">{row.label}</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center justify-center text-light-text-secondary">
-                                <Icon name={category?.icon || 'category'} className="text-xl" style={{ color: category?.color }} />
-                              </div>
-                              <span className="text-sm font-semibold tracking-tight text-light-text dark:text-dark-text">{row.label}</span>
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-4 px-8 text-right font-bold text-xs opacity-40 tracking-widest">{row.count}</td>
-                        <td className="py-4 px-8 text-right font-bold text-sm tracking-tighter privacy-blur tracking-widest">€{row.totalEur.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
-                        <td className="py-4 px-8 text-right">
-                          <div className="flex items-center justify-end gap-4">
-                            <div className="w-16 h-1.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden shadow-inner">
-                              <div className="h-full bg-primary-500 shadow-sm shadow-primary-500/40" style={{ width: `${share}%` }} />
-                            </div>
-                            <span className="text-xs font-semibold text-light-text-secondary w-8 tracking-tight opacity-70">{share.toFixed(0)}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {groupedRows.length === 0 && (
-                <div className="p-20 text-center flex flex-col items-center gap-4 opacity-30">
-                  <Icon name="search_off" className="text-6xl" />
-                  <p className="text-xs font-medium uppercase tracking-wider">No transactions matched filters</p>
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
-
-        {/* Right Column: Insights & Forecasts */}
-        <div className="space-y-4">
-          <Card className="text-light-text dark:text-dark-text shadow-2xl rounded-3xl p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 text-primary-500/10 dark:text-primary-400/10 transition-transform group-hover:scale-125 duration-700 pointer-events-none">
-              <Icon name="lightbulb" className="text-8xl" />
-            </div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary-500/5 rounded-full blur-[80px] -ml-24 -mb-24 pointer-events-none"></div>
-
-            <div className="mb-4 relative z-10">
-              <h2 className="text-xs font-bold tracking-[0.2em] text-primary-600 dark:text-primary-400 mb-1">Smart Engine</h2>
-              <p className="text-base font-bold tracking-tight text-light-text dark:text-dark-text">AI-powered insights</p>
-            </div>
-
-            <div className="space-y-2.5 relative z-10">
-              {insights.map((item, idx) => (
-                <div key={item.id} className="flex items-start gap-3.5 bg-black/[0.03] dark:bg-white/5 backdrop-blur-xl rounded-2xl p-3.5 border border-black/5 dark:border-white/10 shadow-xs transition-transform hover:scale-[1.01] duration-300"
-                  style={{ animationDelay: `${idx * 150}ms` }}>
-                  <div className={`w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 ${item.tone === 'warning' ? 'text-amber-500 dark:text-amber-400' : item.tone === 'positive' ? 'text-emerald-500 dark:text-emerald-400' : 'text-primary-500 dark:text-primary-400'}`}>
-                    <Icon name={item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'} className="text-base" />
-                  </div>
-                  <p className="text-xs font-semibold leading-relaxed text-light-text dark:text-dark-text privacy-blur">{item.text}</p>
-                </div>
-              ))}
-              {insights.length === 0 && <p className="text-xs font-medium uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 text-center py-6">Listening for financial signals...</p>}
-            </div>
-          </Card>
-
-          <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-card group">
-            <div className="p-5 border-b border-slate-200/60 dark:border-white/5 glass-subwell flex items-center justify-between">
-              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80">Month-end forecast</p>
-              <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse shadow-sm shadow-primary-500/50"></div>
-            </div>
-            <div className="p-5 relative">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-[60px] pointer-events-none"></div>
-              {forecast ? (
-                <div className="space-y-6 relative z-10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary mb-1 opacity-60">Projected total</p>
-                      <h4 className="text-3xl font-black font-mono tracking-tighter privacy-blur leading-none">€{forecast.projectedMonthEnd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h4>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary mb-1 opacity-60">Daily burn</p>
-                      <p className="text-xl font-bold font-mono tracking-tighter privacy-blur leading-none">€{forecast.dailyAverage.toFixed(0)}<span className="text-xs font-medium opacity-40 ml-1">/d</span></p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs font-semibold uppercase tracking-wider opacity-60 privacy-blur">
-                      <span>MTD: €{forecast.mtdSpendEur.toLocaleString()}</span>
-                      <span>Runway: €{(forecast.projectedMonthEnd - forecast.mtdSpendEur).toLocaleString()}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden flex shadow-inner">
-                      <div className="h-full bg-primary-500 shadow-sm shadow-primary-500/40 transition-all duration-1000" style={{ width: `${(forecast.mtdSpendEur / forecast.projectedMonthEnd) * 100}%` }} />
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Icon name="calendar_month" className="text-xs opacity-40" />
-                      <p className="text-xs text-light-text-secondary font-medium tracking-wider opacity-60">
-                        {forecast.remainingDays} Days remaining in cycle
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
-                  <Icon name="query_stats" className="text-3xl" />
-                  <p className="text-xs font-medium uppercase tracking-wider">Projection data pending</p>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-card group">
-            <div className="p-5 border-b border-slate-200/60 dark:border-white/5 glass-subwell flex items-center justify-between">
-              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80">Anomalies & outliers</p>
-              <div className="w-10 h-1 rounded-full bg-rose-500/20"></div>
-            </div>
-            <div className="p-4 space-y-2">
-              {anomalyCandidates.map(row => (
-                <div key={row.id} className="flex items-center justify-between p-3 rounded-xl glass-tile transition-all duration-200 hover:shadow-sm group/anomaly">
-                  <div className="flex items-center gap-3">
-                    <Icon name="warning" className="text-xl text-rose-500 group-hover/anomaly:scale-110 transition-transform shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold tracking-tight truncate max-w-[120px] leading-none mb-1">{row.merchant}</p>
-                      <p className="text-xs text-light-text-secondary font-medium opacity-60">{row.date}</p>
-                    </div>
-                  </div>
-                  <div className="text-right flex flex-col items-end">
-                    <p className="text-xs font-black font-mono tracking-tighter privacy-blur leading-none">€{row.amountEur.toFixed(2)}</p>
-                    <p className="text-xs text-rose-500 font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 mt-1">{row.zScore.toFixed(1)}σ</p>
-                  </div>
-                </div>
-              ))}
-              {anomalyCandidates.length === 0 && (
-                <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
-                  <Icon name="verified" className="text-3xl" />
-                  <p className="text-xs font-medium uppercase tracking-wider">All data within normal range</p>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-card group">
-            <div className="p-5 border-b border-slate-200/60 dark:border-white/5 glass-subwell flex items-center justify-between">
-              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80">Recurring patterns</p>
-              <Icon name="autorenew" className="text-base opacity-20" />
-            </div>
-            <div className="p-5 space-y-4">
-              {recurringCandidates.slice(0, 5).map(candidate => (
-                <div key={candidate.merchant} className="flex items-center justify-between group/recurring">
-                  <div className="flex items-center gap-3">
-                    <Icon name="event_repeat" className="text-lg text-primary-500 group-hover/recurring:rotate-12 transition-transform shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold tracking-tight leading-none mb-1">{candidate.merchant}</p>
-                      <p className="text-xs text-light-text-secondary font-medium opacity-60">{candidate.frequency}</p>
-                    </div>
-                  </div>
-                  <div className="text-right flex flex-col items-end">
-                    <p className="text-xs font-black font-mono tracking-tighter privacy-blur leading-none">€{candidate.estimatedMonthlyEur.toFixed(0)}<span className="text-xs font-medium opacity-40 ml-0.5">/mo</span></p>
-                    <p className="text-xs text-light-text-secondary font-medium opacity-60 mt-1">{candidate.occurrences} hits</p>
-                  </div>
-                </div>
-              ))}
-              {recurringCandidates.length === 0 && (
-                <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
-                  <Icon name="fingerprint" className="text-3xl" />
-                  <p className="text-xs font-medium uppercase tracking-wider">Monitoring for patterns</p>
-                </div>
-              )}
-            </div>
-          </Card>
-          <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-card relative group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-[60px] pointer-events-none"></div>
-            <div className="p-6 border-b border-slate-200/60 dark:border-white/5 flex items-center justify-between glass-subwell">
-              <div className="relative z-10">
-                <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-0.5">Performance</p>
-                <h2 className="text-sm font-bold tracking-tight">Budget vs actual</h2>
-              </div>
-              <button
-                onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }}
-                className="relative z-10 text-xs font-semibold uppercase tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 bg-primary-500/5 px-3 py-1.5 rounded-lg transition-all hover:bg-primary-500/10 active:scale-95"
-              >
-                Reset
-              </button>
-            </div>
-            <div className="overflow-x-auto relative z-10">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                    <th className="py-2 px-4 font-bold text-xs tracking-[0.15em] text-light-text-secondary opacity-60">Category</th>
-                    <th className="py-2 px-4 font-bold text-xs tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Limit</th>
-                    <th className="py-2 px-4 font-bold text-xs tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Actual</th>
-                    <th className="py-2 px-4 font-bold text-xs tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Delta</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                  {budgetVsActual.map(row => (
-                    <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300">
-                      <td className="py-2 px-4">
-                        <div className="flex items-center gap-3">
-                          <Icon
-                            name={findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
-                            className="text-lg text-light-text-secondary group-hover:scale-110 transition-transform"
-                          />
-                          <span className="text-xs font-bold tracking-tight">{row.categoryName}</span>
-                        </div>
-                      </td>
-                      <td className="py-2 px-4 text-right font-medium text-xs opacity-60 tracking-wider">€{row.budgetEur.toFixed(0)}</td>
-                      <td className="py-2 px-4 text-right font-bold text-xs tracking-tighter">€{row.actualEur.toFixed(0)}</td>
-                      <td className={`py-2 px-4 text-right`}>
-                        <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm ${row.varianceEur >= 0 ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/10' : 'bg-rose-500/10 text-rose-600 border border-rose-500/10'}`}>
-                          {row.varianceEur >= 0 ? '+' : ''}€{row.varianceEur.toFixed(0)}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {budgetVsActual.length === 0 && (
-                <div className="p-10 text-center flex flex-col items-center gap-3 opacity-30">
-                  <Icon name="list_alt_off" className="text-4xl" />
-                  <p className="text-xs font-medium uppercase tracking-wider">No budget configurations detected</p>
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
+        {showReport && (
+          <section aria-label={active.label} className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 md:self-start">
+            {isPhone && <Button variant="ghost" size="sm" icon="chevron_left" className="-ml-2 mb-2" onPress={() => setPhoneReportOpen(false)}>All reports</Button>}
+            <h2 className="type-card-title text-ink">{active.label}</h2>
+            <p className="type-caption mb-4 mt-1 text-muted"><span className="font-semibold">What it says: </span>{tiles[activeId].says}</p>
+            <ReportPanel id={activeId} report={report} cashflowTransactions={cashflowTransactions} groupBy={groupBy} onGroupBy={setGroupBy} isPhone={isPhone} setCurrentPage={setCurrentPage} />
+          </section>
+        )}
       </div>
 
+      <SidePanel
+        isOpen={isFilterOpen}
+        onClose={() => setFilterOpen(false)}
+        title="Filters"
+        footer={
+          <div className="flex justify-between gap-2">
+            <Button variant="ghost" onPress={() => update(NO_FILTERS)}>Clear</Button>
+            <Button onPress={() => setFilterOpen(false)}>Done</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <DateInput label="From" value={filters.startDate} onChange={startDate => update({ startDate })} />
+            <DateInput label="To" value={filters.endDate} onChange={endDate => update({ endDate })} />
+          </div>
+          <Select label="Account" options={[{ id: 'all', label: 'All accounts' }, ...accounts.map(account => ({ id: account.id, label: account.name }))]} value={filters.accountId} onChange={accountId => update({ accountId })} />
+          <Select label="Category" options={[{ id: 'all', label: 'All categories' }, ...[...expenseCategories, ...incomeCategories].map(category => ({ id: category.name, label: category.name }))]} value={filters.category} onChange={category => update({ category })} />
+          <TextInput label="Merchant" value={filters.merchant} onChange={merchant => update({ merchant })} />
+        </div>
+      </SidePanel>
+
+      <Dialog
+        isOpen={isSaving}
+        onClose={() => setSaving(false)}
+        title="Save this view"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onPress={() => setSaving(false)}>Cancel</Button>
+            <Button onPress={saveView}>Save</Button>
+          </div>
+        }
+      >
+        <TextInput label="Name" value={viewName} onChange={setViewName} autoFocus help="It keeps these dates and filters, on all your devices." />
+      </Dialog>
     </div>
   );
 };
