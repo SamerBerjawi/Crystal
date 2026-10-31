@@ -19,8 +19,8 @@ export interface Hub {
 }
 
 /**
- * The seven hubs (D-005, D-017). Tabs list what exists today. Investments, Review queue and Goals gain theirs in modules
- * 8, 5 and 7, when those pages are built.
+ * The seven hubs (D-005, D-017). Tabs list what exists today. Investments and Goals gain theirs in modules 8 and 7, when
+ * those pages are built.
  */
 export const HUBS: Hub[] = [
   { id: 'overview', label: 'Overview', icon: 'nav_overview', home: 'Dashboard', tabs: [] },
@@ -44,6 +44,7 @@ export const HUBS: Hub[] = [
     home: 'Transactions',
     tabs: [
       { label: 'Ledger', page: 'Transactions' },
+      { label: 'Review queue', page: 'Transactions', tab: 'review' },
       { label: 'Rules', page: 'Rules' },
       { label: 'Merchants', page: 'Merchants' },
     ],

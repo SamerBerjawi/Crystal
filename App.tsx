@@ -9,6 +9,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { useIsMobile } from './hooks/useIsMobile';
 import { PrivacyContext } from './components/ui/Money';
+import { ReviewProvider } from './contexts/ReviewContext';
 import { applyAppFont } from './hooks/useFont';
 function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>
@@ -95,7 +96,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { linkBudgetsToCategories } from './utils/budgetModel';
 import { convertCurrency, convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
-import { applyTransactionRulesToFields } from './utils/rules';
+import { applySavedRules, spareChangeFor } from './utils/rules';
 import { upsertEntity, removeEntityById } from './utils/collection';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
@@ -1593,56 +1594,22 @@ const App: React.FC = () => {
   const handleSaveTransaction = useCallback((
     transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[],
     transactionIdsToDelete: string[] = [],
-    options?: { autoSpareChange?: boolean; skipRules?: boolean; applyRules?: boolean }
+    options?: { autoSpareChange?: boolean; skipRules?: boolean; applyRules?: boolean; isNew?: boolean }
   ) => {
+    // Bank records arrive with their own id, so `isNew` says they're new rather than edits (DEF-06).
+    const isNewRecord = (tx: { id?: string }) => !tx.id || options?.isNew;
     const finalTxArray = [...transactionDataArray];
 
     if (!options?.skipRules) {
-      // Apply Rule Engine Rules only for brand new transactions (no id yet) or when explicitly requested
-      const merchantRules = preferences.merchantRules || {};
-      const transactionRules = preferences.transactionRules || [];
-      const activeRegexRules = preferences.regexCategorizationRules?.filter(r => r.isActive) || [];
-
-      finalTxArray.forEach(tx => {
-        if (!tx.id || options?.applyRules) {
-          const res = applyTransactionRulesToFields(
-            {
-              description: tx.description || '',
-              merchant: tx.merchant || '',
-              category: tx.category || '',
-              amount: Number(tx.amount) || 0,
-              type: tx.type || 'expense'
-            },
-            merchantRules,
-            transactionRules
-          );
-          tx.merchant = res.merchant;
-          tx.description = res.description;
-          tx.category = res.category;
-
-          // Apply Regex Categorization rules (Fallback / Legacy)
-          if (activeRegexRules.length > 0) {
-            const textToMatch = [tx.merchant || '', tx.description || '', tx.notes || ''].join(' ').trim();
-            for (const rule of activeRegexRules) {
-              try {
-                const regex = new RegExp(rule.pattern, 'i');
-                if (regex.test(textToMatch)) {
-                  tx.category = rule.category;
-                  break; // Stop at first matching rule
-                }
-              } catch (e) {
-                console.error('Invalid regex pattern:', rule.pattern, e);
-              }
-            }
-          }
-        }
+      finalTxArray.forEach((tx, index) => {
+        if (isNewRecord(tx) || options?.applyRules) finalTxArray[index] = applySavedRules(tx, preferences);
       });
     }
 
     // Automatic Spare Change Logic
     if (options?.autoSpareChange) {
-      transactionDataArray.forEach(tx => {
-        if (tx.id) return; // Only for brand new transactions
+      finalTxArray.slice().forEach(tx => {
+        if (!isNewRecord(tx)) return; // Only for brand new transactions
         if (tx.transferId?.startsWith('spare-')) return; // Avoid recursive spare change
         if (tx.type !== 'expense') return; // Only for outflows (spending or outgoing transfer side)
 
@@ -1653,13 +1620,10 @@ const App: React.FC = () => {
         );
 
         if (linkedSpareChangeAccount) {
-          const absVal = Math.abs(tx.amount);
-          const remainder = absVal % 1;
-          const cleanRemainder = parseFloat(remainder.toFixed(2));
-          const spareAmount = cleanRemainder === 0 ? 0 : parseFloat((1.00 - cleanRemainder).toFixed(2));
+          const spareAmount = spareChangeFor(tx.amount);
 
           if (spareAmount > 0) {
-            const newTxId = uuidv4();
+            const newTxId = tx.id || uuidv4();
             tx.id = newTxId;
             const spareTransferId = `spare-${newTxId}`;
             const sourceAcc = accounts.find(a => a.id === tx.accountId);
@@ -2744,7 +2708,7 @@ const App: React.FC = () => {
         const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
 
         if (deduped.length > 0) {
-          handleSaveTransaction(deduped, [], { autoSpareChange: true });
+          handleSaveTransaction(deduped, [], { autoSpareChange: true, isNew: true });
         }
 
         if (toUpdate.length > 0) {
@@ -3053,6 +3017,7 @@ const App: React.FC = () => {
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
       <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
         <PrivacyContext.Provider value={isPrivacyMode}>
+        <ReviewProvider>
         <Toaster
           position="bottom-center"
           duration={5000}
@@ -3113,12 +3078,14 @@ const App: React.FC = () => {
                 accounts={accounts}
                 incomeCategories={incomeCategories}
                 expenseCategories={expenseCategories}
+                transactions={transactions}
                 tags={tags}
                 userProfile={currentUser!}
               />
             </Suspense>
           )}
         </div>
+        </ReviewProvider>
         </PrivacyContext.Provider>
       </InsightsViewProvider>
     </FinancialDataProvider>

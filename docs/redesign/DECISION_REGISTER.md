@@ -145,6 +145,9 @@ Used to weigh priorities. None of this removes any feature.
 | D-080 | 2026-10-31 | Proposed: account pages use the green hero, the same as Overview, so "once per page" holds and every type looks alike | `D-038` | Awaiting the owner |
 | D-081 | 2026-10-31 | Accounts follows Rivolo's Wallet. Tabs are Cards (the default), Accounts, Loans and Assets. All is removed, and investment accounts stay in the Investments hub | Owner, Rivolo | **Replaces `D-020`.** Cards lists any account with a card, read from the account: card details, a credit card or a meal voucher |
 | D-082 | 2026-10-31 | An account with a card appears under Cards and as a pot under Accounts. Credit cards and meal vouchers appear under Cards only | Owner, Rivolo | |
+| D-083 | 2026-10-31 | Proposed: a merchant's own category beats regex rules, and rules and round-ups now run on new bank transactions | `DEF-06`, `DEF-07` | Fixes both. Applies from the next sync, not to past transactions. Awaiting the owner |
+| D-084 | 2026-10-31 | Proposed: the scatter uses a log scale and hides on phones, so small and large amounts share a chart. The ledger below it is the accessible list | `D-006` | Awaiting the owner |
+| D-085 | 2026-10-31 | Proposed: a charge on a loan account saves as a plain expense with no split. The old form showed the split and refused the amount unless you filled it in. Loan payments still need principal and interest | `D-022` | Awaiting the owner |
 
 ## Open questions
 

@@ -346,7 +346,7 @@ const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants =
         onClose={onClose}
         title={isChoosingType ? 'What kind of account?' : isEditing ? `Edit ${account.name}` : `New ${type.toLowerCase()} account`}
         isDirty={isDirty}
-        footer={!isChoosingType && (
+        footer={!isChoosingType && (close => (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
               {isEditing && onDelete && <Button variant="ghost" className="text-money-out" onPress={() => { onClose(); onDelete(account.id); }}>Delete</Button>}
@@ -354,11 +354,11 @@ const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants =
               {!isEditing && <Button variant="ghost" onPress={() => setChoosingType(true)}>Change type</Button>}
             </div>
             <div className="flex gap-2 max-md:w-full">
-              <Button variant="ghost" className="max-md:flex-1" onPress={onClose}>Cancel</Button>
+              <Button variant="ghost" className="max-md:flex-1" onPress={close}>Cancel</Button>
               <Button className="max-md:flex-1" onPress={handleSubmit}>{isEditing ? 'Save changes' : 'Add account'}</Button>
             </div>
           </div>
-        )}
+        ))}
       >
         {isChoosingType ? typeTiles : sections}
       </FullPanel>

@@ -15,7 +15,7 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 2 | App shell | Pills, tab row, rail, phone bar, More, top bar | Done, with the gaps listed below |
 | 3 | Overview | Summary, hero, Needs you, Safe to spend, grid | Done |
 | 4 | Accounts | Hub tabs, account frame, one account form | Done |
-| 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Not started |
+| 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Done, with the detail panel left |
 | 6 | Rules | Rebuild (`D-009`), with tests first | Not started |
 | 7 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Not started |
 | 8 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Not started |
@@ -219,3 +219,43 @@ Phase 10 (final QA) follows module 13.
 - `AccountOverviewModal` should become a side panel (`D-024`). It's a 1,500-line modal, so it's deferred.
 - The full panel on phones scrolls through sections rather than stepping one at a time.
 - Demo loans have no term or rate, so they show no schedule.
+
+### Module 5: Transactions
+
+**Status:** Done, uncommitted, with the two gaps under Known issues.
+
+**Built**
+- `DEF-06` and `DEF-07` fixed. New bank transactions now take merchant, transaction and regex rules, and round-ups. A merchant's own category beats regex rules. `utils/rules.ts` has `applySavedRules` and `spareChangeFor`, with 4 tests.
+- Ledger: scatter, search, filter chips, day-grouped table, Comfortable or Compact (remembered), Show more in place of page numbers (`D-040`), and a "This view" summary that follows the filters.
+- `LedgerTable`, with every old row action in its menu. Right-click opens the same menu. Phones get day rows, swipe left to Categorise and right to Select (`D-069`), long press to select, and a filter sheet.
+- Selection bar with Categorise, Edit, More, and press-and-hold delete. Row menus open a dialog with the hold button (`D-065`). Undo was already there.
+- Review queue at `?tab=review` (`D-008`): one card with a side list on desktop, and one card on phones. It covers transactions to categorise, and transfer and bill matches, with search, type filter, Skip, Select mode, Confirm likely and Matching settings.
+- `CategoryPicker` (`D-041`): three suggestions, search, and Always file like this, which saves the merchant's category.
+- `ReviewContext` holds the matchers above the pages, so Overview and the queue agree and dismissed transfer matches stay dismissed.
+- Merchants: list beside a live profile (`D-012`), and on phones the profile is a separate step.
+- Removed: `MobileTransactionsView`, `UnifiedPendingMatchesModal`, `PendingMatchesView`, `UnifiedPendingMatcherCard`.
+
+**Tested**
+
+| Check | Result |
+|---|---|
+| Type checks, `npm test`, Vite build | Clean, with 258 tests passed and 0 failed |
+| Ledger, Review queue, Merchants at 1440 and 768 px, dark theme | No sideways scroll, no error screens. Tablet shows key columns only |
+| Review queue with seeded items | File a category, skip, match a transfer, settings, with counts dropping each time |
+| Ledger: selection bar, row menu by right-click, Accounts filter popover | Worked |
+| Phone: 64 px rows, Select mode, selection bar above the phone bar with More, filter sheet, queue, merchant profile step | Worked, no sideways scroll |
+
+**Not tested**
+- A real bank sync. `DEF-06` is proved by unit tests and code, not with a live bank.
+- Swipe, long press and drag on a real touch device. Hold delete by real pointer.
+- Split, combine, bulk edit and duplicate in the new page. Their logic and forms didn't change.
+- Light theme on these pages, and the scatter by eye. The pane was too small for screenshots.
+- Bill match cards. Demo data produces none, though they share the transfer card's flow.
+- Always file like this reaching a real saved account.
+
+**Known issues**
+- `AddTransactionModal` is rebuilt to `D-022` (a side panel, full-height on phones). Its logic moved to `utils/transactionForm.ts`, with tests. Save, edit, transfer, the unsaved-changes prompt and suggestions were tested in the browser at 1440×900, and layout at 768×1024 and 390×844, in light and dark. Merchant rules, loan split, round-up and branch saving have unit tests only, because the demo data has no merchant rules, loans payments or spare-change link to try them on. Live address search wasn't tested.
+- `TransactionDetailModal` isn't a side panel yet (`D-024`), and `MerchantDetailModal` keeps its old look.
+- Merchants still has the old map in Map and details, and the keyword and regex rules in Auto-categorise until module 6.
+- Past bank transactions aren't reprocessed by the `DEF-06` fix.
+- Saving a transaction with no category still files it as Transfer, as it always has.

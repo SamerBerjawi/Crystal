@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { INPUT_BASE_STYLE } from '../constants';
+import { controlStyles } from './ui/Fields';
 import { useAddressSearch, AddressData } from '../hooks/useAddressSearch';
 import Icon from './ui/Icon';
+import { cn } from '../lib/utils';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -157,14 +158,15 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             setIsFocused(true);
             if (inputValue.trim().length >= 2 && suggestions.length > 0) setIsOpen(true);
           }}
-          className={`${INPUT_BASE_STYLE} pl-9 pr-14 h-10 font-medium text-xs`}
+          aria-label="Address"
+          className={cn(controlStyles, 'h-11 pl-9 pr-14 text-[.9375rem] font-medium max-md:h-12 max-md:text-base')}
           placeholder={placeholder}
           autoComplete="off"
           spellCheck={false}
         />
         <Icon
           name="marker_pin"
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-700 dark:text-primary-400 text-sm pointer-events-none"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted pointer-events-none"
         />
 
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
@@ -194,7 +196,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              className="flex size-8 pointer-coarse:size-11 items-center justify-center rounded-full text-muted hover:bg-inset hover:text-ink transition-colors cursor-pointer"
               title="Clear address"
               aria-label="Clear address"
             >
@@ -205,7 +207,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       </div>
 
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 mt-1.5 w-full bg-white dark:bg-[#18181b] rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 z-[80] max-h-60 overflow-y-auto py-1.5 custom-scrollbar divide-y divide-black/5 dark:divide-white/5">
+        <div className="absolute top-full left-0 mt-1.5 w-full bg-surface rounded-[var(--radius-lg)] shadow-sm border border-line z-[80] max-h-60 overflow-y-auto py-1.5 custom-scrollbar divide-y divide-black/5 dark:divide-white/5">
           {suggestions.map((item, index) => {
             const isSelected = highlightedIndex === index;
             return (
@@ -216,7 +218,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                 onMouseEnter={() => setHighlightedIndex(index)}
                 className={`w-full text-left px-3.5 py-2.5 text-xs transition-colors flex items-start gap-2.5 cursor-pointer ${
                   isSelected
-                    ? 'bg-primary-500/10 dark:bg-primary-500/15 text-primary-600 dark:text-primary-400'
+                    ? 'bg-inset text-ink'
                     : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.04] text-light-text dark:text-dark-text'
                 }`}
               >

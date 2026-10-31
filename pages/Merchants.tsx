@@ -1,10 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Page, MerchantRule, Category, RegexCategorizationRule } from '../types';
-import Card from '../components/Card';
-import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
-import HeaderButton from '../components/HeaderButton';
-import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
@@ -15,10 +11,17 @@ import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
 import RegexCategorizationModal from '../components/RegexCategorizationModal';
 import Icon from '../components/ui/Icon';
-import HeroMetricCard from '../components/ui/HeroMetricCard';
-import MetricCardRow from '../components/ui/MetricCardRow';
-import FilterBar from '../components/ui/FilterBar';
-import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
+import { Button, IconButton } from '../components/ui/Actions';
+import { Row, Sparkline } from '../components/ui/Display';
+import { Switch, controlStyles } from '../components/ui/Fields';
+import { Menu } from '../components/ui/Menu';
+import { Amount } from '../components/ui/Money';
+import { Popover } from '../components/ui/Overlays';
+import { Select } from '../components/ui/Pickers';
+import { Banner, EmptyState, SyncStatus } from '../components/ui/States';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { cn } from '../lib/utils';
 import { computeSpendTrends } from '../utils/merchantTrends';
 
 interface MerchantsProps {
@@ -98,51 +101,12 @@ const guessDomainName = (name: string): string | null => {
     return `${cleanName}.com`;
 };
 
-const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
-    const max = Math.max(...data, 1);
-    const min = Math.min(...data, 0);
-    const range = max - min;
-    const width = 100;
-    const height = 28;
-    
-    const points = data.map((val, idx) => {
-        const x = (idx / (data.length - 1)) * width;
-        const y = height - ((val - min) / range) * (height - 6) - 3;
-        return `${x},${y}`;
-    });
-    
-    const pathData = `M 0,${height} L ${points.join(' L ')} L ${width},${height} Z`;
-    const lineData = `M ${points.join(' L ')}`;
-    
-    return (
-        <div className="flex items-center gap-3">
-            <div className="relative w-[100px] h-[28px]">
-                <svg width="100" height="28" className="overflow-visible select-none pointer-events-none">
-                    <defs>
-                        <linearGradient id="sparkline-trend-grad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.18" />
-                            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
-                        </linearGradient>
-                    </defs>
-                    <path d={pathData} fill="url(#sparkline-trend-grad)" />
-                    <path d={lineData} fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    {data[data.length - 1] > 0 && (
-                        <circle 
-                            cx={width} 
-                            cy={height - ((data[data.length - 1] - min) / range) * (height - 6) - 3} 
-                            r="2.5" 
-                            fill="#6366f1" 
-                            className="animate-pulse"
-                        />
-                    )}
-                </svg>
-            </div>
-            <span className="text-xs font-mono font-medium text-light-text dark:text-dark-text min-w-[55px] text-right">
-                {formatCurrency(data[data.length - 1] || 0, 'EUR')}
-            </span>
-        </div>
-    );
-};
+const MERCHANT_SORTS = [
+  { id: 'recent', label: 'Recently active' },
+  { id: 'count', label: 'Most frequent' },
+  { id: 'value', label: 'Highest total' },
+  { id: 'name', label: 'Name' },
+];
 
 const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const { transactions, saveTransaction } = useTransactionsContext();
@@ -159,7 +123,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'count' | 'value' | 'recent'>('recent');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list'); // Default to list for better management view
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const isPhone = useIsMobile();
   const [showHidden, setShowHidden] = useState(false);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
   const [logoRefreshTimestamps, setLogoRefreshTimestamps] = useState<Record<string, number>>({});
@@ -453,8 +418,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       toast.success(`Logo auto-enrichment complete! Successfully resolved ${targetEntities.length} missing merchant records.`);
   };
 
-  const handleToggleHidden = (entity: EntityItem, e: React.MouseEvent) => {
-      e.stopPropagation();
+  const handleToggleHidden = (entity: EntityItem, e?: React.MouseEvent) => {
+      e?.stopPropagation();
       const newHidden = !entity.rule?.isHidden;
       
       const newRule: MerchantRule = {
@@ -503,566 +468,207 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       };
   }, [entities, missingMerchantCount]);
 
-  return (
-    <div className="w-full pb-12 space-y-12 animate-fade-in-up px-4">
-      {isDetailModalOpen && editingEntity && (
-          <MerchantDetailModal 
-            isOpen={isDetailModalOpen}
-            onClose={() => setIsDetailModalOpen(false)}
-            merchantName={editingEntity.originalName}
-            logoKey={editingEntity.logoKey}
-            initialRule={editingEntity.rule}
-            onSave={handleSaveRule}
-            incomeCategories={incomeCategories}
-            expenseCategories={expenseCategories}
-            transactions={transactions}
-            brandfetchClientId={brandfetchClientId}
-          />
-      )}
+  const selected = filteredEntities.find(entity => entity.id === selectedId) ?? (isPhone ? undefined : filteredEntities[0]);
 
-      {isOverviewModalOpen && overviewEntity && (
-          <MerchantOverviewModal
-            isOpen={isOverviewModalOpen}
-            onClose={() => setIsOverviewModalOpen(false)}
-            merchantName={overviewEntity.originalName}
-            logoKey={overviewEntity.logoKey}
-            rule={overviewEntity.rule}
-            entityType={overviewEntity.type}
-            totalValue={overviewEntity.totalValue}
-            count={overviewEntity.count}
-            lastActivity={overviewEntity.lastActivity}
-            transactions={transactions}
-            onEdit={() => {
-              setIsOverviewModalOpen(false);
-              setEditingEntity(overviewEntity);
-              setIsDetailModalOpen(true);
-            }}
-          />
-      )}
-      
-       {/* Navigation & Header */}
-       <SettingsSubpageHeader
-         accentColor="teal"
-         markerIcon="Building02"
-         markerLabel="Merchants & Institutions"
-         title="Merchants & Institutions"
-         subtitle="Manage merchant profiles, customize branding logos, and configure automatic categorization rules."
-         setCurrentPage={setCurrentPage}
-         actions={
-           <div className="flex items-center gap-2">
-             <HeaderButton
-               variant="secondary"
-               icon="bolt"
-               onClick={() => setIsRegexModalOpen(true)}
-             >
-               Auto-Categorize Rules {regexRules.length > 0 ? `(${regexRules.length})` : ''}
-             </HeaderButton>
-             <HeaderButton
-               variant="primary"
-               icon="magic_wand"
-               isLoading={isRefreshing}
-               onClick={handleRefreshLogos}
-             >
-               {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
-             </HeaderButton>
-           </div>
-         }
-       />
-        {!brandfetchClientId && (
-          <div className="bg-amber-100/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl px-5 py-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-               <Icon name="alert_triangle" className="text-xl" />
-            </div>
-            <p className="text-xs font-bold text-amber-900 dark:text-amber-200 leading-relaxed">
-              Automatic logo lookup is inactive. Add a free Brandfetch Access Key in Preferences to automatically fetch merchant logos.
-            </p>
-          </div>
-        )}
+  const logoFor = (entity: EntityItem) => {
+    const url = getPreviewUrl(entity.name, entity.rule);
+    return url && !logoLoadErrors[url] ? url : null;
+  };
 
-        {/* Smart Categorization & Tools Action Panel */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-primary-500/[0.08] via-teal-500/[0.05] to-emerald-500/[0.05] p-5 rounded-3xl border border-primary-500/20 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 shrink-0">
-                    <Icon name="bolt" className="text-xl" />
-                </div>
-                <div>
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">Smart Categorization & Tools</h3>
-                        <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 text-xs font-semibold border border-teal-500/20">Active</span>
-                    </div>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-80 leading-relaxed">
-                        Create automatic categorization rules for matching keywords or run logo discovery passes to enrich merchant branding.
-                    </p>
-                </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-center">
-                <HeaderButton
-                    variant="secondary"
-                    icon="bolt"
-                    onClick={() => setIsRegexModalOpen(true)}
-                >
-                    Auto-Categorize Rules {regexRules.length > 0 ? `(${regexRules.length})` : ''}
-                </HeaderButton>
-                <HeaderButton
-                    variant="primary"
-                    icon="magic_wand"
-                    isLoading={isRefreshing}
-                    onClick={handleRefreshLogos}
-                >
-                    {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
-                </HeaderButton>
-            </div>
+  const entityLogo = (entity: EntityItem, size: number) => {
+    const url = logoFor(entity);
+    return (
+      <span style={{ width: size, height: size }} className="type-label flex shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-inset text-muted">
+        {url ? <img src={url} alt="" onError={() => handleLogoError(url)} className="size-full object-cover" /> : entity.name.charAt(0).toUpperCase()}
+      </span>
+    );
+  };
+
+  const entityTransactions = useMemo(() => {
+    if (!selected) return [];
+    return transactions
+      .filter(tx => normalizeMerchantKey(tx.merchant) === selected.logoKey)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [selected, transactions]);
+
+  const list = (
+    <div className="min-w-0 space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Icon name="search" size={20} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <input type="search" aria-label="Search merchants and institutions" placeholder="Search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className={cn(controlStyles, 'h-10 pl-10 pr-3 text-[.9375rem] max-md:h-12 max-md:text-base')} />
         </div>
-
-        {/* SMART AUTO-CATEGORIZATION SUGGESTIONS */}
-        {smartSuggestions.length > 0 && (
-          <Card className="glass-section border border-dashed border-teal-500/30 p-5 rounded-3xl space-y-4 shadow-card">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-400 flex items-center justify-center shrink-0">
-                  <Icon name="auto_awesome" className="text-base" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-teal-700 dark:text-teal-300 tracking-tight">
-                    Smart Auto-Categorization Suggestions ({smartSuggestions.length})
-                  </h4>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                    Recurring description patterns detected. Accept in 1-click to map to merchant and category across all past and future records.
-                  </p>
-                </div>
-              </div>
-
+        <Popover
+          title="View options"
+          placement="bottom end"
+          trigger={<IconButton icon="tune" label="View options" tooltipPlacement="bottom" />}
+        >
+          <div className="flex w-56 flex-col gap-3 max-md:w-full">
+            <Select label="Sort by" options={MERCHANT_SORTS} value={sortBy} onChange={id => setSortBy(id as typeof sortBy)} />
+            <Switch isSelected={showHidden} onChange={setShowHidden}>Show hidden</Switch>
+          </div>
+        </Popover>
+      </div>
+      {filteredEntities.length === 0 ? (
+        <EmptyState
+          icon="search"
+          title={searchTerm ? 'No matches' : 'No merchants yet'}
+          description={searchTerm ? 'Try a different name.' : 'Merchants appear here once you have transactions.'}
+          actionLabel={searchTerm ? 'Clear search' : undefined}
+          onAction={searchTerm ? () => setSearchTerm('') : undefined}
+        />
+      ) : (
+        <ul className="max-h-[calc(100dvh-280px)] divide-y divide-line overflow-y-auto rounded-[var(--radius-xl)] border border-line bg-surface max-md:max-h-none">
+          {filteredEntities.map(entity => (
+            <li key={entity.id}>
               <button
                 type="button"
-                onClick={() => setCurrentPage('Rules')}
-                className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 min-h-[28px] self-start sm:self-auto"
+                aria-current={entity.id === selected?.id ? 'true' : undefined}
+                onClick={() => setSelectedId(entity.id)}
+                className={cn('flex min-h-16 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-inset', entity.id === selected?.id && !isPhone && 'bg-primary-soft hover:bg-primary-soft')}
               >
-                <span>View all in Rules</span>
-                <Icon name="chevron_right" className="text-sm" />
+                {entityLogo(entity, 40)}
+                <span className="min-w-0 flex-1">
+                  <span className="type-body-strong block truncate text-ink">{entity.name}</span>
+                  <span className="type-caption block truncate text-muted">{entity.type === 'Institution' ? 'Institution' : `${entity.count} ${entity.count === 1 ? 'transaction' : 'transactions'}`}{entity.rule?.isHidden ? ', hidden' : ''}</span>
+                </span>
+                <span className="type-figure-row shrink-0 text-ink"><Amount value={entity.totalValue} currency="EUR" /></span>
               </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {smartSuggestions.slice(0, 3).map((sug) => (
-                <div key={sug.id} className="glass-tile border border-slate-200/80 dark:border-white/10 p-3.5 rounded-2xl flex flex-col justify-between gap-3 shadow-card">
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="font-mono font-bold text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-lg truncate">
-                        "{sug.keyword}"
-                      </span>
-                      <span className="text-2xs font-semibold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400">
-                        {sug.matchCount} txs
-                      </span>
-                    </div>
-                    <p className="font-bold text-xs text-light-text dark:text-dark-text truncate mt-1">
-                      ➔ {sug.suggestedMerchant}
-                    </p>
-                    {sug.suggestedCategory && (
-                      <p className="text-2xs text-gray-400 font-mono mt-0.5 truncate">
-                        Category: <span className="text-teal-700 dark:text-teal-400 font-bold">{sug.suggestedCategory}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
-                    <span className="text-2xs text-gray-400 font-mono">
-                      Vol: {formatCurrency(sug.totalAmount, 'EUR')}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeploySmartSuggestion(sug)}
-                      className="px-2.5 py-1 min-h-[28px] text-xs font-semibold bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer"
-                    >
-                      <Icon name="add" className="text-xs" />
-                      <span>Accept Rule</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {/* Real-time Enrichment Progress Indicator */}
-        {isRefreshing && (
-            <div className="bg-primary-500/10 border border-primary-500/20 rounded-3xl p-5 space-y-3 animate-pulse">
-                <div className="flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-                    <span>Branding Telemetry Lookup Pipeline In Progress</span>
-                    <span>{refreshProgress.current} / {refreshProgress.total}</span>
-                </div>
-                <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                    <div 
-                        className="bg-primary-500 h-full transition-all duration-300"
-                        style={{ width: `${(refreshProgress.current / refreshProgress.total) * 100}%` }}
-                    />
-                </div>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                    Resolving domain parameters and caching Brandfetch endpoints for <strong className="font-semibold">{refreshProgress.currentName}</strong>...
-                </p>
-            </div>
-        )}
-
-        {isRegexModalOpen && (
-          <RegexCategorizationModal
-            isOpen={isRegexModalOpen}
-            onClose={() => setIsRegexModalOpen(false)}
-            rules={regexRules}
-            onSaveRules={handleSaveRegexRules}
-            incomeCategories={incomeCategories}
-            expenseCategories={expenseCategories}
-            transactions={transactions}
-            onApplyHistoricalRules={handleApplyHistoricalRules}
-          />
-        )}
-
-        {/* Metrics Overview */}
-        <MetricCardRow columns={4}>
-            <HeroMetricCard 
-                variant="primary"
-                label="Total Volume" 
-                value={formatCurrency(stats.totalVolume, 'EUR')} 
-                icon="coins_stacked" 
-                iconColor="emerald"
-                subtext="Aggregated ledger flow"
-                privacyBlur
-            />
-            <HeroMetricCard 
-                variant="secondary"
-                label="Merchants" 
-                value={stats.totalMerchants} 
-                icon="shopping_bag" 
-                iconColor="blue"
-                subtext="Commercial counter-parties"
-            />
-            <HeroMetricCard 
-                variant="secondary"
-                label="Institutions" 
-                value={stats.totalInstitutions} 
-                icon="bank" 
-                iconColor="indigo"
-                subtext="Banking & broker nodes"
-            />
-            <HeroMetricCard 
-                variant="secondary"
-                label="Unassigned" 
-                value={stats.missingCount} 
-                icon="help_outline" 
-                iconColor={stats.missingCount > 0 ? "amber" : "emerald"}
-                badgeText={stats.missingCount > 0 ? `${stats.missingCount} Unmapped` : 'All Mapped'}
-                badgeVariant={stats.missingCount > 0 ? "elevated" : "optimal"}
-                subtext="Missing rules or logos"
-            />
-        </MetricCardRow>
-
-      {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-6 justify-between items-center px-2">
-           <div className="w-full md:max-w-md">
-                <FilterBar.Search
-                    placeholder="Search merchants & institutions..." 
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                />
-           </div>
-           
-           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 w-full md:w-auto">
-               <label className="flex items-center gap-3 cursor-pointer group select-none">
-                   <div className="relative">
-                      <input 
-                          type="checkbox" 
-                          checked={showHidden} 
-                          onChange={(e) => setShowHidden(e.target.checked)} 
-                          className="sr-only peer" 
-                      />
-                      <div className="w-10 h-6 bg-black/5 dark:bg-white/5 rounded-full peer-checked:bg-primary-500 transition-colors"></div>
-                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:translate-x-4 transition-transform shadow-sm"></div>
-                   </div>
-                   <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">Show Hidden</span>
-               </label>
-
-               <div className="h-8 w-px bg-slate-200/60 dark:border-white/10"></div>
-
-               <div className="flex glass-subwell p-1 rounded-xl shadow-xs">
-                   <button 
-                      aria-label="Grid view"
-                      aria-pressed={viewMode === 'grid'}
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'glass-tile shadow-card text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
-                   >
-                       <Icon name="grid_view" className="text-lg" />
-                   </button>
-                   <button 
-                      aria-label="List view"
-                      aria-pressed={viewMode === 'list'}
-                      onClick={() => setViewMode('list')}
-                      className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'glass-tile shadow-card text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
-                   >
-                       <Icon name="view_list" className="text-lg" />
-                   </button>
-               </div>
-               
-               <div className="relative group">
-                   <select 
-                        aria-label="Sort merchants"
-                        value={sortBy} 
-                        onChange={(e) => setSortBy(e.target.value as any)} 
-                        className="appearance-none glass-tile border border-slate-200/80 dark:border-white/10 rounded-xl pl-4 pr-10 py-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card cursor-pointer"
-                   >
-                       <option value="count">Most Frequent</option>
-                       <option value="value">Highest Volume</option>
-                       <option value="recent">Recently Active</option>
-                       <option value="name">Identifier</option>
-                   </select>
-                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-light-text-secondary opacity-40">
-                      <Icon name="unfold_more" className="text-sm" />
-                   </div>
-               </div>
-           </div>
-      </div>
-
-      {filteredEntities.length === 0 ? (
-          <div>
-              <EmptyState
-                icon="search_off"
-                title={searchTerm ? 'No merchants match your search' : 'No merchants yet'}
-                description={searchTerm ? 'Try a different name, or clear the search.' : 'Merchants appear here once you have transactions with a merchant name.'}
-                actionLabel={searchTerm ? 'Clear search' : undefined}
-                onAction={searchTerm ? () => setSearchTerm('') : undefined}
-              />
-              {stats.missingCount > 0 && (
-                  <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 mt-4 text-center">
-                    {stats.missingCount} merchant records need review.
-                  </p>
-              )}
-          </div>
-      ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredEntities.map(entity => {
-              const previewUrl = getPreviewUrl(entity.name, entity.rule);
-              const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
-              const initialLetter = entity.name.charAt(0).toUpperCase();
-              const isHidden = entity.rule?.isHidden;
-              
-              const accentColor = entity.type === 'Institution' 
-                  ? (entity.totalValue >= 0 ? 'text-primary-500' : 'text-red-500')
-                  : 'text-light-text dark:text-dark-text';
-
-              return (
-                <div 
-                    key={entity.id} 
-                    onClick={() => { setOverviewEntity(entity); setIsOverviewModalOpen(true); }}
-                    onContextMenu={(e) => { e.preventDefault(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
-                    className={`relative group glass-tile shadow-card border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 cursor-pointer hover:border-primary-500/30 hover:shadow-xl hover:shadow-primary-500/10 transition-all duration-300 ${isHidden ? 'opacity-40 grayscale-[0.8] hover:opacity-100 hover:grayscale-0' : ''}`}
-                >
-                    <div className="flex justify-between items-start mb-6">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gradient-to-br from-black/[0.02] to-black/[0.1] dark:from-white/[0.02] dark:to-white/[0.1]'}`}>
-                            {hasLogo && previewUrl ? (
-                              <img src={previewUrl} className="w-full h-full object-cover p-0 border-0" onError={() => handleLogoError(previewUrl)} alt="" />
-                            ) : (
-                              <span className="text-xl font-bold text-light-text-secondary/40">{initialLetter}</span>
-                            )}
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                            <div className="flex items-center gap-1">
-                                {isBrandfetchLogoRefreshable(entity.name, entity.rule?.logo) && (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => handleRefreshSingleLogo(entity.name, entity.logoKey, entity.rule?.logo, e)}
-                                        className="p-1 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                        title="Fetch latest logo from Brandfetch"
-                                    >
-                                        <Icon name="refresh" className="text-xs" />
-                                    </button>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={(e) => handleToggleHidden(entity, e)}
-                                    className="p-1 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                    title={isHidden ? "Show Merchant" : "Hide Merchant"}
-                                >
-                                    <Icon name={isHidden ? 'visibility' : 'visibility_off'} className="text-xs" />
-                                </button>
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>{entity.type === 'Institution' ? 'Core' : 'Merch'}</span>
-                            </div>
-                            {entity.rule?.category && (
-                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-80 truncate max-w-[100px]">
-                                    {entity.rule.category}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="font-semibold text-lg text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors">{entity.name}</h3>
-                            <div className="flex items-center gap-2 mt-0.5">
-                                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-80">
-                                    {entity.count} Observed Events
-                                </p>
-                                {entity.rule?.isOnline ? (
-                                    <span 
-                                        className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
-                                        title="Online / Digital Business (No physical storefront)"
-                                    >
-                                        <span>🌐</span>
-                                        <span className="truncate">Online</span>
-                                    </span>
-                                ) : entity.rule?.locations && entity.rule.locations.length > 1 ? (
-                                    <span 
-                                        className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
-                                        title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}
-                                    >
-                                        <Icon name="marker_pin" className="text-xs shrink-0" />
-                                        <span className="truncate">{entity.rule.locations.length} Branches</span>
-                                    </span>
-                                ) : (entity.rule?.address || entity.rule?.locations?.[0]) && (
-                                    <span 
-                                        className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
-                                        title={entity.rule?.address || entity.rule?.locations?.[0]?.address}
-                                    >
-                                        <Icon name="marker_pin" className="text-xs shrink-0" />
-                                        <span className="truncate">{entity.rule?.city || entity.rule?.locations?.[0]?.city || entity.rule?.placeName || entity.rule?.address}</span>
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        
-                        <div className="pt-4 border-t border-slate-200/60 dark:border-white/5">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">
-                                Cumulative
-                            </p>
-                            <p className={`font-mono font-black text-xl tracking-tight ${accentColor}`}>
-                                {formatCurrency(entity.totalValue, 'EUR')}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-              );
-            })}
-          </div>
-      ) : (
-          <div className="glass-section rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-card overflow-hidden">
-              <table className="w-full text-left text-sm border-collapse">
-                  <thead>
-                      <tr className="bg-slate-900/[0.02] dark:bg-white/[0.02] border-b border-slate-200/60 dark:border-white/5">
-                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Identifier</th>
-                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Classification</th>
-                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Frequency</th>
-                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Last Sync</th>
-                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Activity Trend (6m)</th>
-                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Total Exposure</th>
-                          <th className="px-8 py-5 w-20"></th>
-                      </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
-                      {filteredEntities.map(entity => {
-                          const previewUrl = getPreviewUrl(entity.name, entity.rule);
-                          const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
-                          const initialLetter = entity.name.charAt(0).toUpperCase();
-                          const isHidden = entity.rule?.isHidden;
-
-                          return (
-                              <tr 
-                                key={entity.id} 
-                                onClick={() => { setOverviewEntity(entity); setIsOverviewModalOpen(true); }}
-                                onContextMenu={(e) => { e.preventDefault(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
-                                className={`group hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${isHidden ? 'opacity-40 grayscale' : ''}`}
-                              >
-                                  <td className="px-8 py-5">
-                                      <div className="flex items-center gap-4">
-                                           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-black/5 dark:bg-white/5'}`}>
-                                                {hasLogo && previewUrl ? (
-                                                    <img src={previewUrl} className="w-full h-full object-cover p-0 border-0" onError={() => handleLogoError(previewUrl)} alt="" />
-                                                ) : (
-                                                    <span className="font-bold text-xs text-light-text-secondary/40">{initialLetter}</span>
-                                                )}
-                                           </div>
-                                           <div className="min-w-0">
-                                              <div className="flex items-center gap-2">
-                                                 <span className="font-semibold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors tracking-tight truncate">{entity.name}</span>
-                                                 {isHidden && <Icon name="visibility_off" className="text-sm text-gray-400 shrink-0" title="Hidden from merchant lists" />}
-                                              </div>
-                                              {entity.rule?.isOnline ? (
-                                                  <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" title="Online / Digital Business">
-                                                     <span>🌐</span>
-                                                     <span className="font-semibold">Online Business</span>
-                                                  </p>
-                                               ) : entity.rule?.locations && entity.rule.locations.length > 1 ? (
-                                                 <p 
-                                                    className="text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
-                                                    title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}
-                                                 >
-                                                    <Icon name="marker_pin" className="text-xs text-primary-700 dark:text-primary-400 shrink-0" />
-                                                    <span className="truncate">{entity.rule.locations.length} Branches ({entity.rule.locations.map(l => l.city || l.label).filter(Boolean).slice(0, 2).join(', ')})</span>
-                                                 </p>
-                                               ) : (entity.rule?.address || entity.rule?.locations?.[0]) && (
-                                                 <p 
-                                                    className="text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
-                                                    title={entity.rule?.address || entity.rule?.locations?.[0]?.address}
-                                                 >
-                                                    <Icon name="marker_pin" className="text-xs text-primary-700 dark:text-primary-400 shrink-0" />
-                                                    <span className="truncate">{entity.rule?.address || entity.rule?.locations?.[0]?.address}</span>
-                                                 </p>
-                                               )}
-                                           </div>
-                                      </div>
-                                  </td>
-                                  <td className="px-8 py-5">
-                                      {entity.rule?.category ? (
-                                          <span className="inline-flex px-3 py-1 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5">
-                                              {entity.rule.category}
-                                          </span>
-                                      ) : (
-                                          <span className="text-xs font-normal text-light-text-secondary/50 dark:text-dark-text-secondary/50 italic">Unclassified</span>
-                                      )}
-                                  </td>
-                                  <td className="px-8 py-5 text-right font-medium text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                      {entity.count} Events
-                                  </td>
-                                  <td className="px-8 py-5 text-right text-light-text-secondary dark:text-dark-text-secondary text-xs font-medium">
-                                      {entity.lastActivity ? parseLocalDate(entity.lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' }) : 'INF'}
-                                  </td>
-                                  <td className="px-8 py-5">
-                                      <div className="flex justify-end">
-                                          <Sparkline data={spendTrendsMap[entity.id] || [0, 0, 0, 0, 0, 0]} />
-                                      </div>
-                                  </td>
-                                  <td className={`px-8 py-5 text-right font-mono font-black text-base tracking-tight ${entity.totalValue >= 0 ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
-                                      {formatCurrency(entity.totalValue, 'EUR')}
-                                  </td>
-                                  <td className="px-8 py-5 text-right">
-                                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                           {isBrandfetchLogoRefreshable(entity.name, entity.rule?.logo) && (
-                                                <button 
-                                                     onClick={(e) => handleRefreshSingleLogo(entity.name, entity.logoKey, entity.rule?.logo, e)}
-                                                     className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm"
-                                                     title="Fetch latest logo from Brandfetch"
-                                                >
-                                                     <Icon name="refresh" className="text-lg" />
-                                                </button>
-                                           )}
-                                           <button 
-                                                onClick={(e) => handleToggleHidden(entity, e)}
-                                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 transition-all shadow-sm"
-                                                title={isHidden ? "Show Merchant" : "Hide Merchant"}
-                                            >
-                                                <Icon name={isHidden ? 'visibility' : 'visibility_off'} className="text-lg" />
-                                            </button>
-                                           <button 
-                                                onClick={(e) => { e.stopPropagation(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
-                                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm"
-                                                title="Merchant settings"
-                                            >
-                                                <Icon name="tune" className="text-lg" />
-                                            </button>
-                                       </div>
-                                  </td>
-                              </tr>
-                          );
-                      })}
-                  </tbody>
-              </table>
-          </div>
+            </li>
+          ))}
+        </ul>
       )}
+    </div>
+  );
+
+  const profile = selected && (
+    <section aria-label={selected.name} className="min-w-0 space-y-4">
+      <div className="space-y-4 rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+        <header className="flex items-center gap-3">
+          {isPhone && <IconButton icon="ArrowLeft" label="Back to the list" onPress={() => setSelectedId(null)} />}
+          {entityLogo(selected, 48)}
+          <div className="min-w-0 flex-1">
+            <h2 className="type-section-title truncate text-ink">{selected.name}</h2>
+            <p className="type-caption text-muted">{selected.type}{selected.rule?.category ? `, usually ${selected.rule.category}` : ''}</p>
+          </div>
+          <Menu
+            title={selected.name}
+            trigger={<IconButton icon="more_horiz" label={`Actions for ${selected.name}`} tooltipPlacement="left" />}
+            items={[
+              { id: 'overview', label: 'Map and details', icon: 'visibility', onAction: () => { setOverviewEntity(selected); setIsOverviewModalOpen(true); } },
+              { id: 'logo', label: 'Refresh logo', icon: 'sync', onAction: () => handleRefreshSingleLogo(selected.name, selected.logoKey, selected.rule?.logo) },
+              { id: 'hide', label: selected.rule?.isHidden ? 'Show in lists' : 'Hide from lists', icon: selected.rule?.isHidden ? 'visibility' : 'visibility_off', onAction: () => handleToggleHidden(selected) },
+            ]}
+          />
+          <Button variant="secondary" icon="edit" onPress={() => { setEditingEntity(selected); setIsDetailModalOpen(true); }}>Edit</Button>
+        </header>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
+          <div><dt className="type-caption text-muted">{selected.type === 'Institution' ? 'Balance' : 'Total'}</dt><dd className="type-figure-row text-ink"><Amount value={selected.totalValue} currency="EUR" /></dd></div>
+          <div><dt className="type-caption text-muted">{selected.type === 'Institution' ? 'Accounts' : 'Transactions'}</dt><dd className="type-figure-row text-ink">{selected.count}</dd></div>
+          <div><dt className="type-caption text-muted">Average</dt><dd className="type-figure-row text-ink"><Amount value={selected.totalValue / Math.max(1, selected.count)} currency="EUR" /></dd></div>
+          <div><dt className="type-caption text-muted">Last activity</dt><dd className="type-figure-row text-ink">{selected.lastActivity ? parseLocalDate(selected.lastActivity).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</dd></div>
+        </dl>
+      </div>
+      {spendTrendsMap[selected.id]?.some(value => value > 0) && (
+        <section className="rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+          <h3 className="type-card-title mb-3 text-ink">Last six months</h3>
+          <Sparkline data={spendTrendsMap[selected.id].map(value => ({ value }))} isPositive width={520} height={72} className="h-[72px] w-full" preserveAspect={false} />
+        </section>
+      )}
+      {(selected.rule?.locations?.length ?? 0) > 0 && (
+        <section className="rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+          <h3 className="type-card-title mb-2 text-ink">Branches</h3>
+          <ul className="divide-y divide-line">
+            {selected.rule!.locations!.map(location => (
+              <li key={location.id} className="py-2">
+                <p className="type-body-strong text-ink">{location.label || location.placeName || 'Branch'}{location.isPrimary ? ', primary' : ''}</p>
+                <p className="type-caption text-muted">{location.address}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {entityTransactions.length > 0 && (
+        <section className="rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+          <h3 className="type-card-title mb-1 text-ink">Latest</h3>
+          <ul className="divide-y divide-line">
+            {entityTransactions.slice(0, 8).map(tx => (
+              <li key={tx.id}><Row title={tx.description || tx.merchant} context={`${tx.category || 'Uncategorised'}, ${parseLocalDate(tx.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`} trailing={<Amount value={tx.amount} currency={tx.currency} tone="flow" />} /></li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </section>
+  );
+
+  return (
+    <div className="space-y-4">
+      {isDetailModalOpen && editingEntity && (
+        <MerchantDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          merchantName={editingEntity.originalName}
+          logoKey={editingEntity.logoKey}
+          initialRule={editingEntity.rule}
+          onSave={handleSaveRule}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          transactions={transactions}
+          brandfetchClientId={brandfetchClientId}
+        />
+      )}
+      {isOverviewModalOpen && overviewEntity && (
+        <MerchantOverviewModal
+          isOpen={isOverviewModalOpen}
+          onClose={() => setIsOverviewModalOpen(false)}
+          merchantName={overviewEntity.originalName}
+          logoKey={overviewEntity.logoKey}
+          rule={overviewEntity.rule}
+          entityType={overviewEntity.type}
+          totalValue={overviewEntity.totalValue}
+          count={overviewEntity.count}
+          lastActivity={overviewEntity.lastActivity}
+          transactions={transactions}
+          onEdit={() => { setIsOverviewModalOpen(false); setEditingEntity(overviewEntity); setIsDetailModalOpen(true); }}
+        />
+      )}
+      {isRegexModalOpen && (
+        <RegexCategorizationModal
+          isOpen={isRegexModalOpen}
+          onClose={() => setIsRegexModalOpen(false)}
+          rules={regexRules}
+          onSaveRules={handleSaveRegexRules}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          transactions={transactions}
+          onApplyHistoricalRules={handleApplyHistoricalRules}
+        />
+      )}
+
+      {!(isPhone && selected) && (
+        <PageHeader
+          title="Merchants"
+          subtitle={`${stats.totalMerchants} merchants and ${stats.totalInstitutions} institutions${stats.missingCount ? `, ${stats.missingCount} without a logo or rule` : ''}.`}
+          actions={
+            <>
+              <Button variant="secondary" icon="bolt" onPress={() => setIsRegexModalOpen(true)}>Auto-categorise{regexRules.length ? `, ${regexRules.length}` : ''}</Button>
+              <Button variant="secondary" icon="magic_wand" isBusy={isRefreshing} onPress={handleRefreshLogos}>Find logos</Button>
+            </>
+          }
+        />
+      )}
+
+      {!brandfetchClientId && !(isPhone && selected) && <Banner>Add a free Brandfetch key in Preferences to look up logos automatically.</Banner>}
+      {smartSuggestions.length > 0 && !(isPhone && selected) && (
+        <Banner actionLabel="Review in Rules" onAction={() => setCurrentPage('Rules')}>
+          {smartSuggestions.length} suggested {smartSuggestions.length === 1 ? 'rule' : 'rules'} from repeated descriptions.
+        </Banner>
+      )}
+      {isRefreshing && <SyncStatus state="working">Finding logos, {refreshProgress.current} of {refreshProgress.total}: {refreshProgress.currentName}</SyncStatus>}
+
+      {isPhone
+        ? (selected ? profile : list)
+        : <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">{list}{profile}</div>}
     </div>
   );
 };

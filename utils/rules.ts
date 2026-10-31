@@ -1,4 +1,4 @@
-import { TransactionRule, TransactionRuleCondition, MerchantRule } from '../types';
+import { TransactionRule, TransactionRuleCondition, MerchantRule, RegexCategorizationRule } from '../types';
 import { normalizeMerchantKey } from './brandfetch';
 
 export function evaluateRuleCondition(
@@ -103,3 +103,39 @@ export function applyTransactionRulesToFields(
     category: tx.category
   };
 }
+
+interface SavedRules {
+  merchantRules?: Record<string, MerchantRule>;
+  transactionRules?: TransactionRule[];
+  regexCategorizationRules?: RegexCategorizationRule[];
+}
+
+/**
+ * Runs merchant, transaction and regex rules on a new record, including one that arrives from a bank with its own id.
+ * A merchant's own category wins, so regex rules only fill in where the merchant has none (DEF-07).
+ */
+export function applySavedRules<T extends { description?: string; merchant?: string; category?: string; amount?: number; type?: string; notes?: string }>(tx: T, rules: SavedRules): T {
+  const result = applyTransactionRulesToFields(
+    { description: tx.description || '', merchant: tx.merchant || '', category: tx.category || '', amount: Number(tx.amount) || 0, type: tx.type || 'expense' },
+    rules.merchantRules || {},
+    rules.transactionRules || []
+  );
+  const next = { ...tx, merchant: result.merchant, description: result.description, category: result.category };
+  if (result.isFromMerchantRule) return next;
+
+  const text = [next.merchant, next.description, tx.notes || ''].join(' ').trim();
+  for (const rule of (rules.regexCategorizationRules || []).filter(item => item.isActive)) {
+    try {
+      if (new RegExp(rule.pattern, 'i').test(text)) return { ...next, category: rule.category };
+    } catch (error) {
+      console.error('Invalid regex pattern:', rule.pattern, error);
+    }
+  }
+  return next;
+}
+
+/** What rounds an outflow up to the next whole unit. Whole amounts have nothing to round. */
+export const spareChangeFor = (amount: number): number => {
+  const remainder = parseFloat((Math.abs(amount) % 1).toFixed(2));
+  return remainder === 0 ? 0 : parseFloat((1 - remainder).toFixed(2));
+};

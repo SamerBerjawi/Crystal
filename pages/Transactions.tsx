@@ -1,11 +1,7 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType, MerchantRule, User } from '../types';
 import { toast } from 'sonner';
-import { motion } from 'motion/react';
-import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, CONVERSION_RATES, safeRound } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -14,34 +10,31 @@ import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import SplitTransactionModal from '../components/SplitTransactionModal';
 import CombineTransactionsModal from '../components/CombineTransactionsModal';
-import ConfirmationModal from '../components/ConfirmationModal';
-import MultiSelectFilter from '../components/MultiSelectFilter';
-import MultiAccountFilter from '../components/MultiAccountFilter';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
-import HeaderButton from '../components/HeaderButton';
-import HeroMetricCard from '../components/ui/HeroMetricCard';
-import MetricCardRow from '../components/ui/MetricCardRow';
-import FilterBar from '../components/ui/FilterBar';
+import { Button as AriaButton } from 'react-aria-components';
 import Icon from '../components/ui/Icon';
-import { MobileTransactionsView } from '../components/MobileTransactionsView';
+import { Button, HoldButton, IconButton, SelectionBar } from '../components/ui/Actions';
+import { CountPill, ShowMore } from '../components/ui/Display';
+import { AmountInput, Checkbox, DateInput, Radio, RadioGroup, TextInput, controlStyles } from '../components/ui/Fields';
+import { Menu, type MenuAction } from '../components/ui/Menu';
+import { Amount } from '../components/ui/Money';
+import { Dialog, Popover } from '../components/ui/Overlays';
+import { Select } from '../components/ui/Pickers';
+import { EmptyState } from '../components/ui/States';
+import SegmentedControl from '../components/ui/SegmentedControl';
+import LedgerTable, { type LedgerItem, type LedgerSort } from '../components/LedgerTable';
+import ReviewQueue from '../components/ReviewQueue';
+import TransactionScatter from '../components/TransactionScatter';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useUrlTab } from '../hooks/useUrlTab';
+import { cn } from '../lib/utils';
 import type { SortDescriptor } from 'react-aria-components';
-import { PaginationPageMinimalCenter } from '@/components/application/pagination/pagination';
-import { Table, TableCard } from '@/components/application/table/table';
-import { Avatar } from '@/components/base/avatar/avatar';
-import { Badge } from '@/components/base/badges/badges';
-import { ButtonUtility } from '@/components/base/buttons/button-utility';
-import { DropdownIconSimple } from '@/components/base/dropdown/dropdown-icon-simple';
 import { formatTransactionLocation } from '../utils/locationFormat';
-import { Checkbox, CheckboxBase } from '@/components/base/checkbox/checkbox';
-import { cx } from '@/lib/utils/cx';
-import { createIcon } from '@/components/ui/Icon';
-
-const DotsVertical = createIcon('DotsThreeVertical');
 
 interface TransactionsProps {
   user?: User;
@@ -81,113 +74,17 @@ const TYPE_FILTER_OPTIONS: { label: string; value: 'all' | 'income' | 'expense' 
   { label: 'Transfers', value: 'transfer' },
 ];
 
-const ColumnHeaderFilter: React.FC<{
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  isActive: boolean;
-  activeCount?: number;
-  title: string;
-  align?: 'left' | 'right';
-  children: React.ReactNode;
-}> = ({ isOpen, onToggle, onClose, isActive, activeCount, title, align = 'left', children }) => {
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const updatePos = () => {
-      if (!triggerRef.current) return;
-      const rect = triggerRef.current.getBoundingClientRect();
-      const popoverWidth = 288; // w-72 (18rem)
-      let left = align === 'right' ? rect.right - popoverWidth : rect.left - 8;
-      // Clamp within viewport margins
-      if (left + popoverWidth > window.innerWidth - 16) {
-        left = window.innerWidth - popoverWidth - 16;
-      }
-      if (left < 16) left = 16;
-      const top = rect.bottom + 8;
-      setPosition({ top, left });
-    };
-
-    updatePos();
-    window.addEventListener('resize', updatePos);
-    window.addEventListener('scroll', updatePos, true);
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(target) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(target)
-      ) {
-        onCloseRef.current();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      window.removeEventListener('resize', updatePos);
-      window.removeEventListener('scroll', updatePos, true);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, align]);
-
-  return (
-    <div className="relative inline-flex items-center ml-1">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        className={cx(
-          "size-6 rounded-md flex items-center justify-center transition-all cursor-pointer",
-          isActive || isOpen
-            ? "bg-primary-500 text-white shadow-xs"
-            : "text-fg-quaternary hover:text-fg-quaternary_hover hover:bg-black/5 dark:hover:bg-white/10"
-        )}
-        title={`Filter by ${title}`}
-      >
-        <Icon name="filter_alt" className="text-xs" />
-        {activeCount && activeCount > 0 ? (
-          <span className="absolute -top-1 -right-1 size-3.5 rounded-full bg-primary-600 text-xs font-bold text-white flex items-center justify-center leading-none">
-            {activeCount}
-          </span>
-        ) : null}
-      </button>
-
-      {isOpen &&
-        createPortal(
-          <div
-            ref={popoverRef}
-            style={{ top: position.top, left: position.left }}
-            onClick={(e) => e.stopPropagation()}
-            className="fixed z-50 w-72 rounded-xl border border-secondary bg-primary p-4 shadow-2xl backdrop-blur-2xl text-left font-normal text-secondary normal-case animate-fade-in-up"
-          >
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-secondary">
-              <span className="text-sm font-semibold text-primary">{title}</span>
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-sm text-tertiary hover:text-primary cursor-pointer p-0.5"
-              >
-                ✕
-              </button>
-            </div>
-            {children}
-          </div>,
-          document.body
-        )}
-    </div>
-  );
-};
+const LEDGER_BATCH = 50;
+const LEDGER_SORTS = [
+  { id: 'date-desc', label: 'Newest first' },
+  { id: 'date-asc', label: 'Oldest first' },
+  { id: 'amount-desc', label: 'Largest first' },
+  { id: 'amount-asc', label: 'Smallest first' },
+  { id: 'merchant-asc', label: 'Merchant, A to Z' },
+  { id: 'merchant-desc', label: 'Merchant, Z to A' },
+  { id: 'category-asc', label: 'Category, A to Z' },
+  { id: 'category-desc', label: 'Category, Z to A' },
+];
 
 const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
   const renderCountRef = useRef(0);
@@ -254,8 +151,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
-  const [openFilterCol, setOpenFilterCol] = useState<'description' | 'account' | 'category' | 'location' | 'tags' | 'amount' | null>(null);
-  const handleCloseFilterCol = useCallback(() => setOpenFilterCol(null), []);
+  const urlTab = useUrlTab();
+  const [isSelecting, setSelecting] = useState(false);
 
   const activeFilterCount = useMemo(() => {
     return (
@@ -298,12 +195,9 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
   const isMobile = useIsMobile();
-  const [density, setDensity] = useState<'default' | 'high'>('default');
+  const [density, setDensity] = useLocalStorage<'default' | 'high'>('crystal_ledger_density', 'default');
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -319,44 +213,10 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     };
   }, []);
 
-  useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
-        setContextMenu(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-    };
-  }, []);
-
-  const openContextMenu = useCallback((event: React.MouseEvent, transaction: DisplayTransaction) => {
-    event.preventDefault();
-    const menuWidth = 224; // w-56
-    const padding = 12;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const desiredX = event.clientX - menuWidth - padding;
-    const x = Math.max(padding, Math.min(desiredX, viewportWidth - menuWidth - padding));
-    const y = Math.min(event.clientY, viewportHeight - 200);
-    setContextMenu({ x, y, transaction });
-  }, []);
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
   const accountMapByName = useMemo(() => accounts.reduce((map, acc) => { map[acc.name] = acc; return map; }, {} as Record<string, Account>), [accounts]);
-
-  const getCategoryDetails = (name: string, categories: Category[]): { icon?: string; color?: string } => {
-    for (const cat of categories) {
-      if (cat.name === name) return { icon: cat.icon, color: cat.color };
-      if (cat.subCategories.length > 0) {
-        const found = getCategoryDetails(name, cat.subCategories);
-        if (found.icon) return found;
-      }
-    }
-    return {};
-  };
 
   const effectiveMerchantLogoOverrides = useMemo(() => {
     const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
@@ -1129,7 +989,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     setSelectedTagIds([]);
     setSelectedLocations([]);
     setLocationSearch('');
-    setOpenFilterCol(null);
     setTypeFilter('all');
     setStartDate('');
     setEndDate('');
@@ -1208,229 +1067,14 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     );
   }, [uniqueLocations, locationSearch]);
 
-  const dateFilterContent = useMemo(() => (
-    <div className="space-y-3 p-1">
-      <div className="grid gap-2">
-        <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">From</label>
-        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} />
-      </div>
-      <div className="grid gap-2">
-        <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">To</label>
-        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
-      </div>
-      {(startDate || endDate) && (
-        <button onClick={() => { setStartDate(''); setEndDate(''); }} className="text-xs text-red-500 w-full text-center hover:underline">Clear Date Filter</button>
-      )}
-    </div>
-  ), [endDate, startDate]);
-
-  const accountFilterContent = useMemo(() => {
-    const open = accounts.filter(acc => acc.status !== 'closed');
-    const closed = accounts.filter(acc => acc.status === 'closed');
-    const groupedOpen: Record<string, Account[]> = {};
-    open.forEach(acc => {
-      if (!groupedOpen[acc.type]) groupedOpen[acc.type] = [];
-      groupedOpen[acc.type].push(acc);
-    });
-
-    return (
-      <div className="space-y-2">
-        <div className="max-h-64 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-          {ALL_ACCOUNT_TYPES.map(type => {
-            const group = groupedOpen[type];
-            if (!group || group.length === 0) return null;
-            return (
-              <div key={type} className="mb-2">
-                <h4 className="px-1.5 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">{type}</h4>
-                {group.map(acc => (
-                  <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                    <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
-                    <span className="truncate">{acc.name}</span>
-                  </label>
-                ))}
-              </div>
-            );
-          })}
-          {closed.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-              <h4 className="px-1.5 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">Closed</h4>
-              {closed.map(acc => (
-                <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                  <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
-                  <span className="truncate">{acc.name}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-        {selectedAccountIds.length > 0 && (
-          <button onClick={() => setSelectedAccountIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
-        )}
-      </div>
-    );
-  }, [accounts, handleAccountToggle, selectedAccountIds]);
-
-  const merchantFilterContent = useMemo(() => (
-    <div className="space-y-2 p-1">
-      <div>
-        <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1 block">Search Text</label>
-        <input
-          type="text"
-          placeholder="Search description..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={INPUT_BASE_STYLE}
-        />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1 block">Merchant</label>
-        <input
-          type="text"
-          placeholder="Filter merchant..."
-          value={merchantFilter}
-          onChange={(e) => setMerchantFilter(e.target.value)}
-          className={INPUT_BASE_STYLE}
-        />
-      </div>
-      {(searchTerm || merchantFilter) && (
-        <button onClick={() => { setSearchTerm(''); setMerchantFilter(''); }} className="text-xs text-red-500 w-full text-center hover:underline pt-1">Clear</button>
-      )}
-    </div>
-  ), [merchantFilter, searchTerm]);
-
-  const categoryFilterContent = useMemo(() => (
-    <div className="space-y-2">
-      <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-        {categoryOptions.map(cat => (
-          <label key={cat.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-            <input type="checkbox" checked={selectedCategoryNames.includes(cat.value)} onChange={() => handleCategoryToggle(cat.value)} className={CHECKBOX_STYLE} />
-            <span className="truncate text-xs font-medium" style={{ paddingLeft: cat.level * 12 }}>{cat.label}</span>
-          </label>
-        ))}
-      </div>
-      {selectedCategoryNames.length > 0 && (
-        <button onClick={() => setSelectedCategoryNames([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
-      )}
-    </div>
-  ), [categoryOptions, handleCategoryToggle, selectedCategoryNames]);
-
-  const locationFilterContent = useMemo(() => (
-    <div className="space-y-2 p-1">
-      <input
-        type="text"
-        placeholder="Search location..."
-        value={locationSearch}
-        onChange={(e) => setLocationSearch(e.target.value)}
-        className={INPUT_BASE_STYLE}
-      />
-      <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-        {filteredLocationOptions.map(loc => (
-          <label key={loc.city} className="flex items-center justify-between gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-            <div className="flex items-center gap-2 min-w-0">
-              <input
-                type="checkbox"
-                checked={selectedLocations.includes(loc.city)}
-                onChange={() => handleLocationToggle(loc.city)}
-                className={CHECKBOX_STYLE}
-              />
-              <span className="text-base leading-none">{loc.flag}</span>
-              <span className="truncate text-xs font-semibold text-primary">{loc.city}</span>
-              <span className="text-xs text-tertiary truncate">({loc.country})</span>
-            </div>
-            <span className="text-xs font-medium text-quaternary shrink-0">
-              {loc.count}
-            </span>
-          </label>
-        ))}
-      </div>
-      {selectedLocations.length > 0 && (
-        <button onClick={() => setSelectedLocations([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">
-          Clear Location Filters ({selectedLocations.length})
-        </button>
-      )}
-    </div>
-  ), [filteredLocationOptions, handleLocationToggle, locationSearch, selectedLocations]);
-
-  const tagFilterContent = useMemo(() => (
-    <div className="space-y-2">
-      {tagOptions.length > 0 ? (
-        <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-          {tagOptions.map(tag => (
-            <label key={tag.value} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer rounded-md">
-              <input type="checkbox" checked={selectedTagIds.includes(tag.value)} onChange={() => handleTagToggle(tag.value)} className={CHECKBOX_STYLE} />
-              <span className="text-sm font-medium">{tag.label}</span>
-            </label>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary p-2 text-center">No tags found.</p>
-      )}
-      {selectedTagIds.length > 0 && (
-        <button onClick={() => setSelectedTagIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
-      )}
-    </div>
-  ), [handleTagToggle, selectedTagIds, setSelectedTagIds, tagOptions]);
-
-  const amountFilterContent = useMemo(() => (
-    <div className="space-y-3 p-1">
-      <div>
-        <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1 block">Type</label>
-        <div className="grid grid-cols-2 gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg">
-          {TYPE_FILTER_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setTypeFilter(opt.value)}
-              className={cx(
-                "px-2 py-1 rounded text-xs font-semibold transition-all cursor-pointer",
-                typeFilter === opt.value
-                  ? "bg-white dark:bg-dark-card shadow-xs text-primary font-bold"
-                  : "text-tertiary hover:text-primary"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Min (€)</label>
-          <input type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={INPUT_BASE_STYLE} />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Max (€)</label>
-          <input type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={INPUT_BASE_STYLE} />
-        </div>
-      </div>
-      {(minAmount || maxAmount || typeFilter !== 'all') && (
-        <button onClick={() => { setMinAmount(''); setMaxAmount(''); setTypeFilter('all'); }} className="text-xs text-red-500 w-full text-center hover:underline pt-1">Clear Filters</button>
-      )}
-    </div>
-  ), [maxAmount, minAmount, typeFilter]);
-
-  const getCardIcon = (cardNetwork: string) => {
-    const network = (cardNetwork || '').toLowerCase();
-    if (network.includes('visa')) return <span className="font-bold italic text-lg text-blue-600 dark:text-blue-400">VISA</span>;
-    if (network.includes('master')) return (
-      <div className="flex -space-x-1">
-        <div className="w-4 h-4 rounded-full bg-red-500/80"></div>
-        <div className="w-4 h-4 rounded-full bg-yellow-500/80"></div>
-      </div>
-    );
-    if (network.includes('amex')) return <span className="font-bold text-xs text-blue-500 border border-blue-500 px-0.5 rounded">AMEX</span>;
-    return <Icon name="credit_card" className="text-gray-400 text-sm" />;
-  };
-
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "date",
     direction: "descending",
   });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [visibleCount, setVisibleCount] = useState(LEDGER_BATCH);
 
   useEffect(() => {
-    setCurrentPage(prev => (prev === 1 ? prev : 1));
+    setVisibleCount(LEDGER_BATCH);
   }, [debouncedSearchTerm, typeFilter, startDate, endDate, minAmount, maxAmount, merchantFilter, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations]);
 
   const formatDateHeader = useCallback((dateString: string) => {
@@ -1517,16 +1161,11 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     return result;
   }, [sortedTransactions, expandedParentIds, debouncedSearchTerm, merchantFilter, minAmount, maxAmount, selectedLocations]);
 
-  const totalPages = Math.max(1, Math.ceil(displayItemsWithSubs.length / itemsPerPage));
-
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return displayItemsWithSubs.slice(start, start + itemsPerPage);
-  }, [displayItemsWithSubs, currentPage, itemsPerPage]);
+  const paginatedItems = useMemo(() => displayItemsWithSubs.slice(0, visibleCount), [displayItemsWithSubs, visibleCount]);
 
   // Group current page items by date
-  const tableRenderItems = useMemo<TableRenderItem[]>(() => {
-    const items: TableRenderItem[] = [];
+  const tableRenderItems = useMemo<LedgerItem[]>(() => {
+    const items: LedgerItem[] = [];
     let currentDate = '';
     let currentGroupTxs: DisplayTransaction[] = [];
 
@@ -1575,62 +1214,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     return items;
   }, [paginatedItems, formatDateHeader, resolveTransferDisplay]);
 
-  const pageTxIds = useMemo(() => {
-    return tableRenderItems.filter(i => !i.isGroupHeader).map(i => i.id);
-  }, [tableRenderItems]);
-
-  const selectedKeys = useMemo(() => {
-    const pageItemIds = new Set(tableRenderItems.map(i => i.id));
-    const visibleKeys = new Set<string>();
-    selectedIds.forEach(id => {
-      if (pageItemIds.has(id)) {
-        visibleKeys.add(id);
-      }
-    });
-    return visibleKeys;
-  }, [selectedIds, tableRenderItems]);
-
-  const disabledGroupHeaderKeys = useMemo(() => {
-    return new Set(tableRenderItems.filter(i => i.isGroupHeader).map(i => i.id));
-  }, [tableRenderItems]);
-
-  const handleSelectionChange = useCallback((keys: 'all' | Set<React.Key>) => {
-    if (keys === 'all') {
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        filteredTransactions.forEach(t => next.add(t.id));
-        return next;
-      });
-    } else {
-      const pageTxIds = new Set(tableRenderItems.filter(i => !i.isGroupHeader).map(i => i.id));
-      const selectedOnPage = new Set(Array.from(keys).map(String).filter(id => !id.startsWith('group-hdr-')));
-
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        pageTxIds.forEach(id => {
-          if (!selectedOnPage.has(id)) {
-            next.delete(id);
-          }
-        });
-        selectedOnPage.forEach(id => next.add(id));
-        return next;
-      });
-    }
-  }, [filteredTransactions, tableRenderItems]);
-
-  const handleToggleRowSelection = useCallback((id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
   const handleHeaderSort = useCallback((column: string) => {
     setSortDescriptor(prev => {
       if (prev.column === column) {
@@ -1652,15 +1235,183 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     else if (newSortBy === 'category-desc') setSortDescriptor({ column: 'category', direction: 'descending' });
   };
 
+  const menuFor = (tx: DisplayTransaction): MenuAction[] => {
+    const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) ?? null;
+    const isPart = !!tx.parentTransactionId;
+    const parent = isPart ? transactions.find(t => t.id === tx.parentTransactionId) : undefined;
+    const items: MenuAction[] = [{ id: 'edit', label: 'Edit', icon: 'edit', onAction: () => { setEditingTransaction(original); setTransactionModalOpen(true); } }];
+    if (tx.isSplitParent || (isPart && parent?.isSplitParent)) items.push({ id: 'unsplit', label: 'Unsplit', icon: 'call_merge', onAction: () => handleUnsplit(tx) });
+    if (tx.isCombinedParent || (isPart && parent?.isCombinedParent)) items.push({ id: 'uncombine', label: 'Uncombine', icon: 'call_split', onAction: () => handleUncombine(tx) });
+    if (!tx.isSplitParent && !tx.isCombinedParent && !isPart && !tx.isTransfer) items.push({ id: 'split', label: 'Split', icon: 'splitscreen', onAction: () => { setTransactionToSplit(original); setIsSplitModalOpen(true); } });
+    items.push(
+      { id: 'duplicate', label: 'Duplicate', icon: 'content_copy', onAction: () => handleDuplicate(tx) },
+      { id: 'recurring', label: 'Make recurring', icon: 'repeat', isDisabled: tx.isTransfer, onAction: () => handleMakeRecurring(tx) },
+    );
+    if (tx.city || tx.country) items.push({ id: 'location', label: 'Remove location', icon: 'location_off', onAction: () => handleClearLocation(tx) });
+    items.push({ id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => { setSelectedIds(new Set([tx.id])); setIsDeleteConfirmOpen(true); } });
+    return items;
+  };
+
+  const toggleOne = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+
+  const toggleGroup = (ids: string[]) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    const isAll = ids.every(id => prev.has(id));
+    ids.forEach(id => { if (isAll) next.delete(id); else next.add(id); });
+    return next;
+  });
+
+  const accountOf = (tx: DisplayTransaction) => {
+    const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
+    return {
+      name: account?.name || tx.accountName || (tx.isTransfer ? `${tx.fromAccountName} to ${tx.toAccountName}` : 'Unknown'),
+      detail: account ? (account.last4 ? `•••• ${account.last4}` : account.type) : undefined,
+    };
+  };
+
+  const locationOf = (tx: DisplayTransaction) => {
+    const location = formatTransactionLocation(tx, user);
+    return location.hasLocation && location.city ? `${location.flag} ${location.city}` : null;
+  };
+
+  const logoOf = (tx: DisplayTransaction) => {
+    const key = normalizeMerchantKey(tx.merchant);
+    return key ? merchantLogoUrls[key] ?? null : null;
+  };
+
+  const topCategories = useMemo(() => {
+    const totals = new Map<string, number>();
+    filteredTransactions.forEach(tx => {
+      if (tx.isTransfer || tx.type !== 'expense') return;
+      totals.set(tx.category || 'Uncategorised', (totals.get(tx.category || 'Uncategorised') ?? 0) + Math.abs(convertToEur(tx.amount, tx.currency)));
+    });
+    return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [filteredTransactions]);
+
+  if (urlTab === 'review') return <ReviewQueue />;
+
+  const money = (value: number, tone: 'flow' | 'plain' = 'plain') => <Amount value={value} currency="EUR" tone={tone} />;
+  const checkList = (options: { value: string; label: string }[], selected: string[], onToggle: (value: string) => void) => (
+    <div className="flex max-h-64 min-w-48 flex-col gap-1 overflow-y-auto">
+      {options.length === 0 && <p className="type-body text-muted">Nothing to choose from yet.</p>}
+      {options.map(option => <Checkbox key={option.value} isSelected={selected.includes(option.value)} onChange={() => onToggle(option.value)}>{option.label}</Checkbox>)}
+    </div>
+  );
+
+  const filterSections = [
+    {
+      id: 'type', label: 'Type', count: typeFilter !== 'all' ? 1 : 0,
+      content: (
+        <RadioGroup label="Show" value={typeFilter} onChange={value => setTypeFilter(value as typeof typeFilter)}>
+          {TYPE_FILTER_OPTIONS.map(option => <Radio key={option.value} value={option.value}>{option.label}</Radio>)}
+        </RadioGroup>
+      ),
+    },
+    { id: 'accounts', label: 'Accounts', count: selectedAccountIds.length, content: checkList(accounts.map(account => ({ value: account.id, label: account.name })), selectedAccountIds, handleAccountToggle) },
+    { id: 'categories', label: 'Categories', count: selectedCategoryNames.length, content: checkList(categoryOptions, selectedCategoryNames, handleCategoryToggle) },
+    { id: 'tags', label: 'Tags', count: selectedTagIds.length, content: checkList(tagOptions, selectedTagIds, handleTagToggle) },
+    {
+      id: 'merchant', label: 'Merchant', count: merchantFilter ? 1 : 0,
+      content: <TextInput label="Merchant" value={merchantFilter} onChange={setMerchantFilter} className="w-56 max-md:w-full" />,
+    },
+    {
+      id: 'location', label: 'Location', count: selectedLocations.length,
+      content: (
+        <div className="space-y-2">
+          <TextInput label="Find a place" value={locationSearch} onChange={setLocationSearch} className="w-56 max-md:w-full" />
+          {checkList(filteredLocationOptions.map(option => ({ value: option.city, label: `${option.flag} ${option.city}` })), selectedLocations, handleLocationToggle)}
+        </div>
+      ),
+    },
+    {
+      id: 'dates', label: 'Dates', count: (startDate ? 1 : 0) + (endDate ? 1 : 0),
+      content: (
+        <div className="grid w-64 gap-3 max-md:w-full">
+          <DateInput label="From" value={startDate} onChange={setStartDate} />
+          <DateInput label="To" value={endDate} onChange={setEndDate} />
+        </div>
+      ),
+    },
+    {
+      id: 'amount', label: 'Amount', count: (minAmount ? 1 : 0) + (maxAmount ? 1 : 0),
+      content: (
+        <div className="grid w-56 gap-3 max-md:w-full">
+          <AmountInput label="At least" currency="EUR" value={minAmount} onChange={setMinAmount} />
+          <AmountInput label="At most" currency="EUR" value={maxAmount} onChange={setMaxAmount} />
+        </div>
+      ),
+    },
+  ];
+
+  const search = (
+    <div className="relative min-w-0 flex-1 md:max-w-xs">
+      <Icon name="search" size={20} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+      <input
+        ref={searchInputRef}
+        type="search"
+        aria-label="Search transactions"
+        placeholder="Search"
+        value={searchTerm}
+        onChange={e => setSearchTerm(e.target.value)}
+        className={cn(controlStyles, 'h-10 pl-10 pr-3 text-[.9375rem] max-md:h-12 max-md:text-base')}
+      />
+    </div>
+  );
+
+  const filterChip = (label: string, count: number) => (
+    <AriaButton className={cn('inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[.8125rem] font-bold text-ink pointer-coarse:h-11', count ? 'border-primary bg-primary-soft' : 'border-line-strong bg-surface hover:bg-inset')}>
+      {label}
+      {count > 0 && <CountPill count={count} />}
+    </AriaButton>
+  );
+
+  const selectionMore: MenuAction[] = [
+    { id: 'combine', label: 'Combine', icon: 'merge_type', isDisabled: !canCombine, onAction: handleOpenCombineModal },
+    { id: 'split', label: 'Split', icon: 'splitscreen', isDisabled: !canSplit, onAction: handleOpenSplitModal },
+    { id: 'unsplit', label: 'Unsplit', icon: 'call_merge', isDisabled: !canUnsplit, onAction: () => handleUnsplit() },
+    { id: 'uncombine', label: 'Uncombine', icon: 'call_split', isDisabled: !canUncombine, onAction: () => handleUncombine() },
+    { id: 'recurring', label: 'Make recurring', icon: 'repeat', isDisabled: selectedIds.size !== 1, onAction: () => handleMakeRecurring() },
+    ...(isMobile ? [{ id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: handleOpenDeleteModal }] : []),
+  ];
+  const deleteLabel = `Delete ${selectedIds.size} ${selectedIds.size === 1 ? 'transaction' : 'transactions'}`;
+  const clearSelection = () => { setSelectedIds(new Set()); setSelecting(false); };
+
+  const summary = (
+    <aside aria-label="This view at a glance" className="space-y-4 rounded-[var(--radius-xl)] border border-line bg-surface p-5">
+      <h2 className="type-card-title text-ink">This view</h2>
+      <dl className="space-y-2">
+        <div className="flex justify-between gap-3"><dt className="type-body text-muted">Transactions</dt><dd className="type-figure-row text-ink">{filteredTransactions.length.toLocaleString()}</dd></div>
+        <div className="flex justify-between gap-3"><dt className="type-body text-muted">Income</dt><dd className="type-figure-row text-ink">{money(totalIncome, 'flow')}</dd></div>
+        <div className="flex justify-between gap-3"><dt className="type-body text-muted">Spending</dt><dd className="type-figure-row text-ink">{money(-Math.abs(totalExpense))}</dd></div>
+        <div className="flex justify-between gap-3 border-t border-line pt-2"><dt className="type-body-strong text-ink">Net</dt><dd className="type-figure-row text-ink">{money(netFlow, 'flow')}</dd></div>
+      </dl>
+      {topCategories.length > 0 && (
+        <div>
+          <h3 className="type-label mb-1.5 text-muted">Most spent on</h3>
+          <ul className="space-y-1">
+            {topCategories.map(([name, value]) => (
+              <li key={name} className="type-body flex justify-between gap-3 text-ink">
+                <span className="min-w-0 truncate">{name}</span>
+                <span className="type-figure-row shrink-0">{money(value)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </aside>
+  );
+
   return (
-    <div className="space-y-6 flex flex-col h-full animate-fade-in-up">
+    <div className="space-y-4">
       {isTransactionModalOpen && (
         <AddTransactionModal
           onClose={handleCloseModal}
-          onSave={(toSave, toDelete) => {
-            saveTransaction(toSave, toDelete);
-            handleCloseModal();
-          }}
+          onSave={(toSave, toDelete) => { saveTransaction(toSave, toDelete); handleCloseModal(); }}
           accounts={accounts}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}
@@ -1679,931 +1430,124 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           accounts={accounts}
           tags={tags}
           allCategories={allCategories}
-          onEdit={(tx) => {
-            setIsOverviewModalOpen(false);
-            setEditingTransaction(tx);
-            setTransactionModalOpen(true);
-          }}
-          onDelete={(tx) => {
-            setIsOverviewModalOpen(false);
-            deleteTransactions([tx.id]);
-          }}
+          onEdit={tx => { setIsOverviewModalOpen(false); setEditingTransaction(tx); setTransactionModalOpen(true); }}
+          onDelete={tx => { setIsOverviewModalOpen(false); deleteTransactions([tx.id]); }}
         />
       )}
       {isRecurringModalOpen && saveRecurringTransaction && (
         <RecurringTransactionModal
           onClose={() => setIsRecurringModalOpen(false)}
-          onSave={(data) => {
-            if (saveRecurringTransaction) saveRecurringTransaction(data);
-            setIsRecurringModalOpen(false);
-            setSelectedIds(new Set()); // Clear selection
-          }}
+          onSave={data => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); setSelectedIds(new Set()); }}
           accounts={accounts}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}
           recurringTransactionToEdit={transactionToMakeRecurring}
         />
       )}
-      {isCategorizeModalOpen && (
-        <BulkCategorizeModal
-          onClose={() => setIsCategorizeModalOpen(false)}
-          onSave={handleSaveBulkCategory}
-          incomeCategories={incomeCategories}
-          expenseCategories={expenseCategories}
-        />
-      )}
-      {isSplitModalOpen && transactionToSplit && (
-        <SplitTransactionModal
-          onClose={() => { setIsSplitModalOpen(false); setTransactionToSplit(null); }}
-          onSave={handleSaveSplits}
-          transaction={transactionToSplit}
-          incomeCategories={incomeCategories}
-          expenseCategories={expenseCategories}
-        />
-      )}
-      {isCombineModalOpen && (
-        <CombineTransactionsModal
-          onClose={() => { setIsCombineModalOpen(false); setTransactionsToCombine([]); }}
-          onSave={handleSaveCombine}
-          transactionsToCombine={transactionsToCombine}
-          incomeCategories={incomeCategories}
-          expenseCategories={expenseCategories}
-          accounts={accounts}
-        />
-      )}
-      {isBulkEditModalOpen && (
-        <BulkEditTransactionsModal
-          isOpen={isBulkEditModalOpen}
-          onClose={() => setBulkEditModalOpen(false)}
-          onSave={handleSaveBulkEdits}
-          transactionsToEdit={selectedTransactions}
-          allTransactions={transactions}
-          accounts={accounts}
-          incomeCategories={incomeCategories}
-          expenseCategories={expenseCategories}
-          tags={tags}
-        />
-      )}
-      <ConfirmationModal
-        isOpen={isDeleteConfirmOpen}
-        onClose={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={handleConfirmBulkDelete}
-        title="Confirm Deletion"
-        message={`Are you sure you want to delete ${selectedIds.size} transaction(s)? This action cannot be undone.`}
-        confirmButtonText="Delete"
-        confirmButtonVariant="danger"
+      {isCategorizeModalOpen && <BulkCategorizeModal onClose={() => setIsCategorizeModalOpen(false)} onSave={handleSaveBulkCategory} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
+      {isSplitModalOpen && transactionToSplit && <SplitTransactionModal onClose={() => { setIsSplitModalOpen(false); setTransactionToSplit(null); }} onSave={handleSaveSplits} transaction={transactionToSplit} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
+      {isCombineModalOpen && <CombineTransactionsModal onClose={() => { setIsCombineModalOpen(false); setTransactionsToCombine([]); }} onSave={handleSaveCombine} transactionsToCombine={transactionsToCombine} incomeCategories={incomeCategories} expenseCategories={expenseCategories} accounts={accounts} />}
+      {isBulkEditModalOpen && <BulkEditTransactionsModal isOpen={isBulkEditModalOpen} onClose={() => setBulkEditModalOpen(false)} onSave={handleSaveBulkEdits} transactionsToEdit={selectedTransactions} allTransactions={transactions} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} />}
+      <Dialog isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} title={`${deleteLabel}?`} description="You can undo this right after.">
+        <HoldButton block label={deleteLabel} onConfirm={handleConfirmBulkDelete} />
+      </Dialog>
+
+      <PageHeader
+        title="Transactions"
+        subtitle={isMobile ? undefined : `${filteredTransactions.length.toLocaleString()} shown`}
+        actions={!isMobile ? (
+          <>
+            <Button variant="secondary" icon="download" onPress={handleExport}>Export</Button>
+            <Button icon="add" onPress={handleOpenAddModal}>Add transaction</Button>
+          </>
+        ) : isSelecting
+          ? <Button variant="ghost" onPress={clearSelection}>Done</Button>
+          : <Button variant="ghost" onPress={() => setSelecting(true)}>Select</Button>}
       />
-      {contextMenu && (
-        <div
-          ref={contextMenuRef}
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          className="fixed z-50 w-56 bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
-        >
-          <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-            <Icon name="edit" className="text-lg text-primary-500" />
-            <span>Edit Transaction</span>
-          </button>
-          {(contextMenu.transaction.isSplitParent || contextMenu.transaction.parentTransactionId) && (
-            <button onClick={() => { handleUnsplit(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-              <Icon name="call_merge" className="text-lg text-amber-500" />
-              <span>Unsplit Transaction</span>
-            </button>
-          )}
-          {(contextMenu.transaction.isCombinedParent || (contextMenu.transaction.parentTransactionId && transactions.find(t => t.id === contextMenu.transaction.parentTransactionId)?.isCombinedParent)) && (
-            <button onClick={() => { handleUncombine(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-              <Icon name="call_split" className="text-lg text-indigo-500" />
-              <span>Uncombine Transaction</span>
-            </button>
-          )}
-          {!contextMenu.transaction.isSplitParent && !contextMenu.transaction.isCombinedParent && !contextMenu.transaction.parentTransactionId && !contextMenu.transaction.isTransfer && (
-            <button onClick={() => { setTransactionToSplit(transactions.find(t => t.id === contextMenu.transaction.id) || null); setIsSplitModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-              <Icon name="splitscreen" className="text-lg text-amber-500" />
-              <span>Split Transaction</span>
-            </button>
-          )}
-          <button onClick={() => { handleDuplicate(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-            <Icon name="content_copy" className="text-lg text-green-500" />
-            <span>Duplicate</span>
-          </button>
-          <button
-            onClick={() => { handleMakeRecurring(contextMenu.transaction); setContextMenu(null); }}
-            disabled={contextMenu.transaction.isTransfer}
-            className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Icon name="repeat" className="text-lg text-purple-500" />
-            <span>Make Recurring</span>
-          </button>
-          {(contextMenu.transaction.city || contextMenu.transaction.country) && (
-            <button
-              onClick={() => {
-                handleClearLocation(contextMenu.transaction);
-                setContextMenu(null);
-              }}
-              className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-amber-700 dark:text-amber-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-            >
-              <Icon name="location_off" className="text-lg" />
-              <span>Remove Location</span>
-            </button>
-          )}
-          <div className="my-1 h-px bg-light-separator dark:bg-dark-separator"></div>
-          <button onClick={() => {
-            setSelectedIds(new Set([contextMenu.transaction.id]));
-            setIsDeleteConfirmOpen(true);
-            setContextMenu(null);
-          }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-            <Icon name="delete" className="text-lg" />
-            <span>Delete Transaction</span>
-          </button>
-        </div>
+
+      {isMobile ? (
+        <>
+          <div className="flex items-center gap-2">
+            {search}
+            <Popover title="Filters" trigger={filterChip('Filter', activeFilterCount)}>
+              <div className="space-y-5">
+                {filterSections.map(section => (
+                  <section key={section.id}>
+                    {section.id !== 'type' && section.id !== 'merchant' && <h3 className="type-label mb-1.5 text-ink">{section.label}</h3>}
+                    {section.content}
+                  </section>
+                ))}
+                <Select label="Sort by" options={LEDGER_SORTS} value={sortBy} onChange={handleSortBySelect} />
+                {activeFilterCount > 0 && <Button variant="ghost" block onPress={clearFilters}>Clear filters</Button>}
+              </div>
+            </Popover>
+          </div>
+          <p className="type-body text-muted">In {money(totalIncome, 'flow')}, out {money(-Math.abs(totalExpense))}</p>
+        </>
+      ) : (
+        <>
+          <TransactionScatter transactions={filteredTransactions} onOpen={handleOpenOverview} />
+          <div className="flex flex-wrap items-center gap-2">
+            {search}
+            {filterSections.map(section => (
+              <Popover key={section.id} title={section.label} trigger={filterChip(section.label, section.count)}>
+                {section.content}
+              </Popover>
+            ))}
+            {activeFilterCount > 0 && <Button variant="ghost" size="sm" onPress={clearFilters}>Clear</Button>}
+            <div className="ml-auto">
+              <SegmentedControl items={[{ id: 'default', label: 'Comfortable' }, { id: 'high', label: 'Compact' }]} activeId={density} onChange={id => setDensity(id as typeof density)} />
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Responsive View Switch */}
-      {isMobile ? (
-        <MobileTransactionsView
-          transactions={transactions}
-          filteredTransactions={filteredTransactions}
-          accounts={accounts}
-          incomeCategories={incomeCategories}
-          expenseCategories={expenseCategories}
-          tags={tags}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          typeFilter={typeFilter}
-          setTypeFilter={setTypeFilter}
-          selectedAccountIds={selectedAccountIds}
-          setSelectedAccountIds={setSelectedAccountIds}
-          selectedCategoryNames={selectedCategoryNames}
-          setSelectedCategoryNames={setSelectedCategoryNames}
-          selectedTagIds={selectedTagIds}
-          setSelectedTagIds={setSelectedTagIds}
-          startDate={startDate}
-          setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
-          clearFilters={clearFilters}
-          onAddTransaction={handleOpenAddModal}
-          onOverviewTransaction={handleOpenOverview}
-          onEditTransaction={(tx) => {
-            const targetId = tx.originalId || tx.id;
-            const found = transactions.find(
-              (t) =>
-                t.id === targetId ||
-                t.id === tx.id ||
-                (tx.transferId && t.transferId === tx.transferId)
-            );
-
-            const fallbackTx: Transaction = {
-              id: tx.id,
-              accountId: tx.accountId || (accounts[0]?.id || ''),
-              description: tx.description,
-              amount: Math.abs(tx.amount),
-              type: (tx.type as any) || 'expense',
-              category: tx.category || '',
-              date: tx.date,
-              currency: tx.currency || 'EUR',
-              notes: tx.notes,
-              merchant: tx.merchant,
-              tagIds: tx.tagIds,
-            };
-
-            setEditingTransaction(found || fallbackTx);
-            setTransactionModalOpen(true);
-          }}
-          onDeleteTransaction={(txId) => {
-            deleteTransactions([txId]);
-          }}
-          onCategorizeTransaction={(tx) => {
-            setSelectedIds(new Set([tx.id]));
-            setIsCategorizeModalOpen(true);
-          }}
-          onMakeRecurring={(tx) => {
-            setTransactionToMakeRecurring({
-              description: tx.description,
-              amount: Math.abs(tx.amount),
-              type: tx.type as any,
-              category: tx.category,
-              accountId: tx.accountId,
-              frequency: 'monthly',
-              startDate: tx.date,
-              nextDueDate: tx.date,
-              currency: tx.currency || 'EUR',
-              weekendAdjustment: 'on',
-            });
-            setIsRecurringModalOpen(true);
-          }}
-          onSplitTransaction={(tx) => {
-            const original = transactions.find((t) => t.id === tx.id);
-            if (original) {
-              setTransactionToSplit(original);
-              setIsSplitModalOpen(true);
-            }
-          }}
-          onSyncBanks={onSyncBanks}
-          isSyncingBanks={isSyncingBanks}
-          preferredCurrency={preferredCurrency}
-          conversionRates={conversionRates}
-          brandfetchClientId={brandfetchClientId}
-          merchantLogoOverrides={effectiveMerchantLogoOverrides}
-        />
-      ) : (
-        <div className="space-y-6">
-          <PageHeader
-            markerIcon="receipt"
-            markerLabel="Activity Feed"
-            title="Transactions"
-            subtitle="Every inflow and outflow with filters, splits, and tagging to keep your history audit-ready."
-            actions={
-              <div className="flex items-center gap-2">
-                <HeaderButton
-                  variant="emerald"
-                  icon="sync"
-                  isLoading={isSyncingBanks}
-                  onClick={() => {
-                    if (onSyncBanks) onSyncBanks();
-                    else {
-                      const syncBtn = document.querySelector('[data-eb-sync-all]');
-                      if (syncBtn) (syncBtn as HTMLElement).click();
-                    }
-                  }}
-                  title="Sync Connected Banking Accounts"
-                >
-                  {isSyncingBanks ? 'Syncing...' : 'Sync Banks'}
-                </HeaderButton>
-
-                <HeaderButton
-                  variant="secondary"
-                  icon="download"
-                  onClick={handleExport}
-                >
-                  Export
-                </HeaderButton>
-
-                <HeaderButton
-                  variant="primary"
-                  icon="PlusCircle"
-                  onClick={handleOpenAddModal}
-                >
-                  Add Transaction
-                </HeaderButton>
-              </div>
-            }
-          />
-
-          {/* Metrics Summary */}
-          <MetricCardRow columns={4}>
-            <HeroMetricCard
-              variant="primary"
-              label="Total Transactions"
-              value={filteredTransactions.length}
-              icon="receipt"
-              iconColor="primary"
-              subtext="in selected period"
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0">
+          {tableRenderItems.length > 0 ? (
+            <LedgerTable
+              items={tableRenderItems}
+              isPhone={isMobile}
+              isCompact={density === 'high'}
+              selectedIds={selectedIds}
+              isSelecting={isSelecting || selectedIds.size > 0}
+              sort={sortDescriptor as LedgerSort}
+              onSort={handleHeaderSort}
+              onToggle={toggleOne}
+              onToggleGroup={toggleGroup}
+              onOpen={handleOpenOverview}
+              onCategorise={tx => { setSelectedIds(new Set([tx.id])); setIsCategorizeModalOpen(true); }}
+              onExpand={id => toggleExpandParent(id)}
+              onStartSelecting={id => { setSelecting(true); toggleOne(id); }}
+              amountOf={resolveTransferDisplay}
+              accountOf={accountOf}
+              locationOf={locationOf}
+              logoOf={logoOf}
+              menuFor={menuFor}
+              categories={allCategories}
+              tags={tags}
             />
-            <HeroMetricCard
-              label="Total Income"
-              value={formatCurrency(totalIncome, 'EUR')}
-              iconColor="emerald"
-              icon="arrow_downward"
-              subtext="Cash inflows"
+          ) : (
+            <EmptyState
+              icon="search"
+              title={transactions.length ? 'Nothing matches' : 'No transactions yet'}
+              description={transactions.length ? 'Try fewer filters.' : 'Add one, or connect a bank in Settings.'}
+              actionLabel={transactions.length ? 'Clear filters' : 'Add transaction'}
+              onAction={transactions.length ? clearFilters : handleOpenAddModal}
             />
-            <HeroMetricCard
-              label="Total Expenses"
-              value={formatCurrency(totalExpense, 'EUR')}
-              iconColor="rose"
-              icon="arrow_upward"
-              subtext="Cash outflows"
-            />
-            <HeroMetricCard
-              label="Net Cash Flow"
-              value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })}
-              iconColor={netFlow >= 0 ? 'emerald' : 'rose'}
-              icon="wallet"
-              subtext="Net difference"
-              trend={netFlow >= 0 ? 'up' : 'down'}
-            />
-          </MetricCardRow>
-
-          {/* Filter Toolbar */}
-          <FilterBar>
-            {/* Main Row */}
-            <FilterBar.Row>
-              <div className="flex-1 min-w-0">
-                <FilterBar.Field label="Search transactions" htmlFor="search">
-                  <FilterBar.Search
-                    ref={searchInputRef}
-                    id="search"
-                    placeholder="Type to search transactions, merchants, categories..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </FilterBar.Field>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full xl:w-auto items-end">
-                <FilterBar.Field label="Transfer type" htmlFor="type-filter">
-                  <FilterBar.Select
-                    id="type-filter"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value as any)}
-                  >
-                    {TYPE_FILTER_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </FilterBar.Select>
-                </FilterBar.Field>
-
-                <FilterBar.Field label="Display order" htmlFor="sort-by">
-                  <FilterBar.Select
-                    id="sort-by"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                  >
-                    <option value="date-desc">Date (Newest First)</option>
-                    <option value="date-asc">Date (Oldest First)</option>
-                    <option value="amount-desc">Value (Highest First)</option>
-                    <option value="amount-asc">Value (Lowest First)</option>
-                    <option value="merchant-asc">Merchant (Alphabetical)</option>
-                    <option value="merchant-desc">Merchant (Reverse)</option>
-                    <option value="category-asc">Category (A-Z)</option>
-                    <option value="category-desc">Category (Z-A)</option>
-                  </FilterBar.Select>
-                </FilterBar.Field>
-
-                <div className="col-span-2 md:col-span-2 flex items-end">
-                  <FilterBar.AdvancedToggle
-                    isExpanded={isFiltersExpanded}
-                    onToggle={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                    activeCount={activeFilterCount}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            </FilterBar.Row>
-
-            {/* Expanded Filters */}
-            {isFiltersExpanded && (
-              <div className="pt-5 border-t border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 animate-fade-in-up">
-                <FilterBar.Field label="Source account">
-                  <MultiAccountFilter
-                    accounts={accounts}
-                    selectedAccountIds={selectedAccountIds}
-                    setSelectedAccountIds={setSelectedAccountIds}
-                  />
-                </FilterBar.Field>
-                <FilterBar.Field label="Accounting category">
-                  <MultiSelectFilter
-                    options={categoryOptions}
-                    selectedValues={selectedCategoryNames}
-                    onChange={setSelectedCategoryNames}
-                    placeholder="All Categories"
-                  />
-                </FilterBar.Field>
-                <FilterBar.Field label="Organization tags">
-                  <MultiSelectFilter
-                    options={tagOptions}
-                    selectedValues={selectedTagIds}
-                    onChange={setSelectedTagIds}
-                    placeholder="All Tags"
-                  />
-                </FilterBar.Field>
-                <FilterBar.Field label="Merchant entity" htmlFor="merchant-filter">
-                  <FilterBar.Input
-                    id="merchant-filter"
-                    type="text"
-                    placeholder="Search by merchant name..."
-                    value={merchantFilter}
-                    onChange={(e) => setMerchantFilter(e.target.value)}
-                  />
-                </FilterBar.Field>
-
-                <div className="md:col-span-2 grid grid-cols-2 gap-3 items-end">
-                  <FilterBar.Field label="From date" htmlFor="start-date">
-                    <FilterBar.Input
-                      id="start-date"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                    />
-                  </FilterBar.Field>
-                  <FilterBar.Field label="To date" htmlFor="end-date">
-                    <FilterBar.Input
-                      id="end-date"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                    />
-                  </FilterBar.Field>
-                </div>
-                <div className="md:col-span-2 grid grid-cols-2 gap-3 items-end">
-                  <FilterBar.Field label="Min threshold" htmlFor="min-amount">
-                    <FilterBar.Input
-                      id="min-amount"
-                      type="number"
-                      placeholder="0.00"
-                      value={minAmount}
-                      onChange={(e) => setMinAmount(e.target.value)}
-                    />
-                  </FilterBar.Field>
-                  <FilterBar.Field label="Max threshold" htmlFor="max-amount">
-                    <FilterBar.Input
-                      id="max-amount"
-                      type="number"
-                      placeholder="No limit"
-                      value={maxAmount}
-                      onChange={(e) => setMaxAmount(e.target.value)}
-                    />
-                  </FilterBar.Field>
-                </div>
-                <div className="xl:col-span-4 flex justify-between items-center pt-2">
-                  <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-40 tracking-wider">
-                    Fine-tune your activity feed
-                  </p>
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="text-xs font-semibold tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 transition-colors cursor-pointer"
-                  >
-                    Reset all parameters
-                  </button>
-                </div>
-              </div>
-            )}
-          </FilterBar>
-          {/* Untitled UI Table Card with Alternating Fills */}
-          <div className="flex-1 min-w-0 relative z-10">
-            <TableCard.Root className="shadow-card border-0 rounded-2xl">
-              <TableCard.Header
-                title="Transactions"
-                badge={`${filteredTransactions.length} records`}
-                description="Every inflow and outflow with location, categories, tags, and audit-ready history."
-                contentTrailing={
-                  <div className="flex items-center gap-2">
-                    {selectedIds.size > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedIds(new Set())}
-                        className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline px-2 cursor-pointer"
-                      >
-                        Clear selection ({selectedIds.size})
-                      </button>
-                    )}
-                    <DropdownIconSimple />
-                  </div>
-                }
-              />
-
-              {/* Bulk Action Header Banner */}
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${selectedIds.size > 0 ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
-                <div className="bg-primary-600 dark:bg-primary-900 text-white px-6 py-3 flex justify-between items-center z-20 relative">
-                  <div className="flex items-center gap-4">
-                    <span className="font-semibold text-sm tracking-tight">{selectedIds.size} records selected</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedIds(new Set())}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-                      aria-label="Deselect all"
-                    >
-                      <Icon name="close" className="text-sm" />
-                    </button>
-                  </div>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {[
-                      { label: 'Edit', icon: 'edit', onClick: () => setBulkEditModalOpen(true), disabled: selectedIds.size === 0 },
-                      { label: 'Categorize', icon: 'category', onClick: handleOpenCategorizeModal, disabled: selectedIds.size === 0 },
-                      { label: 'Combine', icon: 'merge_type', onClick: handleOpenCombineModal, disabled: !canCombine },
-                      { label: 'Split', icon: 'splitscreen', onClick: handleOpenSplitModal, disabled: !canSplit },
-                      { label: 'Unsplit', icon: 'call_merge', onClick: () => handleUnsplit(), disabled: !canUnsplit },
-                      { label: 'Uncombine', icon: 'call_split', onClick: () => handleUncombine(), disabled: !canUncombine },
-                      { label: 'Recurring', icon: 'repeat', onClick: () => handleMakeRecurring(), disabled: selectedIds.size !== 1 },
-                      { label: 'Delete', icon: 'delete', onClick: handleOpenDeleteModal, disabled: selectedIds.size === 0, danger: true }
-                    ].map((btn) => (
-                      <button
-                        key={btn.label}
-                        type="button"
-                        onClick={btn.onClick}
-                        disabled={btn.disabled}
-                        className={`
-                                    h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-all cursor-pointer
-                                    ${btn.disabled
-                            ? 'opacity-40 cursor-not-allowed grayscale'
-                            : btn.danger
-                              ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm'
-                              : 'bg-white/15 hover:bg-white/25 text-white'
-                          }
-                                `}
-                      >
-                        <Icon name={btn.icon} className="text-sm" />
-                        <span>{btn.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {tableRenderItems.length > 0 ? (
-                <Table
-                  aria-label="Transactions"
-                  selectionMode="multiple"
-                  selectedKeys={selectedKeys}
-                  onSelectionChange={handleSelectionChange}
-                  sortDescriptor={sortDescriptor}
-                  onSortChange={setSortDescriptor}
-                  disabledKeys={disabledGroupHeaderKeys}
-                >
-                  <Table.Header className="bg-primary">
-                    <Table.Head id="description" label="Transaction Details" isRowHeader allowsSorting className="w-full max-w-1/3">
-                      <ColumnHeaderFilter
-                        isOpen={openFilterCol === 'description'}
-                        onToggle={() => setOpenFilterCol(prev => prev === 'description' ? null : 'description')}
-                        onClose={handleCloseFilterCol}
-                        isActive={Boolean(debouncedSearchTerm || merchantFilter)}
-                        title="Details & Merchant"
-                      >
-                        {merchantFilterContent}
-                      </ColumnHeaderFilter>
-                    </Table.Head>
-
-                    <Table.Head id="account" label="Account" allowsSorting>
-                      <ColumnHeaderFilter
-                        isOpen={openFilterCol === 'account'}
-                        onToggle={() => setOpenFilterCol(prev => prev === 'account' ? null : 'account')}
-                        onClose={handleCloseFilterCol}
-                        isActive={selectedAccountIds.length > 0}
-                        activeCount={selectedAccountIds.length}
-                        title="Accounts"
-                      >
-                        {accountFilterContent}
-                      </ColumnHeaderFilter>
-                    </Table.Head>
-
-                    <Table.Head id="category" label="Category" allowsSorting>
-                      <ColumnHeaderFilter
-                        isOpen={openFilterCol === 'category'}
-                        onToggle={() => setOpenFilterCol(prev => prev === 'category' ? null : 'category')}
-                        onClose={handleCloseFilterCol}
-                        isActive={selectedCategoryNames.length > 0}
-                        activeCount={selectedCategoryNames.length}
-                        title="Categories"
-                      >
-                        {categoryFilterContent}
-                      </ColumnHeaderFilter>
-                    </Table.Head>
-
-                    <Table.Head id="location" label="Location" allowsSorting>
-                      <ColumnHeaderFilter
-                        isOpen={openFilterCol === 'location'}
-                        onToggle={() => setOpenFilterCol(prev => prev === 'location' ? null : 'location')}
-                        onClose={handleCloseFilterCol}
-                        isActive={selectedLocations.length > 0}
-                        activeCount={selectedLocations.length}
-                        title="Locations"
-                      >
-                        {locationFilterContent}
-                      </ColumnHeaderFilter>
-                    </Table.Head>
-
-                    <Table.Head id="tags" label="Tags">
-                      <ColumnHeaderFilter
-                        isOpen={openFilterCol === 'tags'}
-                        onToggle={() => setOpenFilterCol(prev => prev === 'tags' ? null : 'tags')}
-                        onClose={handleCloseFilterCol}
-                        isActive={selectedTagIds.length > 0}
-                        activeCount={selectedTagIds.length}
-                        title="Tags"
-                      >
-                        {tagFilterContent}
-                      </ColumnHeaderFilter>
-                    </Table.Head>
-
-                    <Table.Head id="amount" label="Value" allowsSorting className="text-right">
-                      <ColumnHeaderFilter
-                        isOpen={openFilterCol === 'amount'}
-                        onToggle={() => setOpenFilterCol(prev => prev === 'amount' ? null : 'amount')}
-                        onClose={handleCloseFilterCol}
-                        isActive={Boolean(minAmount || maxAmount || typeFilter !== 'all')}
-                        title="Value & Type"
-                        align="right"
-                      >
-                        {amountFilterContent}
-                      </ColumnHeaderFilter>
-                    </Table.Head>
-
-                    <Table.Head id="actions" className="w-16" />
-                  </Table.Header>
-
-                  <Table.Body items={tableRenderItems}>
-                    {(item) => {
-                      if (item.isGroupHeader) {
-                        const isAllGroupSelected = item.groupTxIds.length > 0 && item.groupTxIds.every(id => selectedIds.has(id));
-                        const isSomeGroupSelected = item.groupTxIds.some(id => selectedIds.has(id)) && !isAllGroupSelected;
-
-                        const handleToggleGroup = (e?: React.MouseEvent) => {
-                          e?.stopPropagation();
-                          setSelectedIds(prev => {
-                            const next = new Set(prev);
-                            const allSelected = item.groupTxIds.length > 0 && item.groupTxIds.every(id => prev.has(id));
-                            if (allSelected) {
-                              item.groupTxIds.forEach(id => next.delete(id));
-                            } else {
-                              item.groupTxIds.forEach(id => next.add(id));
-                            }
-                            return next;
-                          });
-                        };
-
-                        return (
-                          <Table.Row
-                            id={item.id}
-                            className="bg-secondary/40 dark:bg-white/[0.02] hover:bg-secondary/60 dark:hover:bg-white/[0.04] select-none font-medium transition-colors border-y border-black/[0.04] dark:border-white/[0.05] [&>td]:after:!bg-black/[0.04] dark:[&>td]:after:!bg-white/[0.05]"
-                            size="xs"
-                            customSelectionSlot={
-                              <div
-                                className="flex items-center cursor-pointer"
-                                onClick={handleToggleGroup}
-                                role="checkbox"
-                                aria-checked={isAllGroupSelected ? true : isSomeGroupSelected ? 'mixed' : false}
-                                aria-label={`Select all ${item.formattedDate} transactions`}
-                              >
-                                <CheckboxBase
-                                  size="sm"
-                                  isSelected={isAllGroupSelected}
-                                  isIndeterminate={isSomeGroupSelected}
-                                />
-                              </div>
-                            }
-                          >
-                            <Table.Cell className="py-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-secondary">
-                                  {item.formattedDate}
-                                </span>
-                                <span className="text-xs font-medium text-tertiary px-2 py-0.5 rounded-full bg-primary/80 border border-black/[0.04] dark:border-white/[0.05] shrink-0">
-                                  {item.count} {item.count === 1 ? 'record' : 'records'}
-                                </span>
-                              </div>
-                            </Table.Cell>
-                            <Table.Cell className="py-2" />
-                            <Table.Cell className="py-2" />
-                            <Table.Cell className="py-2" />
-                            <Table.Cell className="py-2" />
-                            <Table.Cell className="py-2 text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <span className="text-xs font-medium uppercase tracking-wider text-quaternary">Daily Net</span>
-                                <span className={cx(
-                                  "text-xs font-semibold tracking-tight",
-                                  item.totalEur > 0 ? "text-green-700 dark:text-green-400" : item.totalEur < 0 ? "text-primary" : "text-tertiary"
-                                )}>
-                                  {item.totalEur > 0 ? `+${formatCurrency(item.totalEur, 'EUR')}` : formatCurrency(item.totalEur, 'EUR')}
-                                </span>
-                              </div>
-                            </Table.Cell>
-                            <Table.Cell className="py-2" />
-                          </Table.Row>
-                        );
-                      } else {
-                        const tx = (item as { isGroupHeader: false; id: string; tx: DisplayTransaction }).tx;
-                        let amountColor = tx.type === 'income' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400';
-
-                        const fromAcc = accountMapByName[tx.fromAccountName!];
-                        const toAcc = accountMapByName[tx.toAccountName!];
-
-                        if (tx.isTransfer) {
-                          amountColor = 'text-primary';
-                          if (selectedAccountIds.length > 0) {
-                            if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-red-700 dark:text-red-400'; }
-                            else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-green-700 dark:text-green-400'; }
-                          }
-                        }
-
-                        const txType = tx.isTransfer ? 'transfer' : tx.type;
-                        const typeIndicator = txType === 'income'
-                          ? { dot: "bg-emerald-500 shadow-xs shadow-emerald-500/50", label: "Income" }
-                          : txType === 'expense'
-                            ? { dot: "bg-rose-500 shadow-xs shadow-rose-500/50", label: "Expense" }
-                            : { dot: "bg-slate-400 dark:bg-white/80 shadow-xs", label: "Internal Transfer" };
-
-                        const categoryDetails = getCategoryDetails(tx.category, allCategories);
-                        const categoryColor = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? '#64748B' : (categoryDetails.color || '#A0AEC0');
-                        const categoryIcon = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'swap_horiz' : (categoryDetails.icon || 'category');
-                        const merchantKey = normalizeMerchantKey(tx.merchant);
-                        const merchantLogoUrl = merchantKey ? merchantLogoUrls[merchantKey] : null;
-                        const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
-                        const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
-
-                        const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
-                        const accountName = account?.name || tx.accountName || (tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : 'Unknown');
-                        const accountSub = account ? (account.last4 ? `•••• ${account.last4}` : (account.type === 'Credit Card' ? 'Credit' : account.type)) : 'Manual';
-
-                        const resolvedDisplay = resolveTransferDisplay(tx);
-                        const displayAmount = tx.isTransfer && selectedAccountIds.length === 0
-                          ? formatCurrency(convertToEur(Math.abs(resolvedDisplay.amount), resolvedDisplay.currency), 'EUR')
-                          : formatCurrency(convertToEur(resolvedDisplay.amount, resolvedDisplay.currency), 'EUR', { showPlusSign: true });
-
-                        const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
-                        const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
-                        const loc = formatTransactionLocation(tx, user);
-
-                        return (
-                          <Table.Row
-                            id={tx.id}
-                            className={cx(
-                              "odd:bg-black/[0.02] dark:odd:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] cursor-pointer",
-                              tx.parentTransactionId && "bg-primary-500/[0.03] dark:bg-primary-500/[0.05]"
-                            )}
-                            onAction={() => handleOpenOverview(tx)}
-                            onClick={() => handleOpenOverview(tx)}
-                            onDoubleClick={(e) => {
-                              e.stopPropagation();
-                              setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
-                              setTransactionModalOpen(true);
-                            }}
-                            onContextMenu={(e) => openContextMenu(e, tx)}
-                          >
-                            {/* 1. Details */}
-                            <Table.Cell>
-                              <div className={cx("flex items-center gap-3 min-w-0", tx.parentTransactionId && "pl-6 border-l-2 border-primary-500/40 ml-1")}>
-                                {tx.parentTransactionId && (
-                                  <Icon name="subdirectory_arrow_right" className="size-3.5 text-primary-500 shrink-0 opacity-70" />
-                                )}
-                                {(tx.isSplitParent || tx.isCombinedParent) && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => toggleExpandParent(tx.id, e)}
-                                    className="size-6 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center text-secondary transition-all shrink-0 cursor-pointer"
-                                    title={tx.isExpanded ? "Collapse sub-transactions" : "Expand sub-transactions"}
-                                  >
-                                    <Icon name={tx.isExpanded ? "expand_more" : "chevron_right"} className="text-sm" />
-                                  </button>
-                                )}
-                                {showMerchantLogo && merchantLogoUrl ? (
-                                  <div className="size-10 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.03] dark:bg-white/[0.04]">
-                                    <img src={merchantLogoUrl} alt={tx.merchant || tx.description} className="w-full h-full object-cover p-0 border-0" />
-                                  </div>
-                                ) : merchantInitial ? (
-                                  <div className="size-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 text-sm shadow-xs" style={{ backgroundColor: categoryColor }}>
-                                    {merchantInitial}
-                                  </div>
-                                ) : (
-                                  <div className="size-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs" style={{ backgroundColor: categoryColor }}>
-                                    <Icon name={categoryIcon} className="text-lg" />
-                                  </div>
-                                )}
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <p className="text-base font-semibold text-primary truncate max-w-[220px] xl:max-w-xs">{tx.description}</p>
-                                    {tx.isSplitParent && (
-                                      <Badge color="warning" size="sm">Split ({tx.subItemCount || 0})</Badge>
-                                    )}
-                                    {tx.isCombinedParent && (
-                                      <Badge color="indigo" size="sm">Combined ({tx.subItemCount || 0})</Badge>
-                                    )}
-                                    {tx.recurringSourceId && <Icon name="repeat" className="text-xs text-primary-700 dark:text-primary-400 shrink-0" />}
-                                    {tx.notes && <Icon name="notes" className="text-xs text-primary-500/50 shrink-0" />}
-                                  </div>
-                                  <div className="flex items-center gap-1.5 text-sm text-tertiary truncate">
-                                    <span className={cx("size-1.5 rounded-full shrink-0", typeIndicator.dot)} title={typeIndicator.label} />
-                                    <span className="truncate">{tx.merchant || (tx.isTransfer ? 'Transfer' : 'Activity record')}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </Table.Cell>
-
-                            {/* 2. Account */}
-                            <Table.Cell className="whitespace-nowrap">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                {showInstitutionLogo ? (
-                                  <div className="size-8 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.03] dark:bg-white/[0.04]">
-                                    <img src={institutionLogoUrl} alt={accountName} className="w-full h-full object-cover p-0 border-0" />
-                                  </div>
-                                ) : (
-                                  <div className="size-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/5 text-tertiary shrink-0">
-                                    <Icon name="account_balance" className="text-sm opacity-50" />
-                                  </div>
-                                )}
-                                <div className="min-w-0">
-                                  <p className="text-base font-medium text-primary truncate max-w-[150px]">{accountName}</p>
-                                  <p className="text-sm text-tertiary truncate">{accountSub}</p>
-                                </div>
-                              </div>
-                            </Table.Cell>
-
-                            {/* 3. Category */}
-                            <Table.Cell className="whitespace-nowrap">
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setSelectedIds(new Set([tx.id])); setIsCategorizeModalOpen(true); }}
-                                className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-2xs group/cat"
-                                style={{ backgroundColor: `${categoryColor}18`, color: categoryColor }}
-                                title={`Category: ${tx.category || 'Uncategorized'}`}
-                              >
-                                <Icon name={categoryIcon} className="text-sm shrink-0" />
-                                <span className="truncate max-w-[120px]">{tx.category || 'Uncategorized'}</span>
-                              </button>
-                            </Table.Cell>
-
-                            {/* 4. Location */}
-                            <Table.Cell className="whitespace-nowrap">
-                              {loc.hasLocation && loc.city ? (
-                                <div
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/10 transition-all select-none group/loc"
-                                  title={loc.fullDisplay}
-                                >
-                                  <span className="text-base leading-none shrink-0 drop-shadow-2xs select-none">{loc.flag}</span>
-                                  <span className="text-xs font-semibold text-primary truncate max-w-[120px]">{loc.city}</span>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-quaternary opacity-40">—</span>
-                              )}
-                            </Table.Cell>
-
-                            {/* 5. Tags */}
-                            <Table.Cell className="whitespace-nowrap">
-                              <div className="flex items-center gap-1">
-                                {tx.tagIds && tx.tagIds.length > 0 ? (
-                                  <>
-                                    {tx.tagIds.slice(0, 1).map(tagId => {
-                                      const tag = tags.find(t => t.id === tagId);
-                                      if (!tag) return null;
-                                      return (
-                                        <span key={tag.id} className="px-2 py-0.5 rounded-md text-xs font-medium" style={{ backgroundColor: `${tag.color}18`, color: tag.color }}>
-                                          {tag.name}
-                                        </span>
-                                      );
-                                    })}
-                                    {tx.tagIds.length > 1 && (
-                                      <Badge color="gray" size="sm">+{tx.tagIds.length - 1}</Badge>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-xs text-quaternary opacity-40">—</span>
-                                )}
-                              </div>
-                            </Table.Cell>
-
-                            {/* 6. Amount */}
-                            <Table.Cell className="whitespace-nowrap text-right">
-                              <div className="flex flex-col items-end">
-                                <span className={`text-base font-semibold tracking-tight ${amountColor}`}>
-                                  {displayAmount}
-                                </span>
-                                {tx.spareChangeAmount ? (
-                                  <div className="flex items-center justify-end gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-500 text-xs font-semibold animate-pulse">
-                                    <Icon name="savings" className="text-xs" />
-                                    <span>{formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}</span>
-                                  </div>
-                                ) : null}
-                              </div>
-                            </Table.Cell>
-
-                            {/* 7. Actions */}
-                            <Table.Cell className="px-4 whitespace-nowrap text-right">
-                              <div className="flex justify-end opacity-80 group-hover:opacity-100 transition-opacity">
-                                <ButtonUtility
-                                  size="sm"
-                                  color="tertiary"
-                                  tooltip="Options"
-                                  icon={DotsVertical}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openContextMenu(e as any, tx);
-                                  }}
-                                />
-                              </div>
-                            </Table.Cell>
-                          </Table.Row>
-                        );
-                      }
-                    }}
-                  </Table.Body>
-                </Table>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-tertiary">
-                  <Icon name="search_off" className="text-5xl mb-2 opacity-50" />
-                  <p className="text-sm font-medium">No transactions match the current filters.</p>
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="mt-3 text-xs font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 cursor-pointer"
-                  >
-                    Reset all filters
-                  </button>
-                </div>
-              )}
-
-              <PaginationPageMinimalCenter
-                page={currentPage}
-                total={totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={displayItemsWithSubs.length}
-                itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={setItemsPerPage}
-                className="px-4 py-3 md:px-6 md:pt-3 md:pb-4"
-              />
-            </TableCard.Root>
-          </div>
+          )}
+          <ShowMore remaining={displayItemsWithSubs.length - visibleCount} onPress={() => setVisibleCount(count => count + LEDGER_BATCH)} />
         </div>
+        {!isMobile && <div className="xl:sticky xl:top-0">{summary}</div>}
+      </div>
+
+      {selectedIds.size > 0 && !isCategorizeModalOpen && (
+        <SelectionBar count={selectedIds.size} onClear={clearSelection}>
+          <Button size="sm" variant="ghost" onPress={handleOpenCategorizeModal}>Categorise</Button>
+          <Button size="sm" variant="ghost" onPress={() => setBulkEditModalOpen(true)}>Edit</Button>
+          <Menu title="More actions" placement="top" trigger={<IconButton icon="more_horiz" label="More actions" />} items={selectionMore} />
+          {!isMobile && <HoldButton label={deleteLabel} onConfirm={handleConfirmBulkDelete} />}
+        </SelectionBar>
       )}
     </div>
   );

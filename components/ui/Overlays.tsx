@@ -105,7 +105,8 @@ export interface ResponsiveOverlayProps {
   onClose: () => void;
   title: string;
   description?: React.ReactNode;
-  footer?: React.ReactNode;
+  /** Pass a function to get a close that asks first when there are unsaved changes. */
+  footer?: React.ReactNode | ((close: () => void) => React.ReactNode);
   /** Side panel width. Use 640 for transaction detail with a map. */
   width?: 480 | 640;
   /** With unsaved changes, closing asks first (D-068). */
@@ -128,6 +129,7 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
     if (isDirty) setAsking(true);
     else onClose();
   }, [isDirty, onClose]);
+  const footerContent = typeof footer === 'function' ? footer(requestClose) : footer;
 
   const guard = (
     <ConfirmDialog
@@ -150,7 +152,7 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
           onClose={requestClose}
           title={title}
           description={description}
-          footer={footer}
+          footer={footerContent}
           height={kind === 'dialog' ? 'content' : 'full'}
         >
           {children}
@@ -183,9 +185,9 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
             <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
               <div className={cn(kind === 'full' && 'mx-auto max-w-[960px]')}>{children}</div>
             </div>
-            {footer && (
+            {footerContent && (
               <footer className="shrink-0 border-t border-line px-6 py-4">
-                <div className={cn(kind === 'full' && 'mx-auto max-w-[960px]')}>{footer}</div>
+                <div className={cn(kind === 'full' && 'mx-auto max-w-[960px]')}>{footerContent}</div>
               </footer>
             )}
           </AriaDialog>
