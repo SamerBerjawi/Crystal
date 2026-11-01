@@ -14,8 +14,8 @@ import { EmptyState } from './States';
 import { cn } from '../../lib/utils';
 
 /** The signature sentence: three facts at most, each linked to where you can act. */
-export const WrittenSummary: React.FC<{ facts: SummaryFact[]; onFact: (id: SummaryTarget) => void; isPrivate?: boolean }> = ({ facts, onFact, isPrivate }) => (
-  <p className="type-sentence max-w-[64ch] text-ink">
+export const WrittenSummary: React.FC<{ facts: SummaryFact[]; onFact: (id: SummaryTarget) => void; isPrivate?: boolean; className?: string }> = ({ facts, onFact, isPrivate, className }) => (
+  <p className={cn('type-sentence max-w-[64ch] text-ink', className)}>
     {facts.length === 0 && 'Nothing needs you today. Nice.'}
     {facts.map((fact, index) => (
       <React.Fragment key={fact.id}>
