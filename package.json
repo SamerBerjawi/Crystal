@@ -1,7 +1,7 @@
 {
   "name": "crystal",
   "private": true,
-  "version": "2.261031.2",
+  "version": "2.261031.3",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -23,7 +23,7 @@
     "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@hugeicons/core-free-icons": "^4.3.5",
     "@hugeicons/react": "^1.1.10",
-    "@internationalized/date": "^3.12.2",
+    "@internationalized/date": "^3.12.4",
     "@maplibre/maplibre-gl-leaflet": "^0.1.4",
     "@number-flow/react": "^0.6.2",
     "@react-aria/i18n": "^3.13.1",

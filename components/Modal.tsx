@@ -62,24 +62,21 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
 
   const modalContent = (
     <div 
-      className={`fixed inset-0 flex items-end md:items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-sm md:p-4 ${zIndexClass} transition-opacity duration-300 font-sans ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 flex items-end md:items-center justify-center md:p-4 scrim ${zIndexClass} transition-opacity duration-[var(--duration-medium)] font-sans ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       onClick={handleClose}
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
       {/* Modal Container */}
       <div 
         className={`
-          bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 shadow-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text w-full overflow-hidden focus:outline-none
-          transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)] relative
-          
-          /* Mobile: slide-up sheet | Desktop: rounded floating glass card */
-          rounded-t-[32px] md:rounded-[2rem]
-          max-h-[95vh] md:max-h-[90vh]
+          bg-surface text-ink shadow-lg w-full overflow-hidden focus:outline-none relative flex flex-col
+          transition-[transform,opacity] duration-[var(--duration-medium)] ease-[var(--ease-standard)]
+          rounded-t-[var(--radius-2xl)] md:rounded-[var(--radius-xl)]
+          max-h-[92dvh] md:max-h-[90dvh]
           ${sizeClasses[size]}
-          
-          ${isVisible 
-            ? 'translate-y-0 md:translate-y-0 md:scale-100 opacity-100' 
-            : 'translate-y-full md:translate-y-0 md:scale-95 opacity-0'
+          ${isVisible
+            ? 'translate-y-0 opacity-100'
+            : 'translate-y-full md:translate-y-2 opacity-0'
           }
         `}
         onClick={handleContentClick}
@@ -91,30 +88,27 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
       >
         {/* Mobile drag handle */}
         <div className="flex justify-center pt-3 pb-1 md:hidden" aria-hidden="true">
-          <div className="w-10 h-1 rounded-full bg-black/20 dark:bg-white/20" />
+          <div className="w-10 h-1 rounded-full bg-line-strong" />
         </div>
 
-        {/* Ambient Top Gradient Glow */}
-        <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-primary-500/10 via-primary-500/5 to-transparent pointer-events-none -z-1" />
-
         {/* Header */}
-        <header className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent shrink-0">
+        <header className="px-6 pt-5 pb-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0 pr-3">
-            <h2 id={titleId} className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
+            <h2 id={titleId} className="type-section-title text-ink truncate">
               {title}
             </h2>
           </div>
           <button 
             onClick={handleClose} 
             className={CLOSE_BTN_STYLE}
-            aria-label="Close modal"
+            aria-label="Close"
           >
-            <Icon name="close" className="text-lg" />
+            <Icon name="close" size={20} />
           </button>
         </header>
 
         {/* Modal Body */}
-        <div className="p-6 pb-7 max-h-[calc(95vh-100px)] md:max-h-[calc(90vh-80px)] overflow-y-auto custom-scrollbar scroll-touch safe-bottom">
+        <div className="px-6 pb-6 min-h-0 flex-1 overflow-y-auto scroll-touch safe-bottom">
           {children}
         </div>
       </div>

@@ -193,14 +193,3 @@ export const COLOR_PALETTES: Record<string, Record<number, string>> = {
   },
 };
 
-export function applyPageAccentTheme(colorName: string) {
-  if (typeof document === 'undefined') return;
-  const palette = COLOR_PALETTES[colorName] || COLOR_PALETTES.indigo;
-  const root = document.documentElement;
-  const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
-  shades.forEach(shade => {
-    if (palette[shade]) {
-      root.style.setProperty(`--primary-${shade}`, palette[shade]);
-    }
-  });
-}

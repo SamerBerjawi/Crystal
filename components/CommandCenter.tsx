@@ -138,33 +138,32 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 scrim z-[var(--z-overlay)]"
             onClick={onClose}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: -10 }}
-            className="fixed top-[12%] left-1/2 -translate-x-1/2 w-full max-w-2xl bg-light-card dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text rounded-3xl shadow-2xl z-[101] border border-black/10 dark:border-white/10 overflow-hidden flex flex-col"
+            className="fixed inset-0 z-[var(--z-overlay)] flex flex-col bg-surface text-ink shadow-lg md:inset-x-0 md:bottom-auto md:top-[12%] md:mx-auto md:max-w-2xl md:rounded-[var(--radius-xl)] overflow-hidden"
           >
             <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center">
-                <Icon name="search" className="text-primary-500 text-2xl" />
-              </div>
+              <Icon name="search" size={24} className="text-muted" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="What are you looking for?"
-                className="flex-1 bg-transparent border-none outline-none text-light-text dark:text-dark-text text-lg sm:text-xl font-bold tracking-tight placeholder-neutral-400 dark:placeholder-neutral-500"
+                aria-label="Search Crystal"
+                className="min-w-0 flex-1 bg-transparent border-none outline-none text-ink text-base md:text-lg font-semibold placeholder:text-muted"
               />
               <div className="hidden sm:flex items-center gap-2">
                 <kbd className="px-2 py-1 rounded-xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 text-xs font-mono font-medium text-gray-400">ESC</kbd>
               </div>
             </div>
 
-            <div ref={scrollRef} className="max-h-[450px] overflow-y-auto pt-2 no-scrollbar">
+            <div ref={scrollRef} className="min-h-0 flex-1 md:max-h-[450px] overflow-y-auto pt-2 no-scrollbar">
               {results.length > 0 ? (
                 <div className="px-2 pb-2">
                   {results.map((item, index) => (
@@ -205,7 +204,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                   <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-6 scale-110">
                     <Icon name="search_off" className="text-4xl text-gray-300" />
                   </div>
-                  <p className="text-light-text dark:text-dark-text font-bold text-lg mb-1">No Intelligence Found</p>
+                  <p className="text-light-text dark:text-dark-text font-bold text-lg mb-1">Nothing matches</p>
                   <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm font-normal">Unable to locate records for "{query}"</p>
                 </div>
               )}

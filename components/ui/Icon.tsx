@@ -40,7 +40,11 @@ import {
   Bookmark01Icon,
   Bug01Icon,
   Building03Icon,
+  Analytics01Icon,
   Calendar01Icon,
+  Calendar03Icon,
+  RefreshIcon,
+  TaskDone01Icon,
   CalendarAdd01Icon,
   CalendarCheckIn01Icon,
   Camera01Icon,
@@ -247,6 +251,14 @@ import {
 
 // Keys are the icon names stored in saved data, so they stay as they are. Each one points at its Hugeicon (D-058).
 const ICONS: Record<string, IconSvgElement> = {
+  NavOverview: Home01Icon,
+  NavAccounts: Wallet02Icon,
+  NavTransactions: ArrowDataTransferHorizontalIcon,
+  NavPlanning: Calendar03Icon,
+  NavInvestments: ChartLineData01Icon,
+  NavReports: Analytics01Icon,
+  ReviewQueue: TaskDone01Icon,
+  SyncBanks: RefreshIcon,
   House: Home01Icon,
   HouseLine: Home02Icon,
   SquaresFour: DashboardSquare01Icon,

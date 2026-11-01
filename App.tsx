@@ -1,9 +1,7 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import { Toaster, toast } from 'sonner';
-import Sidebar from './components/Sidebar';
 import { motion, AnimatePresence } from 'motion/react';
-import MobileNavbar from './components/MobileNavbar';
 import CommandCenter from './components/CommandCenter';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import PageSkeleton from './components/PageSkeleton';
@@ -76,6 +74,7 @@ const DataImportExportPage = lazyWithRetry(pageRegistry['Data Management'].loade
 const PreferencesPage = lazyWithRetry(pageRegistry.Preferences.loader);
 const IntegrationsPage = lazyWithRetry(pageRegistry.Integrations.loader);
 const AccountDetail = lazyWithRetry(pageRegistry.AccountDetail.loader);
+const UiKit = import.meta.env.DEV ? lazyWithRetry(() => import('./pages/dev/UiKit')) : null;
 const EnableBankingCallbackPage = lazyWithRetry(pageRegistry.EnableBankingCallback.loader);
 const InvestmentsPage = lazyWithRetry(pageRegistry.Investments.loader);
 const HoldingDetail = lazyWithRetry(pageRegistry.HoldingDetail.loader);
@@ -89,7 +88,7 @@ const RulesPage = lazyWithRetry(pageRegistry.Rules.loader);
 const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails } from './types';
-import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS } from './constants';
+import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import { linkBudgetsToCategories } from './utils/budgetModel';
@@ -107,8 +106,7 @@ const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransact
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
-import { HeaderProvider } from './contexts/HeaderContext';
-import { applyPageAccentTheme } from './utils/theme';
+import { PhoneBar, PhoneTopBar, SkipLink, TabRow, ToolRail, TopBar, type ShellProps } from './components/ui/Shell';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
 import { saveDevCache, loadDevCache, clearDevCache } from './utils/browserCache';
@@ -430,8 +428,7 @@ const App: React.FC = () => {
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
   useScrollMemory(currentPage);
-  const [isSidebarOpen, setSidebarOpen] = useLocalStorage('crystal_sidebar_open_v2', false);
-  const [isSidebarCollapsed, setSidebarCollapsed] = useLocalStorage('crystal_sidebar_collapsed_v2', false);
+  const isPhone = useIsMobile();
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
   const [viewingHoldingSymbol, setViewingHoldingSymbol] = useState<string | null>(initialRoute.holdingSymbol ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
@@ -469,84 +466,6 @@ const App: React.FC = () => {
     onOpenNewTransaction: () => setIsQuickAddTxModalOpen(true),
     onToggleShortcutsModal: () => setIsShortcutsModalOpen(prev => !prev),
   });
-
-  const currentPageColor = useMemo(() => {
-    if (currentPage === 'AccountDetail') return ITEM_COLORS['Accounts'];
-    if (currentPage === 'HoldingDetail') return ITEM_COLORS['Investments'];
-    if (currentPage === 'Personal Info' || currentPage === 'Preferences') return ITEM_COLORS['Settings'];
-    return ITEM_COLORS[currentPage as string] || 'indigo';
-  }, [currentPage]);
-
-  const isDarkMode = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  }, [theme]);
-
-  const PAGE_GLOW_PALETTES: Record<string, { primary: string; secondary: string; tertiary: string }> = {
-    neutral: { primary: '#737373', secondary: '#525252', tertiary: '#404040' },
-    indigo: { primary: '#6366f1', secondary: '#818cf8', tertiary: '#a5b4fc' },
-    emerald: { primary: '#10b981', secondary: '#34d399', tertiary: '#6ee7b7' },
-    amber: { primary: '#f59e0b', secondary: '#fbbf24', tertiary: '#fcd34d' },
-    gold: { primary: '#f59e0b', secondary: '#fbbf24', tertiary: '#fde047' },
-    blue: { primary: '#3b82f6', secondary: '#60a5fa', tertiary: '#93c5fd' },
-    purple: { primary: '#a855f7', secondary: '#c084fc', tertiary: '#d8b4fe' },
-    cyan: { primary: '#06b6d4', secondary: '#22d3ee', tertiary: '#67e8f9' },
-    teal: { primary: '#14b8a6', secondary: '#2dd4bf', tertiary: '#5eead4' },
-    slate: { primary: '#64748b', secondary: '#94a3b8', tertiary: '#cbd5e1' },
-    orange: { primary: '#f97316', secondary: '#fb923c', tertiary: '#fdba74' },
-    rose: { primary: '#f43f5e', secondary: '#fb7185', tertiary: '#fda4af' },
-    violet: { primary: '#8b5cf6', secondary: '#a78bfa', tertiary: '#c4b5fd' },
-    lime: { primary: '#84cc16', secondary: '#a3e635', tertiary: '#bef264' },
-    gray: { primary: '#6b7280', secondary: '#9ca3af', tertiary: '#d1d5db' },
-    sky: { primary: '#0ea5e9', secondary: '#38bdf8', tertiary: '#7dd3fc' },
-    pink: { primary: '#ec4899', secondary: '#f472b6', tertiary: '#f9a8d4' },
-  };
-
-  const currentAmbientGradient = useMemo(() => {
-    const palette = PAGE_GLOW_PALETTES[currentPageColor] || PAGE_GLOW_PALETTES.neutral;
-    const primary = palette.primary;
-    const secondary = palette.secondary;
-    const tertiary = palette.tertiary;
-    if (isDarkMode) {
-      return [
-        `radial-gradient(circle min(46vw, 520px) at 68% 10%, ${primary}22 0%, ${primary}18 24%, ${primary}0e 48%, ${primary}04 72%, transparent 100%)`,
-        `radial-gradient(circle min(40vw, 440px) at 22% 88%, ${secondary}1c 0%, ${secondary}14 24%, ${secondary}0a 48%, ${secondary}03 72%, transparent 100%)`,
-        `radial-gradient(circle min(32vw, 360px) at 40% 42%, ${tertiary}14 0%, ${tertiary}0e 24%, ${tertiary}07 48%, ${tertiary}02 72%, transparent 100%)`
-      ].join(', ');
-    } else {
-      return [
-        `radial-gradient(circle min(46vw, 520px) at 68% 10%, ${primary}32 0%, ${primary}24 24%, ${primary}16 48%, ${primary}06 72%, transparent 100%)`,
-        `radial-gradient(circle min(40vw, 440px) at 22% 88%, ${secondary}2a 0%, ${secondary}1e 24%, ${secondary}10 48%, ${secondary}05 72%, transparent 100%)`,
-        `radial-gradient(circle min(32vw, 360px) at 40% 42%, ${tertiary}20 0%, ${tertiary}16 24%, ${tertiary}0c 48%, ${tertiary}04 72%, transparent 100%)`
-      ].join(', ');
-    }
-  }, [currentPageColor, isDarkMode]);
-
-  const [ambientLayers, setAmbientLayers] = useState<{ id: string; gradient: string }[]>([
-    { id: `${currentPageColor}-${isDarkMode ? 'dark' : 'light'}`, gradient: currentAmbientGradient }
-  ]);
-
-  useEffect(() => {
-    const newId = `${currentPageColor}-${isDarkMode ? 'dark' : 'light'}`;
-    setAmbientLayers(prev => {
-      const last = prev[prev.length - 1];
-      if (last && last.id === newId) return prev;
-      return [
-        { ...last },
-        { id: newId, gradient: currentAmbientGradient }
-      ];
-    });
-
-    const timer = setTimeout(() => {
-      setAmbientLayers([{ id: newId, gradient: currentAmbientGradient }]);
-    }, 750);
-
-    return () => clearTimeout(timer);
-  }, [currentPageColor, isDarkMode, currentAmbientGradient]);
-
-  useEffect(() => {
-    applyPageAccentTheme(currentPageColor);
-  }, [currentPageColor]);
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
   const lastUpdatedAtRef = useRef<string | null>(null);
@@ -753,24 +672,6 @@ const App: React.FC = () => {
     // Catch amounts that are not individually marked with .privacy-blur (AUD-73).
     return isPrivacyMode ? startPrivacyMask() : undefined;
   }, [isPrivacyMode]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const tw = (window as any).tailwind;
-    if (!tw || !tw.colors) return;
-
-    const colorName = currentPageColor;
-    const palette = tw.colors[colorName];
-
-    if (palette && typeof palette === 'object') {
-      Object.entries(palette).forEach(([shade, value]) => {
-        if (typeof value === 'string') {
-          document.documentElement.style.setProperty(`--primary-${shade}`, value);
-        }
-      });
-    }
-  }, [currentPageColor]);
 
   const setCurrentPage = useCallback((page: Page) => {
     const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : page === 'HoldingDetail' ? viewingHoldingSymbol : null);
@@ -3046,6 +2947,7 @@ const App: React.FC = () => {
   }, [isDataLoaded, viewingAccount, viewingAccountId, viewingHolding, viewingHoldingSymbol, setCurrentPage]);
 
   const renderPage = () => {
+    if (UiKit && window.location.search.includes('ui-kit')) return <UiKit />;
     if (viewingHoldingSymbol) {
       if (viewingHolding) return <HoldingDetail holdingSymbol={viewingHoldingSymbol} holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} onBack={() => setCurrentPage('Investments')} priceHistory={priceHistory} />;
       return <PageLoader label="Loading holding..." />;
@@ -3121,67 +3023,69 @@ const App: React.FC = () => {
 
   if (!currentUser) return <PageLoader label="Loading user profile..." />;
 
+  const shellProps: ShellProps = {
+    currentPage,
+    setCurrentPage,
+    user: currentUser,
+    theme,
+    setTheme,
+    isPrivacyMode,
+    togglePrivacyMode: () => setIsPrivacyMode(!isPrivacyMode),
+    isSyncing: isSyncingBanks,
+    onSync: handleSyncAllEnableBankingConnections,
+    onSearch: () => setIsCommandCenterOpen(true),
+    onCreate: () => setIsQuickAddTxModalOpen(true),
+    onLogout: handleLogout,
+    notifications: (
+      <NotificationCenter
+        notifications={upcomingBillNotifications}
+        notificationCount={notificationCount}
+        onDismiss={dismissNotification}
+        onClearAll={clearAllNotifications}
+        onProcessItem={handleNotificationProcessItem}
+        setCurrentPage={setCurrentPage}
+      />
+    ),
+  };
+
   return (
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
       <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
-        <Toaster position="top-center" expand={true} richColors closeButton />
-        <div className={`flex h-screen relative bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
-          {/* CANVAS (Mathematical Radial Bloom Ambient Background matching had-homeassistantdashboard) */}
-          <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-            {ambientLayers.map((layer, index) => {
-              const isTop = index === ambientLayers.length - 1;
-              return (
-                <div
-                  key={layer.id}
-                  className={`absolute inset-0 transform-gpu will-change-[opacity] transition-opacity duration-700 ease-in-out ${
-                    isTop ? 'opacity-100' : 'opacity-0'
-                  }`}
-                  style={{
-                    backgroundImage: layer.gradient,
-                  }}
-                />
-              );
-            })}
-          </div>
-          <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            <HeaderProvider
-              value={{
-                onOpenSidebar: () => setSidebarOpen(true),
-                onOpenSearch: () => setIsCommandCenterOpen(true),
-                notificationCenter: (
-                  <NotificationCenter
-                    notifications={upcomingBillNotifications}
-                    notificationCount={notificationCount}
-                    onDismiss={dismissNotification}
-                    onClearAll={clearAllNotifications}
-                    onProcessItem={handleNotificationProcessItem}
-                    setCurrentPage={setCurrentPage}
-                  />
-                ),
-              }}
-            >
-              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pt-5 md:pt-7 lg:pt-8 relative scroll-smooth focus:outline-none pb-28 md:pb-8 scroll-touch safe-top" id="main-content">
-                <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
-                  <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={currentPage + (viewingAccountId || '') + (viewingHoldingSymbol || '')}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.15, ease: 'easeInOut' }}
-                        className="mt-3 md:mt-5"
-                      >
-                        {renderPage()}
-                      </motion.div>
-                    </AnimatePresence>
-                  </Suspense>
-                </ErrorBoundary>
-              </main>
-            </HeaderProvider>
-          </div>
-          <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} onLogout={handleLogout} />
+        <Toaster
+          position="bottom-center"
+          duration={5000}
+          closeButton
+          offset={{ bottom: 'var(--toast-bottom)' }}
+          mobileOffset={{ bottom: 'var(--toast-phone-bottom)', left: '16px', right: '16px' }}
+          style={{ '--normal-bg': 'var(--surface)', '--normal-border': 'var(--line)', '--normal-text': 'var(--ink)', '--border-radius': 'var(--radius-lg)' } as React.CSSProperties}
+        />
+        <div className={`flex h-dvh flex-col bg-canvas text-ink font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
+          <SkipLink />
+          <header className="safe-top shrink-0">
+            {isPhone ? <PhoneTopBar {...shellProps} /> : <TopBar {...shellProps} />}
+            <TabRow currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          </header>
+          {!isPhone && <ToolRail {...shellProps} />}
+          <main className="relative min-h-0 flex-1 overflow-y-auto scroll-touch focus:outline-none" id="main-content" tabIndex={-1}>
+            <div className="mx-auto w-full max-w-[1488px] px-4 pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-4 md:pb-8 md:pl-[84px] md:pr-6 md:pt-6 lg:pl-[96px] lg:pr-8 lg:pt-8">
+              <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
+                <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentPage + (viewingAccountId || '') + (viewingHoldingSymbol || '')}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.15, ease: 'easeInOut' }}
+                    >
+                      {renderPage()}
+                    </motion.div>
+                  </AnimatePresence>
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+          </main>
+          {isPhone && <PhoneBar {...shellProps} />}
           {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
           <CommandCenter
             isOpen={isCommandCenterOpen}
