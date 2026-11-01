@@ -372,11 +372,11 @@ function AnimatedNode({
   });
 
   const nameClass = labelLayouts.isInside
-    ? "fill-white font-bold text-xs drop-shadow-sm"
+    ? "fill-ink font-bold text-xs [paint-order:stroke] [stroke:var(--solid)] [stroke-width:3px]"
     : "fill-gray-900 dark:fill-gray-100 font-bold text-xs";
 
   const valueClass = labelLayouts.isInside
-    ? "fill-white/90 font-medium text-2xs"
+    ? "fill-ink font-medium text-2xs [paint-order:stroke] [stroke:var(--solid)] [stroke-width:3px]"
     : "fill-gray-600 dark:fill-gray-400 font-semibold text-xs";
 
   return (

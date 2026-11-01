@@ -1,705 +1,214 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { Invoice, InvoiceItem, InvoiceType, InvoiceDirection, InvoiceStatus, Currency } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
-import { v4 as uuidv4 } from 'uuid';
-import { formatCurrency, toLocalISOString } from '../utils';
-import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
-import Icon from './ui/Icon';
-import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
+import React, { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
+import type { Currency, Invoice, InvoiceDirection, InvoiceItem, InvoiceStatus, InvoiceType } from '../types';
+import { CURRENCY_OPTIONS } from '../constants';
+import { formatCurrency, toLocalISOString } from '../utils';
+import { documentNumber, documentTotals, INVOICE_STATUSES, lineTotal, QUOTE_STATUSES, STATUS_LABELS } from '../utils/invoicesModel';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { BrandMark } from './ServiceCard';
+import { Button, IconButton } from './ui/Actions';
+import { AmountInput, DateInput, Textarea, TextInput } from './ui/Fields';
+import { FullPanel } from './ui/Overlays';
+import { Select } from './ui/Pickers';
+import SegmentedControl from './ui/SegmentedControl';
 
 interface InvoiceModalProps {
-  isOpen: boolean;
   onClose: () => void;
   onSave: (invoice: Omit<Invoice, 'id'> & { id?: string }) => void;
   invoice?: Invoice | null;
   initialType?: InvoiceType;
 }
 
-const STATUS_OPTIONS: InvoiceStatus[] = ['draft', 'sent', 'paid', 'overdue', 'accepted', 'rejected'];
+/** A line while it's being typed. Numbers stay text until saving, so "1." doesn't jump. */
+type DraftLine = Omit<InvoiceItem, 'quantity' | 'unitPrice' | 'discountPercent' | 'total'> & { quantity: string; unitPrice: string; discountPercent: string };
 
-const STATUS_CONFIG: Record<InvoiceStatus, { label: string; icon: string; color: string }> = {
-  draft: { label: 'Draft', icon: 'edit', color: 'text-gray-500 bg-gray-500/10 border-gray-500/20' },
-  sent: { label: 'Sent', icon: 'send', color: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
-  paid: { label: 'Paid', icon: 'check_circle', color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
-  overdue: { label: 'Overdue', icon: 'warning', color: 'text-rose-500 bg-rose-500/10 border-rose-500/20' },
-  accepted: { label: 'Accepted', icon: 'verified', color: 'text-teal-500 bg-teal-500/10 border-teal-500/20' },
-  rejected: { label: 'Rejected', icon: 'cancel', color: 'text-rose-500 bg-rose-500/10 border-rose-500/20' },
-};
+const TYPES = [{ id: 'invoice', label: 'Invoice' }, { id: 'quote', label: 'Quote' }];
+const DIRECTIONS = [{ id: 'sent', label: 'You bill them' }, { id: 'received', label: 'They bill you' }];
+const CURRENCIES = CURRENCY_OPTIONS.map(option => ({ id: option.split(' ')[0], label: option }));
 
-const InvoiceModal: React.FC<InvoiceModalProps> = ({
-  isOpen,
-  onClose,
-  onSave,
-  invoice,
-  initialType = 'invoice',
-}) => {
-  const dialogRef = useDialogA11y<HTMLDivElement>();
+const blankLine = (): DraftLine => ({ id: uuidv4(), description: '', quantity: '1', unitPrice: '', discountPercent: '' });
+const toNumbers = (line: DraftLine) => ({ quantity: parseFloat(line.quantity) || 0, unitPrice: parseFloat(line.unitPrice) || 0, discountPercent: parseFloat(line.discountPercent) || 0 });
+
+const Section: React.FC<{ title: string; aside?: React.ReactNode; children: React.ReactNode }> = ({ title, aside, children }) => (
+  <section aria-label={title} className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-4">
+    <div className="flex min-h-9 items-center justify-between gap-2">
+      <h3 className="type-card-title text-ink">{title}</h3>
+      {aside}
+    </div>
+    {children}
+  </section>
+);
+
+/** Rapport's sectioned invoice form: a full panel, and a full-height sheet on phones (`DOC-03`). */
+const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, initialType = 'invoice' }) => {
+  const defaultCurrency = usePreferencesSelector(p => ((p.currency || 'EUR').split(' ')[0] as Currency) || 'EUR');
   const isEditing = !!invoice;
-  const preferences = usePreferencesSelector((p) => p);
-  const brandfetchClientId = preferences.brandfetchClientId || '';
-  const merchantLogoOverrides = preferences.merchantLogoOverrides || {};
+  const initial = useRef({
+    type: invoice?.type ?? initialType,
+    direction: invoice?.direction ?? ('sent' as InvoiceDirection),
+    status: invoice?.status ?? ('draft' as InvoiceStatus),
+    number: invoice?.number ?? documentNumber(initialType, Date.now()),
+    date: invoice?.date ?? toLocalISOString(new Date()),
+    dueDate: invoice?.dueDate ?? '',
+    currency: invoice?.currency ?? defaultCurrency,
+    entityName: invoice?.entityName ?? '',
+    entityEmail: invoice?.entityEmail ?? '',
+    entityAddress: invoice?.entityAddress ?? '',
+    taxRate: invoice?.taxRate ? String(invoice.taxRate) : '',
+    globalDiscount: invoice?.globalDiscountValue ? String(invoice.globalDiscountValue) : '',
+    notes: invoice?.notes ?? '',
+    lines: invoice?.items.length
+      ? invoice.items.map(({ total: _total, ...item }) => ({ ...item, quantity: String(item.quantity), unitPrice: String(item.unitPrice), discountPercent: item.discountPercent ? String(item.discountPercent) : '' }))
+      : [blankLine()],
+  });
+  const [draft, setDraft] = useState(initial.current);
+  const update = (patch: Partial<typeof draft>) => setDraft(prev => ({ ...prev, ...patch }));
+  const updateLine = (id: string, patch: Partial<DraftLine>) => update({ lines: draft.lines.map(line => (line.id === id ? { ...line, ...patch } : line)) });
 
-  // Core State
-  const [type, setType] = useState<InvoiceType>(initialType);
-  const [direction, setDirection] = useState<InvoiceDirection>('sent');
-  const [status, setStatus] = useState<InvoiceStatus>('draft');
-  const [number, setNumber] = useState('');
-  const [date, setDate] = useState(toLocalISOString(new Date()));
-  const [dueDate, setDueDate] = useState('');
-  const [currency, setCurrency] = useState<Currency>('EUR');
+  const totals = useMemo(() => documentTotals(draft.lines.map(toNumbers), parseFloat(draft.globalDiscount) || 0, parseFloat(draft.taxRate) || 0), [draft.lines, draft.globalDiscount, draft.taxRate]);
+  const statuses = draft.type === 'quote' ? QUOTE_STATUSES : INVOICE_STATUSES;
+  const statusOptions = [...statuses, ...(statuses.includes(draft.status) ? [] : [draft.status])].map(id => ({ id, label: STATUS_LABELS[id] }));
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(initial.current);
 
-  // Entity State
-  const [entityName, setEntityName] = useState('');
-  const [entityEmail, setEntityEmail] = useState('');
-  const [entityAddress, setEntityAddress] = useState('');
-  const [logoLoadError, setLogoLoadError] = useState(false);
-
-  // Items State
-  const [items, setItems] = useState<InvoiceItem[]>([]);
-
-  // Totals State
-  const [taxRate, setTaxRate] = useState('');
-  const [globalDiscount, setGlobalDiscount] = useState('');
-  const [notes, setNotes] = useState('');
-
-  // Drawer Animation State
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      if (invoice) {
-        setType(invoice.type);
-        setDirection(invoice.direction);
-        setStatus(invoice.status);
-        setNumber(invoice.number);
-        setDate(invoice.date);
-        setDueDate(invoice.dueDate || '');
-        setCurrency(invoice.currency);
-        setEntityName(invoice.entityName);
-        setEntityEmail(invoice.entityEmail || '');
-        setEntityAddress(invoice.entityAddress || '');
-        setItems(invoice.items.map((i) => ({ ...i })));
-        setTaxRate(invoice.taxRate ? String(invoice.taxRate) : '');
-        setGlobalDiscount(invoice.globalDiscountValue ? String(invoice.globalDiscountValue) : '');
-        setNotes(invoice.notes || '');
-      } else {
-        setType(initialType);
-        setDirection('sent');
-        setStatus('draft');
-        setNumber(`${initialType === 'quote' ? 'QT' : 'INV'}-${Date.now().toString().slice(-6)}`);
-        setDate(toLocalISOString(new Date()));
-        setDueDate('');
-        setCurrency(((preferences.currency || 'EUR').split(' ')[0] as Currency) || 'EUR');
-        setEntityName('');
-        setEntityEmail('');
-        setEntityAddress('');
-        setItems([{ id: uuidv4(), description: '', quantity: 1, unitPrice: 0, total: 0, discountPercent: 0 }]);
-        setTaxRate('');
-        setGlobalDiscount('');
-        setNotes('');
-      }
-      setLogoLoadError(false);
-
-      const timer = setTimeout(() => setIsVisible(true), 20);
-      return () => clearTimeout(timer);
-    } else {
-      setIsVisible(false);
-    }
-  }, [isOpen, invoice, initialType, preferences.currency]);
-
-  // Handle ESC key press
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && isOpen) {
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(onClose, 250);
+  const changeType = (type: InvoiceType) => {
+    const statusFits = (type === 'quote' ? QUOTE_STATUSES : INVOICE_STATUSES).includes(draft.status);
+    update({ type, status: statusFits ? draft.status : 'draft', number: isEditing ? draft.number : documentNumber(type, Date.now()) });
   };
 
-  // Recalculate totals
-  const totals = useMemo(() => {
-    const subtotal = items.reduce(
-      (sum, item) => sum + (item.quantity * item.unitPrice * (1 - (item.discountPercent || 0) / 100)),
-      0
-    );
-    const disc = parseFloat(globalDiscount) || 0;
-    const taxPercent = parseFloat(taxRate) || 0;
-    const taxableAmount = Math.max(0, subtotal - disc);
-    const taxAmount = taxableAmount * (taxPercent / 100);
-    const total = taxableAmount + taxAmount;
-    return { subtotal, taxAmount, total };
-  }, [items, globalDiscount, taxRate]);
+  const removeLine = (id: string) => update({ lines: draft.lines.length > 1 ? draft.lines.filter(line => line.id !== id) : [blankLine()] });
 
-  const handleItemChange = (id: string, field: keyof InvoiceItem, value: string | number) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const updated = { ...item, [field]: value };
-          updated.total = updated.quantity * updated.unitPrice * (1 - (updated.discountPercent || 0) / 100);
-          return updated;
-        }
-        return item;
+  const save = () => {
+    if (!draft.entityName.trim()) {
+      toast.error(draft.direction === 'sent' ? 'Add who this is for' : 'Add who this is from');
+      return;
+    }
+    if (!draft.number.trim() || !draft.date) {
+      toast.error('Add a number and a date');
+      return;
+    }
+    const items: InvoiceItem[] = draft.lines
+      .map(line => {
+        const numbers = toNumbers(line);
+        return { ...line, ...numbers, total: lineTotal(numbers.quantity, numbers.unitPrice, numbers.discountPercent) };
       })
-    );
-  };
-
-  const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
-      { id: uuidv4(), description: '', quantity: 1, unitPrice: 0, total: 0, discountPercent: 0 },
-    ]);
-  };
-
-  const handleRemoveItem = (id: string) => {
-    if (items.length <= 1) {
-      setItems([{ id: uuidv4(), description: '', quantity: 1, unitPrice: 0, total: 0, discountPercent: 0 }]);
-      return;
-    }
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  };
-
-  const handleTypeChange = (newType: InvoiceType) => {
-    setType(newType);
-    if (!isEditing) {
-      setNumber(`${newType === 'quote' ? 'QT' : 'INV'}-${Date.now().toString().slice(-6)}`);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!entityName.trim()) {
-      toast.error('Please specify the recipient / client entity name.');
-      return;
-    }
-
+      .filter(item => item.description.trim() || item.unitPrice > 0);
     onSave({
       id: invoice?.id,
-      type,
-      direction,
-      status,
-      number,
-      date,
-      dueDate: dueDate || undefined,
-      currency,
-      entityName: entityName.trim(),
-      entityEmail: entityEmail.trim() || undefined,
-      entityAddress: entityAddress.trim() || undefined,
-      items: items.filter((i) => i.description.trim() || i.unitPrice > 0),
+      type: draft.type,
+      direction: draft.direction,
+      status: draft.status,
+      number: draft.number.trim(),
+      date: draft.date,
+      dueDate: draft.dueDate || undefined,
+      currency: draft.currency,
+      entityName: draft.entityName.trim(),
+      entityEmail: draft.entityEmail.trim() || undefined,
+      entityAddress: draft.entityAddress.trim() || undefined,
+      items,
       subtotal: totals.subtotal,
-      taxRate: parseFloat(taxRate) || 0,
+      taxRate: parseFloat(draft.taxRate) || 0,
       taxAmount: totals.taxAmount,
-      globalDiscountValue: parseFloat(globalDiscount) || 0,
+      globalDiscountValue: parseFloat(draft.globalDiscount) || 0,
       total: totals.total,
-      notes: notes.trim() || undefined,
+      notes: draft.notes.trim() || undefined,
     });
-    handleClose();
+    onClose();
   };
 
-  const clientLogo = getMerchantLogoUrl(entityName, brandfetchClientId, merchantLogoOverrides, {
-    fallback: 'lettermark',
-    type: 'icon',
-    width: 64,
-    height: 64,
-  });
-  const showLogo = clientLogo && !logoLoadError;
+  const noun = draft.type === 'quote' ? 'quote' : 'invoice';
 
-  const labelStyle =
-    'block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5';
-
-  if (!isOpen) return null;
-
-  const content = (
-    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-        onClick={handleClose}
-      />
-
-      {/* Slide-out Sidebar Drawer Container */}
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 pointer-events-none">
-        <div
-          className={`pointer-events-auto w-screen max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-screen bg-white dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
-            isVisible ? 'translate-x-0' : 'translate-x-full'
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Ambient Top Glow */}
-          <div className="absolute top-0 right-0 left-0 h-40 bg-gradient-to-b from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
-
-          {/* Header matching CategoryModal */}
-          <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-blue-500/5 to-transparent shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-md transition-transform hover:scale-105 ${
-                  type === 'invoice' ? 'bg-blue-600' : 'bg-amber-600'
-                }`}
-              >
-                <Icon name={type === 'invoice' ? 'receipt_long' : 'request_quote'} className="text-2xl" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
-                    {isEditing
-                      ? type === 'invoice'
-                        ? 'Edit Invoice'
-                        : 'Edit Quote'
-                      : type === 'invoice'
-                      ? 'New Invoice'
-                      : 'New Quote'}
-                  </h2>
-                  <span className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
-                    type === 'invoice'
-                      ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                      : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
-                  }`}>
-                    {type}
-                  </span>
-                </div>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
-                  {type === 'invoice'
-                    ? 'Client billing, receivables, and structured invoices'
-                    : 'Price proposals, project estimates, and commercial quotes'}
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={handleClose}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
-              aria-label="Close drawer"
-            >
-              <Icon name="close" className="text-lg" />
-            </button>
-          </div>
-
-          {/* 2. TOP MODE SWITCHER TABS */}
-          <div className="px-6 pt-4 pb-2 shrink-0">
-            <div className="p-1 bg-black/5 dark:bg-white/5 rounded-2xl flex items-center gap-1 border border-black/5 dark:border-white/5">
-              <button
-                type="button"
-                onClick={() => handleTypeChange('invoice')}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  type === 'invoice'
-                    ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
-                }`}
-              >
-                <Icon name="receipt_long" className="text-sm" />
-                <span>Invoice</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTypeChange('quote')}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  type === 'quote'
-                    ? 'bg-white dark:bg-dark-card text-amber-700 dark:text-amber-400 shadow-sm'
-                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
-                }`}
-              >
-                <Icon name="request_quote" className="text-sm" />
-                <span>Quote</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 3. SCROLLABLE FORM BODY */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 custom-scrollbar">
-            <form id="invoice-quote-form" onSubmit={handleSubmit} className="space-y-6">
-              {/* Document Overview & Lifecycle */}
-              <div className="p-5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className={labelStyle}>Document Index</label>
-                    <input
-                      type="text"
-                      value={number}
-                      onChange={(e) => setNumber(e.target.value)}
-                      className={`${INPUT_BASE_STYLE} h-11 font-mono font-bold text-sm`}
-                      placeholder={type === 'quote' ? 'QT-001' : 'INV-001'}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className={labelStyle}>Settlement Currency</label>
-                    <div className={SELECT_WRAPPER_STYLE}>
-                      <select
-                        value={currency}
-                        onChange={(e) => setCurrency(e.target.value as Currency)}
-                        className={`${SELECT_STYLE} h-11 font-bold`}
-                      >
-                        <option value="EUR">EUR (€)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="CHF">CHF (CHF)</option>
-                        <option value="CAD">CAD ($)</option>
-                      </select>
-                      <div className={SELECT_ARROW_STYLE}>
-                        <Icon name="expand_more" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className={labelStyle}>Direction</label>
-                    <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 h-11">
-                      <button
-                        type="button"
-                        onClick={() => setDirection('sent')}
-                        className={`flex-1 text-xs font-bold rounded-lg transition-all ${
-                          direction === 'sent'
-                            ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
-                            : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
-                      >
-                        Receivable (Sent)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDirection('received')}
-                        className={`flex-1 text-xs font-bold rounded-lg transition-all ${
-                          direction === 'received'
-                            ? 'bg-white dark:bg-dark-card text-rose-700 dark:text-rose-400 shadow-sm'
-                            : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
-                      >
-                        Payable (Recv)
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status Pills */}
-                <div>
-                  <label className={labelStyle}>Lifecycle Status</label>
-                  <div className="flex flex-wrap gap-2">
-                    {STATUS_OPTIONS.map((st) => {
-                      const cfg = STATUS_CONFIG[st];
-                      const isSelected = status === st;
-                      return (
-                        <button
-                          key={st}
-                          type="button"
-                          onClick={() => setStatus(st)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
-                            isSelected
-                              ? `${cfg.color} shadow-sm scale-105`
-                              : 'border-black/5 dark:border-white/5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                          }`}
-                        >
-                          <Icon name={cfg.icon} className="text-xs" />
-                          <span>{cfg.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Date emission & due date */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-black/5 dark:border-white/5">
-                  <div>
-                    <label className={labelStyle}>Emission Date</label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className={`${INPUT_BASE_STYLE} h-11 font-medium`}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className={labelStyle}>Maturity / Expiry Date</label>
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className={`${INPUT_BASE_STYLE} h-11 font-medium`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Entity / Recipient Profile */}
-              <div className="p-5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-light-text dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Icon name="corporate_fare" className="text-blue-500" />
-                    <span>Client / Counterparty Entity</span>
-                  </h4>
-                  {showLogo && (
-                    <div className="w-9 h-9 rounded-xl bg-white dark:bg-white/10 shadow-xs overflow-hidden flex items-center justify-center">
-                      <img
-                        src={clientLogo!}
-                        alt={entityName}
-                        className="w-full h-full object-contain p-0 border-0"
-                        onError={() => setLogoLoadError(true)}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelStyle}>Company / Client Name</label>
-                    <input
-                      type="text"
-                      value={entityName}
-                      onChange={(e) => {
-                        setEntityName(e.target.value);
-                        setLogoLoadError(false);
-                      }}
-                      className={`${INPUT_BASE_STYLE} h-11 font-bold`}
-                      placeholder="e.g. Acme Corp or Jane Doe"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className={labelStyle}>Billing Email</label>
-                    <input
-                      type="email"
-                      value={entityEmail}
-                      onChange={(e) => setEntityEmail(e.target.value)}
-                      className={`${INPUT_BASE_STYLE} h-11`}
-                      placeholder="billing@company.com"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className={labelStyle}>Physical / Tax Address</label>
-                  <input
-                    type="text"
-                    value={entityAddress}
-                    onChange={(e) => setEntityAddress(e.target.value)}
-                    className={`${INPUT_BASE_STYLE} h-11`}
-                    placeholder="123 Business Way, Suite 400, City, Country"
-                  />
-                </div>
-              </div>
-
-              {/* Line Items Builder */}
-              <div className="p-5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-light-text dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Icon name="list_alt" className="text-emerald-500" />
-                    <span>Line Items & Allocation</span>
-                  </h4>
-                  <span className="text-xs font-bold text-gray-400 font-mono">
-                    {items.length} {items.length === 1 ? 'item' : 'items'}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {items.map((item, idx) => (
-                    <div
-                      key={item.id}
-                      className="p-3.5 rounded-xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 space-y-2.5 shadow-2xs group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-black/5 dark:bg-white/10 text-2xs font-mono font-bold flex items-center justify-center text-gray-500 shrink-0">
-                          {idx + 1}
-                        </span>
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                          className={`${INPUT_BASE_STYLE} h-9 !text-xs font-bold flex-1`}
-                          placeholder="Item or service description..."
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="w-8 h-8 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                          title="Remove Line Item"
-                        >
-                          <Icon name="delete" className="text-base" />
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
-                        <div>
-                          <label className="text-2xs font-semibold uppercase text-gray-400 block mb-1">Qty</label>
-                          <input
-                            type="number"
-                            step="any"
-                            value={item.quantity}
-                            onChange={(e) => handleItemChange(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                            className={`${INPUT_BASE_STYLE} h-8 text-xs font-mono font-bold text-right`}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="text-2xs font-semibold uppercase text-gray-400 block mb-1">Unit Rate</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={item.unitPrice}
-                            onChange={(e) => handleItemChange(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                            className={`${INPUT_BASE_STYLE} h-8 text-xs font-mono font-bold text-right`}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="text-2xs font-semibold uppercase text-gray-400 block mb-1">Disc %</label>
-                          <input
-                            type="number"
-                            step="1"
-                            max="100"
-                            min="0"
-                            value={item.discountPercent || ''}
-                            onChange={(e) =>
-                              handleItemChange(item.id, 'discountPercent', parseFloat(e.target.value) || 0)
-                            }
-                            className={`${INPUT_BASE_STYLE} h-8 text-xs font-mono font-bold text-right`}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div className="col-span-3 sm:col-span-1 flex flex-col justify-end text-right">
-                          <span className="text-2xs font-semibold uppercase text-gray-400 block mb-1">Total</span>
-                          <span className="text-xs font-black font-mono text-primary-600 dark:text-primary-400 py-1">
-                            {formatCurrency(item.total, currency)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={handleAddItem}
-                    className="w-full py-3 rounded-xl border border-dashed border-primary-500/30 text-primary-600 dark:text-primary-400 hover:bg-primary-500/5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  >
-                    <Icon name="add" className="text-base" />
-                    <span>Add Line Item</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Financial Recapitulation & Notes */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Notes & Terms */}
-                <div className="p-5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
-                  <label className={labelStyle}>Notes & Payment Terms</label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={6}
-                    className={`${INPUT_BASE_STYLE} !text-xs leading-relaxed p-3 resize-none`}
-                    placeholder="Payment instructions, bank wire info, IBAN, or special contract terms..."
-                  />
-                </div>
-
-                {/* Calculation Summary Card */}
-                <div className="p-5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3.5">
-                  <h4 className="text-xs font-bold text-light-text dark:text-white uppercase tracking-wider">
-                    Ledger Summary
-                  </h4>
-
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between items-center text-gray-500 dark:text-gray-400">
-                      <span>Subtotal</span>
-                      <span className="font-mono font-bold text-light-text dark:text-white">
-                        {formatCurrency(totals.subtotal, currency)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-gray-500 dark:text-gray-400">
-                      <span>Global Discount</span>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={globalDiscount}
-                          onChange={(e) => setGlobalDiscount(e.target.value)}
-                          className="w-20 text-right bg-black/5 dark:bg-white/10 rounded-lg px-2 py-0.5 text-xs font-mono font-bold outline-none"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center text-gray-500 dark:text-gray-400">
-                      <span>Tax / VAT Rate %</span>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={taxRate}
-                          onChange={(e) => setTaxRate(e.target.value)}
-                          className="w-20 text-right bg-black/5 dark:bg-white/10 rounded-lg px-2 py-0.5 text-xs font-mono font-bold outline-none"
-                          placeholder="0%"
-                        />
-                        <span className="text-2xs font-bold">%</span>
-                      </div>
-                    </div>
-
-                    {totals.taxAmount > 0 && (
-                      <div className="flex justify-between items-center text-gray-500 dark:text-gray-400">
-                        <span>Tax Amount</span>
-                        <span className="font-mono font-bold">
-                          {formatCurrency(totals.taxAmount, currency)}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="pt-3 border-t border-black/10 dark:border-white/10 flex justify-between items-baseline">
-                      <span className="text-xs font-black uppercase text-primary-600 dark:text-primary-400">
-                        Grand Total
-                      </span>
-                      <span className="text-xl font-black font-mono text-light-text dark:text-white">
-                        {formatCurrency(totals.total, currency)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
-
-          {/* 4. DRAWER FOOTER */}
-          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={handleClose}
-              className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              form="invoice-quote-form"
-              className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95`}
-            >
-              <span>{isEditing
-                ? type === 'invoice'
-                  ? 'Update Invoice'
-                  : 'Update Quote'
-                : type === 'invoice'
-                ? 'Issue Invoice'
-                : 'Create Quote'}</span>
-              <Icon name="check" className="text-base" />
-            </button>
+  return (
+    <FullPanel
+      isOpen
+      onClose={onClose}
+      title={isEditing ? `Edit ${noun}` : `New ${noun}`}
+      description={draft.number}
+      isDirty={isDirty}
+      footer={close => (
+        <div className="flex items-center justify-between gap-3">
+          <span className="type-figure-row min-w-0 truncate text-ink">{formatCurrency(totals.total, draft.currency)}</span>
+          <div className="flex shrink-0 gap-2">
+            <Button variant="ghost" onPress={close}>Cancel</Button>
+            <Button onPress={save}>{isEditing ? 'Save changes' : `Save ${noun}`}</Button>
           </div>
         </div>
-      </div>
-    </div>
-  );
+      )}
+    >
+      <form className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-[minmax(0,1fr)_300px]" onSubmit={event => { event.preventDefault(); save(); }}>
+        <div className="min-w-0 space-y-4">
+          <Section title="Details">
+            {!isEditing && <SegmentedControl className="w-full" items={TYPES} activeId={draft.type} onChange={id => changeType(id as InvoiceType)} />}
+            <SegmentedControl className="w-full" items={DIRECTIONS} activeId={draft.direction} onChange={id => update({ direction: id as InvoiceDirection })} />
+            <div className="grid grid-cols-2 gap-3 min-[600px]:grid-cols-3">
+              <TextInput label="Number" value={draft.number} onChange={number => update({ number })} />
+              <Select label="Status" options={statusOptions} value={draft.status} onChange={id => update({ status: id as InvoiceStatus })} />
+              <Select className="max-[599px]:col-span-2" label="Currency" options={CURRENCIES} value={draft.currency} onChange={id => update({ currency: id as Currency })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <DateInput label="Date" value={draft.date} onChange={date => update({ date })} />
+              <DateInput label={draft.type === 'quote' ? 'Valid until' : 'Due'} value={draft.dueDate} onChange={dueDate => update({ dueDate })} />
+            </div>
+          </Section>
 
-  return createPortal(content, document.body);
+          <Section title={draft.direction === 'sent' ? 'Client' : 'Supplier'} aside={draft.entityName.trim() ? <BrandMark name={draft.entityName} /> : undefined}>
+            <TextInput label="Name" value={draft.entityName} onChange={entityName => update({ entityName })} autoFocus={!isEditing} />
+            <div className="grid grid-cols-1 gap-3 min-[600px]:grid-cols-2">
+              <TextInput label="Email" type="email" value={draft.entityEmail} onChange={entityEmail => update({ entityEmail })} />
+              <TextInput label="Address" value={draft.entityAddress} onChange={entityAddress => update({ entityAddress })} />
+            </div>
+          </Section>
+
+          <Section title="Lines" aside={<Button variant="secondary" size="sm" icon="add" onPress={() => update({ lines: [...draft.lines, blankLine()] })}>Add line</Button>}>
+            <ul className="divide-y divide-line">
+              {draft.lines.map((line, index) => {
+                const numbers = toNumbers(line);
+                return (
+                  <li key={line.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-end gap-1">
+                      <TextInput className="min-w-0 flex-1" label={`Line ${index + 1}`} value={line.description} onChange={description => updateLine(line.id, { description })} />
+                      <IconButton icon="delete" label={`Remove line ${index + 1}`} tooltipPlacement="left" onPress={() => removeLine(line.id)} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <TextInput label="Quantity" inputMode="decimal" value={line.quantity} onChange={quantity => updateLine(line.id, { quantity })} />
+                      <AmountInput label="Price" value={line.unitPrice} onChange={unitPrice => updateLine(line.id, { unitPrice })} />
+                      <TextInput label="Discount %" inputMode="decimal" value={line.discountPercent} onChange={discountPercent => updateLine(line.id, { discountPercent })} />
+                    </div>
+                    <p className="type-caption text-right text-muted">{formatCurrency(lineTotal(numbers.quantity, numbers.unitPrice, numbers.discountPercent), draft.currency)}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
+        </div>
+
+        <div className="min-w-0 space-y-4 min-[900px]:sticky min-[900px]:top-0 min-[900px]:self-start">
+          <Section title="Total">
+            <dl className="space-y-2">
+              <div className="flex justify-between gap-3"><dt className="type-body text-muted">Subtotal</dt><dd className="type-figure-row text-ink">{formatCurrency(totals.subtotal, draft.currency)}</dd></div>
+              <AmountInput label="Discount" value={draft.globalDiscount} onChange={globalDiscount => update({ globalDiscount })} />
+              <TextInput label="Tax rate (%)" inputMode="decimal" value={draft.taxRate} onChange={taxRate => update({ taxRate })} />
+              <div className="flex justify-between gap-3"><dt className="type-body text-muted">Tax</dt><dd className="type-figure-row text-ink">{formatCurrency(totals.taxAmount, draft.currency)}</dd></div>
+              <div className="flex items-baseline justify-between gap-3 border-t border-line pt-2"><dt className="type-body-strong text-ink">Total</dt><dd className="type-figure-lg text-ink">{formatCurrency(totals.total, draft.currency)}</dd></div>
+            </dl>
+          </Section>
+          <Textarea label="Notes and payment terms" rows={4} value={draft.notes} onChange={notes => update({ notes })} />
+          {!!invoice?.paymentTerms?.length && (
+            <Section title="Payment terms">
+              <ul className="space-y-1">
+                {invoice.paymentTerms.map(term => (
+                  <li key={term.id} className="flex justify-between gap-3">
+                    <span className="type-body min-w-0 truncate text-ink">{term.label}</span>
+                    <span className="type-figure-row shrink-0 text-ink">{formatCurrency(term.amount, draft.currency)}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+        </div>
+      </form>
+    </FullPanel>
+  );
 };
 
 export default InvoiceModal;

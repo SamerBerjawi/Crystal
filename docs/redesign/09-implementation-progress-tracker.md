@@ -17,8 +17,8 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 4 | Accounts | Hub tabs, account frame, one account form | Done |
 | 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Done, with the detail panel left |
 | 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Done, committed on `feat/redesign-planning` |
-| 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Done, uncommitted |
-| 8 | Reports | Reports, Invoices, Challenges | Not started |
+| 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Done, committed on `feat/redesign-investments` |
+| 8 | Reports | Reports, Invoices, Challenges | Done, committed on `feat/redesign-reports` |
 | 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Not started |
 | 10 | Rules | Rebuild (`D-009`), with tests first | Not started |
 | 11 | PIN lock | Idle lock, server-side design (`D-013`) | Not started |
@@ -337,7 +337,7 @@ Module 6 is complete. Tasks, Forecast and Calendar were seen in light at 1440×9
 
 ### Module 7: Investments
 
-**Status:** Done, uncommitted, with the gaps under Not tested.
+**Status:** Done, with the gaps under Not tested.
 
 - One responsive page with Portfolio, Holdings and Activity tabs (`D-025`). `MobileInvestmentsView`, `HoldingDetail` and `AddInvestmentTransactionModal` are gone, and the page went from 1,606 lines to 525.
 - A holding opens in a side panel. `/investments/SYMBOL` still works and opens the same panel.
@@ -349,3 +349,36 @@ Module 6 is complete. Tasks, Forecast and Calendar were seen in light at 1440×9
 - Removing `!mb-0` from the Planning pages and Investments restored the gap under the header, which `space-y` had lost.
 
 **Not tested:** a live Twelve Data quote or web page scan, because the demo has no key. Saving a grant and its instalments. Trade edit. Account rows in the Holdings tab were rendered but their menus weren't run. Light theme was seen at 1440×900 on Portfolio and the holding panel only.
+
+### Module 8: Reports
+
+**Status:** Done, with the gaps under each Not tested.
+
+- Reports is a tile picker and one report at a time, with a "What it says" sentence on each (`D-027`). Phones show the tiles, then a report with a way back.
+- Automatic reports: year to date, this month so far and the five months before. Saved views sit beside them and now sync through preferences, moving over from this browser once (`S-002`).
+- Compared with usual is new: each category against its average over the three periods before, counting only periods with spending.
+- All the sums moved from the page to `utils/reportsModel.ts`, with 14 tests. The page went from 1,351 lines to 254.
+- Four numbers change on purpose (`D-096`): comparisons now cover the same category and merchant as the report, the pace chart follows the account filter, the forecast stops at today, and monthly budgets scale to the period.
+- Cash flow uses design tokens and plain labels, and shows as a list on phones (`D-034`). The Overview widget picks up the same changes.
+
+**Not tested:** with the demo's few recent transactions, Compared with usual, Repeat spending and Unusual payments only showed their empty states in the browser. Their sums are covered by unit tests. Moving real saved views from a browser wasn't run.
+
+**Invoices**
+
+- An aging card (Talvo) sits above a table of documents, with rows on phones. The form is a sectioned full panel (Rapport), and a full-height sheet on phones.
+- All the sums moved to `utils/invoicesModel.ts`, with 10 tests. The page went from 386 lines to 210, and the form from 705 to 214.
+- Four sums change on purpose (`D-097`): totals convert to EUR, bills you received count as what you owe rather than income, Paid this month checks the year, and a sent invoice past its due date reads as overdue without changing what's saved.
+- Saving shows the list the document belongs to. A new quote used to save out of sight when Invoices was showing.
+- Turning an accepted quote into an invoice now asks first, because it could create a duplicate. Payment terms stay read-only, as no editor existed (`DOC-06`).
+- Ten documents per page became Show more.
+
+**Not tested on Invoices:** a mixed-currency list, and the aging buckets beyond Not due yet, in the browser. Unit tests cover both. Editing a bill you received, and payment terms, weren't run.
+
+**Challenges**
+
+- All seven functions stay, in calm tabs: Score, Debts and goals, Badges, Budgets, Sprints, Predictions and Records (`D-029`). The battle styling, hit points and levels on debts are gone. Badge and sprint names keep some character (`S-005`).
+- The sums moved to `utils/challengesModel.ts`, with 15 tests. The page went from 1,164 lines to 311.
+- Four faults are fixed (`D-098`): sprints match categories by words, Forecaster unlocks when you make a prediction, a prediction's card and result use the same value, and over-budget categories no longer read Novice.
+- A price prediction shows in the holding's currency.
+
+**Not tested on Challenges:** a prediction settling after its end date, a sprint failing or completing, and debt payments on a real loan, in the browser. Unit tests cover the first two. Light theme was seen on Score only.

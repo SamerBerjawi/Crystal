@@ -1,181 +1,46 @@
+import React from 'react';
+import type { Currency, Prediction } from '../types';
+import { parseLocalDate } from '../utils';
+import { predictionState } from '../utils/challengesModel';
+import { IconButton } from './ui/Actions';
+import { Badge } from './ui/Display';
+import { Amount } from './ui/Money';
 
-import React, { useMemo } from 'react';
-import Card from './Card';
-import { Prediction, Transaction, Account } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, calculateAccountTotals } from '../utils';
-import Icon from './ui/Icon';
+const KIND_LABELS: Record<Prediction['type'], string> = { spending_cap: 'Spending limit', net_worth_goal: 'Net worth', price_target: 'Price' };
+const BAR_TONES = { positive: 'var(--money-in)', negative: 'var(--money-out)', attention: 'var(--amber)', blue: 'var(--chart-1)', neutral: 'var(--muted)' };
 
 interface PredictionCardProps {
-    prediction: Prediction;
-    transactions: Transaction[];
-    accounts: Account[];
-    onDelete: (id: string) => void;
-    manualPrice?: number | null; // For price_target predictions
+  prediction: Prediction;
+  /** Null until a holding has a price. */
+  value: number | null;
+  currency: Currency;
+  onDelete: (id: string) => void;
 }
 
-const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transactions, accounts, onDelete, manualPrice }) => {
-    const isSpending = prediction.type === 'spending_cap';
-    const isPriceTarget = prediction.type === 'price_target';
-    const isActive = prediction.status === 'active';
-
-    const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
-    const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
-    const analyticsTransactions = useMemo(
-        () => transactions.filter(tx => analyticsAccountIds.has(tx.accountId)),
-        [transactions, analyticsAccountIds]
-    );
-
-    // Calculate Current/Final Value
-    const currentValue = useMemo(() => {
-        if (!isActive && prediction.finalAmount !== undefined) {
-            return prediction.finalAmount;
-        }
-
-        if (isSpending) {
-            const start = parseLocalDate(prediction.startDate);
-            // If active, calc until now.
-            const now = new Date();
-
-            return analyticsTransactions
-                .filter(tx => {
-                    const d = parseLocalDate(tx.date);
-                    return d >= start && d <= now && tx.type === 'expense' && !tx.transferId && tx.category === prediction.targetName;
-                })
-                .reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
-        } else if (isPriceTarget) {
-            return manualPrice ?? 0;
-        } else {
-             // Net Worth Goal
-             if (prediction.targetId) {
-                 const acc = analyticsAccounts.find(a => a.id === prediction.targetId);
-                 return acc ? convertToEur(acc.balance, acc.currency) : 0;
-             } else {
-                 const { netWorth } = calculateAccountTotals(analyticsAccounts.filter(a => a.status !== 'closed'), analyticsTransactions);
-                 return netWorth;
-             }
-        }
-    }, [prediction, analyticsTransactions, analyticsAccounts, isActive, isSpending, isPriceTarget, manualPrice]);
-
-    // Status / Progress Logic
-    let progress = 0;
-    if (prediction.targetAmount !== 0) {
-        progress = (currentValue / prediction.targetAmount) * 100;
-    }
-    
-    let statusColor = 'text-gray-500';
-    let progressBarColor = 'bg-gray-500';
-    let statusText = 'Processing';
-    
-    if (isActive) {
-        if (isSpending) {
-            // For spending, lower is better.
-            if (progress > 100) {
-                statusColor = 'text-red-500';
-                progressBarColor = 'bg-red-500';
-                statusText = 'Over Limit';
-            } else if (progress > 80) {
-                statusColor = 'text-amber-500';
-                progressBarColor = 'bg-amber-500';
-                statusText = 'At Risk';
-            } else {
-                statusColor = 'text-emerald-500';
-                progressBarColor = 'bg-emerald-500';
-                statusText = 'On Track';
-            }
-        } else {
-            // For net worth and price target, higher is usually better.
-            if (progress >= 100) {
-                statusColor = 'text-emerald-500';
-                progressBarColor = 'bg-emerald-500';
-                statusText = 'Goal Met';
-            } else if (progress > 80) {
-                 statusColor = 'text-blue-500';
-                 progressBarColor = 'bg-blue-500';
-                 statusText = 'Close';
-            } else {
-                 statusColor = 'text-gray-500';
-                 progressBarColor = 'bg-gray-500';
-                 statusText = 'In Progress';
-            }
-        }
-    } else {
-        // Final Result
-        if (prediction.status === 'won') {
-             statusColor = 'text-emerald-700 dark:text-emerald-400';
-             progressBarColor = 'bg-emerald-500';
-             statusText = 'Won';
-        } else {
-             statusColor = 'text-red-700 dark:text-red-400';
-             progressBarColor = 'bg-red-500';
-             statusText = 'Lost';
-        }
-    }
-
-    const cardBorder = prediction.status === 'won' 
-        ? 'border-emerald-500/40 bg-emerald-500/5' 
-        : prediction.status === 'lost' 
-            ? 'border-rose-500/40 bg-rose-500/5'
-            : '';
-
-    // Badge styling based on type
-    const badgeStyle = isSpending 
-        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
-        : isPriceTarget 
-            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
-            
-    const typeLabel = isSpending ? 'Spending Cap' : isPriceTarget ? 'Price Target' : 'Wealth Goal';
-
-    return (
-        <Card className={`relative overflow-hidden ${cardBorder} transition-all hover:shadow-card hover:-translate-y-0.5 group`}>
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                     <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${badgeStyle}`}>
-                         {typeLabel}
-                     </span>
-                     <h3 className="font-bold text-lg mt-2 truncate max-w-[200px]" title={prediction.targetName}>{prediction.targetName}</h3>
-                </div>
-                
-                {/* Result Badge */}
-                {!isActive && (
-                    <div className={`rotate-12 px-3 py-1 border-2 font-black tracking-widest text-sm rounded-lg ${prediction.status === 'won' ? 'border-emerald-500 text-emerald-600 bg-white/80 dark:bg-black/60' : 'border-red-500 text-red-600 bg-white/80 dark:bg-black/60'}`}>
-                        {prediction.status}
-                    </div>
-                )}
-                {isActive && (
-                    <button onClick={() => onDelete(prediction.id)} className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
-                        <Icon name="close" className="text-sm" />
-                    </button>
-                )}
-            </div>
-
-            <div className="space-y-2">
-                 <div className="flex justify-between items-end">
-                     <span className="text-2xl font-black font-mono tracking-tight">{formatCurrency(currentValue, 'EUR')}</span>
-                     <span className="text-xs font-mono text-light-text-secondary dark:text-dark-text-secondary mb-1">Target: {formatCurrency(prediction.targetAmount, 'EUR')}</span>
-                 </div>
-                 
-                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
-                     <div className={`h-full ${progressBarColor} transition-all duration-1000`} style={{ width: `${Math.min(100, progress)}%` }}></div>
-                 </div>
-                 
-                 <div className="flex justify-between items-center text-xs font-medium pt-1">
-                     <span className={statusColor}>{statusText}</span>
-                     <span className="text-light-text-secondary dark:text-dark-text-secondary">
-                         {isActive ? `Ends ${parseLocalDate(prediction.endDate).toLocaleDateString()}` : `Ended ${parseLocalDate(prediction.endDate).toLocaleDateString()}`}
-                     </span>
-                 </div>
-            </div>
-            
-            {prediction.status === 'won' && (
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                        <Icon name="emoji_events" className="text-8xl text-emerald-500" />
-                    </div>
-                </div>
-            )}
-        </Card>
-    );
+const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, value, currency, onDelete }) => {
+  const shown = prediction.status === 'active' ? value ?? 0 : prediction.finalAmount ?? value ?? 0;
+  const state = predictionState(prediction, shown);
+  const endDate = parseLocalDate(prediction.endDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return (
+    <article className="surface-card min-w-0 rounded-[var(--radius-xl)] p-5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="type-caption text-muted">{KIND_LABELS[prediction.type]}</p>
+          <h3 className="type-body-strong truncate text-ink">{prediction.targetName}</h3>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <Badge tone={state.tone}>{state.label}</Badge>
+          <IconButton icon="delete" label={`Delete prediction on ${prediction.targetName}`} tooltipPlacement="left" onPress={() => onDelete(prediction.id)} />
+        </div>
+      </div>
+      <div className="mt-3 flex items-baseline justify-between gap-3">
+        <span className="type-figure-row text-ink">{value === null && prediction.status === 'active' ? 'No price yet' : <Amount value={shown} currency={currency} />}</span>
+        <span className="type-caption shrink-0 text-muted">of <Amount value={prediction.targetAmount} currency={currency} /></span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-inset"><div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, state.progress))}%`, background: BAR_TONES[state.tone] }} /></div>
+      <p className="type-caption mt-2 text-muted">{prediction.status === 'active' ? `Ends ${endDate}` : `Ended ${endDate}`}</p>
+    </article>
+  );
 };
 
 export default PredictionCard;

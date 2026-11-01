@@ -638,6 +638,7 @@ export interface InvestmentPriceConfig {
 }
 
 export interface AppPreferences {
+  savedReportViews?: import('./utils/reportsModel').SavedReportView[];
   currency: string;
   displayCurrency?: Currency;
   financialYearStartMonth?: number; // 1-12 (1 = Jan, 4 = April)

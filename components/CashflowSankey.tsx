@@ -3,7 +3,7 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip } from '@/src/components/charts/sankey';
 import { Transaction, Category } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
-import Icon from './ui/Icon';
+import SegmentedControl from './ui/SegmentedControl';
 
 interface CashflowSankeyProps {
   transactions: Transaction[];
@@ -11,6 +11,7 @@ interface CashflowSankeyProps {
   expenseCategories: Category[];
 }
 
+const VIEWS = [{ id: 'category', label: 'Categories' }, { id: 'detailed', label: 'Subcategories' }];
 const OTHER_LABEL = 'Misc';
 const MAX_SUBS_PER_CAT = 5;
 
@@ -32,9 +33,9 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     return () => observer.disconnect();
   }, []);
 
-  const COLOR_HUB = isDarkMode ? '#818CF8' : '#4F46E5';
-  const COLOR_SAVINGS = isDarkMode ? '#34D399' : '#059669';
-  const COLOR_DEFICIT = isDarkMode ? '#FBBF24' : '#D97706';
+  const COLOR_HUB = 'var(--chart-1)';
+  const COLOR_SAVINGS = 'var(--money-in)';
+  const COLOR_DEFICIT = 'var(--amber)';
 
   const { data, nodeColors, totalFlow } = useMemo(() => {
     const nodes: { name: string; category?: 'source' | 'landing' | 'outcome'; color: string }[] = [];
@@ -93,7 +94,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     const capitalDrawdown = Math.max(0, totalExpense - totalIncome);
     const flowVolume = Math.max(totalIncome, totalExpense);
 
-    const hubIdx = addNode('Cashflow Hub', COLOR_HUB, 'landing');
+    const hubIdx = addNode('Your money', COLOR_HUB, 'landing');
 
     incMap.forEach((subs, parentName) => {
       const pColor = getCategoryColor(parentName, incomeCategories);
@@ -125,7 +126,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     });
 
     if (capitalDrawdown > 0) {
-      const drawIdx = addNode('Capital Drawdown', COLOR_DEFICIT, 'source');
+      const drawIdx = addNode('From savings', COLOR_DEFICIT, 'source');
       addLink(drawIdx, hubIdx, capitalDrawdown);
     }
 
@@ -159,7 +160,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     });
 
     if (netSurplus > 0) {
-      const surplusIdx = addNode('Retained Savings', COLOR_SAVINGS, 'outcome');
+      const surplusIdx = addNode('Left over', COLOR_SAVINGS, 'outcome');
       addLink(hubIdx, surplusIdx, netSurplus);
     }
 
@@ -172,38 +173,14 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
 
   if (totalFlow === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full py-20 text-light-text-secondary opacity-40">
-        <Icon name="account_tree" className="text-5xl mb-2" />
-        <p className="font-medium">No cash flow activity in this period.</p>
-      </div>
+      <p className="type-body py-20 text-center text-muted">No cash flow in this period.</p>
     );
   }
 
   return (
     <div className="h-full w-full flex flex-col relative min-h-[420px]">
-      <div className="flex items-center justify-between mb-2 z-20">
-        <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md ml-auto">
-          <button
-            type="button"
-            onClick={() => setViewMode('category')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${viewMode === 'category'
-                ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm'
-                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
-              }`}
-          >
-            Categories
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('detailed')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${viewMode === 'detailed'
-                ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm'
-                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
-              }`}
-          >
-            Subcategories
-          </button>
-        </div>
+      <div className="z-20 mb-2 flex justify-end">
+        <SegmentedControl items={VIEWS} activeId={viewMode} onChange={id => setViewMode(id as 'detailed' | 'category')} />
       </div>
 
       <div className="flex-1 w-full relative min-h-[360px]">

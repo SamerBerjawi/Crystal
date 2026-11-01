@@ -1,386 +1,210 @@
-
-import React, { useState, useMemo } from 'react';
-import { Invoice, InvoiceType, InvoiceStatus, Currency } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
-import { formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
-import Card from '../components/Card';
-import ConfirmationModal from '../components/ConfirmationModal';
-import { useInvoicesContext, usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
-import PageHeader from '../components/PageHeader';
-import HeaderButton from '../components/HeaderButton';
+import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import type { Currency, Invoice, InvoiceStatus, InvoiceType } from '../types';
+import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
+import { effectiveStatus, INVOICE_STATUSES, invoiceFromQuote, invoiceSummary, QUOTE_STATUSES, STATUS_LABELS, visibleDocuments } from '../utils/invoicesModel';
+import { useInvoicesContext, usePreferencesSelector } from '../contexts/DomainProviders';
+import { useIsMobile } from '../hooks/useIsMobile';
 import InvoiceModal from '../components/InvoiceModal';
-import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
-import Icon from '../components/ui/Icon';
-import HeroMetricCard from '../components/ui/HeroMetricCard';
-import MetricCardRow from '../components/ui/MetricCardRow';
+import PageHeader, { type PageStat } from '../components/PageHeader';
+import { BrandMark } from '../components/ServiceCard';
+import { Button, IconButton } from '../components/ui/Actions';
+import { Badge, ShowMore } from '../components/ui/Display';
+import { TextInput } from '../components/ui/Fields';
+import { Menu, type MenuAction } from '../components/ui/Menu';
+import { Amount } from '../components/ui/Money';
+import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
-import FilterBar from '../components/ui/FilterBar';
+import { EmptyState } from '../components/ui/States';
 
-const STATUS_COLORS: Record<InvoiceStatus, { bg: string, text: string, icon: string }> = {
-    draft: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: 'Edit02' },
-    sent: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400', icon: 'send' },
-    paid: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400', icon: 'check_circle' },
-    overdue: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', icon: 'alert_triangle' },
-    accepted: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', icon: 'check_circle' },
-    rejected: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-400', icon: 'x_circle' },
+const PAGE_SIZE = 10;
+const TYPES = [{ id: 'invoice', label: 'Invoices' }, { id: 'quote', label: 'Quotes' }];
+const STATUS_TONES: Record<InvoiceStatus, 'neutral' | 'blue' | 'positive' | 'negative'> = { draft: 'neutral', sent: 'blue', paid: 'positive', overdue: 'negative', accepted: 'positive', rejected: 'neutral' };
+/** Later buckets get hotter, so colour reads as urgency. */
+const AGING_COLORS: Record<string, string> = { current: 'var(--chart-3)', days30: 'var(--amber)', days60: 'var(--chart-2)', older: 'var(--money-out)' };
+
+const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+const DocumentRow: React.FC<{ doc: Invoice; today: string; isPhone: boolean; menu: MenuAction[]; onOpen: () => void }> = ({ doc, today, isPhone, menu, onOpen }) => {
+  const status = effectiveStatus(doc, today);
+  const due = doc.dueDate ? `Due ${shortDate(doc.dueDate)}` : shortDate(doc.date);
+  const actions = <Menu title={doc.number} trigger={<IconButton icon="more_horiz" label={`Actions for ${doc.number}`} tooltipPlacement="left" />} items={menu} />;
+  const identity = (
+    <span className="flex min-w-0 items-center gap-3">
+      <BrandMark name={doc.entityName} />
+      <span className="min-w-0">
+        <span className="type-body-strong block truncate text-ink">{doc.entityName}</span>
+        <span className="type-caption block truncate text-muted">{doc.number}{doc.direction === 'received' ? ', bill to pay' : ''}</span>
+      </span>
+    </span>
+  );
+
+  if (isPhone) {
+    return (
+      <li className="flex items-center gap-1">
+        <button type="button" onClick={onOpen} className="flex min-h-16 min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 py-1.5 text-left">
+          {identity}
+          <span className="shrink-0 text-right">
+            <span className="type-figure-row block text-ink"><Amount value={doc.total} currency={doc.currency} /></span>
+            <Badge tone={STATUS_TONES[status]}>{STATUS_LABELS[status]}</Badge>
+          </span>
+        </button>
+        {actions}
+      </li>
+    );
+  }
+
+  return (
+    <tr className="border-b border-line last:border-0">
+      <td className="max-w-72 py-2 pr-3"><button type="button" onClick={onOpen} className="block w-full min-w-0 cursor-pointer text-left">{identity}</button></td>
+      <td className="px-3 py-2"><Badge tone={STATUS_TONES[status]}>{STATUS_LABELS[status]}</Badge></td>
+      <td className="type-caption px-3 py-2 text-muted">{due}</td>
+      <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={doc.total} currency={doc.currency} /></td>
+      <td className="py-2 text-right">{actions}</td>
+    </tr>
+  );
 };
 
+/** Talvo's aging above a table of documents. Phones get rows, and editing is a full-height sheet (D-017). */
 const InvoicesPage: React.FC = () => {
-    const { invoices, saveInvoice, deleteInvoice } = useInvoicesContext();
-    const { preferences } = usePreferencesContext();
-    const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-    const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const { invoices, saveInvoice, deleteInvoice } = useInvoicesContext();
+  const rates = usePreferencesSelector(p => p.conversionRates);
+  const isPhone = useIsMobile();
+  const today = toLocalISOString(new Date());
+  const [type, setType] = useState<InvoiceType>('invoice');
+  const [status, setStatus] = useState<InvoiceStatus | 'all'>('all');
+  const [search, setSearch] = useState('');
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const [editor, setEditor] = useState<{ type: InvoiceType; invoice?: Invoice } | null>(null);
+  const [deleting, setDeleting] = useState<Invoice | null>(null);
+  const [converting, setConverting] = useState<Invoice | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'invoices' | 'quotes'>('invoices');
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
-    const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-    const [editorInitialType, setEditorInitialType] = useState<InvoiceType>('invoice');
-    const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
-    const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
-    const PAGE_SIZE = 10;
-    const [pageIndex, setPageIndex] = useState(0);
+  useEffect(() => setShown(PAGE_SIZE), [type, status, search]);
 
-    // Derived Lists
-    const displayedDocs = useMemo(() => {
-        const typeMatch = activeTab === 'invoices' ? 'invoice' : 'quote';
-        return invoices
-            .filter(doc => doc.type === typeMatch)
-            .filter(doc => statusFilter === 'all' || doc.status === statusFilter)
-            .filter(doc => 
-                !searchTerm || 
-                doc.entityName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                doc.number.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            .sort((a,b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
-    }, [invoices, activeTab, statusFilter, searchTerm]);
+  const summary = useMemo(() => invoiceSummary(invoices, today, (amount: number, currency: Currency) => convertToEur(amount, currency, rates)), [invoices, today, rates]);
+  const documents = useMemo(() => visibleDocuments(invoices, type, status, search, today), [invoices, type, status, search, today]);
+  const openTotal = summary.aging.reduce((sum, bucket) => sum + bucket.total, 0);
 
-    const pageCount = Math.max(1, Math.ceil(displayedDocs.length / PAGE_SIZE));
-    const currentPage = Math.min(pageIndex, pageCount - 1);
-    const pagedDocs = useMemo(
-        () => displayedDocs.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
-        [displayedDocs, currentPage]
-    );
-    // Back to the first page whenever the list being paged changes.
-    React.useEffect(() => { setPageIndex(0); }, [activeTab, statusFilter, searchTerm]);
+  const convert = (quote: Invoice) => {
+    saveInvoice(invoiceFromQuote(quote, today, Date.now()));
+    saveInvoice({ ...quote, status: 'accepted' });
+    setType('invoice');
+    setStatus('all');
+    toast.success('Draft invoice created');
+  };
 
-    // Metrics
-    const metrics = useMemo(() => {
-        const typeInvoices = invoices.filter(i => i.type === 'invoice');
-        const typeQuotes = invoices.filter(i => i.type === 'quote');
-        
-        const overdue = typeInvoices.filter(i => i.status === 'overdue').reduce((sum, i) => sum + i.total, 0);
-        const outstanding = typeInvoices.filter(i => i.status === 'sent').reduce((sum, i) => sum + i.total, 0);
-        const paidMonth = typeInvoices
-            .filter(i => i.status === 'paid' && new Date(i.date).getMonth() === new Date().getMonth())
-            .reduce((sum, i) => sum + i.total, 0);
-        
-        const pendingQuotes = typeQuotes.filter(q => q.status === 'sent').reduce((sum, q) => sum + q.total, 0);
+  const save = (doc: Omit<Invoice, 'id'> & { id?: string }) => {
+    saveInvoice(doc);
+    setType(doc.type);
+    setStatus('all');
+  };
 
-        return { overdue, outstanding, paidMonth, pendingQuotes };
-    }, [invoices]);
+  const menuFor = (doc: Invoice): MenuAction[] => [
+    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setEditor({ type: doc.type, invoice: doc }) },
+    ...(doc.type === 'quote' ? [{ id: 'convert', label: 'Turn into invoice', icon: 'receipt', onAction: () => (doc.status === 'accepted' ? setConverting(doc) : convert(doc)) }] : []),
+    { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setDeleting(doc) },
+  ];
 
-    const handleOpenEditor = (type: InvoiceType, invoice?: Invoice) => {
-        setEditorInitialType(type);
-        setEditingInvoice(invoice || null);
-        setIsEditorOpen(true);
-    };
+  const stats: PageStat[] = [
+    { label: 'Paid this month', icon: 'check_circle', value: summary.paidThisMonth, format: 'money', currency: 'EUR' },
+    { label: 'Outstanding', icon: 'schedule', value: summary.outstanding, format: 'money', currency: 'EUR' },
+    { label: 'Overdue', icon: 'warning', value: summary.overdue, format: 'money', currency: 'EUR', ...(summary.overdueCount > 0 ? { badge: `${summary.overdueCount} late`, badgeTone: 'tomato' as const } : {}) },
+  ];
 
-    const handleDelete = () => {
-        if (deletingId) {
-            deleteInvoice(deletingId);
-            setDeletingId(null);
+  const statusItems = [{ id: 'all', label: 'All' }, ...(type === 'quote' ? QUOTE_STATUSES : INVOICE_STATUSES).map(id => ({ id, label: STATUS_LABELS[id] }))];
+
+  return (
+    <div className="space-y-6 pb-8 max-md:space-y-4">
+      <PageHeader
+        title="Invoices"
+        stats={stats}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" onPress={() => setEditor({ type: 'quote' })}>New quote</Button>
+            <Button icon="add" onPress={() => setEditor({ type: 'invoice' })}>New invoice</Button>
+          </div>
         }
-    };
-    
-    const handleConvertToInvoice = (quote: Invoice) => {
-        // Drop the quote's id: keeping it would make saveInvoice overwrite the quote instead of creating an invoice.
-        const { id: _quoteId, ...quoteFields } = quote;
-        const newInvoice: Omit<Invoice, 'id'> = {
-            ...quoteFields,
-            type: 'invoice',
-            status: 'draft',
-            number: `INV-${new Date().getTime().toString().slice(-6)}`,
-            date: toLocalISOString(new Date())
-        };
-        saveInvoice(newInvoice);
-        saveInvoice({ ...quote, status: 'accepted' });
-        setActiveTab('invoices');
-    };
+      />
 
-    const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
-
-    const currencyCode = (preferences.currency.split(' ')[0] as Currency) || 'EUR';
-
-    return (
-        <div className="w-full space-y-10 pb-20 animate-fade-in-up">
-            {isEditorOpen && (
-                <InvoiceModal 
-                    isOpen={isEditorOpen}
-                    invoice={editingInvoice}
-                    initialType={editorInitialType}
-                    onSave={saveInvoice} 
-                    onClose={() => setIsEditorOpen(false)}
-                />
-            )}
-            
-            <ConfirmationModal
-                isOpen={!!deletingId}
-                onClose={() => setDeletingId(null)}
-                onConfirm={handleDelete}
-                title="Deconstruct Financial Record"
-                message="Are you sure you want to permanently excise this document from the ledger? This action cannot be reversed."
-                confirmButtonText="Excision Document"
-            />
-
-            <PageHeader
-                accentColor="indigo"
-                markerIcon="ReceiptCheck"
-                markerLabel="Ledger & Receivables"
-                title="Invoices"
-                stats={[
-                  { label: 'Paid this month', icon: 'check_circle', value: metrics.paidMonth, format: 'money' },
-                  { label: 'Outstanding', icon: 'schedule', value: metrics.outstanding, format: 'money' },
-                  { label: 'Overdue', icon: 'warning', value: metrics.overdue, format: 'money' },
-                ]}
-                actions={
-                    <div className="flex items-center gap-2">
-                        <HeaderButton
-                            variant="secondary"
-                            icon="PlusCircle"
-                            onClick={() => handleOpenEditor('quote')}
-                        >
-                            Draft Quote
-                        </HeaderButton>
-                        <HeaderButton
-                            variant="primary"
-                            icon="PlusCircle"
-                            onClick={() => handleOpenEditor('invoice')}
-                        >
-                            New Invoice
-                        </HeaderButton>
-                    </div>
-                }
-            />
-
-            {/* Financial Intelligence Hub */}
-            <MetricCardRow columns={4}>
-                <HeroMetricCard
-                    variant="primary"
-                    label="Aggregate Billing"
-                    value={formatCurrency(metrics.paidMonth, currencyCode)}
-                    subtext="Total invoices paid (Mo)"
-                    icon="receipt"
-                    iconColor="primary"
-                    privacyBlur
-                />
-                <HeroMetricCard
-                    variant="secondary"
-                    label="Risk Exposure"
-                    value={formatCurrency(metrics.overdue, currencyCode)}
-                    subtext="Active overdue receivables"
-                    icon="alert_triangle"
-                    iconColor={metrics.overdue > 0 ? "rose" : "emerald"}
-                    badgeText={metrics.overdue > 0 ? "At Risk" : "Clear"}
-                    badgeVariant={metrics.overdue > 0 ? "elevated" : "optimal"}
-                    privacyBlur
-                />
-                <HeroMetricCard
-                    variant="secondary"
-                    label="Liquid Pipeline"
-                    value={formatCurrency(metrics.outstanding, currencyCode)}
-                    subtext="Outstanding receivables"
-                    icon="clock"
-                    iconColor="blue"
-                    privacyBlur
-                />
-                <HeroMetricCard
-                    variant="secondary"
-                    label="Quote Velocity"
-                    value={formatCurrency(metrics.pendingQuotes, currencyCode)}
-                    subtext="Active proposals pipeline"
-                    icon="file_text"
-                    iconColor="amber"
-                    privacyBlur
-                />
-            </MetricCardRow>
-
-            {/* Content Switcher & Filters */}
-            <div className="glass-section rounded-[2.5rem] shadow-card overflow-hidden">
-                <div className="p-6 sm:p-8 border-b border-slate-200/60 dark:border-white/5 flex flex-col xl:flex-row gap-6 justify-between items-center bg-transparent">
-                    <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
-                        {/* Tab Switcher */}
-                        <SegmentedControl
-                          items={[
-                            { id: 'invoices', label: 'Invoices', icon: 'receipt_long' },
-                            { id: 'quotes',   label: 'Proposals', icon: 'request_quote' },
-                          ]}
-                          activeId={activeTab}
-                          onChange={(id) => setActiveTab(id as 'invoices' | 'quotes')}
-                          className="w-full md:w-auto"
-                        />
-
-                        <div className="w-full md:w-96">
-                            <FilterBar.Search 
-                                placeholder="Search by identifier or entity..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="w-full xl:w-auto overflow-x-auto no-scrollbar">
-                        <SegmentedControl
-                            items={[
-                                { id: 'all', label: 'All Status' },
-                                ...Object.keys(STATUS_COLORS).map(s => ({
-                                    id: s,
-                                    label: s.charAt(0).toUpperCase() + s.slice(1),
-                                    icon: STATUS_COLORS[s as InvoiceStatus]?.icon,
-                                }))
-                            ]}
-                            activeId={statusFilter}
-                            onChange={(id) => setStatusFilter(id as any)}
-                            scrollable
-                        />
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-900/[0.02] dark:bg-white/[0.02] border-b border-slate-200/60 dark:border-white/5">
-                                <th className="px-6 sm:px-10 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Reference</th>
-                                <th className="px-6 sm:px-10 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Entity Designation</th>
-                                <th className="px-6 sm:px-10 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider hidden md:table-cell">Status Details</th>
-                                <th className="px-6 sm:px-10 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider text-right">Aggregate Total</th>
-                                <th className="px-6 sm:px-10 py-4 w-20"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
-                            {pagedDocs.length > 0 ? (
-                                pagedDocs.map(doc => {
-                                    const statusStyle = STATUS_COLORS[doc.status];
-                                    const logoUrl = getMerchantLogoUrl(doc.entityName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
-                                    const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
-                                    const initial = doc.entityName.charAt(0).toUpperCase();
-
-                                    return (
-                                        <tr 
-                                            key={doc.id} 
-                                            onClick={() => handleOpenEditor(doc.type, doc)}
-                                            className="group hover:bg-primary-500/[0.02] transition-colors cursor-pointer"
-                                        >
-                                            <td className="px-6 sm:px-10 py-6">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors">{doc.number}</span>
-                                                    <span className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">{doc.date}</span>
-                                                    <div className="md:hidden mt-2">
-                                                         <div className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-lg text-xs font-semibold border border-current border-opacity-10 shadow-sm ${statusStyle.bg} ${statusStyle.text}`}>
-                                                             {doc.status}
-                                                         </div>
-                                                     </div>
-                                                 </div>
-                                             </td>
-                                             <td className="px-6 sm:px-10 py-6">
-                                                 <div className="flex items-center gap-4">
-                                                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden transition-transform group-hover:scale-105 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gray-100 dark:bg-white/10 text-gray-400'}`}>
-                                                         {hasLogo ? (
-                                                             <img 
-                                                                 src={logoUrl!} 
-                                                                 alt={doc.entityName} 
-                                                                 className="w-full h-full object-cover p-0 border-0" 
-                                                                 onError={() => handleLogoError(logoUrl!)}
-                                                             />
-                                                         ) : (
-                                                             <span className="font-bold text-lg opacity-40">{initial}</span>
-                                                         )}
-                                                     </div>
-                                                     <div className="flex flex-col gap-1 min-w-0">
-                                                         <span className="font-semibold text-sm text-light-text dark:text-dark-text truncate">{doc.entityName}</span>
-                                                         <span className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary truncate hidden sm:block">Client Identity</span>
-                                                     </div>
-                                                 </div>
-                                             </td>
-                                             <td className="px-6 sm:px-10 py-6 hidden md:table-cell">
-                                                 <div className="flex items-center gap-3">
-                                                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border border-current border-opacity-10 shadow-sm ${statusStyle.bg} ${statusStyle.text}`}>
-                                                         <Icon name={statusStyle.icon} className="text-sm" />
-                                                         {doc.status}
-                                                     </div>
-                                                     {doc.dueDate && (
-                                                          <div className={`flex items-center gap-1.5 text-xs font-normal ${doc.status === 'overdue' ? 'text-rose-500 font-semibold' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-75'}`}>
-                                                             <Icon name={doc.status === 'overdue' ? 'warning' : 'event'} className="text-sm" />
-                                                             Due {parseLocalDate(doc.dueDate).toLocaleDateString()}
-                                                         </div>
-                                                     )}
-                                                 </div>
-                                             </td>
-                                             <td className="px-6 sm:px-10 py-6 text-right">
-                                                 <span className="text-base sm:text-lg font-black font-mono tabular-nums tracking-tight text-light-text dark:text-dark-text privacy-blur">
-                                                     {formatCurrency(doc.total, doc.currency)}
-                                                 </span>
-                                             </td>
-                                             <td className="px-6 sm:px-10 py-6">
-                                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                                                     {doc.type === 'quote' && (
-                                                         <button 
-                                                             onClick={(e) => { e.stopPropagation(); handleConvertToInvoice(doc); }}
-                                                             className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 rounded-2xl transition-all active:scale-90"
-                                                             title="Convert to Invoice"
-                                                             aria-label="Convert to invoice"
-
-                                                         >
-                                                             <Icon name="transform" className="text-xl sm:text-2xl" />
-                                                         </button>
-                                                     )}
-                                                     <button 
-                                                         aria-label={`Delete ${doc.type} ${doc.number}`}
-                                                         onClick={(e) => { e.stopPropagation(); setDeletingId(doc.id); }}
-                                                         className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all active:scale-90"
-                                                     >
-                                                         <Icon name="delete_sweep" className="text-xl sm:text-2xl" />
-                                                     </button>
-                                                 </div>
-                                             </td>
-                                         </tr>
-                                     );
-                                 })
-                             ) : (
-                                 <tr>
-                                     <td colSpan={5} className="px-10 py-32 text-center">
-                                         <div className="flex flex-col items-center gap-6 opacity-20">
-                                             <Icon name="inbox_customize" className="text-8xl" />
-                                             <div className="space-y-1">
-                                                 <p className="text-sm font-semibold uppercase tracking-wider">No Documents Identified</p>
-                                                 <p className="text-xs font-normal">Adjust filters or issue a new record</p>
-                                             </div>
-                                         </div>
-                                     </td>
-                                 </tr>
-                             )}
-                         </tbody>
-                     </table>
-                 </div>
-
-                 <div className="p-6 sm:p-8 bg-transparent border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between">
-                     <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
-                         Showing {displayedDocs.length === 0 ? 0 : currentPage * PAGE_SIZE + 1}–{currentPage * PAGE_SIZE + pagedDocs.length} of {displayedDocs.length} Records
-                         {pageCount > 1 && <span className="ml-2 opacity-70">Page {currentPage + 1} of {pageCount}</span>}
-                     </p>
-                    <div className="flex gap-2">
-                         <button type="button" aria-label="Previous page" onClick={() => setPageIndex(Math.max(0, currentPage - 1))} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-2xl glass-tile text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled={currentPage === 0}>
-                            <Icon name="chevron_left" className="text-2xl" />
-                         </button>
-                         <button type="button" aria-label="Next page" onClick={() => setPageIndex(Math.min(pageCount - 1, currentPage + 1))} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-2xl glass-tile text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled={currentPage >= pageCount - 1}>
-                            <Icon name="chevron_right" className="text-2xl" />
-                         </button>
-                    </div>
-                </div>
+      {invoices.length === 0 ? (
+        <EmptyState icon="receipt" title="No invoices yet" description="Draft a quote or an invoice, and follow it until it's paid." actionLabel="New invoice" onAction={() => setEditor({ type: 'invoice' })} secondaryActionLabel="New quote" onSecondaryAction={() => setEditor({ type: 'quote' })} />
+      ) : (
+        <>
+          <section aria-label="Money owed to you" className="surface-card rounded-[var(--radius-xl)] p-6 max-md:p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+              <h2 className="type-card-title text-ink">Money owed to you</h2>
+              <p className="type-caption text-muted">
+                <Amount value={summary.openQuotes} currency="EUR" /> in open quotes, and you owe <Amount value={summary.youOwe} currency="EUR" />
+              </p>
             </div>
-        </div>
-    );
+            <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full bg-inset" aria-hidden>
+              {summary.aging.filter(bucket => bucket.total > 0).map(bucket => <span key={bucket.id} className="h-full" style={{ width: `${(bucket.total / openTotal) * 100}%`, background: AGING_COLORS[bucket.id] }} />)}
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 min-[900px]:grid-cols-4">
+              {summary.aging.map(bucket => (
+                <div key={bucket.id}>
+                  <dt className="type-label flex items-center gap-1.5 text-muted"><span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: AGING_COLORS[bucket.id] }} />{bucket.label}</dt>
+                  <dd className="type-figure-row text-ink"><Amount value={bucket.total} currency="EUR" /></dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          <section aria-label="Documents" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
+            <div className="flex flex-wrap items-end gap-3">
+              <SegmentedControl items={TYPES} activeId={type} onChange={id => { setType(id as InvoiceType); setStatus('all'); }} />
+              <TextInput className="min-w-0 flex-1 md:max-w-xs" label="Search" placeholder="Name or number" value={search} onChange={setSearch} />
+              <SegmentedControl scrollable items={statusItems} activeId={status} onChange={id => setStatus(id as InvoiceStatus | 'all')} />
+            </div>
+            {documents.length === 0 ? (
+              <p className="type-body py-10 text-center text-muted">Nothing matches this view.</p>
+            ) : isPhone ? (
+              <ul className="mt-2 divide-y divide-line">
+                {documents.slice(0, shown).map(doc => <DocumentRow key={doc.id} doc={doc} today={today} isPhone menu={menuFor(doc)} onOpen={() => setEditor({ type: doc.type, invoice: doc })} />)}
+              </ul>
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[560px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-line text-left">
+                      <th scope="col" className="type-label py-2 pr-3 text-muted">Name</th>
+                      <th scope="col" className="type-label px-3 py-2 text-muted">Status</th>
+                      <th scope="col" className="type-label px-3 py-2 text-muted">Date</th>
+                      <th scope="col" className="type-label px-3 py-2 text-right text-muted">Total</th>
+                      <th scope="col"><span className="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {documents.slice(0, shown).map(doc => <DocumentRow key={doc.id} doc={doc} today={today} isPhone={false} menu={menuFor(doc)} onOpen={() => setEditor({ type: doc.type, invoice: doc })} />)}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <ShowMore remaining={documents.length - shown} onPress={() => setShown(count => count + PAGE_SIZE)} />
+          </section>
+        </>
+      )}
+
+      {editor && <InvoiceModal invoice={editor.invoice} initialType={editor.type} onSave={save} onClose={() => setEditor(null)} />}
+      <ConfirmDialog
+        isOpen={!!deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => { if (deleting) deleteInvoice(deleting.id); setDeleting(null); }}
+        title={`Delete ${deleting?.number ?? 'this document'}?`}
+        message="You can't undo this."
+        confirmLabel="Delete"
+        isDestructive
+      />
+      <ConfirmDialog
+        isOpen={!!converting}
+        onClose={() => setConverting(null)}
+        onConfirm={() => { if (converting) convert(converting); setConverting(null); }}
+        title="Create another invoice?"
+        message="This quote is already accepted, so it may have an invoice."
+        confirmLabel="Create invoice"
+      />
+    </div>
+  );
 };
 
 export default InvoicesPage;
