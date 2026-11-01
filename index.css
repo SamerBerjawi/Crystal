@@ -1382,8 +1382,8 @@ img {
   @media (max-width: 767px) { font-size: 1.625rem; line-height: 2rem; }
 }
 @utility type-sentence {
-  font-size: 1.4375rem; line-height: 2.0625rem; font-weight: 600;
-  @media (max-width: 767px) { font-size: 1.3125rem; line-height: 1.8125rem; }
+  font-size: 1.25rem; line-height: 2rem; font-weight: 600;
+  @media (max-width: 767px) { font-size: 1.125rem; line-height: 1.75rem; }
 }
 @utility type-figure-lg {
   font-size: 1.75rem; line-height: 2.125rem; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums;
