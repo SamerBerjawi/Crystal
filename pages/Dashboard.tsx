@@ -1355,7 +1355,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
             <WrittenSummary
               facts={summaryFacts}
               isPrivate={isPrivate}
-              className="!mt-2 md:!mt-3"
+              className="!mt-8 md:!mt-9"
               onFact={fact => {
                 if (fact === 'bills') setCurrentPage('Schedule & Bills');
                 else if (fact === 'tasks') setCurrentPage('Tasks');
