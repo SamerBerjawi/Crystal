@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, CrystalLogo, BTN_SECONDARY_STYLE } from '../constants';
-import { Theme } from '../types';
-import Icon from '../components/ui/Icon';
+import AuthCard from '../components/AuthCard';
+import { Button, TextLink } from '../components/ui/Actions';
+import { TextInput } from '../components/ui/Fields';
+import { Banner } from '../components/ui/States';
 
 interface SignInProps {
   onSignIn: (email: string, password: string) => void;
@@ -24,144 +24,23 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]">
-      {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 relative z-10 bg-light-card dark:bg-dark-card lg:bg-transparent lg:dark:bg-transparent">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-8">
-            <CrystalLogo showText={false} />
-            <span className="text-2xl font-extrabold tracking-tight text-light-text dark:text-dark-text">Crystal</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-300 mb-2">
-            <Icon name="login" className="text-xl" />
-            <span>Welcome Back</span>
-          </div>
-          <h1 className="text-4xl font-bold text-light-text dark:text-dark-text mb-3 tracking-tight">Sign In</h1>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary text-lg">
-            Securely access your Crystal workspace and continue where you left off.
-          </p>
+    <AuthCard
+      title="Sign in"
+      description="Pick up where you left off."
+      footer={<>No account yet? <TextLink onPress={onNavigateToSignUp}>Create one</TextLink></>}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && <Banner tone="error">{error}</Banner>}
+        <TextInput autoFocus label="Email" type="email" autoComplete="email" isRequired value={email} onChange={setEmail} />
+        <TextInput label="Password" type="password" autoComplete="current-password" isRequired value={password} onChange={setPassword} />
+        <div>
+          <TextLink className="type-caption" onPress={() => setShowResetHelp(shown => !shown)}>Forgot your password?</TextLink>
+          {showResetHelp && <p role="note" className="type-caption mt-1 text-muted">Crystal doesn't send emails, so whoever runs this server resets passwords. Ask them to reset yours.</p>}
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
-              <Icon name="error" className="text-lg mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-sm font-semibold text-light-text dark:text-dark-text">Email</label>
-            <div className="relative">
-                <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`${INPUT_BASE_STYLE} pl-10 !h-12`}
-                    placeholder="name@company.com"
-                    required
-                    autoComplete="email"
-                />
-                <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center">
-                 <label htmlFor="password" className="block text-sm font-semibold text-light-text dark:text-dark-text">Password</label>
-                 <button type="button" onClick={() => setShowResetHelp(v => !v)} aria-expanded={showResetHelp} className="text-xs font-medium text-primary-600 hover:text-primary-500">Forgot password?</button>
-            </div>
-            <div className="relative">
-                <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`${INPUT_BASE_STYLE} pl-10 !h-12`}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="current-password"
-                />
-                <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
-            </div>
-            {showResetHelp && (
-              <p role="note" className="text-xs text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 rounded-xl px-3 py-2.5 leading-relaxed">
-                Crystal doesn't send emails, so passwords are reset by whoever runs this server. Ask your administrator to reset your password.
-              </p>
-            )}
-          </div>
-
-          <button type="submit" className={`${BTN_PRIMARY_STYLE} w-full !py-3.5 !text-base !rounded-xl shadow-lg shadow-primary-500/20 mt-2`} disabled={isLoading}>
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Signing In...</span>
-              </div>
-            ) : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="relative my-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="flex-shrink-0 px-4 text-sm text-gray-500 dark:text-gray-400 font-medium bg-transparent">Or continue with</span>
-          </div>
-        </div>
-
-        <button onClick={onEnterDemoMode} className={`${BTN_SECONDARY_STYLE} w-full !py-3.5 !text-base !rounded-xl flex items-center justify-center gap-2 group`}>
-            <Icon name="science" className="text-primary-500 group-hover:scale-110 transition-transform" />
-            Explore Demo Mode
-        </button>
-
-        <p className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary mt-8">
-          Don't have an account?{' '}
-          <button onClick={onNavigateToSignUp} className="font-bold text-primary-600 hover:text-primary-500 transition-colors">
-            Sign up for free
-          </button>
-        </p>
-      </div>
-
-      {/* Right Side - Visuals */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-gray-900 to-black relative overflow-hidden items-center justify-center p-12">
-        {/* Background Decoration */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary-500/30 rounded-full blur-3xl mix-blend-screen"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl mix-blend-screen"></div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-
-        <div className="relative z-10 max-w-lg text-white">
-            <div className="mb-8 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md text-sm font-medium">
-                <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                Automated Insights
-            </div>
-            <h2 className="text-5xl font-bold mb-6 leading-tight">Clarity for your <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-purple-400">Financial Future.</span></h2>
-            <p className="text-lg text-gray-300 mb-10 leading-relaxed">
-                Stop guessing where your money goes. Crystal combines powerful tracking with granular forecasting to give you a clear vision of your wealth.
-            </p>
-            
-            <div className="grid grid-cols-2 gap-6">
-                <div className="p-5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md shadow-lg shadow-black/10">
-                    <Icon name="show_chart" className="text-3xl text-primary-400 mb-2" />
-                    <h3 className="font-bold text-lg mb-1">Advanced Forecasting</h3>
-                    <p className="text-sm text-gray-300 leading-relaxed">Predict future balances based on recurring habits.</p>
-                </div>
-                <div className="p-5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md shadow-lg shadow-black/10">
-                    <Icon name="account_balance" className="text-3xl text-purple-400 mb-2" />
-                    <h3 className="font-bold text-lg mb-1">Bank Connectivity</h3>
-                    <p className="text-sm text-gray-300 leading-relaxed">Sync with 2,500+ banks across Europe instantly.</p>
-                </div>
-            </div>
-        </div>
-      </div>
-    </div>
+        <Button type="submit" block isBusy={isLoading}>Sign in</Button>
+      </form>
+      <Button variant="secondary" block onPress={onEnterDemoMode}>Explore the demo</Button>
+    </AuthCard>
   );
 };
 

@@ -1,349 +1,229 @@
-
-
-import React, { useState, useEffect } from 'react';
-import { Account, Category, AccountType, Currency, User, AppPreferences, FinancialGoal, RecurringTransaction } from '../types';
-import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
-import Card from './Card';
-import { toLocalISOString, getMainCurrency } from '../utils';
+import React, { useMemo, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { Account, AccountType, AppPreferences, Category, FinancialGoal, RecurringTransaction, User } from '../types';
+import { ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES } from '../constants';
+import { currencySign, normalizeCurrency, toLocalISOString } from '../utils';
+import { categoryPickerOptions } from '../utils/categoryTree';
+import { currencyOptions, currencyPreference } from '../utils/currencies';
+import { parseAmountInput } from '../utils/scheduleModel';
+import { DetailList } from './AccountFrame';
+import { Button } from './ui/Actions';
+import { AmountInput, DateInput, TextInput } from './ui/Fields';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
-import { toast } from 'sonner';
+import { FullPanel } from './ui/Overlays';
+import { Combobox, Select } from './ui/Pickers';
+import SegmentedControl from './ui/SegmentedControl';
+
+const LAST_STEP = 6;
+
+const FLOW_OPTIONS = [
+  { id: 'income', label: 'Income' },
+  { id: 'expense', label: 'Expense' },
+];
+
+const PLAN = [
+  { icon: 'payments', text: 'Choose your main currency' },
+  { icon: 'wallet', text: 'Add your first account' },
+  { icon: 'flag', text: 'Set a goal, if you have one' },
+  { icon: 'sync', text: 'Add something that repeats, if you like' },
+];
+
+const yearFromNow = () => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 1);
+  return toLocalISOString(date);
+};
 
 interface OnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: User;
-  saveAccount: (account: Omit<Account, 'id'>) => void;
-  saveFinancialGoal: (goal: Omit<FinancialGoal, 'id'>) => void;
-  saveRecurringTransaction: (rt: Omit<RecurringTransaction, 'id'>) => void;
+  saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
+  saveFinancialGoal: (goal: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
+  saveRecurringTransaction: (rt: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
   preferences: AppPreferences;
-  setPreferences: (prefs: AppPreferences) => void;
+  setPreferences: React.Dispatch<React.SetStateAction<AppPreferences>>;
   accounts: Account[];
   incomeCategories: Category[];
   expenseCategories: Category[];
 }
 
-const OnboardingModal: React.FC<OnboardingModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  user,
-  saveAccount, 
-  saveFinancialGoal,
-  saveRecurringTransaction,
-  preferences,
-  setPreferences,
-  accounts,
-  incomeCategories,
-  expenseCategories
-}) => {
-  const dialogRef = useDialogA11y<HTMLDivElement>();
+/** Set-up in a full panel. Each record keeps one id, so going back and forward edits it instead of adding another. */
+const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, user, saveAccount, saveFinancialGoal, saveRecurringTransaction, preferences, setPreferences, accounts, incomeCategories, expenseCategories }) => {
   const [step, setStep] = useState(1);
-  const totalSteps = 6;
+  const [ids] = useState(() => ({ account: `acc-${uuidv4()}`, goal: `goal-${uuidv4()}`, recurring: `rec-${uuidv4()}` }));
+  const [isFirstAccount] = useState(accounts.length === 0);
 
-  // Step 2 state
-  const [currencyPref, setCurrencyPref] = useState(preferences.currency);
+  const [currency, setCurrency] = useState(normalizeCurrency(preferences.currency));
 
-  // Step 3 state
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<AccountType>('Checking');
   const [balance, setBalance] = useState('');
-  const [accountCurrency, setAccountCurrency] = useState<Currency>(getMainCurrency());
+  const [chosenAccountCurrency, setChosenAccountCurrency] = useState<string | null>(null);
+  const accountCurrency = chosenAccountCurrency ?? currency;
 
-  // Step 4 state
   const [goalName, setGoalName] = useState('');
   const [goalAmount, setGoalAmount] = useState('');
-  const [goalDate, setGoalDate] = useState(() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() + 1);
-    return toLocalISOString(d);
-  });
-  const [paymentAccountId, setPaymentAccountId] = useState<string>('');
-  
-  // Step 5 state
+  const [goalDate, setGoalDate] = useState(yearFromNow);
+  const [paymentAccountId, setPaymentAccountId] = useState<string | null>(null);
+
   const [rtDescription, setRtDescription] = useState('');
   const [rtAmount, setRtAmount] = useState('');
   const [rtType, setRtType] = useState<'income' | 'expense'>('income');
-  const [rtAccountId, setRtAccountId] = useState<string>('');
-  const [rtCategory, setRtCategory] = useState('');
+  const [rtAccountId, setRtAccountId] = useState<string | null>(null);
+  const [rtCategory, setRtCategory] = useState<string | null>(null);
+  const [savedGoal, setSavedGoal] = useState(false);
+  const [savedRt, setSavedRt] = useState(false);
 
-  // When a new account is created, set it as the default for the recurring transaction
-  useEffect(() => {
-    if (accounts.length > 0 && !rtAccountId) {
-      setRtAccountId(accounts[accounts.length - 1].id);
-    }
-  }, [accounts, rtAccountId]);
+  const currencyList = useMemo(currencyOptions, []);
+  const typeOptions = useMemo(() => ALL_ACCOUNT_TYPES.map(type => ({ id: type, label: type })), []);
+  const accountOptions = useMemo(() => {
+    const options = accounts.map(account => ({ id: account.id, label: account.name }));
+    return accountName && !accounts.some(account => account.id === ids.account) ? [...options, { id: ids.account, label: accountName }] : options;
+  }, [accounts, accountName, ids.account]);
+  const categoryOptions = useMemo(
+    () => categoryPickerOptions(rtType === 'expense' ? expenseCategories : [], rtType === 'income' ? incomeCategories : []),
+    [rtType, expenseCategories, incomeCategories]
+  );
 
+  const parsedBalance = parseAmountInput(balance);
+  const parsedGoal = parseAmountInput(goalAmount);
+  const parsedRt = parseAmountInput(rtAmount);
+  const repeatAccountId = rtAccountId ?? ids.account;
 
-  if (!isOpen) {
-    return null;
-  }
+  const isGoalStarted = !!goalName || !!goalAmount;
+  const isRtStarted = !!rtDescription || !!rtAmount || !!rtCategory;
+  const isGoalReady = !!goalName && parsedGoal > 0;
+  const isRtReady = !!rtDescription && parsedRt > 0 && !!rtCategory;
+  const isBlocked = (step === 3 && (!accountName.trim() || Number.isNaN(parsedBalance)))
+    || (step === 4 && isGoalStarted && !isGoalReady)
+    || (step === 5 && isRtStarted && !isRtReady);
 
-  const handleNext = () => {
-    if (step === 2) {
-      setPreferences({ ...preferences, currency: currencyPref });
-    }
+  const saveStep = () => {
+    if (step === 2) setPreferences(prev => ({ ...prev, currency: currencyPreference(currency) }));
     if (step === 3) {
-      if (!accountName || !balance) {
-        toast.error('Please fill in all account details.');
-        return;
-      }
-      const newAccount: Omit<Account, 'id'> = {
-        name: accountName,
+      saveAccount({
+        id: ids.account,
+        name: accountName.trim(),
         type: accountType,
-        balance: parseFloat(balance),
+        balance: parsedBalance,
         currency: accountCurrency,
-        isPrimary: accounts.length === 0,
+        isPrimary: isFirstAccount,
         icon: ACCOUNT_TYPE_STYLES[accountType]?.icon || 'wallet',
-      };
-      saveAccount(newAccount);
+      });
     }
-    if (step === 4) {
-      if (goalName && goalAmount) {
-         const newGoal: Omit<FinancialGoal, 'id'> = {
-            name: goalName,
-            amount: parseFloat(goalAmount),
-            currentAmount: 0,
-            date: goalDate,
-            type: 'one-time',
-            transactionType: 'expense', // Assume goals are for spending/saving up
-            currency: getMainCurrency(),
-            paymentAccountId: paymentAccountId || undefined,
-         };
-         saveFinancialGoal(newGoal);
-      }
+    if (step === 4 && isGoalReady) {
+      setSavedGoal(true);
+      saveFinancialGoal({
+        id: ids.goal,
+        name: goalName,
+        amount: parsedGoal,
+        currentAmount: 0,
+        date: goalDate,
+        type: 'one-time',
+        transactionType: 'expense',
+        currency,
+        paymentAccountId: paymentAccountId || undefined,
+      });
     }
-    if (step === 5) {
-      if (rtDescription && rtAmount && rtAccountId && rtCategory) {
-        const selectedAccount = accounts.find(a => a.id === rtAccountId);
-        const newRt: Omit<RecurringTransaction, 'id'> = {
-          accountId: rtAccountId,
-          description: rtDescription,
-          amount: parseFloat(rtAmount),
-          type: rtType,
-          category: rtCategory,
-          currency: selectedAccount?.currency || 'EUR',
-          frequency: 'monthly',
-          startDate: toLocalISOString(new Date()),
-          nextDueDate: toLocalISOString(new Date()), // For simplicity
-          weekendAdjustment: 'on',
-        };
-        saveRecurringTransaction(newRt);
-      }
-    }
-
-    if (step < totalSteps) {
-      setStep(prev => prev + 1);
-    } else {
-      onClose();
-    }
-  };
-  
-  const handlePrevious = () => {
-    if (step > 1) {
-      setStep(prev => prev - 1);
-    }
-  };
-  
-  const handleSkip = () => {
-    if (step === 4 || step === 5) {
-      setStep(prev => prev + 1);
-    } else {
-      onClose();
+    if (step === 5 && isRtReady) {
+      const today = toLocalISOString(new Date());
+      setSavedRt(true);
+      saveRecurringTransaction({
+        id: ids.recurring,
+        accountId: repeatAccountId,
+        description: rtDescription,
+        amount: parsedRt,
+        type: rtType,
+        category: rtCategory!,
+        currency: accounts.find(account => account.id === repeatAccountId)?.currency || accountCurrency,
+        frequency: 'monthly',
+        startDate: today,
+        nextDueDate: today,
+        weekendAdjustment: 'on',
+      });
     }
   };
 
-  const renderStepContent = () => {
-    switch(step) {
-      case 1:
-        return (
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Welcome, {user.firstName}!</h1>
-            <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-md mx-auto">
-              Let's get your finances set up in a few simple steps.
-            </p>
-          </div>
-        );
-      case 2:
-        return (
-          <Card className="w-full max-w-lg">
-            <h2 className="text-2xl font-bold mb-4">Set your primary currency</h2>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mb-6">
-              This will be the default currency for your reports and summaries.
-            </p>
-            <div className={SELECT_WRAPPER_STYLE}>
-              <select name="currency" value={currencyPref} onChange={e => setCurrencyPref(e.target.value)} className={SELECT_STYLE}>
-                {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-            </div>
-          </Card>
-        );
-      case 3:
-        return (
-            <Card className="w-full max-w-lg">
-              <h2 className="text-2xl font-bold mb-4">Add your first account</h2>
-              <p className="text-light-text-secondary dark:text-dark-text-secondary mb-6">
-                Start by adding a primary account, like your main checking or savings account.
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Account Name</label>
-                  <input type="text" value={accountName} onChange={e => setAccountName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Main Checking" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Account Type</label>
-                  <div className={SELECT_WRAPPER_STYLE}>
-                      <select value={accountType} onChange={e => setAccountType(e.target.value as AccountType)} className={SELECT_STYLE}>
-                          {ALL_ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
-                      </select>
-                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Current Balance</label>
-                    <input type="number" step="0.01" value={balance} onChange={e => setBalance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Currency</label>
-                    <div className={SELECT_WRAPPER_STYLE}>
-                      <select value={accountCurrency} onChange={e => setAccountCurrency(e.target.value as Currency)} className={SELECT_STYLE}>
-                          {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          );
-      case 4:
-         return (
-          <Card className="w-full max-w-lg">
-            <h2 className="text-2xl font-bold mb-4">Set a financial goal (Optional)</h2>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mb-6">
-              What are you saving for? Setting a goal can help you stay motivated.
-            </p>
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Goal Name</label>
-                    <input type="text" value={goalName} onChange={e => setGoalName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Emergency Fund, New Car" />
-                </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Amount (EUR)</label>
-                        <input type="number" step="0.01" value={goalAmount} onChange={e => setGoalAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., 5000" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Date</label>
-                        <input type="date" value={goalDate} onChange={e => setGoalDate(e.target.value)} className={INPUT_BASE_STYLE} />
-                    </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Payment Account (Optional)</label>
-                  <div className={SELECT_WRAPPER_STYLE}>
-                      <select value={paymentAccountId} onChange={e => setPaymentAccountId(e.target.value)} className={SELECT_STYLE}>
-                          <option value="">None</option>
-                          {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                      </select>
-                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                  </div>
-              </div>
-            </div>
-          </Card>
-        );
-      case 5:
-        const activeCategories = rtType === 'income' ? incomeCategories : expenseCategories;
-        return (
-          <Card className="w-full max-w-lg">
-            <h2 className="text-2xl font-bold mb-4">Add a recurring transaction (Optional)</h2>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mb-6">
-              Automate your finances by adding a regular income or expense like your salary or rent.
-            </p>
-            <div className="space-y-4">
-                <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg">
-                    <button type="button" onClick={() => setRtType('income')} className={`w-full py-2 rounded text-sm font-semibold ${rtType === 'income' ? 'bg-green-500 text-white' : ''}`}>Income</button>
-                    <button type="button" onClick={() => setRtType('expense')} className={`w-full py-2 rounded text-sm font-semibold ${rtType === 'expense' ? 'bg-red-500 text-white' : ''}`}>Expense</button>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
-                    <input type="text" value={rtDescription} onChange={e => setRtDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder={rtType === 'income' ? 'e.g., Monthly Salary' : 'e.g., Rent'} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Amount</label>
-                        <input type="number" step="0.01" value={rtAmount} onChange={e => setRtAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
-                         <div className={SELECT_WRAPPER_STYLE}>
-                            <select value={rtCategory} onChange={e => setRtCategory(e.target.value)} className={SELECT_STYLE}>
-                                <option value="">Select...</option>
-                                {activeCategories.filter(c => !c.parentId).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          </Card>
-        );
-      case 6:
-         return (
-          <div className="text-center">
-            <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mx-auto mb-6">
-              <Icon name="check_circle" className="text-6xl text-green-500" />
-            </div>
-            <h1 className="text-4xl font-bold mb-4">You're all set!</h1>
-            <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-md mx-auto">
-              You can now explore your personalized Crystal dashboard.
-            </p>
-          </div>
-        );
-      default: return null;
-    }
+  const next = () => {
+    saveStep();
+    if (step < LAST_STEP) setStep(step + 1);
+    else onClose();
   };
+
+  const titles = [`Welcome, ${user.firstName}`, 'Choose your main currency', 'Add your first account', 'Set a goal', 'Add something that repeats', "You're all set"];
+  const descriptions = [
+    'A few steps and your money is in one place.',
+    'Totals and reports appear in this currency.',
+    'Your main current or savings account is a good start.',
+    'Optional. What are you saving for?',
+    'Optional. A regular income or expense, such as your salary or rent.',
+    'Your overview is ready.',
+  ];
 
   return (
-    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[100] flex flex-col p-6 transition-opacity duration-300">
-        <header className="flex-shrink-0 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                {/* FIX: The `CrystalLogo` component does not accept a `theme` prop. Replaced it with `showText={false}` to show the small logo icon. */}
-                <CrystalLogo showText={false} />
-                <span className="text-xl font-bold">Crystal Setup</span>
-            </div>
-            {(step === 1 || step === 6) && (
-                <button onClick={onClose} className="font-semibold text-primary-500 hover:underline">
-                    {step === 1 ? 'Skip for now' : 'Go to Dashboard'}
-                </button>
-            )}
-        </header>
-
-        <main className="flex-grow flex items-center justify-center">
-            {renderStepContent()}
-        </main>
-        
-        <footer className="flex-shrink-0 flex items-center justify-between">
-            <div>
-                {step > 1 && step < totalSteps && (
-                    <button onClick={handlePrevious} className={BTN_SECONDARY_STYLE}>Back</button>
-                )}
-            </div>
-            <div className="flex items-center gap-4">
-                <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Step {step} of {totalSteps}</span>
-                {step === 1 ? (
-                    <button onClick={handleNext} className={BTN_PRIMARY_STYLE}>Get Started</button>
-                ) : step < totalSteps ? (
-                    <>
-                        {(step === 4 || step === 5) && <button onClick={handleSkip} className={BTN_SECONDARY_STYLE}>Skip</button>}
-                        <button onClick={handleNext} className={BTN_PRIMARY_STYLE}>Next</button>
-                    </>
-                ) : (
-                    <button onClick={onClose} className={BTN_PRIMARY_STYLE}>Finish</button>
-                )}
-            </div>
-        </footer>
-    </div>
+    <FullPanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title={titles[step - 1]}
+      description={step < LAST_STEP ? `Step ${step} of ${LAST_STEP}. ${descriptions[step - 1]}` : descriptions[step - 1]}
+      isDirty={step > 1 && step < LAST_STEP}
+      footer={close => (
+        <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-end">
+          {step === 1 && <Button variant="ghost" onPress={close}>Skip for now</Button>}
+          {step > 1 && step < LAST_STEP && <Button variant="ghost" className="md:mr-auto" onPress={() => setStep(step - 1)}>Back</Button>}
+          {(step === 4 || step === 5) && <Button variant="secondary" onPress={() => setStep(step + 1)}>Skip</Button>}
+          <Button isDisabled={isBlocked} onPress={next}>{step === 1 ? 'Get started' : step === LAST_STEP ? 'Go to Overview' : 'Next'}</Button>
+        </div>
+      )}
+    >
+      <div className="max-w-[480px] space-y-4">
+        {step === 1 && (
+          <ul className="space-y-3">
+            {PLAN.map(item => (
+              <li key={item.text} className="type-body flex items-center gap-3 text-ink">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-inset text-muted"><Icon name={item.icon} size={20} /></span>
+                {item.text}
+              </li>
+            ))}
+          </ul>
+        )}
+        {step === 2 && <Combobox label="Main currency" options={currencyList} value={currency} onChange={id => id && setCurrency(id)} placeholder="Search currencies" />}
+        {step === 3 && (
+          <>
+            <TextInput autoFocus label="Name" placeholder="Main account" value={accountName} onChange={setAccountName} />
+            <Select label="Type" options={typeOptions} value={accountType} onChange={id => setAccountType(id as AccountType)} />
+            <AmountInput label="Current balance" currency={currencySign(accountCurrency)} value={balance} onChange={setBalance} />
+            <Combobox label="Currency" options={currencyList} value={accountCurrency} onChange={id => id && setChosenAccountCurrency(id)} placeholder="Search currencies" />
+          </>
+        )}
+        {step === 4 && (
+          <>
+            <TextInput autoFocus label="Goal" placeholder="Emergency fund" value={goalName} onChange={setGoalName} />
+            <AmountInput label="Target amount" currency={currencySign(currency)} value={goalAmount} onChange={setGoalAmount} />
+            <DateInput label="Target date" value={goalDate} onChange={setGoalDate} />
+            <Combobox label="Paid from" help="Optional." options={accountOptions} value={paymentAccountId} onChange={setPaymentAccountId} placeholder="Search accounts" />
+          </>
+        )}
+        {step === 5 && (
+          <>
+            <SegmentedControl items={FLOW_OPTIONS} activeId={rtType} onChange={id => { setRtType(id as 'income' | 'expense'); setRtCategory(null); }} />
+            <TextInput autoFocus label="Description" placeholder={rtType === 'income' ? 'Salary' : 'Rent'} value={rtDescription} onChange={setRtDescription} />
+            <AmountInput label="Amount each month" currency={currencySign(accountCurrency)} value={rtAmount} onChange={setRtAmount} />
+            <Combobox label="Category" options={categoryOptions} value={rtCategory} onChange={setRtCategory} placeholder="Search categories" />
+            <Combobox label="Account" options={accountOptions} value={repeatAccountId} onChange={setRtAccountId} placeholder="Search accounts" />
+          </>
+        )}
+        {step === LAST_STEP && (
+          <DetailList items={[
+            { label: 'Main currency', value: currency },
+            { label: 'Account', value: accountName.trim() },
+            { label: 'Goal', value: savedGoal ? goalName : undefined },
+            { label: 'Repeats', value: savedRt ? rtDescription : undefined },
+          ]} />
+        )}
+      </div>
+    </FullPanel>
   );
 };
 
