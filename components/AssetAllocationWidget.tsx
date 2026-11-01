@@ -66,7 +66,7 @@ const AssetAllocationWidget: React.FC<AssetAllocationWidgetProps> = ({ allocatio
           {({ value, label, isHovered }) => (
             <div className="flex flex-col items-center text-center">
               <span className="type-caption text-muted">{label}</span>
-              <span className="type-figure-row privacy-blur text-ink">{formatCurrency(toDisplay(isHovered ? value : totalAssets - Math.abs(totalDebt)), currency)}</span>
+              <p className="type-figure-row text-ink"><Amount value={toDisplay(isHovered ? value : totalAssets - Math.abs(totalDebt))} currency={currency} /></p>
             </div>
           )}
         </PieCenter>

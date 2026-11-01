@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Transaction, Account } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { LineChart, Line, Grid, XAxis, YAxis, ChartTooltip } from '@/src/components/charts';
+import { Amount } from './ui/Money';
 
 interface WealthVelocityWidgetProps {
   transactions: Transaction[];
@@ -46,7 +47,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Growth momentum</p>
           <div className="flex items-center gap-2 mt-0.5">
             <h3 className={`text-2xl font-bold tracking-tight ${currentDelta >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-              {currentDelta >= 0 ? '+' : ''}{formatCurrency(currentDelta, getMainCurrency())}
+              <Amount value={currentDelta} currency={getMainCurrency()} tone="flow" />
             </h3>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isAccelerating ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-slate-500/10 text-slate-600 dark:text-slate-400'}`}>
               {isAccelerating ? 'Accelerating' : 'Stabilizing'}

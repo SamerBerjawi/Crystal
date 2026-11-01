@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { Task, RecurringTransaction, BillPayment, FinancialGoal, RecurringTransactionOverride } from '../types';
 import { parseLocalDate, formatCurrency, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
+import { Amount } from './ui/Money';
 
 interface TodayWidgetProps {
     tasks: Task[];
@@ -228,9 +229,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
                                     <p className="text-xs font-bold text-slate-900 dark:text-white tabular-nums tracking-tight mt-0.5">
-                                        <span className="privacy-blur">
-                                            {formatCurrency(amount, currency)}
-                                        </span>
+                                        <Amount value={amount} currency={currency} />
                                     </p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">

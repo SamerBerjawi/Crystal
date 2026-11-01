@@ -56,6 +56,58 @@ const useCountUp = (value: number, isActive: boolean, delay = 0) => {
   return shown;
 };
 
+export interface AmountParts {
+  sign: string;
+  symbol: string;
+  integer: string;
+  fraction: string;
+  suffix: string;
+}
+
+export function splitAmount(text: string): AmountParts {
+  // BTC or suffix currency (e.g. "0.50 BTC" or "− 1.2345 BTC")
+  const btcMatch = text.match(/^([+\-−]?\s*)([\d,]+)(\.\d+)?(\s*BTC.*)?$/);
+  if (btcMatch && btcMatch[4]) {
+    return {
+      sign: btcMatch[1] || '',
+      symbol: '',
+      integer: btcMatch[2] || '',
+      fraction: btcMatch[3] || '',
+      suffix: btcMatch[4] || '',
+    };
+  }
+
+  // Prefix currency (e.g. "€276,043.15", "+ €1,200.50", "− €54.20", "lei 1,500.00", "$50.00", "€12.5k")
+  const match = text.match(/^([+\-−]?\s*)([^\d\s]+(?:\s+)?)([\d,]+)(\.\d+)?(.*)$/);
+  if (match) {
+    return {
+      sign: match[1] || '',
+      symbol: match[2] || '',
+      integer: match[3] || '',
+      fraction: match[4] || '',
+      suffix: match[5] || '',
+    };
+  }
+
+  return { sign: '', symbol: '', integer: text, fraction: '', suffix: '' };
+}
+
+/** Formats currency symbol in accent color (`text-primary`), digits in inherited color, and decimals in grey (`text-muted`). */
+export const FormattedAmount: React.FC<{ text: string }> = ({ text }) => {
+  const { sign, symbol, integer, fraction, suffix } = splitAmount(text);
+  const isBtcSuffix = suffix.trim() === 'BTC';
+
+  return (
+    <>
+      {sign && <span>{sign}</span>}
+      {symbol && <span className="amount-symbol text-primary font-semibold">{symbol}</span>}
+      <span>{integer}</span>
+      {fraction && <span className="amount-fraction text-muted">{fraction}</span>}
+      {suffix && <span className={cn('amount-suffix', isBtcSuffix ? 'amount-symbol text-primary font-semibold' : 'amount-fraction text-muted')}>{suffix}</span>}
+    </>
+  );
+};
+
 export interface AmountProps {
   value: number;
   currency: Currency;
@@ -79,10 +131,10 @@ export const Amount: React.FC<AmountProps> = ({ value, currency, tone = 'plain',
     <span className={cn('tabular-nums', tone === 'flow' && value > 0 && 'text-money-in', tone === 'loss' && value < 0 && 'text-money-out', className)}>
       {countUp ? (
         <>
-          <span aria-hidden="true">{text(shown)}</span>
+          <span aria-hidden="true"><FormattedAmount text={text(shown)} /></span>
           <span className="sr-only">{text(value)}</span>
         </>
-      ) : text(value)}
+      ) : <FormattedAmount text={text(value)} />}
     </span>
   );
 };
@@ -103,7 +155,7 @@ export const CountUp: React.FC<{ value: number; format?: 'money' | 'number' | 'p
 
   return (
     <span className="tabular-nums">
-      <span aria-hidden="true">{text(shown)}</span>
+      <span aria-hidden="true">{format === 'money' ? <FormattedAmount text={text(shown)} /> : text(shown)}</span>
       <span className="sr-only">{text(value)}</span>
     </span>
   );

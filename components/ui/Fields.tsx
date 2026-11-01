@@ -33,6 +33,7 @@ import Icon from './Icon';
 import { popoverStyles } from './Overlays';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { cn } from '../../lib/utils';
+import { currencySign } from '../../utils';
 
 export const controlStyles =
   'w-full rounded-[var(--radius-md)] border border-line-strong bg-inset text-ink outline-none transition-colors duration-[var(--duration-fast)] placeholder:text-muted data-[invalid]:border-money-out data-[disabled]:opacity-50 data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus';
@@ -87,21 +88,24 @@ export const TextInput: React.FC<TextProps> = ({ label, help, error, autofill, c
 type AmountProps = Omit<TextProps, 'type' | 'inputMode'> & { currency?: string };
 
 /** Right-aligned tabular amount with a currency prefix. */
-export const AmountInput: React.FC<AmountProps> = ({ label, help, error, autofill, className, placeholder = '0.00', currency, ...props }) => (
-  <TextField {...props} inputMode="decimal" isInvalid={!!error} className={className}>
-    <FieldShell label={label} help={help} error={error} autofill={autofill}>
-      <div className="relative">
-        {currency && (
-          <span className="type-body pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true">{currency}</span>
-        )}
-        <Input
-          placeholder={placeholder}
-          className={cn(controlStyles, inputSize, 'text-right font-semibold tabular-nums', currency && 'pl-12')}
-        />
-      </div>
-    </FieldShell>
-  </TextField>
-);
+export const AmountInput: React.FC<AmountProps> = ({ label, help, error, autofill, className, placeholder = '0.00', currency, ...props }) => {
+  const symbol = currency ? currencySign(currency) : null;
+  return (
+    <TextField {...props} inputMode="decimal" isInvalid={!!error} className={className}>
+      <FieldShell label={label} help={help} error={error} autofill={autofill}>
+        <div className="relative">
+          {symbol && (
+            <span className="type-body pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-primary" aria-hidden="true">{symbol}</span>
+          )}
+          <Input
+            placeholder={placeholder}
+            className={cn(controlStyles, inputSize, 'text-right font-semibold tabular-nums', symbol && (symbol.length > 2 ? 'pl-14' : 'pl-10'))}
+          />
+        </div>
+      </FieldShell>
+    </TextField>
+  );
+};
 
 type AreaProps = FieldProps & Omit<React.ComponentProps<typeof TextField>, 'children' | 'className' | 'isInvalid'> & { placeholder?: string; rows?: number };
 

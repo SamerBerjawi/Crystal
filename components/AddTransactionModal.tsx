@@ -7,7 +7,7 @@ import { CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { useTagsContext } from '../contexts/FinancialDataContext';
 import type { AddressData } from '../hooks/useAddressSearch';
-import { formatCurrency } from '../utils';
+import { formatCurrency, currencySign } from '../utils';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { parseLocationString } from '../utils/locationDetector';
 import { suggestCategories } from '../utils/overviewSummary';
@@ -24,6 +24,7 @@ import { AmountInput, DateInput, Radio, RadioGroup, Switch, Textarea, TextInput,
 import { SidePanel } from './ui/Overlays';
 import { Combobox, type PickerOption } from './ui/Pickers';
 import SegmentedControl from './ui/SegmentedControl';
+import { AmountPad } from './ui/AmountPad';
 import { cn } from '../lib/utils';
 
 interface AddTransactionModalProps {
@@ -245,31 +246,22 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
         <SegmentedControl className="w-full" items={TYPE_ITEMS} activeId={form.type} onChange={setType} />
 
-        <label className="block rounded-[var(--radius-lg)] bg-inset p-4">
-          <span className="type-label flex items-center justify-between text-muted">
-            Amount
+        <div>
+          <div className="type-label mb-1.5 flex items-center justify-between text-muted">
+            <span>Amount</span>
             {loan && <Badge tone="neutral">Loan payment</Badge>}
-          </span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="type-section-title text-muted" aria-hidden="true">{currency}</span>
-            <input
-              autoFocus
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="0.00"
-              value={form.amount}
-              onChange={e => {
-                const value = e.target.value.replace(',', '.');
-                if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) update({ amount: value });
-              }}
-              onBlur={() => setForm(prev => {
-                const value = parseFloat(prev.amount);
-                return applyAutofill(!isNaN(value) && value > 0 ? { ...prev, amount: value.toFixed(2) } : prev);
-              })}
-              className="type-figure-hero w-full min-w-0 bg-transparent text-ink outline-none tabular-nums placeholder:text-muted"
-            />
-          </span>
-        </label>
+          </div>
+          <AmountPad
+            autoFocus
+            currency={currency}
+            value={form.amount}
+            onChange={amount => update({ amount })}
+            onBlur={() => setForm(prev => {
+              const value = parseFloat(prev.amount);
+              return applyAutofill(!isNaN(value) && value > 0 ? { ...prev, amount: value.toFixed(2) } : prev);
+            })}
+          />
+        </div>
 
         <div className="relative">
           <label htmlFor="tx-merchant" className="type-label mb-1.5 block text-ink">Merchant</label>

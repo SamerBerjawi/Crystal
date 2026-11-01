@@ -14,8 +14,14 @@ import { Amount } from './ui/Money';
 import { EmptyState } from './ui/States';
 import { cn } from '../lib/utils';
 
-const cardMoney = (account: Account) => (
-  account.creditLimit ? `${formatCurrency(Math.abs(account.balance), account.currency)} of ${formatCurrency(account.creditLimit, account.currency)}` : formatCurrency(account.balance, account.currency)
+const CardMoney: React.FC<{ account: Account }> = ({ account }) => (
+  account.creditLimit ? (
+    <>
+      <Amount value={Math.abs(account.balance)} currency={account.currency} />
+      <span> of </span>
+      <Amount value={account.creditLimit} currency={account.currency} />
+    </>
+  ) : <Amount value={account.balance} currency={account.currency} />
 );
 
 /** A card drawn from what the account stores. Only ever the last four digits. */
@@ -90,7 +96,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
           >
             <BankCard account={card} />
             <span className="type-body-strong mt-2 block truncate px-1 text-ink">{card.name}</span>
-            <span className="type-caption block truncate px-1 text-muted privacy-blur">{cardMoney(card)}</span>
+            <span className="type-caption block truncate px-1 text-muted"><CardMoney account={card} /></span>
           </Radio>
         ))}
         <button
@@ -130,7 +136,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
           <Panel title={limit ? 'Credit limit' : 'Balance'}>
             <p className="type-figure-lg text-ink">
               <Amount value={limit ? used : selected.balance} currency={selected.currency} />
-              {limit && <span className="type-body text-muted"> of {formatCurrency(limit, selected.currency)}</span>}
+              {limit && <span className="type-body text-muted"> of <Amount value={limit} currency={selected.currency} /></span>}
             </p>
             {limit && (
               <>

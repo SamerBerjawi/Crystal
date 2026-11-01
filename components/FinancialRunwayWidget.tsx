@@ -4,6 +4,7 @@ import { Account, Transaction } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
 import Icon from './ui/Icon';
+import { Amount } from './ui/Money';
 
 interface FinancialRunwayWidgetProps {
   accounts: Account[];
@@ -59,11 +60,11 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
         <div className="bg-black/[0.03] dark:bg-white/[0.03] rounded-2xl p-4 border border-black/5 dark:border-white/5">
           <div className="flex justify-between text-xs mb-1">
             <span className="text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">Avg. Monthly Burn</span>
-            <span className="font-bold text-rose-500">{formatCurrency(monthlyBurn, getMainCurrency())}</span>
+            <Amount value={monthlyBurn} currency={getMainCurrency()} className="font-bold text-rose-500" />
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">Liquid Assets</span>
-            <span className="font-bold text-emerald-500">{formatCurrency(liquidAssets, getMainCurrency())}</span>
+            <Amount value={liquidAssets} currency={getMainCurrency()} className="font-bold text-emerald-500" />
           </div>
         </div>
 

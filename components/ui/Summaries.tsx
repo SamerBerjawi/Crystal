@@ -50,7 +50,7 @@ export const NetWorthHero: React.FC<{
   const shades = ['opacity-100', 'opacity-60', 'opacity-30'];
 
   return (
-    <section aria-label="Net worth" className="flex h-full flex-col justify-between gap-6 rounded-[var(--radius-xl)] bg-pine p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]">
+    <section aria-label="Net worth" className="net-worth-hero flex h-full flex-col justify-between gap-6 rounded-[var(--radius-xl)] bg-pine p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]">
       <div>
         <button type="button" onClick={onOpen} className="type-label inline-flex cursor-pointer items-center gap-1">
           Net worth
