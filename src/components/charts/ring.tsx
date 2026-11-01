@@ -5,6 +5,7 @@ import { type MotionValue, motion, useTransform } from "motion/react";
 import { memo, useCallback } from "react";
 import { ringCssVars, useRingHover, useRingStable } from "./ring-context";
 import { useEnterComplete } from "./use-enter-complete";
+import { ARC_ENTER_TRANSITION } from "./animation";
 import { useMountProgress } from "./use-mount-progress";
 
 function generateArcPath(
@@ -91,7 +92,7 @@ export const Ring = memo(function Ring({
 
   const progressDelay = (0.6 + index * 0.1) * enterStaggerScale;
   const progressMount = useMountProgress(
-    enterTransition,
+    enterTransition ?? ARC_ENTER_TRANSITION,
     progressDelay,
     `${animationKey}-progress-${index}`
   );

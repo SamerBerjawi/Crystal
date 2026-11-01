@@ -6,7 +6,7 @@ import { formatCurrency, convertToEur } from '../utils';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
-import PageHeader from '../components/PageHeader';
+import PageHeader, { type PageStat } from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
@@ -233,6 +233,12 @@ const Budgeting: React.FC<BudgetingProps> = ({
     setCategoryNameToCreate(undefined);
   };
 
+    const pageStats: PageStat[] = [
+      { label: 'Budgeted this month', icon: 'pie_chart', value: totalBudgeted, format: 'money' },
+      { label: 'Spent so far', icon: 'payments', value: totalSpent, format: 'money', ...(totalBudgeted > 0 ? { badge: `${Math.round((totalSpent / totalBudgeted) * 100)}%` } : {}) },
+      { label: 'Left to spend', icon: 'savings', value: totalRemaining, format: 'money' },
+    ];
+
   return (
     <div className="relative">
       {/* Shared Modals for Mobile & Desktop */}
@@ -257,6 +263,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
       {/* Responsive View Switch */}
       {isMobile ? (
         <MobileBudgetView
+          stats={pageStats}
           budgets={budgets}
           transactions={transactions}
           expenseCategories={expenseCategories}
@@ -277,8 +284,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
           <PageHeader
             markerIcon="pie_chart"
             markerLabel="Spending Plan"
-            title="Budgeting"
-            subtitle="Set envelopes, guardrails, and spending alerts that adapt as your cash flow evolves."
+            title="Budget"
+            stats={pageStats}
             actions={
               <div className="flex items-center gap-2">
                 <HeaderButton

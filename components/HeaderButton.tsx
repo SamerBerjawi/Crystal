@@ -25,15 +25,15 @@ export interface HeaderButtonProps extends React.ButtonHTMLAttributes<HTMLButton
 
 const variantStyles: Record<HeaderButtonVariant, string> = {
   primary:
-    'bg-primary hover:bg-primary-hover text-on-primary',
+    'bg-pill hover:bg-pill-hover text-on-pill',
   secondary:
     'bg-surface hover:bg-inset text-ink border border-line-strong',
   accent:
-    'bg-primary-soft text-ink hover:border-primary border border-transparent',
+    'bg-primary-soft text-ink hover:border-pill border border-transparent',
   emerald:
-    'bg-primary hover:bg-primary-hover text-on-primary',
+    'bg-pill hover:bg-pill-hover text-on-pill',
   indigo:
-    'bg-primary hover:bg-primary-hover text-on-primary',
+    'bg-pill hover:bg-pill-hover text-on-pill',
   amber:
     'bg-amber text-on-amber hover:brightness-95',
   gold:

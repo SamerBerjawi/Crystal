@@ -291,7 +291,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             className={cn(controlStyles, 'h-11 px-3 text-[.9375rem] font-medium max-md:h-12 max-md:text-base')}
           />
           {isMerchantOpen && merchantMatches.length > 0 && (
-            <ul id="tx-merchant-list" role="listbox" aria-label="Merchants" className="absolute inset-x-0 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-[var(--radius-lg)] border border-line bg-surface p-1.5 shadow-sm">
+            <ul id="tx-merchant-list" role="listbox" aria-label="Merchants" className="absolute inset-x-0 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-[var(--radius-lg)] border border-line bg-solid p-1.5 shadow-sm">
               {merchantMatches.map((item, index) => {
                 const logo = getMerchantLogoUrl(item.name, brandfetchClientId, logoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
                 return (

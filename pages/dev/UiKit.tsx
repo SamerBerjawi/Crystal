@@ -32,7 +32,7 @@ const COLUMNS: TableColumn<Sample>[] = [
 ];
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+  <section className="rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
     <h2 className="type-section-title mb-4 text-ink">{title}</h2>
     {children}
   </section>
@@ -167,10 +167,10 @@ const UiKit: React.FC = () => {
           <Badge tone="positive">Positive</Badge>
           <Badge tone="attention">Attention</Badge>
           <Badge tone="negative">Negative</Badge>
-          <Badge tone="ocean">Ocean</Badge>
-          <Badge tone="terracotta">Terracotta</Badge>
-          <Badge tone="purple">Purple</Badge>
-          <Badge tone="indigo">Indigo</Badge>
+          <Badge tone="blue">Blue</Badge>
+          <Badge tone="tomato">Tomato</Badge>
+          <Badge tone="rose">Rose</Badge>
+          <Badge tone="teal">Teal</Badge>
           <CountPill count={12} />
         </div>
         <div className="mt-4 space-y-2">

@@ -32,7 +32,7 @@ import GoalTable from '../components/GoalTable';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
-import PageHeader from '../components/PageHeader';
+import PageHeader, { type PageStat } from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import HeroMetricCard from '../components/ui/HeroMetricCard';
 import MetricCardRow from '../components/ui/MetricCardRow';
@@ -975,6 +975,12 @@ const Forecasting: React.FC = () => {
         });
     }, [tableData]);
 
+    const pageStats: PageStat[] = [
+      { label: 'Balance today', icon: 'account_balance_wallet', value: startBalance, format: 'money' },
+      { label: 'Lowest point', icon: 'trending_down', value: Number.isFinite(lowestPoint.value) ? lowestPoint.value : 0, format: 'money' },
+      { label: 'End of forecast', icon: 'flag', value: endBalance, format: 'money' },
+    ];
+
      return (
         <div className="relative">
             {/* Shared Modals (Available for both mobile and desktop) */}
@@ -1025,6 +1031,7 @@ const Forecasting: React.FC = () => {
             {/* Responsive View Switch */}
             {isMobile ? (
                 <MobileForecastView
+          stats={pageStats}
                     accounts={accounts}
                     selectedAccountIds={selectedAccountIds}
                     setSelectedAccountIds={setSelectedAccountIds}
@@ -1084,8 +1091,8 @@ const Forecasting: React.FC = () => {
                 accentColor="purple"
                 markerIcon="PresentationChart01"
                 markerLabel="Forward View"
-                title="Financial Forecast"
-                subtitle="Projected cash, income, and obligations so you can plan moves weeks and months ahead."
+                title="Forecast"
+                stats={pageStats}
                 actions={
                     <div className="flex flex-wrap items-center gap-2">
                         <HeaderButton

@@ -114,7 +114,7 @@ export const Textarea: React.FC<AreaProps> = ({ label, help, error, autofill, cl
 );
 
 const dayCell =
-  'flex size-10 cursor-pointer items-center justify-center rounded-full text-sm font-semibold text-ink outline-none data-[outside-month]:invisible data-[hovered]:bg-inset data-[disabled]:opacity-40 data-[selected]:bg-primary data-[selected]:text-on-primary data-[focus-visible]:outline-2 data-[focus-visible]:outline-focus';
+  'flex size-10 cursor-pointer items-center justify-center rounded-full text-sm font-semibold text-ink outline-none data-[outside-month]:invisible data-[hovered]:bg-inset data-[disabled]:opacity-40 data-[selected]:bg-pill data-[selected]:text-on-pill data-[focus-visible]:outline-2 data-[focus-visible]:outline-focus';
 
 const CalendarHeader = () => (
   <header className="mb-2 flex items-center justify-between">
@@ -133,7 +133,7 @@ const segments = (
     {segment => (
       <DateSegment
         segment={segment}
-        className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-primary data-[focused]:text-on-primary"
+        className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill"
       />
     )}
   </AriaDateInput>
@@ -228,11 +228,11 @@ export const DateRangeInput: React.FC<Omit<DateInputProps, 'value' | 'onChange'>
       <FieldShell label={label} help={help} error={error}>
         <Group className={cn(controlStyles, inputSize, 'flex items-center gap-1')}>
           <AriaDateInput slot="start" className="flex items-center gap-px">
-            {segment => <DateSegment segment={segment} className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-primary data-[focused]:text-on-primary" />}
+            {segment => <DateSegment segment={segment} className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill" />}
           </AriaDateInput>
           <span aria-hidden="true" className="text-muted">to</span>
           <AriaDateInput slot="end" className="flex flex-1 items-center gap-px">
-            {segment => <DateSegment segment={segment} className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-primary data-[focused]:text-on-primary" />}
+            {segment => <DateSegment segment={segment} className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill" />}
           </AriaDateInput>
           <CalendarButton />
         </Group>
@@ -259,9 +259,9 @@ export const Checkbox: React.FC<CheckboxProps> = ({ children, className, ...prop
   <AriaCheckbox {...props} className={cn(choiceRow, className)}>
     {({ isSelected, isIndeterminate }) => (
       <>
-        <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface text-on-primary transition-colors duration-[var(--duration-fast)]', (isSelected || isIndeterminate) && 'border-primary bg-primary', choiceFocus)}>
+        <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface text-on-pill transition-colors duration-[var(--duration-fast)]', (isSelected || isIndeterminate) && 'border-pill bg-pill', choiceFocus)}>
           {isSelected && <Icon name="check" size={16} weight="bold" />}
-          {isIndeterminate && !isSelected && <span className="h-0.5 w-2.5 rounded-full bg-on-primary" />}
+          {isIndeterminate && !isSelected && <span className="h-0.5 w-2.5 rounded-full bg-on-pill" />}
         </span>
         <span className="type-body min-w-0 text-ink">{children}</span>
       </>
@@ -280,8 +280,8 @@ export const Radio: React.FC<Omit<React.ComponentProps<typeof AriaRadio>, 'child
   <AriaRadio {...props} className={choiceRow}>
     {({ isSelected }) => (
       <>
-        <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface', isSelected && 'border-primary', choiceFocus)}>
-          {isSelected && <span className="size-2.5 rounded-full bg-primary" />}
+        <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface', isSelected && 'border-pill', choiceFocus)}>
+          {isSelected && <span className="size-2.5 rounded-full bg-pill" />}
         </span>
         <span className="type-body min-w-0 text-ink">{children}</span>
       </>
@@ -295,8 +295,8 @@ export const Switch: React.FC<Omit<React.ComponentProps<typeof AriaSwitch>, 'chi
     {({ isSelected }) => (
       <>
         <span className="type-body min-w-0 text-ink">{children}</span>
-        <span className={cn('flex h-6 w-10 shrink-0 items-center rounded-full border border-line-strong bg-inset p-0.5 transition-colors duration-[var(--duration-fast)]', isSelected && 'border-primary bg-primary', choiceFocus)}>
-          <span className={cn('size-[18px] rounded-full bg-line-strong transition-transform duration-[var(--duration-fast)]', isSelected && 'translate-x-4 bg-on-primary')} />
+        <span className={cn('flex h-6 w-10 shrink-0 items-center rounded-full border border-line-strong bg-inset p-0.5 transition-colors duration-[var(--duration-fast)]', isSelected && 'border-pill bg-pill', choiceFocus)}>
+          <span className={cn('size-[18px] rounded-full bg-line-strong transition-transform duration-[var(--duration-fast)]', isSelected && 'translate-x-4 bg-on-pill')} />
         </span>
       </>
     )}
@@ -313,8 +313,8 @@ export const Slider: React.FC<Omit<React.ComponentProps<typeof AriaSlider<number
       {({ state }) => (
         <>
           <span className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-line" />
-          <span className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-primary" style={{ width: `${state.getThumbPercent(0) * 100}%` }} />
-          <SliderThumb className="top-1/2 size-6 cursor-grab rounded-full border-2 border-primary bg-surface shadow-sm data-[dragging]:cursor-grabbing data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus" />
+          <span className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-pill" style={{ width: `${state.getThumbPercent(0) * 100}%` }} />
+          <SliderThumb className="top-1/2 size-6 cursor-grab rounded-full border-2 border-pill bg-solid shadow-sm data-[dragging]:cursor-grabbing data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus" />
         </>
       )}
     </SliderTrack>

@@ -138,7 +138,7 @@ const ReviewQueue: React.FC = () => {
   });
 
   const card = active && (
-    <section aria-label="Current item" className="min-w-0 space-y-4 rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+    <section aria-label="Current item" className="min-w-0 space-y-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="type-caption text-muted">{itemContext(active)}</p>
@@ -198,7 +198,7 @@ const ReviewQueue: React.FC = () => {
   );
 
   const list = (
-    <ul className="min-w-0 divide-y divide-line overflow-hidden rounded-[var(--radius-xl)] border border-line bg-surface">
+    <ul className="min-w-0 divide-y divide-line overflow-hidden rounded-[var(--radius-xl)] surface-card">
       {items.map(item => {
         const tx = itemTx(item);
         return (

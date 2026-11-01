@@ -65,7 +65,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
           dragElastic={{ top: 0.08, bottom: 0.7 }}
           dragSnapToOrigin
           onDragEnd={handleDragEnd}
-          className={cn('flex flex-col rounded-t-[var(--radius-2xl)] bg-surface shadow-lg', SHEET_HEIGHTS[current], className)}
+          className={cn('flex flex-col rounded-t-[var(--radius-2xl)] bg-solid shadow-lg', SHEET_HEIGHTS[current], className)}
         >
           <AriaDialog className="flex min-h-0 flex-1 flex-col outline-none">
             <div
@@ -171,7 +171,7 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
         className={cn('crystal-scrim fixed inset-0 z-[var(--z-overlay)] flex', kind === 'dialog' && 'items-center justify-center')}
       >
         <Modal
-          className={cn('flex flex-col bg-surface shadow-lg outline-none', OVERLAY_SHAPE[kind])}
+          className={cn('flex flex-col bg-solid shadow-lg outline-none', OVERLAY_SHAPE[kind])}
           style={kind === 'side' ? { maxWidth: width } : undefined}
         >
           <AriaDialog className="flex min-h-0 flex-1 flex-col outline-none">
@@ -254,7 +254,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onClose, o
 };
 
 export const popoverStyles =
-  'crystal-pop rounded-[var(--radius-lg)] border border-line bg-surface shadow-sm outline-none';
+  'crystal-pop rounded-[var(--radius-lg)] border border-line bg-solid shadow-sm outline-none';
 
 /** A small anchored picker or filter. A bottom sheet on phones. */
 export const Popover: React.FC<{

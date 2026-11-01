@@ -3024,9 +3024,9 @@ const App: React.FC = () => {
           closeButton
           offset={{ bottom: 'var(--toast-bottom)' }}
           mobileOffset={{ bottom: 'var(--toast-phone-bottom)', left: '16px', right: '16px' }}
-          style={{ '--normal-bg': 'var(--surface)', '--normal-border': 'var(--line)', '--normal-text': 'var(--ink)', '--border-radius': 'var(--radius-lg)' } as React.CSSProperties}
+          style={{ '--normal-bg': 'var(--solid)', '--normal-border': 'var(--line)', '--normal-text': 'var(--ink)', '--border-radius': 'var(--radius-lg)' } as React.CSSProperties}
         />
-        <div className={`flex h-dvh flex-col bg-canvas text-ink font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
+        <div className={`flex h-dvh flex-col text-ink font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
           <SkipLink />
           <header className="safe-top shrink-0">
             {isPhone ? <PhoneTopBar {...shellProps} /> : <TopBar {...shellProps} />}

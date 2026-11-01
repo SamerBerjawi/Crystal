@@ -1,11 +1,12 @@
 import React from 'react';
 import { Page } from '../types';
-import PageHeader from './PageHeader';
+import PageHeader, { type PageStat } from './PageHeader';
 import Icon from './ui/Icon';
 
 interface SettingsSubpageHeaderProps {
   title: string;
   subtitle?: string;
+  stats?: PageStat[];
   markerIcon?: string;
   markerLabel?: string;
   accentColor?: 'primary' | 'amber' | 'emerald' | 'indigo' | 'cyan' | 'rose' | 'purple' | 'teal' | 'orange';
@@ -17,6 +18,7 @@ interface SettingsSubpageHeaderProps {
 const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({
   title,
   subtitle,
+  stats,
   markerIcon,
   markerLabel,
   accentColor = 'primary',
@@ -48,6 +50,7 @@ const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({
       <PageHeader
         title={title}
         subtitle={subtitle}
+        stats={stats}
         markerIcon={markerIcon}
         markerLabel={markerLabel}
         accentColor={accentColor}

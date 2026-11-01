@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import type { Account, Category, Currency, DisplayTransaction, FinancialGoal, Transaction } from '../types';
+import { LINE_MOTION } from '../src/components/charts/animation';
 import { ResponsiveContainer, Area, AreaChart, CartesianGrid, Line, Tooltip, XAxis, YAxis } from 'recharts';
 import { Bar, BarChart, BarXAxis, BarYAxis, ChartTooltip, Grid } from '../src/components/charts';
 import { formatCurrency } from '../utils';
@@ -21,7 +22,7 @@ export interface FrameMetric {
 
 /** A section of a tab. */
 export const Panel: React.FC<{ title: string; subtitle?: string; className?: string; children: React.ReactNode }> = ({ title, subtitle, className, children }) => (
-  <section className={cn('min-w-0 rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5', className)}>
+  <section className={cn('min-w-0 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5', className)}>
     <h3 className="type-card-title text-ink">{title}</h3>
     {subtitle && <p className="type-caption text-muted">{subtitle}</p>}
     <div className="mt-3">{children}</div>
@@ -32,7 +33,7 @@ export const Panel: React.FC<{ title: string; subtitle?: string; className?: str
 export const MetricRow: React.FC<{ metrics: FrameMetric[] }> = ({ metrics }) => (
   <dl className="no-scrollbar flex gap-3 overflow-x-auto md:grid md:grid-cols-2 md:gap-4 md:overflow-visible lg:grid-cols-4">
     {metrics.map(metric => (
-      <div key={metric.label} className="min-w-[160px] shrink-0 rounded-[var(--radius-xl)] border border-line bg-surface p-5 md:min-w-0">
+      <div key={metric.label} className="min-w-[160px] shrink-0 rounded-[var(--radius-xl)] surface-card p-5 md:min-w-0">
         <dt className="type-label text-muted">{metric.label}</dt>
         <dd className="type-figure-lg mt-1 truncate text-ink">{metric.value}</dd>
         {metric.context && <dd className="type-caption mt-0.5 text-muted">{metric.context}</dd>}
@@ -54,8 +55,8 @@ export const DetailList: React.FC<{ items: { label: string; value?: React.ReactN
 );
 
 export const ProgressBar: React.FC<{ value: number; label: string; className?: string; tone?: 'primary' | 'onHero' }> = ({ value, label, className, tone = 'primary' }) => (
-  <div role="progressbar" aria-label={label} aria-valuenow={Math.round(value)} aria-valuemin={0} aria-valuemax={100} className={cn('h-2 overflow-hidden rounded-full', tone === 'onHero' ? 'bg-on-primary/25' : 'bg-inset', className)}>
-    <div className={cn('h-full rounded-full', tone === 'onHero' ? 'bg-on-primary' : 'bg-primary')} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+  <div role="progressbar" aria-label={label} aria-valuenow={Math.round(value)} aria-valuemin={0} aria-valuemax={100} className={cn('h-2 overflow-hidden rounded-full', tone === 'onHero' ? 'bg-on-pine/25' : 'bg-inset', className)}>
+    <motion.div className={cn('h-full rounded-full', tone === 'onHero' ? 'bg-on-pine' : 'bg-pill')} initial={{ width: 0 }} animate={{ width: `${Math.min(100, Math.max(0, value))}%` }} transition={{ duration: 0.9, ease: [0.77, 0, 0.175, 1] }} />
   </div>
 );
 
@@ -95,9 +96,9 @@ export const ValueChart: React.FC<{ data: Record<string, unknown>[]; currency: C
         <CartesianGrid vertical={false} stroke="var(--line)" />
         <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={48} />
         <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={56} tickFormatter={value => (value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value)} />
-        <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number) => [formatCurrency(value, currency), 'Value']} />
-        <Area type="monotone" dataKey={dataKey} stroke="var(--chart-1)" strokeWidth={2} fill="var(--chart-1)" fillOpacity={0.12} />
-        {trendKey && <Line type="monotone" dataKey={trendKey} stroke="var(--chart-3)" strokeWidth={2} strokeDasharray="4 4" dot={false} />}
+        <Tooltip contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number) => [formatCurrency(value, currency), 'Value']} />
+        <Area {...LINE_MOTION} type="monotone" dataKey={dataKey} stroke="var(--chart-1)" strokeWidth={2} fill="var(--chart-1)" fillOpacity={0.12} />
+        {trendKey && <Line {...LINE_MOTION} type="monotone" dataKey={trendKey} stroke="var(--chart-3)" strokeWidth={2} strokeDasharray="4 4" dot={false} />}
       </AreaChart>
     </ResponsiveContainer>
   </div>
@@ -156,7 +157,7 @@ const AccountFrame: React.FC<AccountFrameProps> = ({ account, context, value, va
 
       {banner}
 
-      <section aria-label={valueLabel} className="space-y-4 rounded-[var(--radius-xl)] bg-primary p-6 text-on-primary max-md:p-5 [--focus:var(--on-primary)]">
+      <section aria-label={valueLabel} className="space-y-4 rounded-[var(--radius-xl)] bg-pine p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]">
         <div>
           <p className="type-label">{valueLabel}</p>
           <p className="type-figure-hero break-words"><Amount value={value ?? account.balance} currency={account.currency} /></p>
@@ -198,7 +199,7 @@ const AccountFrame: React.FC<AccountFrameProps> = ({ account, context, value, va
                 className={cn('relative h-11 shrink-0 cursor-pointer whitespace-nowrap text-sm font-bold', isActive ? 'text-ink' : 'text-muted hover:text-ink')}
               >
                 {tab.label}
-                {isActive && <motion.span layoutId="account-tab" className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />}
+                {isActive && <motion.span layoutId="account-tab" className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-pill" />}
               </button>
             );
           })}
@@ -213,7 +214,7 @@ const AccountFrame: React.FC<AccountFrameProps> = ({ account, context, value, va
 /** The Transactions tab, shared by every type that has one. */
 export const AccountTransactions: React.FC<{ transactions: DisplayTransaction[]; categories: Category[]; onOpen: (tx: DisplayTransaction) => void; emptyAction?: () => void }> = ({ transactions, categories, onOpen, emptyAction }) => (
   transactions.length > 0
-    ? <div className="rounded-[var(--radius-xl)] border border-line bg-surface p-4"><TransactionList transactions={transactions} allCategories={categories} onTransactionClick={onOpen} density="high" /></div>
+    ? <div className="rounded-[var(--radius-xl)] surface-card p-4"><TransactionList transactions={transactions} allCategories={categories} onTransactionClick={onOpen} density="high" /></div>
     : <EmptyState icon="receipt" title="No transactions yet" description="They appear here as you add them or sync your bank." actionLabel={emptyAction ? 'Add a transaction' : undefined} onAction={emptyAction} />
 );
 

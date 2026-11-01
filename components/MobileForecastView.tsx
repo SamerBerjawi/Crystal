@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import PageHeader, { type PageStat } from './PageHeader';
 import {
   ForecastDuration,
   Currency,
@@ -22,6 +23,7 @@ import SwipeableRow from './SwipeableRow';
 export type ForecastMobileTab = 'projection' | 'goals' | 'ledger';
 
 export interface MobileForecastViewProps {
+  stats?: PageStat[];
   // Accounts & Selection
   accounts: Account[];
   selectedAccountIds: string[];
@@ -133,7 +135,7 @@ const GOAL_CATEGORY_META: Record<
   other: { label: 'General Goal', icon: 'flag', color: '#a855f7' },
 };
 
-export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
+export const MobileForecastView: React.FC<MobileForecastViewProps> = ({ stats,
   accounts,
   selectedAccountIds,
   setSelectedAccountIds,
@@ -274,23 +276,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
         {/* ================================================================= */}
         {/* 1. iOS Top Navigation Header */}
         {/* ================================================================= */}
-        <div className="pt-2 px-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
-              Forward Cash & Wealth
-            </p>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight leading-tight">
-                Forecasting
-              </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                AI Model
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <PageHeader title="Forecast" stats={stats} className="!mb-0" actions={<div className="flex items-center gap-2">
             {/* Scenario Playground trigger */}
             <button
               type="button"
@@ -319,8 +305,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
               <Icon name="account_balance" className="text-sm text-primary-700 dark:text-primary-400" />
               <span>{selectedAccountIds.length} Accs</span>
             </button>
-          </div>
-        </div>
+          </div>} />
 
         {/* ================================================================= */}
         {/* 2. iOS Segmented Horizon Picker */}

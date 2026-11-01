@@ -145,7 +145,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
             initial={{ opacity: 0, scale: 0.98, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: -10 }}
-            className="fixed inset-0 z-[var(--z-overlay)] flex flex-col bg-surface text-ink shadow-lg md:inset-x-0 md:bottom-auto md:top-[12%] md:mx-auto md:max-w-2xl md:rounded-[var(--radius-xl)] overflow-hidden"
+            className="fixed inset-0 z-[var(--z-overlay)] flex flex-col bg-solid text-ink shadow-lg md:inset-x-0 md:bottom-auto md:top-[12%] md:mx-auto md:max-w-2xl md:rounded-[var(--radius-xl)] overflow-hidden"
           >
             <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-4">
               <Icon name="search" size={24} className="text-muted" />

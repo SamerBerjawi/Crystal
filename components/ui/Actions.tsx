@@ -23,9 +23,9 @@ export const buttonStyles = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-on-primary data-[hovered]:bg-primary-hover data-[pressed]:bg-primary-hover',
+        primary: 'bg-pill text-on-pill data-[hovered]:bg-pill-hover data-[pressed]:bg-pill-hover',
         secondary: 'bg-surface text-ink border-line-strong data-[hovered]:bg-inset data-[pressed]:bg-inset',
-        soft: 'bg-primary-soft text-ink data-[hovered]:border-primary data-[pressed]:border-primary',
+        soft: 'bg-primary-soft text-ink data-[hovered]:border-pill data-[pressed]:border-pill',
         ghost: 'text-ink data-[hovered]:bg-inset data-[pressed]:bg-inset',
         destructive: 'bg-money-out text-on-danger data-[hovered]:brightness-95 data-[pressed]:brightness-90',
       },
@@ -90,7 +90,7 @@ const iconButtonStyles = cva(`${pressable} shrink-0 rounded-full size-10 pointer
     variant: {
       plain: 'text-ink data-[hovered]:bg-inset data-[pressed]:bg-inset',
       glass: 'text-ink data-[hovered]:bg-primary-soft data-[pressed]:bg-primary-soft',
-      primary: 'bg-primary text-on-primary data-[hovered]:bg-primary-hover data-[pressed]:bg-primary-hover',
+      primary: 'bg-pill text-on-pill data-[hovered]:bg-pill-hover data-[pressed]:bg-pill-hover',
     },
     active: { true: 'bg-primary-soft' },
   },
@@ -126,7 +126,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
         {!!badge && (
           <span
             aria-hidden="true"
-            className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[.6875rem] font-bold leading-none text-on-primary tabular-nums"
+            className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-pill px-1 text-[.6875rem] font-bold leading-none text-on-pill tabular-nums"
           >
             {badge > 99 ? '99+' : badge}
           </span>

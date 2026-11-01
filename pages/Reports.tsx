@@ -702,38 +702,16 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
       <PageHeader
         markerIcon="analytics"
         markerLabel="Insights"
-        title="Financial Reports"
-        subtitle="Deep dive into your spending habits, budget performance, and automated financial insights."
+        title="Reports"
+        stats={[
+          { label: 'Total spend', icon: 'credit_card', value: totals.totalSpendEur, format: 'money' },
+          { label: 'Savings rate', icon: 'piggy_bank', value: savingsRate, format: 'percent' },
+          { label: 'Transactions', icon: 'receipt', value: totals.transactionCount },
+        ]}
       />
 
       {/* Hero Section: Key Metrics */}
-      <MetricCardRow columns={5}>
-        <HeroMetricCard
-          variant="primary"
-          label="Total Spend"
-          value={`€${totals.totalSpendEur.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon="credit_card"
-          iconColor="indigo"
-          subtext="vs last period"
-        />
-
-        <HeroMetricCard
-          label="Savings Rate"
-          value={`${savingsRate.toFixed(1)}%`}
-          icon="piggy_bank"
-          iconColor={savingsRate >= 20 ? 'emerald' : savingsRate > 0 ? 'primary' : 'rose'}
-          subtext={savingsRate >= 20 ? 'Excellent saving' : 'Aim for 20% target'}
-          trend={savingsRate >= 20 ? 'up' : savingsRate <= 0 ? 'down' : 'neutral'}
-        />
-
-        <HeroMetricCard
-          label="Transactions"
-          value={totals.transactionCount.toString()}
-          icon="receipt"
-          iconColor="blue"
-          subtext="Processed in range"
-        />
-
+      <MetricCardRow columns={2}>
         <HeroMetricCard
           label="Avg. Transaction"
           value={`€${totals.averageEur.toFixed(2)}`}

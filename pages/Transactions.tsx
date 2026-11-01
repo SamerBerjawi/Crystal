@@ -1382,7 +1382,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const clearSelection = () => { setSelectedIds(new Set()); setSelecting(false); };
 
   const summary = (
-    <aside aria-label="This view at a glance" className="space-y-4 rounded-[var(--radius-xl)] border border-line bg-surface p-5">
+    <aside aria-label="This view at a glance" className="space-y-4 rounded-[var(--radius-xl)] surface-card p-5">
       <h2 className="type-card-title text-ink">This view</h2>
       <dl className="space-y-2">
         <div className="flex justify-between gap-3"><dt className="type-body text-muted">Transactions</dt><dd className="type-figure-row text-ink">{filteredTransactions.length.toLocaleString()}</dd></div>
@@ -1454,7 +1454,11 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
       <PageHeader
         title="Transactions"
-        subtitle={isMobile ? undefined : `${filteredTransactions.length.toLocaleString()} shown`}
+        stats={[
+          { label: 'Transactions shown', icon: 'receipt', value: filteredTransactions.length },
+          { label: 'Money in', icon: 'arrow_downward', value: totalIncome, format: 'money' },
+          { label: 'Money out', icon: 'arrow_upward', value: totalExpense, format: 'money' },
+        ]}
         actions={!isMobile ? (
           <>
             <Button variant="secondary" icon="download" onPress={handleExport}>Export</Button>

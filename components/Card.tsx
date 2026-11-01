@@ -9,7 +9,7 @@ interface CardProps {
 const Card: React.FC<CardProps> = ({ children, className = '', onClick }) => {
   return (
     <div
-        className={`relative rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5 overflow-hidden ${className}`}
+        className={`relative rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5 overflow-hidden ${className}`}
         onClick={onClick}
     >
       {children}

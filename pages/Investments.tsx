@@ -9,12 +9,13 @@ import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import AccountForm from '../components/AccountForm';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
+import { LINE_MOTION } from '../src/components/charts/animation';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import { buildHoldingsOverview } from '../utils/investments';
 import { buildPortfolioHistory } from '../utils/portfolioHistory';
 import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart';
-import PageHeader from '../components/PageHeader';
+import PageHeader, { type PageStat } from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import AccountsListSection from '../components/AccountsListSection';
 import AccountOverviewModal from '../components/AccountOverviewModal';
@@ -842,6 +843,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 ? 'from-slate-500 via-gray-600 to-neutral-700'
                                 : 'from-indigo-600 via-violet-700 to-purple-800';
 
+    const pageStats: PageStat[] = [
+      { label: 'Portfolio value', icon: 'candlestick_chart', value: totalValue, format: 'money' },
+      { label: 'Gain or loss', icon: 'trending_up', value: totalGainLoss, format: 'money', badge: `${totalGainLossPercent.toFixed(1)}%`, badgeTone: totalGainLoss >= 0 ? 'pine' as const : 'tomato' as const },
+      { label: 'Holdings', icon: 'layers', value: activeHoldings.length },
+    ];
+
     return (
         <div className="relative">
             {/* Shared Modals for both Mobile and Desktop */}
@@ -930,6 +937,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             {/* Responsive View Switch */}
             {isMobile ? (
                 <MobileInvestmentsView
+          stats={pageStats}
                     accounts={accounts}
                     cashAccounts={cashAccounts}
                     investmentTransactions={investmentTransactions}
@@ -975,8 +983,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                 <PageHeader 
                     markerIcon="candlestick_chart"
                     markerLabel="Investment Center"
-                    title="Investments & Holdings"
-                    subtitle="Track public equities, Exchange Traded Funds, cryptocurrencies, warrants, active basis, and yield metrics in real-time."
+                    title="Investments"
+                    stats={pageStats}
                     actions={
                         <div className="flex items-center gap-2">
                             <HeaderButton
@@ -1034,7 +1042,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     <div className="w-20 h-6 opacity-60">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <AreaChart data={trendData}>
-                                                <Area type="monotone" dataKey="value" stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} strokeWidth={2} fill="transparent" animationDuration={1500} />
+                                                <Area {...LINE_MOTION} type="monotone" dataKey="value" stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} strokeWidth={2} fill="transparent" animationDuration={1500} />
                                             </AreaChart>
                                         </ResponsiveContainer>
                                     </div>

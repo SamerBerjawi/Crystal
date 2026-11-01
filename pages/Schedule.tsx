@@ -15,7 +15,7 @@ import BillPaymentModal from '../components/BillPaymentModal';
 import { useAccountsContext, useTransactionsContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext, useGoalsContext } from '../contexts/FinancialDataContext';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import PageHeader from '../components/PageHeader';
+import PageHeader, { type PageStat } from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import ScheduledItemRow from '../components/ScheduledItemRow';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -847,6 +847,12 @@ const SchedulePage: React.FC = () => {
                 ? 'from-slate-600 via-zinc-700 to-gray-800'
                 : 'from-primary-600 via-violet-700 to-purple-800';
 
+    const pageStats: PageStat[] = [
+      { label: 'Recurring items', icon: 'repeat', value: recurringTransactions.length },
+      { label: 'Bills to pay', icon: 'receipt_long', value: billsAndPayments.filter(bill => bill.status === 'unpaid').length },
+      { label: 'Bills paid', icon: 'check_circle', value: billsAndPayments.filter(bill => bill.status === 'paid').length },
+    ];
+
     return (
         <div className="relative">
             {/* Shared Modals for both Mobile and Desktop */}
@@ -907,6 +913,7 @@ const SchedulePage: React.FC = () => {
             {/* Responsive View Switch */}
             {isMobile ? (
                 <MobileScheduleView
+          stats={pageStats}
                     scheduledItems={allUpcomingForHeatmap}
                     groupedItems={groupedItems}
                     sortedGroupKeys={sortedGroupKeys}
@@ -944,8 +951,8 @@ const SchedulePage: React.FC = () => {
                     accentColor="rose"
                     markerIcon="clock"
                     markerLabel="Future Outflows"
-                    title="Recurring & Bilateral Obligations"
-                    subtitle="Track and forecast subscriptions, insurance schedules, salary contracts, loan payments, and billing cycles."
+                    title="Calendar"
+                    stats={pageStats}
                     actions={
                         <div className="flex items-center gap-2">
                             <HeaderButton

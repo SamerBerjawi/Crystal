@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import PageHeader, { type PageStat } from './PageHeader';
 import {
   ScheduledItem,
   Currency,
@@ -17,6 +18,7 @@ import Icon from './ui/Icon';
 import SwipeableRow from './SwipeableRow';
 import PullToRefresh from './PullToRefresh';
 import BottomSheet from './BottomSheet';
+import { BAR_MOTION } from '../src/components/charts/animation';
 import {
   ResponsiveContainer,
   BarChart,
@@ -32,6 +34,7 @@ import { motion, AnimatePresence } from 'motion/react';
 export type ScheduleMobileTab = 'timeline' | 'rules' | 'analytics' | 'overdue';
 
 export interface MobileScheduleViewProps {
+  stats?: PageStat[];
   scheduledItems: ScheduledItem[];
   groupedItems: Record<string, ScheduledItem[]>;
   sortedGroupKeys: string[];
@@ -66,7 +69,7 @@ export interface MobileScheduleViewProps {
 
 const PIE_COLORS = ['#6366F1', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899'];
 
-export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
+export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({ stats,
   scheduledItems,
   groupedItems,
   sortedGroupKeys,
@@ -303,25 +306,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
         {/* ================================================================= */}
         {/* 1. iOS Top Navigation Header */}
         {/* ================================================================= */}
-        <div className="pt-2 px-1 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
-              Cashflow & Commitments
-            </p>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight leading-tight">
-                Schedule & Bills
-              </h1>
-              {overdueItems.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                  {overdueItems.length} Overdue
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <PageHeader title="Calendar" stats={stats} className="!mb-0" actions={<div className="flex items-center gap-2">
             {/* Quick Action Button */}
             <button
               type="button"
@@ -330,8 +315,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
             >
               <Icon name="add" className="text-xl" />
             </button>
-          </div>
-        </div>
+          </div>} />
 
         {/* ================================================================= */}
         {/* 2. Quick Search Bar */}
@@ -981,7 +965,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                       }}
                     />
                     <ReferenceLine y={0} stroke="#666" strokeWidth={0.7} />
-                    <Bar dataKey="net" radius={[4, 4, 4, 4]}>
+                    <Bar {...BAR_MOTION} dataKey="net" radius={[4, 4, 4, 4]}>
                       {cashflowChartData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}

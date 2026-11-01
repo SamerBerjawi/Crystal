@@ -2,6 +2,7 @@
 import React from 'react';
 import { formatCurrency } from '../utils';
 import Card from './Card';
+import { LINE_MOTION } from '../src/components/charts/animation';
 import { LineChart, Line, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import Icon from './ui/Icon';
 
@@ -54,7 +55,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, change
                   <stop offset="100%" stopColor={chartColor} stopOpacity={0}/>
                 </linearGradient>
               </defs>
-            <Area
+            <Area {...LINE_MOTION}
               type="monotone"
               dataKey="value"
               stroke={chartColor}

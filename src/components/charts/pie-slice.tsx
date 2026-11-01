@@ -5,6 +5,7 @@ import { motion, useSpring, useTransform } from "motion/react";
 import { memo, useEffect } from "react";
 import { usePieHover, usePieStable } from "./pie-context";
 import { useEnterComplete } from "./use-enter-complete";
+import { ARC_ENTER_TRANSITION } from "./animation";
 import { useMountProgress } from "./use-mount-progress";
 
 // Helper to generate arc path using d3 arc generator
@@ -110,9 +111,9 @@ function AnimatedSliceTranslate({
     enterStaggerScale,
     animationKey: pieAnimationKey,
   } = usePieStable();
-  const animationDelay = (0.1 + index * 0.08) * enterStaggerScale;
+  const animationDelay = index * 0.12 * enterStaggerScale;
   const mountProgress = useMountProgress(
-    enterTransition,
+    enterTransition ?? ARC_ENTER_TRANSITION,
     animationDelay,
     pieAnimationKey
   );
@@ -235,9 +236,9 @@ function AnimatedSliceGrow({
     enterStaggerScale,
     animationKey: pieAnimationKey,
   } = usePieStable();
-  const animationDelay = (0.1 + index * 0.08) * enterStaggerScale;
+  const animationDelay = index * 0.12 * enterStaggerScale;
   const mountProgress = useMountProgress(
-    enterTransition,
+    enterTransition ?? ARC_ENTER_TRANSITION,
     animationDelay,
     pieAnimationKey
   );

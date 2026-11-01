@@ -69,7 +69,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
       {/* Modal Container */}
       <div 
         className={`
-          bg-surface text-ink shadow-lg w-full overflow-hidden focus:outline-none relative flex flex-col
+          bg-solid text-ink shadow-lg w-full overflow-hidden focus:outline-none relative flex flex-col
           transition-[transform,opacity] duration-[var(--duration-medium)] ease-[var(--ease-standard)]
           rounded-t-[var(--radius-2xl)] md:rounded-[var(--radius-xl)]
           max-h-[92dvh] md:max-h-[90dvh]
