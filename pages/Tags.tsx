@@ -1,20 +1,17 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Page, Tag, Transaction } from '../types';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE } from '../constants';
-import Card from '../components/Card';
-import TagModal from '../components/TagModal';
-import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
-import ConfirmationModal from '../components/ConfirmationModal';
-import { LINE_MOTION } from '../src/components/charts/animation';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
-import HeaderButton from '../components/HeaderButton';
-import HeroMetricCard from '../components/ui/HeroMetricCard';
-import MetricCardRow from '../components/ui/MetricCardRow';
-import FilterBar from '../components/ui/FilterBar';
-import EmptyState from '../components/EmptyState';
+import TagModal from '../components/TagModal';
+import { Button, IconButton } from '../components/ui/Actions';
+import { Sparkline } from '../components/ui/Display';
+import { TextInput } from '../components/ui/Fields';
 import Icon from '../components/ui/Icon';
+import { Menu } from '../components/ui/Menu';
+import { Amount } from '../components/ui/Money';
+import { ConfirmDialog } from '../components/ui/Overlays';
+import { Select } from '../components/ui/Pickers';
+import { EmptyState } from '../components/ui/States';
+import { sortTags, summariseTags, TagSort, taggedShare } from '../utils/tagsModel';
 
 interface TagsProps {
   tags: Tag[];
@@ -25,366 +22,88 @@ interface TagsProps {
   onNavigateToTransactions: (filters?: { tagId?: string | null }) => void;
 }
 
-type SortOption = 'name' | 'count' | 'amount';
-type ViewMode = 'grid' | 'list';
+const SORT_OPTIONS = [
+  { id: 'count', label: 'Most used' },
+  { id: 'amount', label: 'Largest total' },
+  { id: 'name', label: 'Name' },
+];
 
 const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, setCurrentPage, onNavigateToTransactions }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTag, setEditingTag] = useState<Tag | null>(null);
-  const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
-  
-  // UI States
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('count');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [editing, setEditing] = useState<{ tag: Tag | null } | null>(null);
+  const [deleting, setDeleting] = useState<Tag | null>(null);
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<TagSort>('count');
 
-  // 1. Process Data: Aggregate stats and history for every tag
-  const enrichedTags = useMemo(() => {
-    const today = new Date();
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(today.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
-
-    // Helper to create buckets for the sparkline
-    const getMonthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    
-    // Initialize map
-    const stats = new Map<string, { 
-        count: number; 
-        netAmount: number; 
-        history: Record<string, number>;
-    }>();
-
-    tags.forEach(tag => {
-        stats.set(tag.id, { count: 0, netAmount: 0, history: {} });
-    });
-
-    let totalTaggedTransactions = 0;
-
-    transactions.forEach(tx => {
-        if (tx.tagIds && tx.tagIds.length > 0) {
-            const amount = convertToEur(tx.amount, tx.currency);
-            const date = parseLocalDate(tx.date);
-            const monthKey = getMonthKey(date);
-            
-            totalTaggedTransactions++;
-
-            tx.tagIds.forEach(tagId => {
-                const tagStat = stats.get(tagId);
-                if (tagStat) {
-                    tagStat.count++;
-                    tagStat.netAmount += amount;
-                    
-                    // Only track history for last 6 months for the sparkline
-                    if (date >= sixMonthsAgo) {
-                        tagStat.history[monthKey] = (tagStat.history[monthKey] || 0) + Math.abs(amount);
-                    }
-                }
-            });
-        }
-    });
-
-    // Format data for rendering
-    return tags.map(tag => {
-        const stat = stats.get(tag.id)!;
-        
-        // Convert history object to array for Recharts
-        const sparklineData = [];
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date();
-            d.setMonth(today.getMonth() - i);
-            const key = getMonthKey(d);
-            sparklineData.push({ value: stat.history[key] || 0 });
-        }
-
-        return {
-            ...tag,
-            count: stat.count,
-            netAmount: stat.netAmount,
-            sparklineData
-        };
-    }).sort((a, b) => {
-        if (sortBy === 'amount') return Math.abs(b.netAmount) - Math.abs(a.netAmount);
-        if (sortBy === 'count') return b.count - a.count;
-        return a.name.localeCompare(b.name);
-    });
-
-  }, [tags, transactions, sortBy]);
-
-  // 2. Global Metrics
-  const metrics = useMemo(() => {
-      const totalTags = tags.length;
-      const totalTaggedTx = enrichedTags.reduce((sum, t) => sum + t.count, 0);
-      const uniqueTaggedTxCount = new Set(transactions.filter(t => t.tagIds && t.tagIds.length > 0).map(t => t.id)).size;
-      const utilization = transactions.length > 0 ? (uniqueTaggedTxCount / transactions.length) * 100 : 0;
-      
-      const topTag = enrichedTags.length > 0 ? enrichedTags.reduce((prev, current) => (prev.count > current.count) ? prev : current) : null;
-
-      return { totalTags, utilization, topTag };
-  }, [enrichedTags, transactions, tags.length]);
-
-  // 3. Filter based on search
-  const displayedTags = useMemo(() => {
-      return enrichedTags.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [enrichedTags, searchTerm]);
-
-  const handleOpenModal = (tag?: Tag) => {
-    setEditingTag(tag || null);
-    setIsModalOpen(true);
-  };
-
-  const handleTagClick = (tagId: string) => {
-    onNavigateToTransactions({ tagId });
-  };
-
-  const handleDeleteConfirm = () => {
-    if (deletingTagId) {
-      deleteTag(deletingTagId);
-      setDeletingTagId(null);
-    }
-  };
+  const summaries = useMemo(() => summariseTags(tags, transactions), [tags, transactions]);
+  const visible = useMemo(() => sortTags(summaries.filter(tag => tag.name.toLowerCase().includes(search.toLowerCase())), sort), [search, sort, summaries]);
 
   return (
-    <div className="w-full pb-12 space-y-12 animate-fade-in-up px-4 text-light-text dark:text-dark-text">
-      {isModalOpen && (
-        <TagModal 
-          onClose={() => setIsModalOpen(false)}
-          onSave={saveTag}
-          tagToEdit={editingTag}
-        />
-      )}
-      {deletingTagId && (
-        <ConfirmationModal
-          isOpen={!!deletingTagId}
-          onClose={() => setDeletingTagId(null)}
-          onConfirm={handleDeleteConfirm}
-          title="Excise Semantic Tag"
-          message="Initiating removal of semantic overlay. This tag will be detached from all ledger entries. Proceed with deletion?"
-          confirmButtonText="Execute Excise"
-        />
-      )}
-      
-       {/* Navigation & Header */}
-       <SettingsSubpageHeader
-         accentColor="indigo"
-         markerIcon="tag"
-         markerLabel="Semantic Overlays"
-         title="Tags"
-         stats={[{ label: 'Tags', icon: 'label', value: tags.length }]}
-         setCurrentPage={setCurrentPage}
-         actions={
-           <HeaderButton
-             variant="primary"
-             icon="PlusCircle"
-             onClick={() => handleOpenModal()}
-           >
-             New tag
-           </HeaderButton>
-         }
-       />
+    <div className="space-y-6">
+      <SettingsSubpageHeader
+        title="Tags"
+        setCurrentPage={setCurrentPage}
+        stats={[
+          { label: 'Tags', icon: 'label', value: tags.length },
+          { label: 'Transactions tagged', icon: 'pie_chart', value: taggedShare(transactions), format: 'percent' },
+        ]}
+        actions={<Button icon="add" onPress={() => setEditing({ tag: null })}>New tag</Button>}
+      />
 
-      {/* Metrics Overview */}
-      <MetricCardRow columns={3}>
-          <HeroMetricCard 
-              variant="primary"
-              label="Total Inventory" 
-              value={metrics.totalTags} 
-              icon="tag" 
-              iconColor="indigo"
-              subtext="Active registered tags"
-          />
-          <HeroMetricCard 
-              variant="secondary"
-              label="Semantic Density" 
-              value={`${metrics.utilization.toFixed(0)}%`} 
-              icon="bar_chart" 
-              iconColor="blue"
-              subtext="Ledger transaction coverage"
-              badgeText={`${metrics.utilization.toFixed(0)}% Usage`}
-              badgeVariant="optimal"
-          />
-          <HeroMetricCard 
-              variant="secondary"
-              label="Primary Vector" 
-              value={metrics.topTag ? metrics.topTag.name : 'None'} 
-              icon="award" 
-              iconColor="emerald"
-              subtext={metrics.topTag ? `${metrics.topTag.count} linked transactions` : 'No tags assigned'}
-          />
-      </MetricCardRow>
+      {editing && <TagModal onClose={() => setEditing(null)} onSave={saveTag} tagToEdit={editing.tag} />}
+      <ConfirmDialog
+        isOpen={!!deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => { if (deleting) deleteTag(deleting.id); setDeleting(null); }}
+        title={`Delete ${deleting?.name ?? 'this tag'}?`}
+        message="It comes off every transaction that has it."
+        confirmLabel="Delete tag"
+        isDestructive
+      />
 
-      {/* Controls Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between gap-6 px-2">
-          <div className="flex-1 max-w-md">
-              <FilterBar.Search 
-                placeholder="Query semantic labels..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-          </div>
-          
-          <div className="flex gap-4">
-                <div className="glass-subwell p-1 rounded-2xl flex shadow-xs">
-                   <select 
-                     aria-label="Sort tags"
-                     value={sortBy}  
-                     onChange={(e) => setSortBy(e.target.value as SortOption)}
-                     className="bg-transparent text-xs font-bold text-light-text dark:text-dark-text px-4 py-2 focus:outline-none cursor-pointer"
-                   >
-                       <option value="count">Most used</option>
-                       <option value="amount">Highest volume</option>
-                       <option value="name">Name (A–Z)</option>
-                   </select>
-                </div>
-                
-                <div className="flex glass-subwell p-1 rounded-2xl shadow-xs">
-                    <button 
-                       aria-label="Grid view"
-                       aria-pressed={viewMode === 'grid'}
-                       onClick={() => setViewMode('grid')}
-                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'glass-tile shadow-card text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
-                    >
-                        <Icon name="layout_alt" className="text-sm" />
-                    </button>
-                    <button 
-                       aria-label="List view"
-                       aria-pressed={viewMode === 'list'}
-                       onClick={() => setViewMode('list')}
-                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'glass-tile shadow-card text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
-                    >
-                        <Icon name="list" className="text-sm" />
-                    </button>
-                </div>
-           </div>
-       </div>
-
-       {/* Tags Content */}
-       <div className="space-y-6">
-         {displayedTags.length > 0 ? (
-             viewMode === 'grid' ? (
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {displayedTags.map(tag => (
-                       <div 
-                           key={tag.id} 
-                           onClick={() => handleTagClick(tag.id)}
-                           className="group glass-tile rounded-3xl p-6 shadow-card hover:border-primary-500/30 hover:shadow-xl transition-all duration-300 cursor-pointer relative overflow-hidden"
-                       >
-                           <div className="flex justify-between items-start mb-8">
-                               <div className="flex items-center gap-4">
-                                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110" style={{ backgroundColor: `${tag.color}10`, border: `1px solid ${tag.color}20` }}>
-                                       <Icon name={tag.icon} className="text-2xl" style={{ color: tag.color }} />
-                                   </div>
-                                   <div>
-                                       <h3 className="font-semibold text-sm tracking-tight text-light-text dark:text-dark-text">{tag.name}</h3>
-                                       <div className="flex items-center gap-2 mt-1">
-                                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }}></div>
-                                         <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">{tag.count} Nodes</p>
-                                       </div>
-                                   </div>
-                               </div>
-                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
-                                    <button 
-                                       aria-label={`Edit tag ${tag.name}`}
-                                       onClick={(e) => { e.stopPropagation(); handleOpenModal(tag); }} 
-                                       className="p-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white text-light-text-secondary transition-all"
-                                   >
-                                       <Icon name="edit_square" className="text-sm" />
-                                   </button>
-                                   <button 
-                                       aria-label={`Delete tag ${tag.name}`}
-                                       onClick={(e) => { e.stopPropagation(); setDeletingTagId(tag.id); }} 
-                                       className="p-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white text-light-text-secondary transition-all"
-                                   >
-                                       <Icon name="delete_forever" className="text-sm" />
-                                   </button>
-                               </div>
-                           </div>
-                           
-                           {/* Sparkline Area */}
-                           <div className="h-20 w-full mb-6 relative">
-                                <ResponsiveContainer width="100%" height="100%">
-                                   <AreaChart data={tag.sparklineData}>
-                                       <defs>
-                                           <linearGradient id={`grad-${tag.id}`} x1="0" y1="0" x2="0" y2="1">
-                                               <stop offset="5%" stopColor={tag.color} stopOpacity={0.2}/>
-                                               <stop offset="95%" stopColor={tag.color} stopOpacity={0}/>
-                                           </linearGradient>
-                                       </defs>
-                                       <Area {...LINE_MOTION} 
-                                           type="monotone" 
-                                           dataKey="value" 
-                                           stroke={tag.color} 
-                                           strokeWidth={3} 
-                                           fill={`url(#grad-${tag.id})`} 
-                                           isAnimationActive={true}
-                                       />
-                                   </AreaChart>
-                               </ResponsiveContainer>
-                           </div>
-                           
-                           <div className="flex justify-between items-center glass-subwell px-4 py-3 rounded-2xl">
-                               <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Cumulative Volume</span>
-                               <span className="font-mono font-black tracking-tight text-sm text-light-text dark:text-dark-text">
-                                   {formatCurrency(tag.netAmount, 'EUR')}
-                               </span>
-                           </div>
-                       </div>
-                   ))}
-               </div>
-             ) : (
-                 <div className="glass-section rounded-3xl overflow-hidden shadow-card">
-                     <table className="w-full text-left border-collapse">
-                         <thead>
-                             <tr className="bg-slate-900/[0.02] dark:bg-white/[0.02] border-b border-slate-200/60 dark:border-white/5">
-                                 <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Semantic Label</th>
-                                 <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider text-right">Node Density</th>
-                                 <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider text-right">Total Aggregate</th>
-                                 <th className="px-8 py-4 w-24"></th>
-                             </tr>
-                         </thead>
-                         <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                             {displayedTags.map(tag => (
-                                 <tr key={tag.id} onClick={() => handleTagClick(tag.id)} className="hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer group">
-                                     <td className="px-8 py-4">
-                                         <div className="flex items-center gap-4">
-                                             <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: `${tag.color}15` }}>
-                                                 <Icon name={tag.icon} className="text-lg" style={{ color: tag.color }} />
-                                             </div>
-                                             <span className="text-sm font-semibold text-light-text dark:text-dark-text underline decoration-2 underline-offset-4 decoration-transparent group-hover:decoration-primary-500/30 transition-all">{tag.name}</span>
-                                         </div>
-                                     </td>
-                                     <td className="px-8 py-4 text-right">
-                                         <span className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">{tag.count} Entries</span>
-                                     </td>
-                                     <td className="px-8 py-4 text-right">
-                                         <span className="font-mono font-black tracking-tight text-sm text-light-text dark:text-dark-text">{formatCurrency(tag.netAmount, 'EUR')}</span>
-                                     </td>
-                                     <td className="px-8 py-4 text-right">
-                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                                             <button onClick={(e) => { e.stopPropagation(); handleOpenModal(tag); }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-light-text-secondary">
-                                                 <Icon name="edit" className="text-sm" />
-                                             </button>
-                                             <button onClick={(e) => { e.stopPropagation(); setDeletingTagId(tag.id); }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white transition-all text-light-text-secondary">
-                                                 <Icon name="delete" className="text-sm" />
-                                             </button>
-                                         </div>
-                                     </td>
-                                 </tr>
-                             ))}
-                         </tbody>
-                     </table>
-                 </div>
-             )
-         ) : (
-          <EmptyState
-            icon="label_off"
-            title="No Tags Created"
-            description="Create tags to organize, label, and filter your transactions across multiple accounts."
-            actionLabel={!searchTerm ? "Create New Tag" : undefined}
-            onAction={() => handleOpenModal()}
-          />
-        )}
+      <div className="flex flex-wrap items-end gap-3">
+        <TextInput label="Find a tag" className="min-w-0 flex-1 basis-56" value={search} onChange={setSearch} />
+        <Select label="Sort by" className="w-full md:w-48" options={SORT_OPTIONS} value={sort} onChange={id => setSort(id as TagSort)} />
       </div>
+
+      {visible.length > 0 ? (
+        <ul className="surface-card min-w-0 divide-y divide-line px-4 py-1">
+          {visible.map(tag => (
+            <li key={tag.id} className="flex min-h-16 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigateToTransactions({ tagId: tag.id })}
+                className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-[var(--radius-md)] py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]" style={{ backgroundColor: `${tag.color}26`, color: tag.color }}>
+                  <Icon name={tag.icon} size={20} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="type-body block truncate text-ink">{tag.name}</span>
+                  <span className="type-caption block text-muted">{tag.count} {tag.count === 1 ? 'transaction' : 'transactions'}</span>
+                </span>
+                <Sparkline data={tag.history} isPositive={tag.netAmount >= 0} className="hidden md:block" />
+                <Amount value={tag.netAmount} currency="EUR" className="type-figure-row shrink-0 text-ink" />
+              </button>
+              <Menu
+                title={tag.name}
+                trigger={<IconButton icon="more_horiz" label={`More for ${tag.name}`} />}
+                items={[
+                  { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setEditing({ tag }) },
+                  { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setDeleting(tag) },
+                ]}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          icon="label_off"
+          title={search ? 'No tags match' : 'No tags yet'}
+          description={search ? 'Try another word.' : 'Tags group transactions across categories and accounts.'}
+          actionLabel={search ? undefined : 'New tag'}
+          onAction={() => setEditing({ tag: null })}
+        />
+      )}
     </div>
   );
 };

@@ -1,15 +1,13 @@
-
+import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import React, { useState, useRef } from 'react';
-import { User, Page } from '../types';
-import Card from '../components/Card';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { Page, User } from '../types';
 import ChangePasswordModal from '../components/ChangePasswordModal';
-import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
-import HeaderButton from '../components/HeaderButton';
-import Icon from '../components/ui/Icon';
-
 import LocationAutocomplete from '../components/LocationAutocomplete';
+import SettingsGroup from '../components/SettingsGroup';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
+import { Button } from '../components/ui/Actions';
+import { Badge } from '../components/ui/Display';
+import { TextInput, Textarea } from '../components/ui/Fields';
 
 interface PersonalInfoProps {
   user: User;
@@ -19,262 +17,83 @@ interface PersonalInfoProps {
 }
 
 const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePassword, setCurrentPage }) => {
-  const [formData, setFormData] = useState<User>(user);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
+  const [form, setForm] = useState<User>(user);
+  const [isPictureBroken, setPictureBroken] = useState(false);
+  const [isPasswordOpen, setPasswordOpen] = useState(false);
+  const [isSaving, setSaving] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, profilePictureUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const set = (field: keyof User) => (value: string) => setForm(prev => ({ ...prev, [field]: value }));
+  const isDirty = JSON.stringify(form) !== JSON.stringify(user);
+  const initials = `${form.firstName?.charAt(0) ?? ''}${form.lastName?.charAt(0) ?? ''}`;
+  const lastSignIn = form.lastLogin ? new Date(form.lastLogin) : null;
 
-  const handlePictureClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const ok = await setUser(formData);
-    if (ok === false) toast.error('Could not save your profile. Please try again.');
-    else toast.success('Profile updated');
+  const choosePicture = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPictureBroken(false);
+      setForm(prev => ({ ...prev, profilePictureUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
   };
 
-  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
-  const sectionTitleStyle = "text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2";
+  const save = async () => {
+    setSaving(true);
+    const saved = await setUser(form);
+    setSaving(false);
+    if (saved === false) toast.error('Your profile wasn’t saved. Try again.');
+    else toast.success('Profile saved');
+  };
 
   return (
-    <div className="w-full animate-fade-in-up pb-12 px-4">
-      {isPasswordModalOpen && (
-        <ChangePasswordModal 
-          isOpen={isPasswordModalOpen}
-          onClose={() => setPasswordModalOpen(false)}
-          onChangePassword={onChangePassword}
-        />
-      )}
-      
-      {/* Navigation & Header */}
-      <SettingsSubpageHeader
-        markerIcon="sliders"
-        markerLabel="Identity Vault"
-        title="Personal Profile"
-        subtitle="Manage your secure identity, contact details, and account security settings."
-        setCurrentPage={setCurrentPage}
-      />
+    <div className="space-y-8">
+      <SettingsSubpageHeader title="Profile" setCurrentPage={setCurrentPage} />
+      <ChangePasswordModal isOpen={isPasswordOpen} onClose={() => setPasswordOpen(false)} onChangePassword={onChangePassword} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-        {/* Left Column: Profile Card */}
-        <div className="lg:col-span-1">
-            <div className="sticky top-6 space-y-6">
-                <div className="glass-section rounded-3xl shadow-card border border-slate-200/60 dark:border-white/5 overflow-hidden">
-                    {/* Hero Background */}
-                    <div className="w-full h-24 bg-gradient-to-br from-primary-400 to-primary-600 dark:from-primary-600 dark:to-primary-800 relative">
-                         <div className="absolute inset-0 bg-black/10 opacity-20"></div>
-                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-from)_0%,_transparent_70%)] opacity-40"></div>
-                    </div>
-                    
-                    {/* Profile Picture */}
-                    <div className="relative -mt-12 flex justify-center px-6">
-                        <div className="relative group/photo cursor-pointer" onClick={handlePictureClick}>
-                            <div className="w-28 h-28 rounded-2xl p-0 border-0 bg-white dark:bg-dark-card shadow-2xl relative z-10 overflow-hidden">
-                                <img 
-                                    src={formData.profilePictureUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop'} 
-                                    alt="Profile" 
-                                    className="w-full h-full rounded-2xl object-cover p-0 border-0"
-                                />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center text-white z-20 backdrop-blur-sm">
-                                  <Icon name="Edit02" className="text-3xl" />
-                                </div>
-                            </div>
-                            <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-lg z-30">
-                                <Icon name="refresh" className="text-base" />
-                            </div>
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                        </div>
-                    </div>
-
-                    <div className="p-8 pt-6 text-center">
-                        <h2 className="text-xl font-bold tracking-tight text-light-text dark:text-dark-text leading-tight">{formData.firstName} {formData.lastName}</h2>
-                        <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-1">{formData.email}</p>
-
-                        <div className="flex flex-wrap justify-center gap-2 mt-6">
-                            <span className="px-2.5 py-0.5 rounded-lg bg-primary-500 text-white text-xs font-semibold">
-                                {formData.role}
-                            </span>
-                            <span className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold border ${
-                                formData.status === 'Active' 
-                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' 
-                                : 'bg-gray-50 dark:bg-gray-800/50 text-gray-400 border-gray-100 dark:border-gray-800'
-                            }`}>
-                                {formData.status}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div className="px-8 pb-8 space-y-4">
-                        <div className="pt-6 border-t border-black/5 dark:border-white/5 flex justify-between items-center text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
-                            <span>Last Access</span>
-                            <span className="text-light-text dark:text-dark-text font-normal">{new Date(formData.lastLogin).toLocaleDateString()}</span>
-                        </div>
-                         <div className="flex justify-between items-center text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
-                            <span>Security Level</span>
-                            <span className="text-emerald-500 font-semibold">Tier 1</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-6 bg-primary-500/5 dark:bg-primary-500/10 rounded-2xl border border-primary-500/10 flex items-start gap-4">
-                   <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
-                      <Icon name="shield" className="text-xl" />
-                   </div>
-                   <div>
-                      <h4 className="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-tight">Privacy Mode</h4>
-                      <p className="text-xs font-normal text-primary-600/70 dark:text-primary-400/70 mt-0.5 leading-normal">Your sensitive data is encrypted and only visible to you.</p>
-                   </div>
-                </div>
+      <SettingsGroup id="profile-details" title="Your details" description="Crystal uses your default city on new transactions.">
+        <div className="mb-5 flex flex-wrap items-center gap-4">
+          {form.profilePictureUrl && !isPictureBroken ? (
+            <img src={form.profilePictureUrl} alt="" onError={() => setPictureBroken(true)} className="size-16 rounded-full object-cover" />
+          ) : (
+            <span aria-hidden="true" className="flex size-16 items-center justify-center rounded-full bg-inset type-card-title text-ink">{initials}</span>
+          )}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="type-body-strong truncate text-ink">{form.firstName} {form.lastName}</p>
+              <Badge tone="neutral">{form.role}</Badge>
             </div>
+            {lastSignIn && <p className="type-caption mt-1 text-muted">Last signed in {lastSignIn.toLocaleDateString()}</p>}
+          </div>
+          <Button variant="secondary" size="sm" className="sm:ml-auto" onPress={() => fileInput.current?.click()}>Change picture</Button>
+          <input ref={fileInput} type="file" accept="image/*" aria-label="Profile picture" className="sr-only" tabIndex={-1} onChange={choosePicture} />
         </div>
 
-        {/* Right Column: Edit Forms */}
-        <div className="lg:col-span-3">
-             <form onSubmit={handleSubmit} className="space-y-8">
-                
-                {/* Identity Section */}
-                <div className="glass-section rounded-3xl shadow-card border border-slate-200/60 dark:border-white/5 p-8">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <Icon name="badge" className="text-2xl" />
-                        </div>
-                        <div>
-                           <h3 className="text-lg font-semibold text-light-text dark:text-dark-text leading-tight tracking-tight">Legal Identity</h3>
-                           <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Verification status: Level 1</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-2">
-                            <label htmlFor="firstName" className={labelStyle}>Given Name</label>
-                            <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-medium px-4`} required />
-                        </div>
-                        <div className="space-y-2">
-                            <label htmlFor="lastName" className={labelStyle}>Family Name</label>
-                            <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-medium px-4`} required />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Contact Section */}
-                <div className="glass-section rounded-3xl shadow-card border border-slate-200/60 dark:border-white/5 p-8">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="w-12 h-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
-                            <Icon name="contact_mail" className="text-2xl" />
-                        </div>
-                        <div>
-                           <h3 className="text-lg font-semibold text-light-text dark:text-dark-text leading-tight tracking-tight">Reachability</h3>
-                           <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Communication & Notifications</p>
-                        </div>
-                    </div>
-                    
-                        <div className="space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="space-y-2 md:col-span-1">
-                                    <label htmlFor="email" className={labelStyle}>Email Protocol</label>
-                                    <div className="relative group">
-                                        <input type="email" id="email" name="email" value={formData.email} readOnly className={`${INPUT_BASE_STYLE} h-12 pl-12 bg-gray-50/50 dark:bg-white/5 text-gray-500 cursor-not-allowed border-transparent font-medium`} />
-                                        <Icon name="verified_user" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary-500 transition-colors pointer-events-none" />
-                                    </div>
-                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-70">
-                                       <Icon name="info" className="text-xs" />
-                                       Primary login key
-                                    </p>
-                                </div>
-                                <div className="space-y-2 md:col-span-1">
-                                    <label htmlFor="phone" className={labelStyle}>Mobile Number</label>
-                                    <input type="tel" id="phone" name="phone" value={formData.phone || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-medium px-4`} placeholder="+1 (555) 000-0000" autoComplete="off" />
-                                </div>
-                                <div className="space-y-2 md:col-span-1">
-                                    <label htmlFor="defaultCity" className={labelStyle}>Default City (Transactions)</label>
-                                    <LocationAutocomplete
-                                        value={formData.defaultCity || ''}
-                                        onChange={(val) => setFormData(prev => ({ ...prev, defaultCity: val }))}
-                                        placeholder="e.g. Brussels, Belgium"
-                                    />
-                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-70">
-                                       Auto-filled on new transactions
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="address" className={labelStyle}>Mailing Address</label>
-                                <textarea id="address" name="address" value={formData.address || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} min-h-[100px] font-medium p-4 resize-none`} placeholder="Street, Building, City, ZIP / Postal Code" autoComplete="off" spellCheck={false}></textarea>
-                            </div>
-                        </div>
-                </div>
-
-                {/* Security Section */}
-                <div className="glass-section rounded-3xl shadow-card border border-slate-200/60 dark:border-white/5 p-8">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                            <Icon name="safety_check" className="text-2xl" />
-                        </div>
-                        <div>
-                           <h3 className="text-lg font-semibold text-light-text dark:text-dark-text leading-tight tracking-tight">Access Control</h3>
-                           <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Authentication Methods</p>
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-6">
-                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl glass-subwell border border-slate-200/60 dark:border-white/10 group shadow-xs">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl glass-tile flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary transition-transform group-hover:rotate-12">
-                                  <Icon name="password" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-sm text-light-text dark:text-dark-text tracking-tight">Main Password</p>
-                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Updated 45 days ago</p>
-                                </div>
-                            </div>
-                            <button type="button" onClick={() => setPasswordModalOpen(true)} className="px-4 py-2 rounded-xl glass-tile border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-light-text dark:text-dark-text hover:bg-primary-500 hover:text-white hover:border-primary-500 transition-all shadow-card">Change password</button>
-                         </div>
-                         
-                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-dashed border-black/20 dark:border-white/20 opacity-60 grayscale">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center">
-                                  <Icon name="stay_current_portrait" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-sm text-light-text dark:text-dark-text tracking-tight">Two-Factor Authentication</p>
-                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Biometric / TOTP Required</p>
-                                </div>
-                            </div>
-                            <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-semibold border border-amber-500/20">
-                                Engineering Lock
-                            </div>
-                         </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-6 pt-6">
-                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary max-w-sm leading-normal">
-                       Changes are synced across your devices immediately. Audit logs will reflect this administrative action.
-                    </p>
-                    <button type="submit" className="px-8 py-3.5 rounded-2xl bg-primary-500 text-white text-sm font-semibold tracking-wide shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
-                       Save changes
-                    </button>
-                </div>
-             </form>
+        <div className="grid gap-4 md:grid-cols-2">
+          <TextInput label="First name" autoComplete="given-name" isRequired value={form.firstName} onChange={set('firstName')} />
+          <TextInput label="Last name" autoComplete="family-name" isRequired value={form.lastName} onChange={set('lastName')} />
+          <TextInput label="Email" type="email" isReadOnly help="You sign in with this." value={form.email} />
+          <TextInput label="Phone" type="tel" autoComplete="tel" value={form.phone ?? ''} onChange={set('phone')} />
+          <div className="min-w-0 md:col-span-2">
+            <p className="type-label mb-1.5 text-ink">Default city</p>
+            <LocationAutocomplete value={form.defaultCity ?? ''} onChange={set('defaultCity')} placeholder="Brussels, Belgium" />
+          </div>
+          <Textarea label="Address" rows={3} className="md:col-span-2" value={form.address ?? ''} onChange={set('address')} />
         </div>
-      </div>
+
+        <div className="mt-5 flex justify-end">
+          <Button isBusy={isSaving} isDisabled={!isDirty || !form.firstName.trim() || !form.lastName.trim()} onPress={save}>Save profile</Button>
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup id="profile-security" title="Security">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="type-body min-w-0 text-ink">Password</p>
+          <Button variant="secondary" size="sm" onPress={() => setPasswordOpen(true)}>Change password</Button>
+        </div>
+      </SettingsGroup>
     </div>
   );
 };

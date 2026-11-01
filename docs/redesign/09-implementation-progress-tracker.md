@@ -19,7 +19,7 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Done, committed on `feat/redesign-planning` |
 | 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Done, committed on `feat/redesign-investments` |
 | 8 | Reports | Reports, Invoices, Challenges | Done, committed on `feat/redesign-reports` |
-| 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Not started |
+| 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Done, committed on `feat/redesign-settings` |
 | 10 | Rules | Rebuild (`D-009`), with tests first | Not started |
 | 11 | PIN lock | Idle lock, server-side design (`D-013`) | Not started |
 | 12 | Any currency | Support across the app (`S-010`) | Not started |
@@ -382,3 +382,38 @@ Module 6 is complete. Tasks, Forecast and Calendar were seen in light at 1440×9
 - A price prediction shows in the holding's currency.
 
 **Not tested on Challenges:** a prediction settling after its end date, a sprint failing or completing, and debt payments on a real loan, in the browser. Unit tests cover the first two. Light theme was seen on Score only.
+
+## Module 9 log
+
+### Hub, Profile and Preferences
+
+- The tile page is gone (`D-045`). `/settings` and the G then S shortcut open Profile. Every Settings page header has "Find a setting", driven by `utils/settingsIndex.ts`.
+- `SettingsGroup` is the shared layout: the topic on the left, its controls in a card on the right, stacked below large screens.
+- Profile drops text that wasn't true: "Updated 45 days ago", Two-Factor "Engineering Lock", "Tier 1", "Verified Account" and the encryption and audit log claims. The stock photo fallback is now initials.
+- Preferences keeps every setting. The eight currency shortcuts go, because the searchable list does the same job.
+- `color-scheme` now follows the theme across the app, which fixes white native scrollbars in dark mode.
+
+Tested in the app at 1440×900, 768×1024 and 375×812, with no overflow: search and jump, switches, theme in light and dark, profile save, password dialog validation.
+
+Not tested: a real password change (demo has no backend), picture upload, the Combobox on a real touch device.
+
+### Connections, Data, Categories, Tags, Help and synced choices
+
+- Connections: `BankConnectDialog`, `BankConnectionCard` and `BankLinkDialog` replace the 970-line card's screens. The logic stays in `EnableBankingIntegrationCard`. The sync dialog is now a standard dialog and also serves account pages.
+- Data: export and restore logic moved to `utils/dataTransfer.ts`, with tests. Export, Restore and Import details are side panels. The two-step erase stays.
+- Import: parsing moved to `utils/importParsing.ts`, with tests. The wizard is a full panel. Phones only choose rows to skip (`D-030`).
+- Categories and Tags: tree logic in `utils/categoryTree.ts`, tag sums in `utils/tagsModel.ts`, with tests. Editing is in a side panel (`D-046`).
+- Help: `utils/helpContent.ts`, searchable.
+- Synced choices: `utils/syncedChoices.ts` and `utils/matcherConfig.ts`, with tests.
+- Removed: `FinalConfirmationModal`, `TransactionDateAndAccountFilter`.
+
+Tested in the app at 1440×900, 768×1024 and 375×812, with no overflow: bank cards from demo data, link, sync and connect dialogs, delete confirmation, a full CSV import with a bad row and an unknown currency, deleting that import, a merge restore from a small test file, the first erase step, the phone import, category expand and menu, the icon picker, one local choice moving to preferences.
+
+Not tested:
+- Real bank connection, reconnect or sync. Find banks needs a backend, and the demo has none.
+- Saving a Twelve Data or Brandfetch key against the live services.
+- Choices reaching a second real device, because that needs a backend.
+- Completing an erase.
+- Drag to reorder categories by hand. The move logic has unit tests.
+- Move up and Move down in the running app. The logic has unit tests.
+- Downloaded export files. The contents have unit tests.

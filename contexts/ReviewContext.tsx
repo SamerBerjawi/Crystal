@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { liveSeries } from '../utils/scheduleModel';
 import type { Transaction } from '../types';
-import { useAccountsContext, useTransactionsContext } from './DomainProviders';
+import { useAccountsContext, usePreferencesContext, useTransactionsContext } from './DomainProviders';
 import { useScheduleContext } from './FinancialDataContext';
 import { useMatcherConfig, type MatcherConfig } from '../hooks/useMatcherConfig';
 import { useTransactionMatcher, type Suggestion } from '../hooks/useTransactionMatcher';
@@ -40,11 +40,13 @@ export const ReviewProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { recurringTransactions: everySeries, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const recurringTransactions = useMemo(() => liveSeries(everySeries), [everySeries]);
   const { config, updateConfig, resetConfig } = useMatcherConfig();
+  const { preferences, setPreferences } = usePreferencesContext();
+  const ignoredBillMatches = useMemo(() => preferences.ignoredBillMatches ?? [], [preferences.ignoredBillMatches]);
 
   const { suggestions, confirmMatch, dismissSuggestion, confirmSelectedMatches, dismissSelectedMatches, dismissAllSuggestions } =
     useTransactionMatcher(transactions, accounts, saveTransaction, config);
   const { billSuggestions, confirmBillMatch, dismissBillMatch, confirmSelectedBillMatches, dismissSelectedBillMatches, dismissAllBillMatches } =
-    useSyncedBillMatcher(transactions, recurringTransactions, billsAndPayments, accounts, saveTransaction, saveRecurringTransaction, saveBillPayment, config);
+    useSyncedBillMatcher(transactions, recurringTransactions, billsAndPayments, accounts, saveTransaction, saveRecurringTransaction, saveBillPayment, config, ignoredBillMatches, ids => setPreferences(prev => ({ ...prev, ignoredBillMatches: ids })));
 
   // A transaction in both lists goes to whichever matcher is more confident, so it never gets two conflicting prompts.
   const { transfers, billMatches } = useMemo(() => {

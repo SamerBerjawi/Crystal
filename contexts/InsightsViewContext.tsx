@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Account, Duration, FinancialGoal } from '../types';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Account, AppPreferences, Duration, FinancialGoal } from '../types';
+import { reconcileActiveGoals } from '../utils/syncedChoices';
 
 interface InsightsViewContextValue {
   dashboardAccountIds: string[];
@@ -14,6 +15,8 @@ interface InsightsViewProviderProps {
   accounts: Account[];
   financialGoals: FinancialGoal[];
   defaultDuration: Duration;
+  preferences: AppPreferences;
+  setPreferences: React.Dispatch<React.SetStateAction<AppPreferences>>;
   children: React.ReactNode;
 }
 
@@ -23,27 +26,18 @@ export const InsightsViewProvider: React.FC<InsightsViewProviderProps> = ({
   accounts,
   financialGoals,
   defaultDuration,
+  preferences,
+  setPreferences,
   children,
 }) => {
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
-  const [activeGoalIds, setActiveGoalIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('crystal_active_goal_ids');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return [];
-  });
+  const savedGoalIds = preferences.activeGoalIds;
+  const knownGoalIds = preferences.knownGoalIds;
+  const activeGoalIds = useMemo(() => savedGoalIds ?? [], [savedGoalIds]);
+  const setActiveGoalIds = useCallback<React.Dispatch<React.SetStateAction<string[]>>>(action => {
+    setPreferences(prev => ({ ...prev, activeGoalIds: typeof action === 'function' ? action(prev.activeGoalIds ?? []) : action }));
+  }, [setPreferences]);
   const [dashboardDuration, setDashboardDuration] = useState<Duration>(defaultDuration);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('crystal_active_goal_ids', JSON.stringify(activeGoalIds));
-    } catch {
-      // ignore
-    }
-  }, [activeGoalIds]);
 
   useEffect(() => {
     const accountIds = new Set(accounts.map(a => a.id));
@@ -72,49 +66,13 @@ export const InsightsViewProvider: React.FC<InsightsViewProviderProps> = ({
   }, [accounts, dashboardAccountIds.length]);
 
   useEffect(() => {
-    const goalIds = financialGoals.map(g => g.id);
-    const goalIdSet = new Set(goalIds);
-
-    setActiveGoalIds(prev => {
-      // First time initialization ONLY if localStorage has never been set at all
-      const savedRaw = localStorage.getItem('crystal_active_goal_ids');
-      if (savedRaw === null && prev.length === 0 && goalIds.length > 0) {
-        return financialGoals
-          .filter(g => !g.disabled)
-          .map(g => g.id);
-      }
-
-      // Preserve previously active IDs that still exist and aren't explicitly disabled
-      const preserved = prev.filter(id => {
-        if (!goalIdSet.has(id)) return false;
-        const g = financialGoals.find(item => item.id === id);
-        return !g?.disabled;
-      });
-
-      // Find brand new goals that were created after last load
-      let knownIds = new Set<string>();
-      try {
-        const knownRaw = localStorage.getItem('crystal_known_goal_ids');
-        if (knownRaw) knownIds = new Set(JSON.parse(knownRaw));
-      } catch {
-        // ignore
-      }
-
-      const brandNewIds = goalIds.filter(id => {
-        if (knownIds.has(id)) return false;
-        const g = financialGoals.find(item => item.id === id);
-        return !g?.disabled;
-      });
-
-      try {
-        localStorage.setItem('crystal_known_goal_ids', JSON.stringify(goalIds));
-      } catch {
-        // ignore
-      }
-
-      return [...new Set([...preserved, ...brandNewIds])];
-    });
-  }, [financialGoals]);
+    // Goals load with preferences, so an empty list here must not wipe the saved choice.
+    if (financialGoals.length === 0) return;
+    const next = reconcileActiveGoals(financialGoals, savedGoalIds, knownGoalIds);
+    const isSame = (a: string[] = [], b: string[] = []) => a.length === b.length && a.every((id, index) => id === b[index]);
+    if (savedGoalIds && isSame(next.activeGoalIds, savedGoalIds) && isSame(next.knownGoalIds, knownGoalIds)) return;
+    setPreferences(prev => ({ ...prev, ...next }));
+  }, [financialGoals, knownGoalIds, savedGoalIds, setPreferences]);
 
   useEffect(() => {
     setDashboardDuration(defaultDuration);
@@ -129,7 +87,7 @@ export const InsightsViewProvider: React.FC<InsightsViewProviderProps> = ({
       activeGoalIds,
       setActiveGoalIds,
     }),
-    [dashboardAccountIds, dashboardDuration, activeGoalIds]
+    [dashboardAccountIds, dashboardDuration, activeGoalIds, setActiveGoalIds]
   );
 
   return <InsightsViewContext.Provider value={value}>{children}</InsightsViewContext.Provider>;

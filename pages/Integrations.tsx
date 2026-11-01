@@ -1,8 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions, Page } from '../types';
-import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import EnableBankingIntegrationCard from '../components/EnableBankingIntegrationCard';
-import Icon from '../components/ui/Icon';
+import SettingsGroup from '../components/SettingsGroup';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
+import { Button, IconButton, TextLink } from '../components/ui/Actions';
+import { Badge } from '../components/ui/Display';
+import { TextInput } from '../components/ui/Fields';
 
 interface IntegrationsProps {
   preferences: AppPreferences;
@@ -23,103 +26,38 @@ interface IntegrationsProps {
   onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
 }
 
-const ApiKeyCard: React.FC<{
+/** A key saves when the field loses focus. */
+const ApiKeyField: React.FC<{
   title: string;
-  tag: string;
-  icon: string;
-  name: string;
+  description: string;
+  label: string;
   value: string;
-  onChange: (value: string) => void;
-  onBlur: () => void;
-  placeholder: string;
-  colorClass: string;
-  docsUrl?: string;
-}> = ({
-  title,
-  tag,
-  icon,
-  name,
-  value,
-  onChange,
-  onBlur,
-  placeholder,
-  colorClass,
-  docsUrl,
-}) => {
-  const isConfigured = Boolean(value && value.trim().length > 0);
-  const [isVisible, setIsVisible] = React.useState(false);
+  docsUrl: string;
+  onCommit: (value: string) => void;
+}> = ({ title, description, label, value, docsUrl, onCommit }) => {
+  const [draft, setDraft] = useState(value);
+  const [isVisible, setVisible] = useState(false);
+  useEffect(() => setDraft(value), [value]);
 
   return (
-    <div className="flex flex-col justify-between rounded-xl p-3 sm:p-3.5 bg-white/70 dark:bg-white/[0.025] backdrop-blur-md border border-black/8 dark:border-white/10 hover:border-primary-500/30 shadow-xs transition-all duration-150">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
-            <Icon name={icon} className="text-sm" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-xs text-light-text dark:text-dark-text tracking-tight truncate">
-                {title}
-              </span>
-              <span className="text-2xs px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary font-medium tracking-normal truncate">
-                {tag}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium leading-none shrink-0 border ${
-            isConfigured
-              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-              : 'bg-black/5 text-neutral-500 dark:bg-white/5 dark:text-neutral-400 border-black/5 dark:border-white/10'
-          }`}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${isConfigured ? 'bg-emerald-500' : 'bg-neutral-400'}`} />
-          {isConfigured ? 'Active' : 'Unset'}
-        </span>
+    <div className="py-4 first:pt-0 last:pb-0">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <h3 className="type-body-strong text-ink">{title}</h3>
+        <Badge tone={value.trim() ? 'positive' : 'neutral'}>{value.trim() ? 'Set' : 'Not set'}</Badge>
+        <TextLink href={docsUrl} target="_blank" rel="noopener noreferrer" className="ml-auto">Get a key</TextLink>
       </div>
-
-      {/* Secret Input with Link */}
-      <div className="space-y-1">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-light-text-secondary opacity-40">
-            <Icon name="key" className="text-xs" />
-          </div>
-          <input
-            type={isVisible ? 'text' : 'password'}
-            name={name}
-            value={value || ''}
-            onChange={e => onChange(e.target.value)}
-            onBlur={onBlur}
-            placeholder={placeholder}
-            className="w-full h-8 pl-7 pr-7 rounded-lg bg-black/[0.03] dark:bg-black/30 border border-black/10 dark:border-white/10 text-xs font-mono text-light-text dark:text-dark-text focus:outline-none focus:ring-1.5 focus:ring-primary-500/50"
-          />
-          <button
-            type="button"
-            onClick={() => setIsVisible(!isVisible)}
-            className="absolute inset-y-0 right-0 px-2 min-w-[28px] justify-center flex items-center text-light-text-secondary hover:text-primary-500 transition-colors cursor-pointer"
-            title={isVisible ? 'Hide' : 'Reveal'}
-            aria-label={isVisible ? 'Hide key' : 'Reveal key'}
-          >
-            <Icon name={isVisible ? 'visibility_off' : 'visibility'} className="text-xs" />
-          </button>
-        </div>
-
-        {docsUrl && (
-          <div className="flex justify-end">
-            <a
-              href={docsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-2xs text-primary-700 dark:text-primary-400 hover:underline inline-flex items-center gap-0.5 min-h-[28px] opacity-90 hover:opacity-100 font-medium"
-            >
-              <span>Get API key</span>
-              <Icon name="open_in_new" className="text-2xs" />
-            </a>
-          </div>
-        )}
+      <p className="type-caption mb-2 text-muted">{description}</p>
+      <div className="flex items-end gap-1">
+        <TextInput
+          label={label}
+          type={isVisible ? 'text' : 'password'}
+          autoComplete="off"
+          className="min-w-0 flex-1"
+          value={draft}
+          onChange={setDraft}
+          onBlur={() => { if (draft !== value) onCommit(draft); }}
+        />
+        <IconButton icon={isVisible ? 'visibility_off' : 'visibility'} label={isVisible ? `Hide ${label}` : `Show ${label}`} onPress={() => setVisible(shown => !shown)} />
       </div>
     </div>
   );
@@ -137,137 +75,59 @@ const Integrations: React.FC<IntegrationsProps> = ({
   onLinkAccount,
   onTriggerSync,
 }) => {
-  const [localApiKeys, setLocalApiKeys] = React.useState({
-    twelveDataApiKey: preferences.twelveDataApiKey || '',
-    brandfetchClientId: preferences.brandfetchClientId || '',
-  });
-
-  React.useEffect(() => {
-    setLocalApiKeys({
-      twelveDataApiKey: preferences.twelveDataApiKey || '',
-      brandfetchClientId: preferences.brandfetchClientId || '',
-    });
-  }, [preferences.brandfetchClientId, preferences.twelveDataApiKey]);
-
-  const handleLocalChange = (name: keyof typeof localApiKeys, value: string) => {
-    setLocalApiKeys(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleCommit = (name: keyof typeof localApiKeys) => {
-    const nextValue = localApiKeys[name];
-    if (preferences[name] !== nextValue) {
-      setPreferences({ ...preferences, [name]: nextValue });
-    }
-  };
-
-  const readyBankCount = useMemo(
-    () => enableBankingConnections.filter(c => c.status === 'ready').length,
-    [enableBankingConnections]
+  const [isConnectOpen, setConnectOpen] = useState(false);
+  const connected = useMemo(() => enableBankingConnections.filter(connection => connection.status === 'ready').length, [enableBankingConnections]);
+  const linked = useMemo(
+    () => enableBankingConnections.reduce((sum, connection) => sum + connection.accounts.filter(account => account.linkedAccountId).length, 0),
+    [enableBankingConnections],
   );
-  const activeApiCount = useMemo(() => {
-    let count = 0;
-    if (localApiKeys.twelveDataApiKey?.trim()) count++;
-    if (localApiKeys.brandfetchClientId?.trim()) count++;
-    return count;
-  }, [localApiKeys]);
 
   return (
-    <div className="w-full pb-10 space-y-5 animate-fade-in-up px-3 sm:px-6 max-w-7xl mx-auto">
-      {/* Header */}
+    <div className="space-y-8">
       <SettingsSubpageHeader
-        markerIcon="hub"
-        markerLabel="External Services"
-        title="Integrations"
+        title="Connections"
         setCurrentPage={setCurrentPage}
-        className="!mb-2"
+        stats={enableBankingConnections.length > 0 ? [
+          { label: 'Banks connected', icon: 'account_balance', value: connected, badge: `of ${enableBankingConnections.length}`, badgeTone: 'pine' },
+          { label: 'Accounts linked', icon: 'link', value: linked },
+        ] : undefined}
+        actions={<Button icon="add" onPress={() => setConnectOpen(true)}>Connect a bank</Button>}
       />
 
-      {/* QUICK STATUS PILLS BAR */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 text-2xs">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white dark:bg-white/[0.06] border border-black/5 dark:border-white/10 font-medium">
-          <span className={`w-1.5 h-1.5 rounded-full ${readyBankCount > 0 ? 'bg-emerald-500' : 'bg-neutral-400'}`} />
-          <span className="text-light-text dark:text-dark-text font-semibold">Open Banking:</span>
-          <span className="text-light-text-secondary dark:text-dark-text-secondary">
-            {enableBankingConnections.length === 0
-              ? 'None'
-              : `${readyBankCount} active (${enableBankingConnections.length} total)`}
-          </span>
-        </div>
-
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white dark:bg-white/[0.06] border border-black/5 dark:border-white/10 font-medium">
-          <span className={`w-1.5 h-1.5 rounded-full ${activeApiCount > 0 ? 'bg-emerald-500' : 'bg-neutral-400'}`} />
-          <span className="text-light-text dark:text-dark-text font-semibold">Data APIs:</span>
-          <span className="text-light-text-secondary dark:text-dark-text-secondary">{activeApiCount} / 3 configured</span>
-        </div>
-      </div>
-
-      {/* SECTION 1: BANK SYNCHRONIZATION (ENABLE BANKING) */}
-      <section className="space-y-2.5">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-3.5 bg-emerald-500 rounded-full" />
-            <h3 className="text-xs font-bold text-light-text dark:text-dark-text uppercase tracking-wider">
-              Bank Synchronization
-            </h3>
-          </div>
-          <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-75">
-            Enable Banking (PSD2)
-          </span>
-        </div>
-
+      <SettingsGroup isPlain title="Banks" description="Live balances and transactions through Enable Banking.">
         <EnableBankingIntegrationCard
           connections={enableBankingConnections}
           accounts={accounts}
+          isConnectOpen={isConnectOpen}
+          onConnectOpenChange={setConnectOpen}
           onCreateConnection={onCreateConnection}
           onFetchBanks={onFetchBanks}
           onDeleteConnection={onDeleteConnection}
           onLinkAccount={onLinkAccount}
           onTriggerSync={onTriggerSync}
         />
-      </section>
+      </SettingsGroup>
 
-      {/* SECTION 2: THIRD-PARTY DATA APIS (COMPACT 3-COLUMN GRID) */}
-      <section className="space-y-2.5 pt-1">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-3.5 bg-primary-500 rounded-full" />
-            <h3 className="text-xs font-bold text-light-text dark:text-dark-text uppercase tracking-wider">
-              Data & Asset APIs
-            </h3>
-          </div>
-          <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-75">
-            Stored locally
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <ApiKeyCard
+      <SettingsGroup title="Prices and logos">
+        <div className="divide-y divide-line">
+          <ApiKeyField
             title="Twelve Data"
-            tag="Rates & FX"
-            icon="trending_up"
-            name="twelveDataApiKey"
-            value={localApiKeys.twelveDataApiKey}
-            onChange={value => handleLocalChange('twelveDataApiKey', value)}
-            onBlur={() => handleCommit('twelveDataApiKey')}
-            placeholder="API Key"
-            colorClass="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
+            description="Live prices and exchange rates."
+            label="API key"
+            value={preferences.twelveDataApiKey || ''}
             docsUrl="https://twelvedata.com"
+            onCommit={value => setPreferences({ ...preferences, twelveDataApiKey: value })}
           />
-
-          <ApiKeyCard
+          <ApiKeyField
             title="Brandfetch"
-            tag="Logos"
-            icon="verified"
-            name="brandfetchClientId"
-            value={localApiKeys.brandfetchClientId}
-            onChange={value => handleLocalChange('brandfetchClientId', value)}
-            onBlur={() => handleCommit('brandfetchClientId')}
-            placeholder="Client ID"
-            colorClass="bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/20"
+            description="Merchant and bank logos."
+            label="Client ID"
+            value={preferences.brandfetchClientId || ''}
             docsUrl="https://brandfetch.com/developers"
+            onCommit={value => setPreferences({ ...preferences, brandfetchClientId: value })}
           />
         </div>
-      </section>
+      </SettingsGroup>
     </div>
   );
 };

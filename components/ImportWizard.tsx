@@ -1,187 +1,28 @@
-
-// This is a new file: components/ImportWizard.tsx
-import { parseAmount } from '../utils/parseAmount';
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Account, Category, Transaction, Currency, AccountType } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
-import { flattenCategories, toLocalISOString, safeRound } from '../utils';
+import { Account, AccountType, Category, Currency, Transaction } from '../types';
+import { ALL_ACCOUNT_TYPES, CURRENCIES } from '../constants';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { cn } from '../lib/utils';
+import { flattenCategories, safeRound, toLocalISOString } from '../utils';
+import {
+  calculateMatchScore,
+  detectAmountFormat,
+  detectDateFormat,
+  levenshteinDistance,
+  parseCSV,
+  parseDate,
+  RowFilter,
+  rowMatchesFilters,
+} from '../utils/importParsing';
+import { parseAmount } from '../utils/parseAmount';
+import { Button } from './ui/Actions';
+import { Checkbox, controlStyles } from './ui/Fields';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
-
-
-// --- Helper Functions ---
-
-// Helper function for fuzzy matching (Levenshtein distance)
-const levenshteinDistance = (s1: string, s2: string): number => {
-    const track = Array(s2.length + 1).fill(null).map(() =>
-        Array(s1.length + 1).fill(null));
-    for (let i = 0; i <= s1.length; i += 1) {
-        track[0][i] = i;
-    }
-    for (let j = 0; j <= s2.length; j += 1) {
-        track[j][0] = j;
-    }
-    for (let j = 1; j <= s2.length; j += 1) {
-        for (let i = 1; i <= s1.length; i += 1) {
-            const indicator = s1[i - 1] === s2[j - 1] ? 0 : 1;
-            track[j][i] = Math.min(
-                track[j][i - 1] + 1, // deletion
-                track[j - 1][i] + 1, // insertion
-                track[j - 1][i - 1] + indicator, // substitution
-            );
-        }
-    }
-    return track[s2.length][s1.length];
-};
-
-const calculateMatchScore = (header: string, keywords: string[]): number => {
-    let maxScore = 0;
-    const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (!normalizedHeader) return 0;
-
-    for (const keyword of keywords) {
-        let currentScore = 0;
-        const normalizedKeyword = keyword.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (!normalizedKeyword) continue;
-
-        // 1. Exact match = 100
-        if (normalizedHeader === normalizedKeyword) {
-            currentScore = 100;
-        } 
-        // 2. Contains match = 70-90
-        // (very short keywords such as "cr" or "in" only count on an exact match, otherwise "Description" matches "cr")
-        else if (normalizedKeyword.length > 3 && normalizedHeader.includes(normalizedKeyword)) {
-            const lengthRatio = normalizedKeyword.length / normalizedHeader.length;
-            currentScore = 70 + (20 * lengthRatio);
-        }
-        // 3. Levenshtein distance = up to 70
-        else {
-            const distance = levenshteinDistance(normalizedHeader, normalizedKeyword);
-            const similarity = 1 - (distance / Math.max(normalizedHeader.length, normalizedKeyword.length));
-            if (similarity > 0.6) { // Only consider if reasonably similar
-                currentScore = similarity * 70;
-            }
-        }
-        
-        if (currentScore > maxScore) {
-            maxScore = currentScore;
-        }
-    }
-    return maxScore;
-};
-
-
-const parseCSV = (csvText: string, delimiter: string): { headers: string[], data: Record<string, any>[] } => {
-    const lines = csvText.trim().split(/\r?\n/);
-    if (lines.length < 1) return { headers: [], data: [] };
-
-    const headers = lines.shift()!.split(delimiter).map(h => h.trim().replace(/"/g, ''));
-    const data: Record<string, any>[] = [];
-
-    const escapedDelimiter = delimiter.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const valueRegex = new RegExp(`(".*?"|[^"${escapedDelimiter}]+)(?=\\s*${escapedDelimiter}|\\s*$)`, 'g');
-
-
-    lines.forEach(line => {
-        // Guard against empty lines
-        if (!line.trim()) return;
-
-        const values = line.match(valueRegex) || [];
-        if (values.length > 0) {
-            const obj = headers.reduce((acc, header, index) => {
-                let value = (values[index] || '').trim();
-                if (value.startsWith('"') && value.endsWith('"')) {
-                    value = value.slice(1, -1).replace(/""/g, '"');
-                }
-                acc[header] = value;
-                return acc;
-            }, {} as Record<string, any>);
-            data.push(obj);
-        }
-    });
-    return { headers, data };
-};
-
-const parseDate = (dateStr: string, format: string): Date | null => {
-    if (!dateStr) return null;
-    const parts = dateStr.match(/(\d+)/g);
-    if (!parts || parts.length < 3) return new Date(dateStr); // Fallback
-    
-    const [p1, p2, p3] = parts.map(Number);
-    
-    try {
-        let year, month, day;
-        switch(format) {
-            case 'YYYY-MM-DD': [year, month, day] = [p1, p2, p3]; break;
-            case 'MM/DD/YYYY': [month, day, year] = [p1, p2, p3]; break;
-            case 'DD/MM/YYYY': [day, month, year] = [p1, p2, p3]; break;
-            default: return new Date(dateStr);
-        }
-        
-        if (String(year).length === 2) {
-            year += 2000;
-        }
-
-        const date = new Date(year, month - 1, day);
-        if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
-            return date;
-        }
-        return null;
-    } catch (e) {
-        return null;
-    }
-}
-
-const detectDateFormat = (data: Record<string, any>[], dateColumn: string): string => {
-    if (!dateColumn || data.length === 0) return 'YYYY-MM-DD';
-
-    const samples = data.map(row => row[dateColumn]).filter(Boolean).slice(0, 20);
-    if (samples.length === 0) return 'YYYY-MM-DD';
-
-    const scores = { 'YYYY-MM-DD': 0, 'MM/DD/YYYY': 0, 'DD/MM/YYYY': 0 };
-    let isLikelyDMY = false;
-    let isLikelyMDY = false;
-
-    const formats = [
-        { name: 'YYYY-MM-DD', regex: /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/ },
-        { name: 'slashed', regex: /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$/ },
-    ];
-
-    samples.forEach(sample => {
-        if (formats[0].regex.test(sample)) {
-            scores['YYYY-MM-DD']++;
-        } else if (formats[1].regex.test(sample)) {
-            const parts = sample.split(/[-/]/).map(Number);
-            if (parts.length === 3) {
-                const [p1, p2] = parts;
-                if (p1 > 12) isLikelyDMY = true;
-                if (p2 > 12) isLikelyMDY = true;
-                if (p1 >= 1 && p1 <= 12) scores['MM/DD/YYYY']++;
-                if (p2 >= 1 && p2 <= 12) scores['DD/MM/YYYY']++;
-            }
-        }
-    });
-
-    if (isLikelyDMY && !isLikelyMDY) return 'DD/MM/YYYY';
-    if (isLikelyMDY && !isLikelyDMY) return 'MM/DD/YYYY';
-
-    const maxScore = Math.max(scores['YYYY-MM-DD'], scores['MM/DD/YYYY'], scores['DD/MM/YYYY']);
-    const bestFormats = Object.keys(scores).filter(key => scores[key as keyof typeof scores] === maxScore);
-
-    if (bestFormats.length === 1) return bestFormats[0];
-    if (bestFormats.includes('YYYY-MM-DD')) return 'YYYY-MM-DD';
-    if (bestFormats.includes('MM/DD/YYYY')) return 'MM/DD/YYYY';
-    
-    return 'DD/MM/YYYY'; // Common default
-};
-
-const detectAmountFormat = (mapping: Record<string, string>): string => {
-    if (mapping.amountIn && mapping.amountOut) {
-        return 'double_entry';
-    }
-    return 'single_signed';
-};
+import { FullPanel } from './ui/Overlays';
+import { Combobox, PickerOption, Select } from './ui/Pickers';
+import SegmentedControl from './ui/SegmentedControl';
+import { Banner } from './ui/States';
 
 // --- Wizard Props ---
 interface ImportWizardProps {
@@ -194,7 +35,6 @@ interface ImportWizardProps {
 
 // --- Main Wizard Component ---
 const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPublish, existingAccounts, allCategories }) => {
-  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [currentStep, setCurrentStep] = useState(1);
     const [fileName, setFileName] = useState('');
     const [rawCSV, setRawCSV] = useState('');
@@ -214,6 +54,9 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     const [accountTypeMap, setAccountTypeMap] = useState<Record<string, string>>({});
     const [currencyMap, setCurrencyMap] = useState<Record<string, string>>({});
     const [isPublishing, setIsPublishing] = useState(false);
+    const [isOpen, setOpen] = useState(true);
+    const hasParsed = useRef(false);
+    const isPhone = useIsMobile();
 
     const STEPS = [
         { number: 1, name: 'Upload' },
@@ -281,11 +124,10 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
         setColumnMap(mapping);
     }, [rawCSV, autoMapColumns, delimiter]);
     
+    // Only a new file or delimiter parses again, so manual column choices survive moving between steps.
     useEffect(() => {
-        if (rawCSV && currentStep >= 2) {
-            handleProcessUpload();
-        }
-    }, [handleProcessUpload, rawCSV, currentStep]);
+        if (rawCSV && hasParsed.current) handleProcessUpload();
+    }, [handleProcessUpload, rawCSV]);
 
     useEffect(() => {
         if (parsedData.length > 0) {
@@ -484,6 +326,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
         if (step > currentStep) { // Moving forward
             if (currentStep === 1) {
                 if (!rawCSV) return;
+                hasParsed.current = true;
                 handleProcessUpload();
             }
             if (currentStep === 2) processConfiguredData();
@@ -592,224 +435,203 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
         setTimeout(() => onClose(), 2000);
     };
 
+    const close = () => { setOpen(false); onClose(); };
+
     const renderContent = () => {
-        if (isPublishing) return <StepPublishing />;
+        if (isPublishing) return <p className="type-body py-12 text-center text-muted">Importing. You can close this panel.</p>;
         switch (currentStep) {
-            case 1: return <Step1Upload setRawCSV={setRawCSV} setFileName={setFileName} fileName={fileName} />;
-            case 2: return <Step2Configure headers={csvHeaders} columnMap={columnMap} setColumnMap={setColumnMap} importType={importType} dateFormat={dateFormat} setDateFormat={setDateFormat} amountConfig={amountConfig} setAmountConfig={setAmountConfig} delimiter={delimiter} setDelimiter={setDelimiter} accountSource={accountSource} setAccountSource={setAccountSource} selectedSingleAccountId={selectedSingleAccountId} setSelectedSingleAccountId={setSelectedSingleAccountId} existingAccounts={existingAccounts} />;
-            case 3: return <Step3Preview parsedData={parsedData} cleanedData={cleanedData} dataErrors={dataErrors} columnMap={columnMap} importType={importType} />;
-            case 4: return <Step4Clean data={cleanedData} setData={setCleanedData} errors={dataErrors} excludedRows={excludedRows} setExcludedRows={setExcludedRows} importType={importType} />;
-            case 5: return <Step5Map importType={importType} categories={Object.keys(categoryMap)} setCategoryMap={setCategoryMap} categoryMap={categoryMap} allCategories={allCategories} accounts={Object.keys(accountMap)} setAccountMap={setAccountMap} accountMap={accountMap} existingAccounts={existingAccounts} accountTypes={Object.keys(accountTypeMap)} accountTypeMap={accountTypeMap} setAccountTypeMap={setAccountTypeMap} currencies={Object.keys(currencyMap)} setCurrencyMap={setCurrencyMap} currencyMap={currencyMap} />;
-            case 6: return <Step6Confirm data={cleanedData.filter(row => !excludedRows.has(row.originalIndex))} importType={importType} />;
+            case 1: return <StepUpload setRawCSV={setRawCSV} setFileName={setFileName} fileName={fileName} />;
+            case 2: return <StepColumns headers={csvHeaders} columnMap={columnMap} setColumnMap={setColumnMap} importType={importType} dateFormat={dateFormat} setDateFormat={setDateFormat} amountConfig={amountConfig} setAmountConfig={setAmountConfig} delimiter={delimiter} setDelimiter={setDelimiter} accountSource={accountSource} setAccountSource={setAccountSource} selectedSingleAccountId={selectedSingleAccountId} setSelectedSingleAccountId={setSelectedSingleAccountId} existingAccounts={existingAccounts} />;
+            case 3: return <StepPreview parsedData={parsedData} cleanedData={cleanedData} dataErrors={dataErrors} columnMap={columnMap} importType={importType} />;
+            case 4: return <StepClean data={cleanedData} setData={setCleanedData} excludedRows={excludedRows} setExcludedRows={setExcludedRows} isSimple={isPhone} />;
+            case 5: return <StepMap importType={importType} categoryMap={categoryMap} setCategoryMap={setCategoryMap} allCategories={allCategories} accountMap={accountMap} setAccountMap={setAccountMap} existingAccounts={existingAccounts} accountTypeMap={accountTypeMap} setAccountTypeMap={setAccountTypeMap} currencyMap={currencyMap} setCurrencyMap={setCurrencyMap} />;
+            case 6: return <StepConfirm count={cleanedData.filter(row => !excludedRows.has(row.originalIndex)).length} importType={importType} errorCount={Object.keys(dataErrors).length} />;
             default: return null;
         }
     };
-    
+
     return (
-        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[60] flex flex-col">
-            <header className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
-                <button onClick={() => currentStep > 1 ? goToStep(currentStep - 1) : onClose()} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><Icon name="arrow_back" /></button>
-                <nav aria-label="Import Steps" className="flex-grow">
-                    <ol className="flex items-center justify-center w-full max-w-3xl mx-auto">
-                        {STEPS.map((step, index) => {
-                            const isCompleted = currentStep > step.number;
-                            const isCurrent = currentStep === step.number;
-                            return (
-                                <li key={step.number} className="flex items-center w-full">
-                                    <div className="flex flex-col items-center text-center">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 ${isCompleted ? 'bg-primary-500 text-white' : isCurrent ? 'bg-primary-100 dark:bg-primary-800/50 border-2 border-primary-500 text-primary-600 dark:text-primary-200' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-                                            {isCompleted ? <Icon name="check" /> : step.number}
-                                        </div>
-                                        <p className={`mt-2 text-xs font-semibold hidden md:block ${isCurrent ? 'text-light-text dark:text-dark-text' : 'text-gray-500'}`}>{step.name}</p>
-                                    </div>
-                                    {index < STEPS.length - 1 && (
-                                        <div className={`flex-auto border-t-2 transition-colors duration-300 ${isCompleted ? 'border-primary-500' : 'border-gray-200 dark:border-gray-700'}`}></div>
-                                    )}
-                                </li>
-                            );
-                        })}
-                    </ol>
-                </nav>
-                <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><Icon name="close" /></button>
-            </header>
-            <main className="flex-1 overflow-y-auto bg-transparent p-4 md:p-8">{renderContent()}</main>
-            {!isPublishing && <footer className="p-4 border-t border-black/10 dark:border-white/10 flex justify-end">
-                {currentStep < 6 ? <button onClick={() => goToStep(currentStep + 1)} className={BTN_PRIMARY_STYLE} disabled={currentStep === 1 && !rawCSV}>Next Step</button> : <button onClick={handlePublish} className={BTN_PRIMARY_STYLE}>Publish Import</button>}
-            </footer>}
-        </div>
+        <FullPanel
+            isOpen={isOpen}
+            onClose={close}
+            isDirty={!!rawCSV && !isPublishing}
+            title={importType === 'transactions' ? 'Import transactions' : 'Import accounts'}
+            description={`Step ${currentStep} of ${STEPS.length}: ${STEPS[currentStep - 1].name}`}
+            footer={!isPublishing && (
+                <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
+                    {currentStep > 1 && <Button variant="ghost" onPress={() => goToStep(currentStep - 1)}>Back</Button>}
+                    {currentStep < STEPS.length
+                        ? <Button isDisabled={currentStep === 1 && !rawCSV} onPress={() => goToStep(currentStep + 1)}>Next</Button>
+                        : <Button onPress={handlePublish}>Import</Button>}
+                </div>
+            )}
+        >
+            <div className="mx-auto max-w-5xl">
+                <ol aria-label="Import steps" className="mb-6 hidden gap-1 md:flex">
+                    {STEPS.map(step => {
+                        const isDone = currentStep > step.number;
+                        const isCurrent = currentStep === step.number;
+                        return (
+                            <li key={step.number} aria-current={isCurrent ? 'step' : undefined} className="flex-1">
+                                <span className={cn('block h-1 rounded-full', isDone || isCurrent ? 'bg-pine' : 'bg-inset')} />
+                                <span className={cn('type-caption mt-1.5 block', isCurrent ? 'text-ink' : 'text-muted')}>{step.name}</span>
+                            </li>
+                        );
+                    })}
+                </ol>
+                {renderContent()}
+            </div>
+        </FullPanel>
     );
 };
 
-// --- Step Components ---
-const Step1Upload: React.FC<{ setRawCSV: (csv: string) => void, setFileName: (name: string) => void, fileName: string }> = ({ setRawCSV, setFileName, fileName }) => {
+// --- Steps ---
+
+const FIELD_LABELS: Record<string, string> = {
+    date: 'Date',
+    name: 'Description',
+    amount: 'Amount',
+    amountIn: 'Money in',
+    amountOut: 'Money out',
+    category: 'Category',
+    currency: 'Currency',
+    balance: 'Balance',
+    type: 'Type',
+    account: 'Account',
+};
+
+const NO_COLUMN = '__none';
+
+const StepHeading: React.FC<{ title: string; description: string }> = ({ title, description }) => (
+    <div className="mb-5">
+        <h2 className="type-card-title text-ink">{title}</h2>
+        <p className="type-body mt-1 text-muted">{description}</p>
+    </div>
+);
+
+const cellStyles = 'whitespace-nowrap px-3 py-2 text-left';
+const tableInput = cn(controlStyles, 'h-8 min-w-24 px-2 text-xs');
+
+const StepUpload: React.FC<{ setRawCSV: (csv: string) => void; setFileName: (name: string) => void; fileName: string }> = ({ setRawCSV, setFileName, fileName }) => {
     const [isDragging, setIsDragging] = useState(false);
-    const handleFile = (file: File) => { setFileName(file.name); const reader = new FileReader(); reader.onload = (e) => setRawCSV(e.target?.result as string); reader.readAsText(file); };
-    const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
-    return (<div className="max-w-2xl mx-auto text-center"><h2 className="text-3xl font-bold mb-2">Import your data</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8">Upload your CSV file below. The next steps will guide you through mapping and cleaning.</p><div onDragOver={(e)=>{e.preventDefault();setIsDragging(true)}} onDragLeave={(e)=>{e.preventDefault();setIsDragging(false)}} onDrop={handleDrop} className={`p-10 border-2 border-dashed rounded-lg transition-colors ${isDragging ? 'border-primary-500 bg-primary-500/10' : 'border-gray-300 dark:border-gray-600'}`}><Icon name="upload_file" className="text-5xl text-gray-400" /><p className="mt-2 font-semibold">Drag & drop your CSV file here</p><p className="text-sm text-gray-500">{fileName || "or"}</p><label className={`${BTN_PRIMARY_STYLE} mt-4 inline-block cursor-pointer`}>Browse Files<input type="file" className="hidden" accept=".csv" onChange={(e) => e.target.files && e.target.files[0] && handleFile(e.target.files[0])} /></label></div></div>);
-};
+    const fileInput = useRef<HTMLInputElement>(null);
 
-const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap: any, importType: string, dateFormat: string, setDateFormat: any, amountConfig: string, setAmountConfig: any, delimiter: string, setDelimiter: any, accountSource: 'column' | 'single', setAccountSource: (source: 'column' | 'single') => void, selectedSingleAccountId: string, setSelectedSingleAccountId: (id: string) => void, existingAccounts: Account[] }> = ({ headers, columnMap, setColumnMap, importType, dateFormat, setDateFormat, amountConfig, setAmountConfig, delimiter, setDelimiter, accountSource, setAccountSource, selectedSingleAccountId, setSelectedSingleAccountId, existingAccounts }) => {
-    
-    const handleMappingChange = (field: string, csvHeader: string) => setColumnMap((prev: any) => ({ ...prev, [field]: csvHeader }));
+    const handleFile = (file: File) => {
+        setFileName(file.name);
+        const reader = new FileReader();
+        reader.onload = event => setRawCSV(event.target?.result as string);
+        reader.readAsText(file);
+    };
+    const handleDrop = (event: React.DragEvent) => {
+        event.preventDefault();
+        setIsDragging(false);
+        if (event.dataTransfer.files?.[0]) handleFile(event.dataTransfer.files[0]);
+    };
 
-    const { requiredFields, optionalFields, accountFieldUI } = useMemo(() => {
-        if (importType === 'transactions') {
-            const required: string[] = ['date', 'name'];
-            const optional: string[] = ['category', 'currency'];
-
-            if (amountConfig === 'double_entry') {
-                required.push('amountIn', 'amountOut');
-            } else {
-                required.push('amount');
-            }
-            
-            const accountFieldNode = (
-                <div className="md:col-span-2">
-                    <label className="font-semibold mb-2 block">Account Source *</label>
-                    <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-inner mb-2 h-10">
-                        <button type="button" onClick={() => setAccountSource('column')} className={`h-full w-full text-center text-sm font-semibold px-3 rounded-md transition-all ${accountSource === 'column' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>From File Column</button>
-                        <button type="button" onClick={() => setAccountSource('single')} className={`h-full w-full text-center text-sm font-semibold px-3 rounded-md transition-all ${accountSource === 'single' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>Assign Single Account</button>
-                    </div>
-                    {accountSource === 'column' ? (
-                       <div className={SELECT_WRAPPER_STYLE}>
-                           <select value={columnMap['account'] || ''} onChange={(e) => handleMappingChange('account', e.target.value)} className={SELECT_STYLE}><option value="">Select column for Account</option>{headers.map(header => <option key={header} value={header}>{header}</option>)}</select>
-                           <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                       </div>
-                    ) : (
-                       <div className={SELECT_WRAPPER_STYLE}>
-                           <select value={selectedSingleAccountId} onChange={e => setSelectedSingleAccountId(e.target.value)} className={SELECT_STYLE}><option value="">Select an account</option>{existingAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
-                           <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                       </div>
-                    )}
-                </div>
-            );
-            
-            return { requiredFields: required, optionalFields: optional, accountFieldUI: accountFieldNode };
-
-        } else { // 'accounts'
-            return {
-                requiredFields: ['name', 'balance'],
-                optionalFields: ['type', 'currency'],
-                accountFieldUI: null
-            };
-        }
-    }, [importType, amountConfig, accountSource, columnMap, headers, existingAccounts, selectedSingleAccountId, setAccountSource, setSelectedSingleAccountId]);
-
-    const allFields = [...requiredFields, ...optionalFields];
-
-    const FieldSelect: React.FC<{field: string}> = ({field}) => (
-        <div>
-            <label className="font-semibold capitalize mb-1 block">{field.replace('amountIn', 'Amount In (Credit)').replace('amountOut', 'Amount Out (Debit)')} {requiredFields.includes(field) && '*'}</label>
-            <div className={SELECT_WRAPPER_STYLE}>
-                <select value={columnMap[field] || ''} onChange={(e) => handleMappingChange(field, e.target.value)} className={SELECT_STYLE}>
-                    <option value="">Select column</option>
-                    {headers.map(header => <option key={header} value={header}>{header}</option>)}
-                </select>
-                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-            </div>
-        </div>
-    );
-    
     return (
-        <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold mb-2 text-center">Configure Columns</h2>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mb-8 text-center">Match the columns from your CSV to the required fields. We've tried to guess for you.</p>
-            <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-light-card dark:bg-dark-card rounded-lg">
-                    {accountFieldUI}
-                    {allFields.map(field => <FieldSelect key={field} field={field} />)}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-light-card dark:bg-dark-card rounded-lg">
-                    {importType === 'transactions' && <>
-                        <div>
-                            <label className="font-semibold mb-1 block">Date Format</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select value={dateFormat} onChange={e => setDateFormat(e.target.value)} className={SELECT_STYLE}>
-                                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="font-semibold mb-1 block">Amount Format</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select value={amountConfig} onChange={e => setAmountConfig(e.target.value)} className={SELECT_STYLE}>
-                                    <option value="single_signed">Single column with +/-</option>
-                                    <option value="double_entry">Two columns (In/Out)</option>
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                            </div>
-                        </div>
-                    </>}
-                     <div>
-                        <label className="font-semibold mb-1 block">Delimiter</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select value={delimiter} onChange={e => setDelimiter(e.target.value)} className={SELECT_STYLE}>
-                                <option value=",">Comma (,)</option>
-                                <option value=";">Semicolon (;)</option>
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                        </div>
-                    </div>
-                </div>
+        <>
+            <StepHeading title="Choose a CSV file" description="Next you’ll match its columns and check the rows." />
+            <div
+                onDragOver={event => { event.preventDefault(); setIsDragging(true); }}
+                onDragLeave={event => { event.preventDefault(); setIsDragging(false); }}
+                onDrop={handleDrop}
+                className={cn('flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-dashed p-10 text-center transition-colors', isDragging ? 'border-primary bg-inset' : 'border-line-strong')}
+            >
+                <Icon name="upload_file" size={32} className="text-muted" />
+                <p className="type-body text-ink">{fileName || 'Drop a file here'}</p>
+                <Button variant="secondary" onPress={() => fileInput.current?.click()}>{fileName ? 'Choose another file' : 'Choose file'}</Button>
+                <input ref={fileInput} type="file" accept=".csv" aria-label="CSV file" className="sr-only" tabIndex={-1} onChange={event => event.target.files?.[0] && handleFile(event.target.files[0])} />
             </div>
-        </div>
+        </>
     );
 };
 
-const Step3Preview: React.FC<{ parsedData: any[], cleanedData: any[], dataErrors: any, columnMap: any, importType: 'accounts' | 'transactions' }> = ({ parsedData, cleanedData, dataErrors, columnMap, importType }) => {
-    const transactionHeaders = ['date', 'account', 'name', 'category', 'amount', 'currency'];
-    const accountHeaders = ['name', 'type', 'balance', 'currency'];
-    const previewHeaders = importType === 'transactions' ? transactionHeaders : accountHeaders;
-     return (
-        <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl font-bold mb-2 text-center">Preview Processed Data</h2>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mb-8 text-center">
-                This is a preview of how your data will be interpreted. Rows with errors are highlighted in red.
-                If anything looks wrong, go back to the 'Configure' step to adjust your settings.
-            </p>
-            <div className="overflow-x-auto bg-light-card dark:bg-dark-card p-4 rounded-lg max-h-[60vh]">
-                <table className="w-full text-sm table-auto">
-                    <thead>
-                        <tr className="border-b border-black/10 dark:border-white/10">
-                            <th className="p-2 font-semibold text-left w-12">Row #</th>
-                            {previewHeaders.map(header => (
-                                <th key={header} className="p-2 font-semibold text-left capitalize">{header}</th>
-                            ))}
+const StepColumns: React.FC<{
+    headers: string[]; columnMap: Record<string, string>; setColumnMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    importType: string; dateFormat: string; setDateFormat: (value: string) => void; amountConfig: string; setAmountConfig: (value: string) => void;
+    delimiter: string; setDelimiter: (value: string) => void; accountSource: 'column' | 'single'; setAccountSource: (source: 'column' | 'single') => void;
+    selectedSingleAccountId: string; setSelectedSingleAccountId: (id: string) => void; existingAccounts: Account[];
+}> = ({ headers, columnMap, setColumnMap, importType, dateFormat, setDateFormat, amountConfig, setAmountConfig, delimiter, setDelimiter, accountSource, setAccountSource, selectedSingleAccountId, setSelectedSingleAccountId, existingAccounts }) => {
+    const isTransactions = importType === 'transactions';
+    const required = isTransactions ? ['account', 'date', 'name', ...(amountConfig === 'double_entry' ? ['amountIn', 'amountOut'] : ['amount'])] : ['name', 'balance'];
+    const optional = isTransactions ? ['category', 'currency'] : ['type', 'currency'];
+    const columnOptions = useMemo<PickerOption[]>(() => [{ id: NO_COLUMN, label: 'No column' }, ...headers.map(header => ({ id: header, label: header }))], [headers]);
+
+    const columnSelect = (field: string) => (
+        <Select
+            key={field}
+            label={`${FIELD_LABELS[field]}${required.includes(field) ? '' : ' (optional)'}`}
+            options={columnOptions}
+            value={columnMap[field] || null}
+            onChange={id => setColumnMap(prev => ({ ...prev, [field]: id === NO_COLUMN ? '' : id }))}
+            placeholder="Choose a column"
+        />
+    );
+
+    return (
+        <>
+            <StepHeading title="Match the columns" description="Crystal has guessed. Change anything that looks wrong." />
+            <div className="grid gap-4 md:grid-cols-2">
+                {isTransactions && (
+                    <div className="md:col-span-2">
+                        <p className="type-label mb-1.5 text-ink">Account</p>
+                        <SegmentedControl
+                            className="mb-2"
+                            items={[{ id: 'column', label: 'From a column' }, { id: 'single', label: 'One account' }]}
+                            activeId={accountSource}
+                            onChange={id => setAccountSource(id as 'column' | 'single')}
+                        />
+                        {accountSource === 'column'
+                            ? columnSelect('account')
+                            : <Select label="Account for every row" options={existingAccounts.map(account => ({ id: account.id, label: account.name }))} value={selectedSingleAccountId || null} onChange={setSelectedSingleAccountId} />}
+                    </div>
+                )}
+                {[...required, ...optional].filter(field => field !== 'account').map(columnSelect)}
+                {isTransactions && (
+                    <>
+                        <Select label="Date format" options={['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'].map(id => ({ id, label: id }))} value={dateFormat} onChange={setDateFormat} />
+                        <Select label="Amounts" options={[{ id: 'single_signed', label: 'One column with + and −' }, { id: 'double_entry', label: 'Two columns, in and out' }]} value={amountConfig} onChange={setAmountConfig} />
+                    </>
+                )}
+                <Select label="Separator" options={[{ id: ',', label: 'Comma (,)' }, { id: ';', label: 'Semicolon (;)' }]} value={delimiter} onChange={setDelimiter} />
+            </div>
+        </>
+    );
+};
+
+const StepPreview: React.FC<{ parsedData: any[]; cleanedData: any[]; dataErrors: Record<number, Record<string, string>>; columnMap: Record<string, string>; importType: 'accounts' | 'transactions' }> = ({ parsedData, cleanedData, dataErrors, columnMap, importType }) => {
+    const headers = importType === 'transactions' ? ['date', 'account', 'name', 'category', 'amount', 'currency'] : ['name', 'type', 'balance', 'currency'];
+    const errorCount = Object.keys(dataErrors).length;
+
+    return (
+        <>
+            <StepHeading title="Check the rows" description="If something looks wrong, go back and change the columns." />
+            {errorCount > 0 && <Banner tone="attention" className="mb-4">{errorCount} {errorCount === 1 ? 'row has a problem and won’t' : 'rows have problems and won’t'} be imported.</Banner>}
+            <div className="max-h-[60vh] overflow-auto rounded-[var(--radius-md)] border border-line">
+                <table className="type-caption min-w-full text-ink">
+                    <thead className="sticky top-0 bg-solid text-muted">
+                        <tr>
+                            <th className={cellStyles}>Row</th>
+                            {headers.map(header => <th key={header} className={cellStyles}>{FIELD_LABELS[header]}</th>)}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-line">
                         {parsedData.map((originalRow, index) => {
                             const errors = dataErrors[index];
-                            const processedRow = cleanedData.find(cr => cr.originalIndex === index);
-
+                            const processedRow = cleanedData.find(row => row.originalIndex === index);
                             return (
-                                <tr key={index} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 ${errors ? 'bg-red-500/10' : ''}`}>
-                                    <td className="p-2 font-mono text-gray-500">{index + 2}</td>
-                                    {previewHeaders.map(field => {
-                                        const cellError = errors?.[field];
-                                        let cellValue;
-
-                                        if (processedRow) {
-                                            cellValue = processedRow[field];
-                                        } else { // This is an error row
-                                            if (field === 'amount') {
-                                                cellValue = originalRow[columnMap.amount] || `${originalRow[columnMap.amountIn] || '?'} / ${originalRow[columnMap.amountOut] || '?'}`;
-                                            } else {
-                                                cellValue = originalRow[columnMap[field]];
-                                            }
-                                        }
-                                        
+                                <tr key={index} className={errors ? 'bg-money-out-soft' : undefined}>
+                                    <td className={cellStyles}>{index + 2}</td>
+                                    {headers.map(field => {
+                                        const value = processedRow
+                                            ? processedRow[field]
+                                            : field === 'amount'
+                                                ? originalRow[columnMap.amount] || `${originalRow[columnMap.amountIn] || '?'} / ${originalRow[columnMap.amountOut] || '?'}`
+                                                : originalRow[columnMap[field]];
                                         return (
-                                            <td key={field} className={`p-2 relative group ${cellError ? 'bg-red-500/20' : ''}`}>
-                                                {String(cellValue ?? '')}
-                                                {cellError && (
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-dark-bg text-dark-text text-xs rounded py-1 px-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                        {cellError}
-                                                    </div>
-                                                )}
+                                            <td key={field} className={cellStyles}>
+                                                {String(value ?? '')}
+                                                {errors?.[field] && <span className="block text-ink">{errors[field]}</span>}
                                             </td>
                                         );
                                     })}
@@ -819,242 +641,205 @@ const Step3Preview: React.FC<{ parsedData: any[], cleanedData: any[], dataErrors
                     </tbody>
                 </table>
             </div>
-        </div>
-    );
-};
-
-const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRows: any, setExcludedRows: any, importType: 'accounts' | 'transactions' }> = ({ data, setData, errors, excludedRows, setExcludedRows, importType }) => {
-    const [filters, setFilters] = useState<Record<string, { type: string, value: string }>>({});
-    const [activePopover, setActivePopover] = useState<string | null>(null);
-    const popoverRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-                setActivePopover(null);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const handleFilterChange = (header: string, type: string, value: string) => {
-        setFilters(prev => {
-            const newFilters = { ...prev };
-            if (value) newFilters[header] = { type, value };
-            else delete newFilters[header];
-            return newFilters;
-        });
-    };
-
-    const filteredData = useMemo(() => {
-        return data.filter(row => Object.entries(filters).every(([header, filter]: [string, any]) => {
-            if (!filter.value) return true;
-            const rowValue = row[header];
-            if (header === 'date') {
-                try {
-                    const rowDate = new Date(rowValue);
-                    if (isNaN(rowDate.getTime())) return false;
-                    const filterDate = new Date(filter.value);
-                    switch (filter.type) {
-                        case 'exact': return toLocalISOString(rowDate) === filter.value;
-                        case 'before': return rowDate < filterDate;
-                        case 'after': return rowDate > filterDate;
-                        case 'year': return rowDate.getFullYear() === parseInt(filter.value);
-                        case 'month': return (rowDate.getMonth() + 1) === parseInt(filter.value);
-                        case 'day': return rowDate.getDate() === parseInt(filter.value);
-                        default: return true;
-                    }
-                } catch { return false; }
-            } else if (header === 'amount' || header === 'balance') {
-                const rowAmount = parseAmount(rowValue);
-                const filterAmount = parseAmount(filter.value);
-                if (isNaN(rowAmount) || isNaN(filterAmount)) return true;
-                switch (filter.type) {
-                    case 'gt': return rowAmount > filterAmount;
-                    case 'lt': return rowAmount < filterAmount;
-                    case 'eq': return rowAmount === filterAmount;
-                    default: return true;
-                }
-            } else {
-                return String(rowValue).toLowerCase().includes(String(filter.value).toLowerCase());
-            }
-        }));
-    }, [data, filters]);
-
-    const handleCellChange = (index: number, field: string, value: string) => setData((prev: any[]) => prev.map(row => row.originalIndex === index ? { ...row, [field]: value } : row));
-    const toggleExclude = (index: number) => setExcludedRows((prev: Set<number>) => { const next = new Set(prev); if (next.has(index)) next.delete(index); else next.add(index); return next; });
-    const headers = data.length > 0 ? Object.keys(data[0]).filter(k => k !== 'originalIndex') : [];
-
-    const DateFilterPopover: React.FC<{header: string}> = ({header}) => {
-        const [type, setType] = useState(filters[header]?.type || 'exact');
-        const [value, setValue] = useState(filters[header]?.value || '');
-        const apply = () => { handleFilterChange(header, type, value); setActivePopover(null); };
-        return (
-            <div ref={popoverRef} className="absolute top-full left-0 mt-1 w-64 bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-10 space-y-2">
-                <select value={type} onChange={e => setType(e.target.value)} className={`${SELECT_STYLE} text-sm py-1`}><option value="exact">Exact Date</option><option value="before">Before</option><option value="after">After</option><option value="year">Year is</option><option value="month">Month is (1-12)</option><option value="day">Day is (1-31)</option></select>
-                <input type={type === 'exact' || type === 'before' || type === 'after' ? 'date' : 'number'} value={value} onChange={e => setValue(e.target.value)} className={`${INPUT_BASE_STYLE} text-sm py-1`} />
-                <div className="flex justify-end gap-2"><button onClick={()=>{handleFilterChange(header,'',''); setActivePopover(null)}} className={BTN_SECONDARY_STYLE + " py-1 px-2 text-xs"}>Clear</button><button onClick={apply} className={BTN_PRIMARY_STYLE + " py-1 px-2 text-xs"}>Apply</button></div>
-            </div>
-        );
-    };
-
-    return (
-        <div className="max-w-7xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-center">Review & Clean Data</h2>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mb-6 sm:mb-8 text-center text-sm sm:text-base">Correct any errors and exclude rows you don't want to import.</p>
-            
-            <div className="overflow-x-auto bg-light-card dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm no-scrollbar">
-                <table className="w-full text-xs sm:text-sm table-fixed min-w-[600px]">
-                    <thead>
-                        <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                            <th className="p-3 font-bold text-center w-12 sm:w-16">Skip</th>
-                            {headers.map(h => <th key={h} className="p-3 font-bold text-left capitalize tracking-wider">{h}</th>)}
-                        </tr>
-                        <tr className="border-b border-black/10 dark:border-white/10">
-                            <th className="p-1"></th>
-                            {headers.map(h => (
-                                <th key={h} className="p-1 align-top font-normal">
-                                    <div className="relative">
-                                        {h === 'date' ? (
-                                            <button onClick={() => setActivePopover(h)} className={`${INPUT_BASE_STYLE} !text-xs py-1.5 text-left w-full flex justify-between items-center`}>
-                                                <span className="truncate">{filters[h] ? `${filters[h].type}: ${filters[h].value}` : 'Filter...'}</span>
-                                                <Icon name="filter_list" className="text-sm" />
-                                            </button>
-                                        ) : (h === 'amount' || h === 'balance') ? (
-                                            <div className="flex h-8 sm:h-9">
-                                                <select value={filters[h]?.type || 'eq'} onChange={e => handleFilterChange(h, e.target.value, filters[h]?.value || '')} className={`${SELECT_STYLE} !text-xs py-1 rounded-r-none w-[45%]`}>
-                                                    <option value="eq">=</option>
-                                                    <option value="gt">&gt;</option>
-                                                    <option value="lt">&lt;</option>
-                                                </select>
-                                                <input type="number" placeholder="Val" value={filters[h]?.value || ''} onChange={e => handleFilterChange(h, filters[h]?.type || 'eq', e.target.value)} className={`${INPUT_BASE_STYLE} !text-xs py-1 rounded-l-none w-[55%]`} />
-                                            </div>
-                                        ) : (
-                                            <input type="text" placeholder={`Filter...`} value={filters[h]?.value || ''} onChange={e => handleFilterChange(h, 'contains', e.target.value)} className={`${INPUT_BASE_STYLE} !text-xs py-1.5`} />
-                                        )}
-                                        {activePopover === h && h === 'date' && <DateFilterPopover header={h} />}
-                                    </div>
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredData.map(row => (
-                            <tr key={row.originalIndex} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 transition-opacity ${excludedRows.has(row.originalIndex) ? 'opacity-40 bg-gray-100 dark:bg-gray-800' : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.01]'}`}>
-                                <td className="p-2 sm:p-3 text-center">
-                                    <input type="checkbox" checked={excludedRows.has(row.originalIndex)} onChange={() => toggleExclude(row.originalIndex)} className={CHECKBOX_STYLE} />
-                                </td>
-                                {headers.map(header => {
-                                    const hasError = errors[row.originalIndex]?.[header];
-                                    return (
-                                        <td key={header} className="p-0 border-r border-black/[0.03] dark:border-white/[0.03] last:border-r-0">
-                                            <input 
-                                                value={row[header]} 
-                                                onChange={e => handleCellChange(row.originalIndex, header, e.target.value)} 
-                                                className={`w-full h-full p-3 bg-transparent focus:outline-none focus:bg-primary-500/10 text-xs sm:text-sm font-medium ${hasError ? 'bg-red-500/10 text-red-800 dark:text-red-200' : 'text-light-text dark:text-dark-text'}`} 
-                                                title={hasError || ''} 
-                                            />
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>);
-};
-
-const RecursiveCategoryOptions: React.FC<{ categories: Category[], level: number }> = ({ categories, level }) => {
-    const indent = '\u00A0\u00A0'.repeat(level * 2);
-    return (
-        <>
-            {categories.map(cat => (
-                <React.Fragment key={cat.id}>
-                    <option value={cat.name}>{indent}{cat.name}</option>
-                    {cat.subCategories && cat.subCategories.length > 0 && (
-                        <RecursiveCategoryOptions categories={cat.subCategories} level={level + 1} />
-                    )}
-                </React.Fragment>
-            ))}
         </>
     );
 };
 
-const CategoryOptionsGroup: React.FC<{ categories: Category[], label: string }> = ({ categories, label }) => (
-    <optgroup label={label}>
-        <RecursiveCategoryOptions categories={categories} level={0} />
-    </optgroup>
-);
+const DATE_FILTERS = [
+    { id: 'exact', label: 'On' },
+    { id: 'before', label: 'Before' },
+    { id: 'after', label: 'After' },
+    { id: 'year', label: 'Year' },
+    { id: 'month', label: 'Month' },
+    { id: 'day', label: 'Day' },
+];
 
+const StepClean: React.FC<{ data: any[]; setData: React.Dispatch<React.SetStateAction<any[]>>; excludedRows: Set<number>; setExcludedRows: React.Dispatch<React.SetStateAction<Set<number>>>; isSimple: boolean }> = ({ data, setData, excludedRows, setExcludedRows, isSimple }) => {
+    const [filters, setFilters] = useState<Record<string, RowFilter>>({});
 
-const Step5Map: React.FC<{
-    importType: 'accounts' | 'transactions',
-    categories: string[], setCategoryMap: any, categoryMap: any, allCategories: Category[],
-    accounts: string[], setAccountMap: any, accountMap: any, existingAccounts: Account[],
-    accountTypes: string[], setAccountTypeMap: any, accountTypeMap: any,
-    currencies: string[], setCurrencyMap: any, currencyMap: any
-}> = ({
-    importType,
-    categories, setCategoryMap, categoryMap, allCategories,
-    accounts, setAccountMap, accountMap, existingAccounts,
-    accountTypes, setAccountTypeMap, accountTypeMap,
-    currencies, setCurrencyMap, currencyMap
-}) => (
-    <div className="max-w-3xl mx-auto space-y-8">
-        {importType === 'transactions' && categories.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Categories</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported categories to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{categories.map(cat => (<div key={cat} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{cat}</p><div className={SELECT_WRAPPER_STYLE}><select value={categoryMap[cat]} onChange={e => setCategoryMap((p:any) => ({...p, [cat]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Uncategorized (Skip)</option><option value={`_CREATE_NEW_:${cat}`}>Create new category '{cat}'</option><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'expense')} label="--- EXPENSES ---" /><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'income')} label="--- INCOME ---" /></select><div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div></div></div>))}</div></div>}
-        {importType === 'transactions' && accounts.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Accounts</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported accounts to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accounts.map(acc => (<div key={acc} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{acc}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountMap[acc]} onChange={e => setAccountMap((p:any) => ({...p, [acc]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip rows)</option><option value={`_CREATE_NEW_:${acc}`}>Create new account '{acc}'</option>{existingAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select><div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div></div></div>))}</div></div>}
-        {importType === 'accounts' && accountTypes.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Account Types</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Match the account types from your file to Finaura's types.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accountTypes.map(type => (<div key={type} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{type}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountTypeMap[type]} onChange={e => setAccountTypeMap((p:any) => ({...p, [type]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip)</option>{ALL_ACCOUNT_TYPES.map(a => <option key={a} value={a}>{a}</option>)}</select><div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div></div></div>))}</div></div>}
-        {currencies.length > 0 && (
-            <div>
-                <h2 className="text-2xl font-bold mb-2 text-center">Map Currencies</h2>
-                <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">
-                    Some currency codes in your file were not recognized. Map them to a supported currency or choose to skip those rows.
-                </p>
-                <div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">
-                    {currencies.map(curr => (
-                        <div key={curr} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded">
-                            <p className="font-mono bg-light-bg dark:bg-dark-bg px-2 py-1 rounded-md text-center">{curr}</p>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select 
-                                    value={currencyMap[curr] || ''} 
-                                    onChange={e => setCurrencyMap((p: any) => ({ ...p, [curr]: e.target.value }))} 
-                                    className={SELECT_STYLE}
-                                >
-                                    <option value="">Select a currency...</option>
-                                    <option value="_SKIP_">Skip these rows</option>
-                                    <optgroup label="--- Supported Currencies ---">
-                                        {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </optgroup>
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                            </div>
-                        </div>
+    const setFilter = (header: string, type: string, value: string) => setFilters(prev => ({ ...prev, [header]: { type, value } }));
+    const rows = useMemo(() => data.filter(row => rowMatchesFilters(row, filters)), [data, filters]);
+    const headers = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'originalIndex') : [];
+
+    const changeCell = (index: number, field: string, value: string) => setData(prev => prev.map(row => (row.originalIndex === index ? { ...row, [field]: value } : row)));
+    const toggleSkip = (index: number) => setExcludedRows(prev => {
+        const next = new Set(prev);
+        if (next.has(index)) next.delete(index);
+        else next.add(index);
+        return next;
+    });
+
+    // Editing a wide table on a phone isn't practical, so phones only choose what to skip (D-030).
+    if (isSimple) {
+        return (
+            <>
+                <StepHeading title="Skip what you don’t want" description="To edit rows, use a larger screen." />
+                <ul className="divide-y divide-line">
+                    {rows.map(row => (
+                        <li key={row.originalIndex}>
+                            <Checkbox isSelected={excludedRows.has(row.originalIndex)} onChange={() => toggleSkip(row.originalIndex)}>
+                                <span className="type-body block truncate text-ink">{row.name}</span>
+                                <span className="type-caption block text-muted">{[row.date, row.amount ?? row.balance, row.currency].filter(value => value !== undefined).join(' · ')}</span>
+                            </Checkbox>
+                        </li>
                     ))}
+                </ul>
+            </>
+        );
+    }
+
+    const filterControl = (header: string) => {
+        const current = filters[header];
+        if (header === 'date') {
+            const type = current?.type || 'exact';
+            return (
+                <div className="flex gap-1">
+                    <select aria-label="Date filter" value={type} onChange={event => setFilter(header, event.target.value, current?.value || '')} className={tableInput}>
+                        {DATE_FILTERS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+                    </select>
+                    <input aria-label="Date filter value" type={['exact', 'before', 'after'].includes(type) ? 'date' : 'number'} value={current?.value || ''} onChange={event => setFilter(header, type, event.target.value)} className={tableInput} />
                 </div>
-            </div>
-        )}
-    </div>
-);
+            );
+        }
+        if (header === 'amount' || header === 'balance') {
+            const type = current?.type || 'eq';
+            return (
+                <div className="flex gap-1">
+                    <select aria-label={`${FIELD_LABELS[header]} filter`} value={type} onChange={event => setFilter(header, event.target.value, current?.value || '')} className={cn(tableInput, 'min-w-12')}>
+                        <option value="eq">=</option>
+                        <option value="gt">&gt;</option>
+                        <option value="lt">&lt;</option>
+                    </select>
+                    <input aria-label={`${FIELD_LABELS[header]} filter value`} type="number" value={current?.value || ''} onChange={event => setFilter(header, type, event.target.value)} className={tableInput} />
+                </div>
+            );
+        }
+        return <input aria-label={`${FIELD_LABELS[header] ?? header} filter`} placeholder="Filter" value={current?.value || ''} onChange={event => setFilter(header, 'contains', event.target.value)} className={tableInput} />;
+    };
 
-const Step6Confirm: React.FC<{ data: any[], importType: 'accounts' | 'transactions' }> = ({ data, importType }) => (
-    <div className="max-w-xl mx-auto text-center"><h2 className="text-3xl font-bold mb-2">Confirm Import</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8">Review the summary before publishing to your account.</p>
-        <div className="p-4 bg-light-card dark:bg-dark-card rounded-lg text-left">
-            <div className="flex justify-between items-center p-2 border-b border-black/10 dark:border-white/10 font-semibold"><p>Item</p><p>Count</p></div>
-            <div className="flex justify-between items-center p-2">
-                <p className="flex items-center gap-2">
-                    <Icon name={importType === 'transactions' ? 'receipt_long' : 'wallet'} className="text-primary-500" />
-                    {importType === 'transactions' ? 'Transactions to Import' : 'Accounts to Import'}
-                </p>
-                <p className="font-bold text-lg">{data.length}</p>
+    return (
+        <>
+            <StepHeading title="Clean the rows" description="Fix any cell, and skip rows you don’t want." />
+            <div className="max-h-[60vh] overflow-auto rounded-[var(--radius-md)] border border-line">
+                <table className="type-caption min-w-full text-ink">
+                    <thead className="sticky top-0 z-10 bg-solid text-muted">
+                        <tr>
+                            <th className={cellStyles}>Skip</th>
+                            {headers.map(header => <th key={header} className={cellStyles}>{FIELD_LABELS[header] ?? header}</th>)}
+                        </tr>
+                        <tr>
+                            <th aria-hidden="true" />
+                            {headers.map(header => <th key={header} className="px-3 pb-2 font-normal">{filterControl(header)}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                        {rows.map(row => {
+                            const isSkipped = excludedRows.has(row.originalIndex);
+                            return (
+                                <tr key={row.originalIndex} className={isSkipped ? 'opacity-50' : undefined}>
+                                    <td className="px-3 py-1">
+                                        <Checkbox aria-label={`Skip row ${row.originalIndex + 2}`} isSelected={isSkipped} onChange={() => toggleSkip(row.originalIndex)}>{' '}</Checkbox>
+                                    </td>
+                                    {headers.map(header => (
+                                        <td key={header} className="px-3 py-1">
+                                            <input aria-label={`${FIELD_LABELS[header] ?? header}, row ${row.originalIndex + 2}`} value={row[header] ?? ''} onChange={event => changeCell(row.originalIndex, header, event.target.value)} className={tableInput} />
+                                        </td>
+                                    ))}
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
+        </>
+    );
+};
+
+const MapList: React.FC<{ title: string; description: string; keys: string[]; options: (key: string) => PickerOption[]; value: Record<string, string>; onChange: (key: string, value: string) => void; placeholder?: string }> = ({ title, description, keys, options, value, onChange, placeholder }) => (
+    <section className="mb-8">
+        <StepHeading title={title} description={description} />
+        <div className="grid gap-4 md:grid-cols-2">
+            {keys.map(key => <Combobox key={key} label={key} options={options(key)} value={value[key] || null} onChange={id => id && onChange(key, id)} placeholder={placeholder} />)}
         </div>
-    </div>
+    </section>
 );
 
-const StepPublishing = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center h-[50vh]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mb-4"></div><h3 className="text-2xl font-bold">Import in progress...</h3><p className="text-light-text-secondary dark:text-dark-text-secondary mt-2">Your data is being imported. You can close this window.</p></div>
+const StepMap: React.FC<{
+    importType: 'accounts' | 'transactions'; allCategories: Category[]; existingAccounts: Account[];
+    categoryMap: Record<string, string>; setCategoryMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    accountMap: Record<string, string>; setAccountMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    accountTypeMap: Record<string, string>; setAccountTypeMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    currencyMap: Record<string, string>; setCurrencyMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+}> = ({ importType, allCategories, existingAccounts, categoryMap, setCategoryMap, accountMap, setAccountMap, accountTypeMap, setAccountTypeMap, currencyMap, setCurrencyMap }) => {
+    const categoryOptions = useMemo(() => {
+        const seen = new Set<string>();
+        return flattenCategories(allCategories)
+            .filter(category => !seen.has(category.name) && !!seen.add(category.name))
+            .map(category => ({ id: category.name, label: category.name, description: category.classification === 'income' ? 'Income' : 'Expense' }));
+    }, [allCategories]);
+    const assign = (setter: React.Dispatch<React.SetStateAction<Record<string, string>>>) => (key: string, value: string) => setter(prev => ({ ...prev, [key]: value }));
+    const categories = Object.keys(categoryMap);
+    const accounts = Object.keys(accountMap);
+    const accountTypes = Object.keys(accountTypeMap);
+    const currencies = Object.keys(currencyMap);
+
+    if (![categories, accounts, accountTypes, currencies].some(list => list.length > 0)) {
+        return <StepHeading title="Nothing to match" description="Everything in this file already fits Crystal." />;
+    }
+
+    return (
+        <>
+            {importType === 'transactions' && categories.length > 0 && (
+                <MapList
+                    title="Match categories"
+                    description="Use one of yours or create it."
+                    keys={categories}
+                    value={categoryMap}
+                    onChange={assign(setCategoryMap)}
+                    options={key => [{ id: '_UNASSIGNED_', label: 'Uncategorized' }, { id: `_CREATE_NEW_:${key}`, label: `Create “${key}”` }, ...categoryOptions]}
+                />
+            )}
+            {importType === 'transactions' && accounts.length > 0 && (
+                <MapList
+                    title="Match accounts"
+                    description="Use one of yours or create it."
+                    keys={accounts}
+                    value={accountMap}
+                    onChange={assign(setAccountMap)}
+                    options={key => [{ id: '_UNASSIGNED_', label: 'Skip these rows' }, { id: `_CREATE_NEW_:${key}`, label: `Create “${key}”` }, ...existingAccounts.map(account => ({ id: account.id, label: account.name }))]}
+                />
+            )}
+            {importType === 'accounts' && accountTypes.length > 0 && (
+                <MapList
+                    title="Match account types"
+                    description="Choose Crystal’s type for each one."
+                    keys={accountTypes}
+                    value={accountTypeMap}
+                    onChange={assign(setAccountTypeMap)}
+                    options={() => [{ id: '_UNASSIGNED_', label: 'Skip these rows' }, ...ALL_ACCOUNT_TYPES.map(type => ({ id: type, label: type }))]}
+                />
+            )}
+            {currencies.length > 0 && (
+                <MapList
+                    title="Match currencies"
+                    description="Crystal doesn’t recognise these codes. Rows left unmatched are skipped."
+                    keys={currencies}
+                    value={currencyMap}
+                    onChange={assign(setCurrencyMap)}
+                    placeholder="Choose a currency"
+                    options={() => [{ id: '_SKIP_', label: 'Skip these rows' }, ...CURRENCIES.map(currency => ({ id: currency, label: currency }))]}
+                />
+            )}
+        </>
+    );
+};
+
+const StepConfirm: React.FC<{ count: number; importType: 'accounts' | 'transactions'; errorCount: number }> = ({ count, importType, errorCount }) => (
+    <>
+        <StepHeading title="Ready to import" description="You can delete an import of transactions later from History." />
+        <p className="type-figure-lg text-ink">{count}</p>
+        <p className="type-body text-muted">{importType === 'transactions' ? 'transactions' : 'accounts'} to import{errorCount > 0 ? `, ${errorCount} left out because of problems` : ''}</p>
+    </>
 );
 
 export default ImportWizard;
