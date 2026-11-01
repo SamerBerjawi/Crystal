@@ -1,4 +1,14 @@
 import { Category } from '../types';
+import { flattenCategories } from '../utils';
+
+/** Every category once, for a picker. */
+export const categoryPickerOptions = (expenseCategories: Category[], incomeCategories: Category[]) => {
+  const seen = new Set<string>();
+  const withKind = (categories: Category[], description: string) => flattenCategories(categories)
+    .filter(category => !seen.has(category.name) && !!seen.add(category.name))
+    .map(category => ({ id: category.name, label: category.name, description }));
+  return [...withKind(expenseCategories, 'Expense'), ...withKind(incomeCategories, 'Income')];
+};
 
 export type DropPosition = 'top' | 'bottom' | 'middle';
 

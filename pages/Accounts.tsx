@@ -14,7 +14,6 @@ import AccountsListSection from '../components/AccountsListSection';
 import AccountPot from '../components/AccountPot';
 import CardsWallet from '../components/CardsWallet';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
-import AccountOverviewModal from '../components/AccountOverviewModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
@@ -54,8 +53,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
-  const [overviewAccount, setOverviewAccount] = useState<Account | null>(null);
-  const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const [viewStyle, setViewStyle] = useLocalStorage<'detailed' | 'minimal'>('crystal_accounts_view_style', 'detailed');
   const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
@@ -133,20 +130,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     setAdjustModalOpen(true);
   };
 
-  const openOverviewModal = (account: Account) => {
-    setOverviewAccount(account);
-    setIsOverviewModalOpen(true);
-  };
-
-  const handleAccountRowCardClick = (accountId: string) => {
-    const acc = accounts.find(a => a.id === accountId);
-    if (acc) {
-      openOverviewModal(acc);
-    } else {
-      handleAccountClick(accountId);
-    }
-  };
-
   const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
     if (!adjustingAccount) return;
     const txData: Omit<Transaction, 'id'> = {
@@ -171,7 +154,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const menuFor = (account: Account) => {
     const isComputed = account.type === 'Investment' && !!account.symbol && warrants.some(w => w.isin === account.symbol);
     return [
-      { id: 'overview', label: 'Quick overview', icon: 'visibility', onAction: () => openOverviewModal(account) },
       { id: 'open', label: 'Open account', icon: 'open_in_new', onAction: () => handleAccountClick(account.id) },
       { id: 'transactions', label: 'See transactions', icon: 'receipt', onAction: () => onNavigateToTransactions({ accountName: account.name }) },
       { id: 'edit', label: 'Edit', icon: 'edit', startsGroup: true, onAction: () => openEditModal(account) },
@@ -186,11 +168,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       accounts={list}
       transactionsByAccount={transactionsByAccount}
       linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
-      onAccountClick={handleAccountRowCardClick}
+      onAccountClick={handleAccountClick}
       menuFor={menuFor}
       onEditClick={openEditModal}
       onAdjustBalanceClick={openAdjustModal}
-      onOverviewClick={openOverviewModal}
       sortBy={sortBy}
       accountOrder={accountOrder}
       setAccountOrder={setAccountOrder}
@@ -233,20 +214,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       {isAddModalOpen && <AccountForm accounts={accounts} onClose={() => setAddModalOpen(false)} onSave={saveAccount} />}
       {isEditModalOpen && editingAccount && <AccountForm account={editingAccount} accounts={accounts} warrants={warrants} onClose={() => { setEditModalOpen(false); setEditingAccount(null); }} onSave={saveAccount} onDelete={() => setDeletingAccount(editingAccount)} onToggleStatus={onToggleAccountStatus} />}
       {isAdjustModalOpen && adjustingAccount && <BalanceAdjustmentModal onClose={() => setAdjustingAccount(null)} onSave={handleSaveAdjustment} account={adjustingAccount} />}
-      {isOverviewModalOpen && overviewAccount && (
-        <AccountOverviewModal
-          isOpen={isOverviewModalOpen}
-          onClose={() => setIsOverviewModalOpen(false)}
-          account={overviewAccount}
-          transactions={transactionsByAccount[overviewAccount.id] || []}
-          accounts={accounts}
-          warrants={warrants}
-          onViewAccount={handleAccountClick}
-          onEditAccount={openEditModal}
-          onAdjustBalance={openAdjustModal}
-          onNavigateToTransactions={onNavigateToTransactions}
-        />
-      )}
       <ConfirmDialog
         isOpen={!!deletingAccount}
         onClose={() => setDeletingAccount(null)}

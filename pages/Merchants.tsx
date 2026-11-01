@@ -7,13 +7,13 @@ import { getMerchantLogoUrl, normalizeMerchantKey, isBrandfetchLogoRefreshable }
 import { fuzzySearch, convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { generateSmartRuleSuggestions, SmartRuleSuggestion, convertSuggestionToTransactionRule } from '../utils/ruleSuggestions';
 import MerchantDetailModal from '../components/MerchantDetailModal';
-import MerchantOverviewModal from '../components/MerchantOverviewModal';
+import PlaceMap from '../components/PlaceMap';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
 import Icon from '../components/ui/Icon';
 import PageHeader from '../components/PageHeader';
-import { Button, IconButton } from '../components/ui/Actions';
-import { Row, Sparkline } from '../components/ui/Display';
+import { Button, IconButton, TextLink } from '../components/ui/Actions';
+import { Badge, Row, Sparkline } from '../components/ui/Display';
 import { Switch, controlStyles } from '../components/ui/Fields';
 import { Menu } from '../components/ui/Menu';
 import { Amount } from '../components/ui/Money';
@@ -22,6 +22,7 @@ import { Select } from '../components/ui/Pickers';
 import { Banner, EmptyState, SyncStatus } from '../components/ui/States';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../lib/utils';
+import { branchesOf, branchName, googleMapsUrl, hasCoordinates, keywordOf, keywordRulesFor } from '../utils/merchantModel';
 import { computeSpendTrends } from '../utils/merchantTrends';
 
 interface MerchantsProps {
@@ -131,8 +132,6 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   
   const [editingEntity, setEditingEntity] = useState<EntityItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [overviewEntity, setOverviewEntity] = useState<EntityItem | null>(null);
-  const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
   
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0, currentName: '' });
@@ -445,6 +444,11 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [selected, transactions]);
 
+  const branches = useMemo(() => branchesOf(selected?.rule), [selected?.rule]);
+  const mapPlaces = useMemo(() => branches.filter(hasCoordinates).map(branch => ({ latitude: branch.latitude!, longitude: branch.longitude! })), [branches]);
+  const keywords = selected ? keywordRulesFor(preferences.transactionRules, selected.name).map(keywordOf).filter(Boolean) : [];
+  const hasAbout = !!(selected?.rule?.website || selected?.rule?.defaultDescription || selected?.rule?.notes || keywords.length > 0);
+
   const list = (
     <div className="min-w-0 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -498,18 +502,19 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const profile = selected && (
     <section aria-label={selected.name} className="min-w-0 space-y-4">
       <div className="space-y-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
-        <header className="flex items-center gap-3">
-          {isPhone && <IconButton icon="ArrowLeft" label="Back to the list" onPress={() => setSelectedId(null)} />}
-          {entityLogo(selected, 48)}
-          <div className="min-w-0 flex-1">
-            <h2 className="type-section-title truncate text-ink">{selected.name}</h2>
-            <p className="type-caption text-muted">{selected.type}{selected.rule?.category ? `, usually ${selected.rule.category}` : ''}</p>
+        <header className="flex flex-wrap items-center gap-3">
+          {isPhone && <IconButton icon="ArrowLeft" label="Back to the list" className="mr-auto" onPress={() => setSelectedId(null)} />}
+          <div className="flex min-w-0 flex-1 items-center gap-3 max-md:order-last max-md:basis-full">
+            {entityLogo(selected, 48)}
+            <div className="min-w-0 flex-1">
+              <h2 className="type-section-title truncate text-ink">{selected.name}</h2>
+              <p className="type-caption text-muted">{selected.rule?.isOnline ? `Online ${selected.type.toLowerCase()}` : selected.type}{selected.rule?.category ? `, usually ${selected.rule.category}` : ''}</p>
+            </div>
           </div>
           <Menu
             title={selected.name}
             trigger={<IconButton icon="more_horiz" label={`Actions for ${selected.name}`} tooltipPlacement="left" />}
             items={[
-              { id: 'overview', label: 'Map and details', icon: 'visibility', onAction: () => { setOverviewEntity(selected); setIsOverviewModalOpen(true); } },
               { id: 'logo', label: 'Refresh logo', icon: 'sync', onAction: () => handleRefreshSingleLogo(selected.name, selected.logoKey, selected.rule?.logo) },
               { id: 'hide', label: selected.rule?.isHidden ? 'Show in lists' : 'Hide from lists', icon: selected.rule?.isHidden ? 'visibility' : 'visibility_off', onAction: () => handleToggleHidden(selected) },
             ]}
@@ -529,14 +534,42 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           <Sparkline data={spendTrendsMap[selected.id].map(value => ({ value }))} isPositive width={520} height={72} className="h-[72px] w-full" preserveAspect={false} />
         </section>
       )}
-      {(selected.rule?.locations?.length ?? 0) > 0 && (
+      {hasAbout && (
         <section className="rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
-          <h3 className="type-card-title mb-2 text-ink">Branches</h3>
+          <h3 className="type-card-title mb-1 text-ink">About</h3>
+          <dl className="divide-y divide-line">
+            {selected.rule?.website && (
+              <div className="py-2">
+                <dt className="type-caption text-muted">Website</dt>
+                <dd className="type-body min-w-0 truncate text-ink"><TextLink href={selected.rule.website} target="_blank" rel="noreferrer">{selected.rule.website.replace(/^https?:\/\/(www\.)?/, '')}</TextLink></dd>
+              </div>
+            )}
+            {selected.rule?.defaultDescription && <div className="py-2"><dt className="type-caption text-muted">Description</dt><dd className="type-body break-words text-ink">{selected.rule.defaultDescription}</dd></div>}
+            {keywords.length > 0 && (
+              <div className="py-2">
+                <dt className="type-caption text-muted">Matching keywords</dt>
+                <dd className="mt-1 flex flex-wrap gap-1.5">{keywords.map(keyword => <Badge key={keyword}>{keyword}</Badge>)}</dd>
+              </div>
+            )}
+            {selected.rule?.notes && <div className="py-2"><dt className="type-caption text-muted">Notes</dt><dd className="type-body whitespace-pre-wrap break-words text-ink">{selected.rule.notes}</dd></div>}
+          </dl>
+        </section>
+      )}
+      {branches.length > 0 && (
+        <section className="space-y-3 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
+          <h3 className="type-card-title text-ink">{branches.length === 1 ? 'Branch' : `${branches.length} branches`}</h3>
+          {mapPlaces.length > 0 && <PlaceMap places={mapPlaces} label={selected.name} logoUrl={logoFor(selected)} className="h-44 md:h-56" />}
           <ul className="divide-y divide-line">
-            {selected.rule!.locations!.map(location => (
-              <li key={location.id} className="py-2">
-                <p className="type-body-strong text-ink">{location.label || location.placeName || 'Branch'}{location.isPrimary ? ', primary' : ''}</p>
-                <p className="type-caption text-muted">{location.address}</p>
+            {branches.map(branch => (
+              <li key={branch.id} className="flex items-center gap-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-2">
+                    <span className="type-body-strong truncate text-ink">{branchName(branch)}</span>
+                    {branch.isPrimary && branches.length > 1 && <Badge tone="positive">Primary</Badge>}
+                  </p>
+                  <p className="type-caption truncate text-muted">{branch.address || branch.city}</p>
+                </div>
+                {hasCoordinates(branch) && <TextLink href={googleMapsUrl(branch.latitude!, branch.longitude!)} target="_blank" rel="noreferrer" aria-label={`Open ${branchName(branch)} in Google Maps`} className="type-caption shrink-0">Google Maps</TextLink>}
               </li>
             ))}
           </ul>
@@ -569,21 +602,6 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           expenseCategories={expenseCategories}
           transactions={transactions}
           brandfetchClientId={brandfetchClientId}
-        />
-      )}
-      {isOverviewModalOpen && overviewEntity && (
-        <MerchantOverviewModal
-          isOpen={isOverviewModalOpen}
-          onClose={() => setIsOverviewModalOpen(false)}
-          merchantName={overviewEntity.originalName}
-          logoKey={overviewEntity.logoKey}
-          rule={overviewEntity.rule}
-          entityType={overviewEntity.type}
-          totalValue={overviewEntity.totalValue}
-          count={overviewEntity.count}
-          lastActivity={overviewEntity.lastActivity}
-          transactions={transactions}
-          onEdit={() => { setIsOverviewModalOpen(false); setEditingEntity(overviewEntity); setIsDetailModalOpen(true); }}
         />
       )}
       {!(isPhone && selected) && (

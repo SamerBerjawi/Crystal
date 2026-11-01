@@ -80,7 +80,6 @@ const AccountDetail: React.FC<{
     const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
     const [isValuationModalOpen, setValuationModalOpen] = useState(false);
     const [isCloseModalOpen, setCloseModalOpen] = useState(false);
-    const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const [syncPrompt, setSyncPrompt] = useState<{
         connectionId: string;
         connectionOverride: EnableBankingConnection;
@@ -309,8 +308,9 @@ const AccountDetail: React.FC<{
         handleOpenTransactionModal(tx);
     };
 
-    const handleDeleteTransaction = (tx: Transaction) => {
-        setTransactionToDelete(tx);
+    const handleDeleteTransactions = (ids: string[]) => {
+        setDetailModalOpen(false);
+        deleteTransactions(ids);
     };
 
     return (
@@ -334,7 +334,7 @@ const AccountDetail: React.FC<{
                 accounts={accounts}
                 tags={tags}
                 onEdit={handleEditTransaction}
-                onDelete={handleDeleteTransaction}
+                onDelete={handleDeleteTransactions}
             />
             
             {isAdjustModalOpen && (
@@ -399,20 +399,6 @@ const AccountDetail: React.FC<{
                 onConfirm={confirmDeleteLog}
                 title="Delete Log"
                 message="Are you sure you want to delete this mileage log entry?"
-                confirmButtonText="Delete"
-            />
-
-            <ConfirmationModal
-                isOpen={!!transactionToDelete}
-                onClose={() => setTransactionToDelete(null)}
-                onConfirm={() => {
-                    if (!transactionToDelete) return;
-                    deleteTransactions([transactionToDelete.id]);
-                    setTransactionToDelete(null);
-                    setDetailModalOpen(false);
-                }}
-                title="Delete Transaction"
-                message="Are you sure you want to delete this transaction? This action cannot be undone."
                 confirmButtonText="Delete"
             />
 

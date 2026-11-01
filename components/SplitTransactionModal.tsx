@@ -1,14 +1,16 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useMemo, useState } from 'react';
 import { Transaction, Category } from '../types';
-import { formatCurrency, safeRound, currencySign } from '../utils';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
-import Icon from './ui/Icon';
-import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
-import { toast } from 'sonner';
+import { currencySign } from '../utils';
+import { categoryPickerOptions } from '../utils/categoryTree';
+import { amountLeft, buildSplit, initialParts, SplitPart } from '../utils/splitModel';
+import { DetailList } from './AccountFrame';
+import { Button, IconButton } from './ui/Actions';
+import { AmountInput, TextInput } from './ui/Fields';
+import { Amount } from './ui/Money';
+import { Dialog } from './ui/Overlays';
+import { Combobox } from './ui/Pickers';
 
 interface SplitTransactionModalProps {
-  isOpen?: boolean;
   onClose: () => void;
   onSave: (updatedParent: Transaction, subTransactions: Transaction[]) => void;
   transaction: Transaction;
@@ -16,297 +18,58 @@ interface SplitTransactionModalProps {
   expenseCategories: Category[];
 }
 
-interface SplitItem {
-  id: string;
-  amount: string;
-  category: string;
-  description: string;
-}
+const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({ onClose, onSave, transaction, incomeCategories, expenseCategories }) => {
+  const [parts, setParts] = useState<SplitPart[]>(() => initialParts(transaction));
+  const [isDirty, setDirty] = useState(false);
 
-const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
-  isOpen = true,
-  onClose,
-  onSave,
-  transaction,
-  incomeCategories,
-  expenseCategories,
-}) => {
-  const dialogRef = useDialogA11y<HTMLDivElement>();
-  const [splits, setSplits] = useState<SplitItem[]>([
-    { id: '1', amount: (Math.abs(transaction.amount) / 2).toFixed(2), category: transaction.category, description: `${transaction.description} (Part 1)` },
-    { id: '2', amount: (Math.abs(transaction.amount) / 2).toFixed(2), category: transaction.category, description: `${transaction.description} (Part 2)` },
-  ]);
-  const [isVisible, setIsVisible] = useState(false);
+  const categoryOptions = useMemo(() => categoryPickerOptions(expenseCategories, incomeCategories), [expenseCategories, incomeCategories]);
+  const left = amountLeft(transaction, parts);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 20);
-    return () => clearTimeout(timer);
-  }, []);
+  const change = (next: SplitPart[]) => {
+    setParts(next);
+    setDirty(true);
+  };
+  const update = (id: string, updates: Partial<SplitPart>) => change(parts.map(part => part.id === id ? { ...part, ...updates } : part));
 
-  // Handle ESC key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(onClose, 250);
+  const save = () => {
+    const { parent, subTransactions } = buildSplit(transaction, parts);
+    onSave(parent, subTransactions);
   };
 
-  const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
-  const flatCategories = useMemo(() => {
-    const flatten = (cats: Category[]): Category[] => {
-      let res: Category[] = [];
-      cats.forEach(c => {
-        res.push(c);
-        if (c.subCategories) res = res.concat(flatten(c.subCategories));
-      });
-      return res;
-    };
-    return flatten(allCategories);
-  }, [allCategories]);
-
-  const totalAmount = Math.abs(transaction.amount);
-  const currentTotal = splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
-  const remaining = safeRound(totalAmount - currentTotal, 2);
-
-  const handleAddSplit = () => {
-    setSplits([...splits, { id: Date.now().toString(), amount: '0', category: '', description: '' }]);
-  };
-
-  const handleRemoveSplit = (id: string) => {
-    if (splits.length <= 1) return;
-    setSplits(splits.filter(s => s.id !== id));
-  };
-
-  const handleUpdateSplit = (id: string, updates: Partial<SplitItem>) => {
-    setSplits(splits.map(s => s.id === id ? { ...s, ...updates } : s));
-  };
-
-  const handleSave = () => {
-    if (Math.abs(remaining) > 0.01) {
-      toast.error(`The split amounts must sum up to the original amount (${formatCurrency(totalAmount, transaction.currency)}). Remaining: ${formatCurrency(remaining, transaction.currency)}`);
-      return;
-    }
-
-    const updatedParent: Transaction = {
-      ...transaction,
-      isSplitParent: true,
-    };
-
-    const subTransactions: Transaction[] = splits.map((s, index) => ({
-      ...transaction,
-      id: `split-${transaction.id}-${index}-${Date.now()}`,
-      parentTransactionId: transaction.id,
-      isSplitParent: false,
-      isCombinedParent: false,
-      amount: transaction.amount >= 0 ? safeRound(parseFloat(s.amount) || 0, 2) : -safeRound(parseFloat(s.amount) || 0, 2),
-      category: s.category || transaction.category,
-      description: s.description?.trim() || `${transaction.description} (Part ${index + 1})`,
-    }));
-
-    onSave(updatedParent, subTransactions);
-    handleClose();
-  };
-
-  const content = (
-    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
-      {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-        onClick={handleClose}
-      />
-
-      {/* Sidebar Drawer */}
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div 
-          className={`w-screen max-w-xl bg-white dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
-            isVisible ? 'translate-x-0' : 'translate-x-full'
-          }`}
-        >
-          {/* Header */}
-          <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/20 shadow-xs">
-                <Icon name="call_split" className="text-2xl" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
-                  Split Transaction
-                </h2>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
-                  Divide transaction across categories
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={handleClose}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
-              aria-label="Close drawer"
-            >
-              <Icon name="close" className="text-lg" />
-            </button>
-          </div>
-
-          {/* Body Content */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-
-              {/* Transaction Summary Card */}
-              <div className="p-5 rounded-3xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 flex items-center justify-between">
-                <div className="min-w-0 flex-1 pr-4">
-                  <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 block mb-1">
-                    Original Entry
-                  </span>
-                  <p className="font-bold text-base text-light-text dark:text-dark-text truncate">
-                    {transaction.description}
-                  </p>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5">
-                    {transaction.category}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-2xl font-black tabular-nums text-light-text dark:text-dark-text">
-                    {formatCurrency(totalAmount, transaction.currency)}
-                  </p>
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold mt-1 ${
-                    Math.abs(remaining) < 0.01 
-                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' 
-                      : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
-                  }`}>
-                    {Math.abs(remaining) < 0.01 ? 'Fully Allocated' : `Remaining: ${formatCurrency(remaining, transaction.currency)}`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Split Items */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Split Allocations ({splits.length})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleAddSplit}
-                    className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600 flex items-center gap-1"
-                  >
-                    <Icon name="add" className="text-sm" />
-                    <span>Add Split</span>
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {splits.map((split, index) => (
-                    <div 
-                      key={split.id} 
-                      className="p-4 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm space-y-3 relative group"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xs font-bold uppercase tracking-wider text-primary-700 dark:text-primary-400">
-                          Part {index + 1}
-                        </span>
-                        {splits.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveSplit(split.id)}
-                            className="text-rose-500 hover:bg-rose-500/10 p-1 rounded-lg transition-colors"
-                            title="Remove split"
-                          >
-                            <Icon name="delete" className="text-base" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-2xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                            Description
-                          </label>
-                          <input
-                            type="text"
-                            value={split.description}
-                            onChange={e => handleUpdateSplit(split.id, { description: e.target.value })}
-                            placeholder={`Split ${index + 1}`}
-                            className={`${INPUT_BASE_STYLE} h-11 text-xs`}
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-2xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                            Category
-                          </label>
-                          <div className={SELECT_WRAPPER_STYLE}>
-                            <select
-                              value={split.category}
-                              onChange={e => handleUpdateSplit(split.id, { category: e.target.value })}
-                              className={`${SELECT_STYLE} h-11 text-xs font-semibold`}
-                            >
-                              <option value="">Select Category</option>
-                              {flatCategories.map(cat => (
-                                <option key={cat.id} value={cat.name}>{cat.name}</option>
-                              ))}
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-2xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                          Amount
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">{currencySign(transaction.currency)}</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={split.amount}
-                            onChange={e => handleUpdateSplit(split.id, { amount: e.target.value })}
-                            className={`${INPUT_BASE_STYLE} pl-8 h-11 text-sm font-bold font-mono`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Sticky Bottom Actions */}
-            <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
-              <button 
-                type="button" 
-                onClick={handleClose} 
-                className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={handleSave} 
-                disabled={Math.abs(remaining) > 0.01}
-                className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`}
-              >
-                <span>Confirm Split</span>
-                <Icon name="check" className="text-base" />
-              </button>
-            </div>
-          </div>
+  return (
+    <Dialog
+      isOpen
+      onClose={onClose}
+      title="Split transaction"
+      description={transaction.description}
+      isDirty={isDirty}
+      footer={close => (
+        <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
+          <Button variant="ghost" onPress={close}>Cancel</Button>
+          <Button isDisabled={left !== 0} onPress={save}>Split</Button>
         </div>
+      )}
+    >
+      <div className="space-y-4">
+        <DetailList items={[
+          { label: 'Original amount', value: <Amount value={Math.abs(transaction.amount)} currency={transaction.currency} /> },
+          { label: 'Left to assign', value: <span className={left === 0 ? undefined : 'text-money-out'}><Amount value={left} currency={transaction.currency} /></span> },
+        ]} />
+        {parts.map((part, index) => (
+          <section key={part.id} aria-label={`Part ${index + 1}`} className="space-y-3 border-t border-line pt-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="type-card-title text-ink">Part {index + 1}</h3>
+              {parts.length > 1 && <IconButton icon="delete" label={`Remove part ${index + 1}`} tooltipPlacement="left" onPress={() => change(parts.filter(item => item.id !== part.id))} />}
+            </div>
+            <AmountInput label="Amount" currency={currencySign(transaction.currency)} value={part.amount} onChange={amount => update(part.id, { amount })} />
+            <Combobox label="Category" options={categoryOptions} value={part.category || null} onChange={id => update(part.id, { category: id ?? '' })} placeholder="Search categories" />
+            <TextInput label="Description" value={part.description} onChange={description => update(part.id, { description })} />
+          </section>
+        ))}
+        <Button variant="secondary" size="sm" icon="add" onPress={() => change([...parts, { id: Date.now().toString(), amount: left > 0 ? left.toFixed(2) : '0', category: '', description: '' }])}>Add part</Button>
       </div>
-    </div>
+    </Dialog>
   );
-
-  return createPortal(content, document.body);
 };
 
 export default SplitTransactionModal;

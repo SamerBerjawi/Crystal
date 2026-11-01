@@ -216,7 +216,7 @@ Phase 10 (final QA) follows module 13.
 **Known issues**
 - The hub pill and its first pot tab are both called Accounts.
 - `AccountOverviewModal`, `PaymentPlanTable`, `BalanceAdjustmentModal`, `HistoricalBalanceTrend` and the amortisation and mileage charts keep their old styling on bridge colours.
-- `AccountOverviewModal` should become a side panel (`D-024`). It's a 1,500-line modal, so it's deferred.
+- `AccountOverviewModal` was later deleted (`D-113`, `D-117`).
 - The full panel on phones scrolls through sections rather than stepping one at a time.
 - Demo loans have no term or rate, so they show no schedule.
 
@@ -255,8 +255,7 @@ Phase 10 (final QA) follows module 13.
 
 **Known issues**
 - `AddTransactionModal` is rebuilt to `D-022` (a side panel, full-height on phones). Its logic moved to `utils/transactionForm.ts`, with tests. Save, edit, transfer, the unsaved-changes prompt and suggestions were tested in the browser at 1440×900, and layout at 768×1024 and 390×844, in light and dark. Merchant rules, loan split, round-up and branch saving have unit tests only, because the demo data has no merchant rules, loans payments or spare-change link to try them on. Live address search wasn't tested.
-- `TransactionDetailModal` isn't a side panel yet (`D-024`), and `MerchantDetailModal` keeps its old look.
-- Merchants still has the old map in Map and details, and the keyword and regex rules in Auto-categorise until module 10.
+- `TransactionDetailModal` became a side panel in the old-screens work (`D-115`). `MerchantDetailModal` was rebuilt in the same work (`D-116`).
 - Past bank transactions aren't reprocessed by the `DEF-06` fix.
 - Saving a transaction with no category still files it as Transfer, as it always has.
 
@@ -475,7 +474,6 @@ Not tested:
 - A three-decimal currency in the app (KWD has unit tests).
 - The account form's currency picker, onboarding and CSV import with new currencies.
 - Bank sync in a currency Crystal hadn't listed before.
-- Old screens not rebuilt yet, such as `MerchantDetailModal` and `AccountOverviewModal`, at every size.
 
 ## Review before Module 13
 
@@ -499,8 +497,20 @@ All seven Proposed decisions are closed: `D-074`, `D-075`, `D-079`, `D-080`, `D-
 - Not real gaps: price bindings and account and task order already sync.
 - Still open: contrast of restyled old screens, which goes with the screen sort. `HistoricalBalanceTrend` and account detail's lowest point still use `generateBalanceForecast`.
 
-### Old screens (sorted, step 1 done)
+### Old screens (sorted, steps 1 to 6 done)
 
 [The sort](11-old-screens.md) puts every old screen into delete, rebuild or restyle, with an order of work ending in Module 13.
 
 Step 1 deleted 97 source files and 2 test files, about 17,200 lines, including Overview's forecast dialogs and handlers that nothing could open. Types, 404 tests (438 less the 34 in the removed files) and the build pass, and every route opens. Package dependencies stay for Module 13.
+
+Step 2 rebuilt `TransactionDetailModal` as a 640 side panel, a sheet on phones, with `components/PlaceMap.tsx` ready for the merchant profile (`D-115`). It follows Hide amounts, which the old modal didn't, and shows a map only for a saved location. Checked in dark at about 1340 wide, 768×1024 and 375×812, with no overflow, and in light at desktop width: a mapped expense, income, a loan split, a transfer, deleting a transfer (both sides, with undo), Edit, the category list on Overview, and the panel over Quick overview. Hold to delete was checked by its screen reader path only, not by a real long press. The 390×844 size wasn't opened separately, and a real merchant logo wasn't seen because dev has no Brandfetch key.
+
+Step 3 rebuilt `MerchantDetailModal` from 1,540 lines into a 640 side panel of about 150, with `MerchantBranches`, `MerchantKeywordRules`, `MerchantLogoFields` and `utils/merchantModel.ts`, which has 7 tests (`D-116`). The profile on Merchants now holds the map, branches with Google Maps links, website, description, keywords and notes, and `MerchantOverviewModal` is gone (`D-114`). On phones the merchant name now has its own row. Checked in dark at 1440×900, 768×1024 and 375×812 with no overflow: two branches on one map, one older single-address merchant, an online merchant, all three tabs, the unsaved prompt, adding a keyword with its match count, Make primary, saving with the branch stamped on transactions, and the transaction panel on the changed map. Not checked: light theme on these screens, address search, logo upload, Apply to past, removing a branch, and a real Brandfetch logo.
+
+Step 4 deleted `AccountOverviewModal` (1,495 lines) after comparing it with the account page (`D-117`). Rows on Accounts and Investments now open the account page, the phone swipe action is gone, and Investments gained Open account in its menu. Holding figures stay on the Holdings tab. Checked: the row click on both pages, Details at 375×812 with no overflow or clipped numbers, Billing, and the new detail rows at desktop width. The copy button's failure message was seen, but a successful copy wasn't, because the preview pane denies clipboard access. Condition, location and counterparty weren't seen, because the demo data doesn't set them.
+
+Step 5 moved the seven account dialogs and three transaction tools onto the shared dialogs, fields and tokens, and `PaymentPlanTable` now works on touch (`D-118`). It also fixed Add to plan only (Simulate in Plan), which counted the extra twice. Plans already saved with that override keep the doubled figure until the extra is set again or the payment is edited. Checked in dark at 1440×900: save on Adjust balance, opening Update value and Record sale, Defer and Remove deferred, Add to plan only, Edit payment, opening Bulk edit, Assign a category and Matching settings, and saving Combine. At 375×812: the plan and the three loan panels, with no overflow. At 768×1024 the table scrolled inside its box, so it became the list below 1024; the list wasn't reopened at tablet size after that. Not checked: light theme, Record payment, saving a value or a sale, applying Bulk edit, and the dialogs other than the three loan panels on phones.
+
+The same testing led to `D-119`: saves no longer change accounts inside a state updater, so a balance moves once in dev too, and the change now converts directly to the account's currency. Balances already wrong from the old conversion aren't corrected. Checked in dev: +50 on Adjust balance, delete and undo. Not checked in the app: a non-EUR main currency, which only unit tests cover, or a production build. `handleManualWarrantPrice` still sets warrant prices inside an updater, but it sets the same value each time, so a rerun changes nothing.
+
+Step 6 rebuilt `BulkEditTransactionsModal` and `AddMileageLogModal` as side panels and `SplitTransactionModal` as a dialog, with `utils/bulkEdit.ts`, `utils/mileageModel.ts` and `utils/splitModel.ts` (`D-120`). Batch mileage dates now stay as typed, so no time zone can move the day, and impossible dates like 30 February are refused. Checked in dark at 1440×900: a split with comma amounts, with the card balance unchanged at €840.25, Split staying off while parts don't add up, bulk editing two transactions, the mileage error, and batch readings with a bad line and without. At 375×812: bulk edit and both mileage modes, with no overflow. Not checked: Split on phones, these screens at 768×1024, light theme, tags and location in bulk edit, address search, Unsplit and Combine in the app (unit tests cover their balances), and the balance chart with splits, which reads transactions directly and may count a parent and its parts together. Accounts already split or combined keep the extra amount, and undoing an old split no longer removes it, so those balances need Adjust balance.

@@ -1,4 +1,5 @@
 import type {
+  ScheduledPayment,
   Account, BillPayment, Currency, LoanPaymentOverrides, RecurrenceFrequency, RecurringTransaction,
   RecurringTransactionOverride, ScheduledItem, Transaction, WeekendAdjustment,
 } from '../types';
@@ -666,6 +667,15 @@ export const draftFromBill = (bill: BillPayment): SeriesDraft => ({
   description: bill.description, merchant: '', category: '', accountId: bill.accountId ?? '', toAccountId: '', startDate: bill.dueDate,
   frequency: 'monthly', frequencyInterval: '1', dueDateOfMonth: '', weekendAdjustment: 'on', endDate: '',
 });
+
+/**
+ * Adds extra principal to one payment. The schedule adds `extraPrincipal` itself, so a payment's own total and principal
+ * stay out of it. A deferred payment stops being deferred, and a new amount replaces an earlier one.
+ */
+export const withExtraPrincipal = (overrides: Record<number, Partial<ScheduledPayment>>, paymentNumber: number, extraPrincipal: number) => {
+  const current = overrides[paymentNumber];
+  return { ...overrides, [paymentNumber]: { ...(current?.status === 'Deferred' || current?.extraPrincipal ? {} : current), extraPrincipal } };
+};
 
 /** Parses "1.250,50" and "1,250.50" alike (the Budget L-B3 rule). */
 export const parseAmountInput = (value: string): number => {

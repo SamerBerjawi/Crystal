@@ -21,7 +21,6 @@ interface AccountsListSectionProps {
   menuFor: (account: Account) => MenuAction[];
   onEditClick: (account: Account) => void;
   onAdjustBalanceClick: (account: Account) => void;
-  onOverviewClick: (account: Account) => void;
   sortBy: 'name' | 'balance' | 'manual';
   accountOrder?: string[];
   setAccountOrder?: React.Dispatch<React.SetStateAction<string[]>>;
@@ -40,7 +39,6 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
   menuFor,
   onEditClick,
   onAdjustBalanceClick,
-  onOverviewClick,
   sortBy,
   accountOrder = [],
   setAccountOrder,
@@ -175,7 +173,6 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                     <SwipeableRow
                       key={account.id}
                       leftActions={[
-                        { icon: 'visibility', label: 'Overview', bgClass: 'bg-primary-soft', colorClass: 'text-ink', onAction: () => onOverviewClick(account) },
                         { icon: 'tune', label: 'Adjust', bgClass: 'bg-inset', colorClass: 'text-ink', onAction: () => onAdjustBalanceClick(account) },
                       ]}
                       rightActions={[{ icon: 'edit', label: 'Edit', bgClass: 'bg-inset', colorClass: 'text-ink', onAction: () => onEditClick(account) }]}
