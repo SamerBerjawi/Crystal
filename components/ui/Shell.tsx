@@ -170,12 +170,12 @@ export const TopBar: React.FC<ShellProps> = props => (
   </div>
 );
 
-/** Seven tools, and Lock when signed in, in frosted glass, vertically centred in the left margin (D-018, D-052). */
-export const ToolRail: React.FC<ShellProps> = ({ onLock, currentPage, setCurrentPage, theme, setTheme, isSyncing, onSync, onSearch, onCreate }) => {
+/** Eight tools, and Lock when signed in, in frosted glass, vertically centred in the left margin (D-018, D-052). */
+export const ToolRail: React.FC<ShellProps> = ({ onLock, currentPage, setCurrentPage, theme, setTheme, isPrivacyMode, togglePrivacyMode, isSyncing, onSync, onSearch, onCreate }) => {
   const isDark = isDarkNow(theme);
   const tool = { variant: 'glass', tooltipPlacement: 'right', iconSize: 24, className: 'size-11' } as const;
   return (
-    <nav aria-label="Tools" className="glass-float fixed left-3 top-1/2 z-[var(--z-bar)] flex w-[60px] -translate-y-1/2 flex-col items-center gap-1 rounded-[30px] p-2 lg:left-4">
+    <nav aria-label="Tools" className="glass-float fixed left-3 top-1/2 z-[var(--z-bar)] no-scrollbar flex max-h-[calc(100dvh-24px)] w-[60px] -translate-y-1/2 flex-col items-center gap-1 overflow-y-auto rounded-[30px] p-2 lg:left-4">
       <IconButton {...tool} icon="search" label="Search (⌘K)" onPress={onSearch} />
       <IconButton {...tool} icon="add" label="Add transaction (N)" onPress={onCreate} />
       <IconButton {...tool} icon="today" label="Today" isActive={currentPage === 'Schedule & Bills'} onPress={() => setCurrentPage('Schedule & Bills')} />
@@ -183,6 +183,7 @@ export const ToolRail: React.FC<ShellProps> = ({ onLock, currentPage, setCurrent
       <IconButton {...tool} icon="sync_banks" label="Sync banks" isBusy={isSyncing} onPress={onSync} />
       <IconButton {...tool} icon="settings" label="Settings" isActive={hubForPage(currentPage).id === 'settings'} onPress={() => setCurrentPage('Personal Info')} />
       <IconButton {...tool} icon={isDark ? 'light_mode' : 'dark_mode'} label={isDark ? 'Use light theme' : 'Use dark theme'} onPress={() => setTheme(isDark ? 'light' : 'dark')} />
+      <IconButton {...tool} icon={isPrivacyMode ? 'visibility' : 'visibility_off'} label={isPrivacyMode ? 'Show amounts' : 'Hide amounts'} isActive={isPrivacyMode} onPress={togglePrivacyMode} />
       {onLock && <IconButton {...tool} icon="lock" label="Lock Crystal (L)" onPress={onLock} />}
     </nav>
   );

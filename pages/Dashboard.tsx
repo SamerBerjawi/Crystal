@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
+import { forecastFromData, horizonTiles } from '../utils/forecastModel';
 import { Page, User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
 import PageHeader from '../components/PageHeader';
 import { liveSeries } from '../utils/scheduleModel';
-import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToMain, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound, getMainCurrency } from '../utils';
+import { formatCurrency, convertCurrency, convertToMain, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound, getMainCurrency } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -27,7 +28,6 @@ import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleCont
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, Cell } from 'recharts';
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
-import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import RecurringOverrideModal from '../components/RecurringOverrideModal';
 import EditRecurrenceModal from '../components/EditRecurrenceModal';
@@ -221,7 +221,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const [isEditMode, setIsEditMode] = useState(false);
   const [isPhoneEditOpen, setPhoneEditOpen] = useState(false);
 
-  const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
   const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
   const [editChoiceItem, setEditChoiceItem] = useState<ScheduledItem | null>(null);
 
@@ -296,7 +295,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [analyticsAccounts, analyticsTransactions, loanPaymentOverrides, recurringTransactions]);
 
   // Forecast Data for Widget (Used for Lowest Balance Cards & Net Worth Chart)
-  const { forecastChartData, lowestBalanceForecasts, lowestForecastPoint, forecastTableData } = useMemo(() => {
+  const { forecastChartData, lowestBalanceForecasts } = useMemo(() => {
     const projectionEndDate = new Date();
     // Adjust duration based on filter
     switch (forecastDuration) {
@@ -307,48 +306,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       default: projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); break;
     }
 
-    // Use ALL accounts to generate synthetic items.
-    const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
-    const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
-    const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
-
-    const allRecurring = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
-    const activeGoals = financialGoals.filter(g => {
-      if (g.disabled) return false;
-      if (!activeGoalIds.includes(g.id)) return false;
-      if (g.parentId) {
-        const parent = financialGoals.find(p => p.id === g.parentId);
-        if (parent && (parent.disabled || !activeGoalIds.includes(parent.id))) return false;
-      }
-      return true;
-    });
-
-    const { chartData, lowestPoint, tableData } = generateBalanceForecast(
-      selectedAccounts, // The engine will filter impacts based on these selected accounts
-      allRecurring,
-      activeGoals,
-      billsAndPayments,
-      projectionEndDate,
-      recurringTransactionOverrides
+    // The tiles always look a year ahead, whatever length the chart shows.
+    const today = new Date();
+    const aYearOut = new Date(today.getFullYear(), today.getMonth() + 12, 0);
+    const projection = forecastFromData(
+      { recurring: recurringTransactions, overrides: recurringTransactionOverrides, bills: billsAndPayments, accounts, transactions, loanPaymentOverrides },
+      selectedAccounts, financialGoals, activeGoalIds, today, projectionEndDate > aYearOut ? projectionEndDate : aYearOut, convertToMain,
     );
+    const chartEnd = toLocalISOString(projectionEndDate);
+    const chartData = projection.days.filter(day => day.date <= chartEnd).map(day => ({ date: day.date, value: day.total }));
 
-    return {
-      forecastChartData: chartData,
-      lowestBalanceForecasts: calculateForecastHorizon(chartData),
-      lowestForecastPoint: lowestPoint,
-      forecastTableData: tableData
-    };
+    return { forecastChartData: chartData, lowestBalanceForecasts: horizonTiles(projection.days, today) };
 
   }, [accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides, forecastDuration]);
-
-  const selectedDayItems = useMemo(() => {
-    if (!selectedForecastDate) return [];
-    return forecastTableData.filter(item => item.date === selectedForecastDate);
-  }, [selectedForecastDate, forecastTableData]);
-
-  const handleDateClick = (date: string) => {
-    setSelectedForecastDate(date);
-  };
 
   const handleEditSingle = () => {
     if (!editChoiceItem) return;
@@ -388,7 +358,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   };
 
   const handleEditForecastItem = (item: any) => {
-    setSelectedForecastDate(null);
     if (item.type === 'Financial Goal') {
       setEditingGoal(item.originalItem);
       setIsGoalModalOpen(true);
@@ -1499,7 +1468,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
           recurringTransactionToEdit={editingRecurring}
           billToEdit={editingBill}
           initialMode={isBillModalOpen ? 'one-time' : 'recurring'}
-          initialDate={selectedForecastDate || undefined}
         />
       )}
       {isGoalModalOpen && (
@@ -1515,7 +1483,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         />
       )}
 
-      {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
       {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
       {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
 

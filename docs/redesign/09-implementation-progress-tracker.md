@@ -22,7 +22,7 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Done, committed on `feat/redesign-settings`, PR open |
 | 10 | Rules | Rebuild (`D-009`), with tests first | Done, merged |
 | 11 | PIN lock | Idle lock, server-side design (`D-013`) | Done, merged |
-| 12 | Any currency | Support across the app (`S-010`) | Done, committed on `feat/redesign-any-currency` |
+| 12 | Any currency | Support across the app (`S-010`) | Done, merged |
 | 13 | Clean-up | Remove bridge, `@base-ui/react`, `DESIGN.md` | Not started |
 
 Phase 10 (final QA) follows module 13.
@@ -456,7 +456,7 @@ Not tested:
 - A screen reader on the keypad.
 - Whether a browser's own HTTP cache could keep a `/api/data` response.
 
-Known limit: API responses use `private, no-cache` so `/api/data` can answer 304, which means a browser may keep a copy in its disk cache. Crystal won't serve it while locked, because revalidation gets 423, but someone reading the browser's files could. Changing to `no-store` closes this and loses the 304 saving.
+The disk cache limit first noted here is closed by `D-112`.
 
 In dev builds only, a session that ends falls back to the dev cache. Production has no dev cache.
 
@@ -476,3 +476,25 @@ Not tested:
 - The account form's currency picker, onboarding and CSV import with new currencies.
 - Bank sync in a currency Crystal hadn't listed before.
 - Old screens not rebuilt yet, such as `MerchantDetailModal` and `AccountOverviewModal`, at every size.
+
+## Review before Module 13
+
+Open items from Modules 0 to 12 are worked through before Clean-up, in this order: decisions, a live checklist, behaviour gaps, then screens sorted into rebuild, restyle or delete.
+
+### Decisions (done)
+
+All seven Proposed decisions are closed: `D-074`, `D-075`, `D-079`, `D-080`, `D-083`, `D-084` and `D-085`. Two changed the app: Hide amounts joined the rail, and account heroes and wallet cards have a colour per type. Checked at 1440×900 in dark and light, with computed colours for each type and the rail at 560 px tall. The owner plans a sidebar later, so the top pills and `D-075` are temporary.
+
+### Live checklist (written, not run)
+
+[The checklist](10-live-checklist.md) covers what only a real install can prove: the rules migration, the PIN lock on Postgres, live bank sync, and live rates. It waits on the owner.
+
+### Behaviour gaps (done)
+
+- Overview and Forecast now use one calculation (`D-111`). The tiles' hiding of repeats and their dependence on the chart's range are gone. Checked: Next Year shows €499.75, the same as Forecast's lowest point. `handleEditForecastItem` and related Overview handlers are now unused, for Module 13.
+- A record saved with no category and no transfer now files as Uncategorized, so it reaches the Review queue. The form requires a category and bank sync already set Uncategorized, so this path is rare. It has unit tests, and wasn't seen in the app. Older records filed as Transfer this way aren't changed.
+- Disk cache closed (`D-112`). Type-checked only, because the demo has no real backend. Added to the live checklist.
+- Budget, Goals and Subscriptions looked right in light at 1440×900.
+- The Subscriptions timeline had overlapping labels. Labels now take lanes and can't overlap. A label with no free lane shows as a dot with its name on hover.
+- Not real gaps: price bindings and account and task order already sync.
+- Still open: contrast of restyled old screens, which goes with the screen sort. `HistoricalBalanceTrend` and account detail's lowest point still use `generateBalanceForecast`.

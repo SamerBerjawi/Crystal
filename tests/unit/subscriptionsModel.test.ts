@@ -1,3 +1,4 @@
+import { assignLabelLanes } from '../../utils/subscriptionsModel';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Membership, RecurringTransaction, Transaction } from '../../types';
@@ -85,4 +86,10 @@ test('services are your own payments, soonest first', () => {
 test('cards running out soon are flagged', () => {
   const card = (expiryDate: string) => ({ id: expiryDate, provider: 'x', memberId: '1', color: '', icon: '', expiryDate }) as Membership;
   assert.deepEqual(expiringCards([card('2026-10-30'), card('2026-12-30'), card('2026-10-01')], today).map(item => item.id), ['2026-10-30']);
+});
+
+test('timeline labels take the first free lane and never overlap', () => {
+  assert.deepEqual(assignLabelLanes([0, 5, 20, 22, 24], 10, 2), [0, 1, 0, 1, null]);
+  assert.deepEqual(assignLabelLanes([10, 40, 70], 10, 2), [0, 0, 0]);
+  assert.deepEqual(assignLabelLanes([], 10, 2), []);
 });

@@ -273,3 +273,17 @@ export const expiringCards = (cards: Membership[], today: Date, days = 30) => {
   return cards.filter(card => !!card.expiryDate && card.expiryDate.slice(0, 10) > from && card.expiryDate.slice(0, 10) <= to);
 };
 
+/**
+ * Gives each label on a timeline a lane so none overlap. Positions are sorted, in the same units as the width. A label
+ * with no free lane gets null and shows as a dot alone, which keeps its own name and date.
+ */
+export const assignLabelLanes = (positions: number[], labelWidth: number, laneCount: number): (number | null)[] => {
+  const laneEnds: number[] = Array(laneCount).fill(-Infinity);
+  return positions.map(position => {
+    const lane = laneEnds.findIndex(end => position - labelWidth / 2 >= end);
+    if (lane === -1) return null;
+    laneEnds[lane] = position + labelWidth / 2;
+    return lane;
+  });
+};
+

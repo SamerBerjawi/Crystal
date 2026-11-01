@@ -1,6 +1,6 @@
 import type { Account, Currency, FinancialGoal, RecurrenceFrequency } from '../types';
 import { advanceRecurrenceDate, parseLocalDate, round2, safeAdd } from '../utils';
-import { addDays, iso, isOpen, owningAccountId, type Converter, type Occurrence } from './scheduleModel';
+import { addDays, buildOccurrences, iso, isOpen, owningAccountId, type Converter, type Occurrence, type OccurrenceInput } from './scheduleModel';
 
 /*
  * Forecast model. Projects the selected accounts'
@@ -460,3 +460,43 @@ export const moveSuggestion = (projection: Projection, cushion: number): MoveSug
     .sort((a, b) => a.amount - b.amount);
   return candidates[0] ? { event: candidates[0], toDate: iso(addDays(parseLocalDate(income.date), 1)) } : null;
 };
+
+export type ForecastData = Pick<OccurrenceInput, 'recurring' | 'overrides' | 'bills' | 'accounts' | 'transactions' | 'loanPaymentOverrides'>;
+
+/** The one way a forecast is worked out from saved data, so Overview and Forecast can't disagree. */
+export const forecastFromData = (data: ForecastData, selected: Account[], goals: FinancialGoal[], activeGoalIds: string[], today: Date, end: Date, convert: Converter): Projection =>
+  projectBalances({
+    accounts: selected,
+    startBalances: Object.fromEntries(selected.map(account => [account.id, convert(account.balance, account.currency)])),
+    occurrences: buildOccurrences({ ...data, from: today, to: end, today }),
+    goals,
+    activeGoalIds,
+    today,
+    end,
+    convert,
+  });
+
+export interface HorizonTile { period: string; lowestBalance: number; date: string }
+
+const TILE_PERIODS = [
+  { label: 'This Month', months: 1 },
+  { label: 'Next 3 Months', months: 3 },
+  { label: 'Next 6 Months', months: 6 },
+  { label: 'Next Year', months: 12 },
+];
+
+/**
+ * The lowest balance from today to the end of each period, and the first day it happens. Periods overlap, so a low in
+ * March shows on every tile that reaches March: a low balance is a warning, and it mustn't look better than it is.
+ */
+export const horizonTiles = (days: { date: string; total: number }[], today: Date): HorizonTile[] => {
+  if (days.length === 0) return [];
+  const todayStr = iso(today);
+  return TILE_PERIODS.map(({ label, months }) => {
+    const endStr = iso(new Date(today.getFullYear(), today.getMonth() + months, 0));
+    const inRange = days.filter(day => day.date >= todayStr && day.date <= endStr);
+    const lowest = inRange.reduce((low, day) => (day.total < low.total ? day : low), inRange[0] ?? days[0]);
+    return { period: label, lowestBalance: lowest.total, date: lowest.date };
+  });
+};
+

@@ -27,6 +27,9 @@ export function buildSummaryFacts({ incomeYesterday, billsDue, toReview, tasksDu
   return facts.slice(0, 3);
 }
 
+/** What a transaction saved with no category gets. Only real transfers file as Transfer, so the rest reach the Review queue. */
+export const defaultCategory = (tx: Pick<Transaction, 'transferId'>) => (tx.transferId ? 'Transfer' : 'Uncategorized');
+
 export const isUncategorised = (tx: Transaction) =>
   !tx.transferId && !tx.isBalanceAdjustment && (!tx.category?.trim() || tx.category === 'Uncategorized');
 
