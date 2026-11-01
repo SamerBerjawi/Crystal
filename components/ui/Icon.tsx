@@ -978,7 +978,7 @@ export const ICON_NAME_MAP: Record<string, string> = {
   award: 'Medal',
   Certificate01: 'Certificate',
   call_merge: 'GitMerge',
-  location_off: 'MapPinLine',
+  location_off: 'MapPinOff',
   merge_type: 'GitMerge',
   ad_group: 'SquaresFour',
   add_a_photo: 'Camera',

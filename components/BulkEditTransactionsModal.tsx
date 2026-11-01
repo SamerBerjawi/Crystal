@@ -3,6 +3,9 @@ import { Transaction, Account, Category, Tag } from '../types';
 import { toLocalISOString } from '../utils';
 import { applyBulkEdit, BulkField, BulkValues } from '../utils/bulkEdit';
 import { categoryPickerOptions } from '../utils/categoryTree';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 import AddressAutocomplete from './AddressAutocomplete';
 import { Button } from './ui/Actions';
 import { Checkbox, DateInput, TextInput } from './ui/Fields';
@@ -47,9 +50,42 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({ o
     return next;
   });
 
+  const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
+  const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+
   const categoryOptions = useMemo(() => categoryPickerOptions(expenseCategories, incomeCategories), [expenseCategories, incomeCategories]);
-  const accountOptions = useMemo(() => accounts.map(account => ({ id: account.id, label: account.name })), [accounts]);
-  const tagOptions = useMemo(() => tags.map(tag => ({ id: tag.id, label: tag.name })), [tags]);
+  const accountOptions = useMemo(() => accounts.map(account => {
+    const logoUrl = account.imageUrl
+      || getAccountBrandfetchUrl(account, brandfetchClientId, logoOverrides)
+      || (account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, logoOverrides) : null);
+    return {
+      id: account.id,
+      label: account.name,
+      description: account.financialInstitution || account.type,
+      visual: (
+        <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white shadow-xs">
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="size-full object-contain p-0.5" />
+          ) : (
+            <Icon name="account_balance" size={14} className="text-muted" />
+          )}
+        </span>
+      ),
+    };
+  }), [accounts, brandfetchClientId, logoOverrides]);
+
+  const tagOptions = useMemo(() => tags.map(tag => ({
+    id: tag.id,
+    label: tag.name,
+    visual: (
+      <span
+        className="flex size-5 shrink-0 items-center justify-center rounded-md"
+        style={{ backgroundColor: `${tag.color || 'var(--muted)'}22`, color: tag.color || 'var(--muted)' }}
+      >
+        <Icon name={tag.icon || 'tag'} size={12} />
+      </span>
+    ),
+  })), [tags]);
 
   const count = transactionsToEdit.length;
   const isInvalid = chosen.size === 0 || (chosen.has('category') && !values.category) || (chosen.has('accountId') && !values.accountId);

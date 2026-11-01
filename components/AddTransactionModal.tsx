@@ -8,7 +8,7 @@ import { usePreferencesContext, usePreferencesSelector } from '../contexts/Domai
 import { useTagsContext } from '../contexts/FinancialDataContext';
 import type { AddressData } from '../hooks/useAddressSearch';
 import { formatCurrency, currencySign } from '../utils';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { parseLocationString } from '../utils/locationDetector';
 import { suggestCategories } from '../utils/overviewSummary';
 import {
@@ -85,7 +85,7 @@ const TagPicker: React.FC<{ tags: Tag[]; selected: string[]; onChange: (ids: str
             const isOn = selected.includes(tag.id);
             return (
               <button key={tag.id} type="button" aria-pressed={isOn} onClick={() => onChange(isOn ? selected.filter(id => id !== tag.id) : [...selected, tag.id])} className={cn('inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm font-bold text-ink pointer-coarse:h-11', isOn ? 'border-primary bg-primary-soft' : 'border-line-strong hover:bg-inset')}>
-                <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: tag.color }} />
+                <Icon name={tag.icon || 'tag'} size={14} style={{ color: tag.color }} className="shrink-0" />
                 {tag.name}
               </button>
             );
@@ -168,7 +168,25 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
   const accountOptions = (exclude?: string, selected?: string): PickerOption[] => accounts
     .filter(item => item.id !== exclude && (item.status !== 'closed' || item.id === selected))
-    .map(item => ({ id: item.id, label: item.name, description: `${item.financialInstitution || item.type}, ${formatCurrency(item.balance, item.currency)}` }));
+    .map(item => {
+      const logoUrl = item.imageUrl
+        || getAccountBrandfetchUrl(item, brandfetchClientId, logoOverrides)
+        || (item.financialInstitution ? getMerchantLogoUrl(item.financialInstitution, brandfetchClientId, logoOverrides) : null);
+      return {
+        id: item.id,
+        label: item.name,
+        description: `${item.financialInstitution || item.type}, ${formatCurrency(item.balance, item.currency)}`,
+        visual: (
+          <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white shadow-xs">
+            {logoUrl ? (
+              <img src={logoUrl} alt="" className="size-full object-contain p-0.5" />
+            ) : (
+              <Icon name="account_balance" size={14} className="text-muted" />
+            )}
+          </span>
+        ),
+      };
+    });
 
   const setType = (type: string) => update({ type: type as TxType, ...accountsForType(form, type as TxType), ...(isEditing ? {} : { category: initialCategory || (type === 'transfer' ? 'Transfer' : ''), categoryEdited: !!initialCategory }) });
 

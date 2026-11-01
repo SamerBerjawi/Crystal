@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Transaction, Account, Tag } from '../types';
 import { parseLocalDate } from '../utils';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import { getCategoryDetails } from '../utils/categories';
+import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector, useTransactionSelector } from '../contexts/DomainProviders';
 import { useIsMobile } from '../hooks/useIsMobile';
 import PlaceMap from './PlaceMap';
@@ -45,17 +47,32 @@ const Detail: React.FC<{ label: string; children: React.ReactNode }> = ({ label,
   </div>
 );
 
-const AccountDetail: React.FC<{ account?: Account }> = ({ account }) => {
+const AccountDetail: React.FC<{ account?: Account; brandfetchClientId?: string; overrides?: Record<string, string> }> = ({ account, brandfetchClientId, overrides }) => {
+  const [failed, setFailed] = useState(false);
   const line = [account?.financialInstitution, account?.last4 && `•••• ${account.last4}`].filter(Boolean).join(' · ');
+  const logoUrl = useMemo(() => {
+    if (!account) return null;
+    return account.imageUrl || getAccountBrandfetchUrl(account, brandfetchClientId, overrides) || (account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, overrides) : null);
+  }, [account, brandfetchClientId, overrides]);
+
   return (
-    <>
-      <span className="type-body-strong block">{account?.name || 'Unknown account'}</span>
-      {line && <span className="type-caption block text-muted">{line}</span>}
-    </>
+    <div className="flex items-center gap-2.5">
+      <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-white shadow-xs">
+        {logoUrl && !failed
+          ? <img src={logoUrl} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
+          : <Icon name="account_balance" size={15} className="text-muted" />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <span className="type-body-strong block truncate">{account?.name || 'Unknown account'}</span>
+        {line && <span className="type-caption block truncate text-muted">{line}</span>}
+      </div>
+    </div>
   );
 };
 
 const TransactionDetail: React.FC<{ tx: Transaction; legs: Transaction[]; accounts: Account[]; tags: Tag[] }> = ({ tx, legs, accounts, tags }) => {
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const [failedLogo, setFailedLogo] = useState<string | null>(null);
@@ -77,6 +94,7 @@ const TransactionDetail: React.FC<{ tx: Transaction; legs: Transaction[]; accoun
   const place = placeName(tx);
   const txTags = (tx.tagIds || []).flatMap(id => tags.find(tag => tag.id === id) || []);
   const showsCategory = !isTransfer || (tx.category && tx.category !== 'Transfer');
+  const categoryDetails = useMemo(() => getCategoryDetails(tx.category, allCategories), [tx.category, allCategories]);
 
   return (
     <div className="space-y-4">
@@ -101,16 +119,26 @@ const TransactionDetail: React.FC<{ tx: Transaction; legs: Transaction[]; accoun
       <dl className="divide-y divide-line border-t border-line">
         {hasBothSides ? (
           <>
-            <Detail label="From"><AccountDetail account={accountOf(from!.accountId)} /></Detail>
+            <Detail label="From"><AccountDetail account={accountOf(from!.accountId)} brandfetchClientId={brandfetchClientId} overrides={logoOverrides} /></Detail>
             <Detail label="To">
-              <AccountDetail account={accountOf(to!.accountId)} />
+              <AccountDetail account={accountOf(to!.accountId)} brandfetchClientId={brandfetchClientId} overrides={logoOverrides} />
               {to!.currency !== from!.currency && <span className="type-caption block text-muted">Received <Amount value={to!.amount} currency={to!.currency} /></span>}
             </Detail>
           </>
         ) : (
-          <Detail label="Account"><AccountDetail account={accountOf(tx.accountId)} /></Detail>
+          <Detail label="Account"><AccountDetail account={accountOf(tx.accountId)} brandfetchClientId={brandfetchClientId} overrides={logoOverrides} /></Detail>
         )}
-        {showsCategory && <Detail label="Category">{tx.category || 'Uncategorized'}</Detail>}
+        {showsCategory && (
+          <Detail label="Category">
+            <span className="inline-flex items-center gap-2">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${categoryDetails.color || 'var(--muted)'}22`, color: categoryDetails.color || 'var(--muted)' }}>
+                <Icon name={categoryDetails.icon || 'category'} size={14} />
+              </span>
+              <span className="font-medium text-ink">{tx.category || 'Uncategorized'}</span>
+              {categoryDetails.parent && <span className="type-caption text-muted">({categoryDetails.parent})</span>}
+            </span>
+          </Detail>
+        )}
         {tx.merchant && tx.description && tx.description !== tx.merchant && <Detail label="Description">{tx.description}</Detail>}
         {(tx.principalAmount || tx.interestAmount) ? (
           <>
@@ -134,7 +162,7 @@ const TransactionDetail: React.FC<{ tx: Transaction; legs: Transaction[]; accoun
             <span className="flex flex-wrap gap-1.5">
               {txTags.map(tag => (
                 <span key={tag.id} className="inline-flex h-6 items-center gap-1.5 rounded-full bg-inset px-2.5 type-caption text-ink">
-                  <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                  <Icon name={tag.icon || 'tag'} size={13} style={{ color: tag.color }} className="shrink-0" />
                   {tag.name}
                 </span>
               ))}

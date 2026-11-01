@@ -1,12 +1,26 @@
+import React from 'react';
 import { Category } from '../types';
 import { flattenCategories } from '../utils';
+import Icon from '../components/ui/Icon';
 
 /** Every category once, for a picker. */
 export const categoryPickerOptions = (expenseCategories: Category[], incomeCategories: Category[]) => {
   const seen = new Set<string>();
   const withKind = (categories: Category[], description: string) => flattenCategories(categories)
     .filter(category => !seen.has(category.name) && !!seen.add(category.name))
-    .map(category => ({ id: category.name, label: category.name, description }));
+    .map(category => ({
+      id: category.name,
+      label: category.name,
+      description,
+      visual: React.createElement(
+        'span',
+        {
+          className: 'flex size-5 shrink-0 items-center justify-center rounded-md',
+          style: { backgroundColor: `${category.color || 'var(--muted)'}22`, color: category.color || 'var(--muted)' },
+        },
+        React.createElement(Icon, { name: category.icon || 'category', size: 12 }),
+      ),
+    }));
   return [...withKind(expenseCategories, 'Expense'), ...withKind(incomeCategories, 'Income')];
 };
 

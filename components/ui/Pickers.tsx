@@ -25,6 +25,7 @@ export interface PickerOption {
   label: string;
   description?: string;
   icon?: string;
+  visual?: React.ReactNode;
 }
 
 const optionRow =
@@ -41,7 +42,11 @@ const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, m
             {isSelected && <Icon name="check" size={16} weight="bold" />}
           </span>
         )}
-        {option.icon && <Icon name={option.icon} size={20} className="shrink-0 text-muted" />}
+        {option.visual ? (
+          <span className="shrink-0">{option.visual}</span>
+        ) : option.icon ? (
+          <Icon name={option.icon} size={20} className="shrink-0 text-muted" />
+        ) : null}
         <span className="min-w-0 flex-1 py-1.5">
           <span className="type-body block truncate">{option.label}</span>
           {option.description && <span className="type-caption block truncate text-muted">{option.description}</span>}

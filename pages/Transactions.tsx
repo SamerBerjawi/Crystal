@@ -13,7 +13,7 @@ import CombineTransactionsModal from '../components/CombineTransactionsModal';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useDebounce } from '../hooks/useDebounce';
-import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 import { Button as AriaButton } from 'react-aria-components';
 import Icon from '../components/ui/Icon';
@@ -26,7 +26,8 @@ import { Dialog, Popover } from '../components/ui/Overlays';
 import { Select } from '../components/ui/Pickers';
 import { EmptyState } from '../components/ui/States';
 import SegmentedControl from '../components/ui/SegmentedControl';
-import LedgerTable, { type LedgerItem, type LedgerSort } from '../components/LedgerTable';
+import LedgerTable, { type LedgerItem, type LedgerSort, type TableCellFilter } from '../components/LedgerTable';
+import { FilterList, type FilterOption, type QuickFilter } from '../components/FilterList';
 import ReviewQueue from '../components/ReviewQueue';
 import TransactionScatter from '../components/TransactionScatter';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -1216,10 +1217,15 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const handleHeaderSort = useCallback((column: string) => {
     setSortDescriptor(prev => {
-      if (prev.column === column) {
-        return { column, direction: prev.direction === 'ascending' ? 'descending' : 'ascending' };
+      const isSameCol = prev.column === column;
+      if (column === 'amount') {
+        if (!isSameCol) return { column: 'amount', direction: 'descending' };
+        if (prev.direction === 'descending') return { column: 'amount', direction: 'ascending' };
+        return { column: 'date', direction: 'descending' };
       }
-      return { column, direction: 'ascending' };
+      if (!isSameCol) return { column, direction: 'ascending' };
+      if (prev.direction === 'ascending') return { column, direction: 'descending' };
+      return { column: 'date', direction: 'descending' };
     });
   }, []);
 
@@ -1239,15 +1245,16 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) ?? null;
     const isPart = !!tx.parentTransactionId;
     const parent = isPart ? transactions.find(t => t.id === tx.parentTransactionId) : undefined;
-    const items: MenuAction[] = [{ id: 'edit', label: 'Edit', icon: 'edit', onAction: () => { setEditingTransaction(original); setTransactionModalOpen(true); } }];
-    if (tx.isSplitParent || (isPart && parent?.isSplitParent)) items.push({ id: 'unsplit', label: 'Unsplit', icon: 'call_merge', onAction: () => handleUnsplit(tx) });
-    if (tx.isCombinedParent || (isPart && parent?.isCombinedParent)) items.push({ id: 'uncombine', label: 'Uncombine', icon: 'call_split', onAction: () => handleUncombine(tx) });
-    if (!tx.isSplitParent && !tx.isCombinedParent && !isPart && !tx.isTransfer) items.push({ id: 'split', label: 'Split', icon: 'splitscreen', onAction: () => { setTransactionToSplit(original); setIsSplitModalOpen(true); } });
+    const items: MenuAction[] = [{ id: 'edit', label: 'Edit transaction', icon: 'edit', onAction: () => { setEditingTransaction(original); setTransactionModalOpen(true); } }];
+    if (tx.isSplitParent || (isPart && parent?.isSplitParent)) items.push({ id: 'unsplit', label: 'Unsplit transaction', icon: 'call_merge', onAction: () => handleUnsplit(tx) });
+    if (tx.isCombinedParent || (isPart && parent?.isCombinedParent)) items.push({ id: 'uncombine', label: 'Uncombine transaction', icon: 'call_split', onAction: () => handleUncombine(tx) });
+    if (!tx.isSplitParent && !tx.isCombinedParent && !isPart && !tx.isTransfer) items.push({ id: 'split', label: 'Split transaction', icon: 'call_split', onAction: () => { setTransactionToSplit(original); setIsSplitModalOpen(true); } });
     items.push(
       { id: 'duplicate', label: 'Duplicate', icon: 'content_copy', onAction: () => handleDuplicate(tx) },
       { id: 'recurring', label: 'Make recurring', icon: 'repeat', isDisabled: tx.isTransfer, onAction: () => handleMakeRecurring(tx) },
     );
-    if (tx.city || tx.country) items.push({ id: 'location', label: 'Remove location', icon: 'location_off', onAction: () => handleClearLocation(tx) });
+    const hasLocation = Boolean(tx.city || tx.country || tx.latitude || tx.longitude || (original && (original.city || original.country || original.latitude || original.longitude || original.address)));
+    if (hasLocation) items.push({ id: 'location', label: 'Remove location', icon: 'location_off', onAction: () => handleClearLocation(tx) });
     items.push({ id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => { setSelectedIds(new Set([tx.id])); setIsDeleteConfirmOpen(true); } });
     return items;
   };
@@ -1266,13 +1273,132 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     return next;
   });
 
-  const accountOf = (tx: DisplayTransaction) => {
+  const accountOf = useCallback((tx: DisplayTransaction) => {
+    if (tx.isTransfer) {
+      const fromAcc = tx.fromAccountName ? accountMapByName[tx.fromAccountName] : undefined;
+      const toAcc = tx.toAccountName ? accountMapByName[tx.toAccountName] : undefined;
+      const fromName = fromAcc?.name || tx.fromAccountName || 'Unknown';
+      const toName = toAcc?.name || tx.toAccountName || '?';
+      const logoUrl = fromAcc?.imageUrl
+        || (fromAcc ? getAccountBrandfetchUrl(fromAcc, brandfetchClientId, effectiveMerchantLogoOverrides) : null)
+        || (fromAcc?.financialInstitution ? getMerchantLogoUrl(fromAcc.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
+      return {
+        name: `${fromName} → ${toName}`,
+        detail: fromAcc?.type ? `Transfer • ${fromAcc.type}` : 'Transfer',
+        logoUrl: logoUrl ?? null,
+        isTransfer: true,
+      };
+    }
+
     const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
+    const logoUrl = account?.imageUrl
+      || (account ? getAccountBrandfetchUrl(account, brandfetchClientId, effectiveMerchantLogoOverrides) : null)
+      || (account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
+
     return {
-      name: account?.name || tx.accountName || (tx.isTransfer ? `${tx.fromAccountName} to ${tx.toAccountName}` : 'Unknown'),
+      name: account?.name || tx.accountName || 'Unknown',
       detail: account ? (account.last4 ? `•••• ${account.last4}` : account.type) : undefined,
+      logoUrl: logoUrl ?? null,
+      isTransfer: false,
     };
-  };
+  }, [accountMap, accountMapByName, brandfetchClientId, effectiveMerchantLogoOverrides]);
+
+  const filtersFor = useCallback((tx: DisplayTransaction): TableCellFilter[] => {
+    const filters: TableCellFilter[] = [];
+    if (tx.isTransfer) {
+      if (tx.fromAccountName) {
+        const acc = accountMapByName[tx.fromAccountName];
+        const accId = acc?.id || tx.fromAccountName;
+        const isActive = acc ? selectedAccountIds.includes(acc.id) : false;
+        filters.push({
+          kind: 'account',
+          value: accId,
+          label: tx.fromAccountName,
+          icon: 'account_balance',
+          isActive,
+        });
+      }
+      if (tx.toAccountName && tx.toAccountName !== tx.fromAccountName) {
+        const acc = accountMapByName[tx.toAccountName];
+        const accId = acc?.id || tx.toAccountName;
+        const isActive = acc ? selectedAccountIds.includes(acc.id) : false;
+        filters.push({
+          kind: 'account',
+          value: accId,
+          label: tx.toAccountName,
+          icon: 'account_balance',
+          isActive,
+        });
+      }
+    } else {
+      const acc = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
+      const accName = acc?.name || tx.accountName;
+      if (accName) {
+        const accId = acc?.id || accName;
+        const isActive = acc ? selectedAccountIds.includes(acc.id) : false;
+        filters.push({
+          kind: 'account',
+          value: accId,
+          label: accName,
+          icon: 'account_balance',
+          isActive,
+        });
+      }
+    }
+
+    if (!tx.isTransfer && tx.category && tx.category !== 'Uncategorised') {
+      const isActive = selectedCategoryNames.includes(tx.category);
+      filters.push({
+        kind: 'category',
+        value: tx.category,
+        label: tx.category,
+        icon: 'pie_chart',
+        isActive,
+      });
+    }
+
+    if (tx.merchant && tx.merchant.trim()) {
+      const isActive = merchantFilter.trim().toLowerCase() === tx.merchant.trim().toLowerCase();
+      filters.push({
+        kind: 'merchant',
+        value: tx.merchant.trim(),
+        label: tx.merchant.trim(),
+        icon: 'wallet',
+        isActive,
+      });
+    }
+
+    const loc = formatTransactionLocation(tx, user);
+    if (loc.hasLocation && loc.city) {
+      const isActive = selectedLocations.includes(loc.city);
+      filters.push({
+        kind: 'location',
+        value: loc.city,
+        label: loc.city,
+        icon: 'location_on',
+        isActive,
+      });
+    }
+
+    return filters;
+  }, [accountMap, accountMapByName, merchantFilter, selectedAccountIds, selectedCategoryNames, selectedLocations, user]);
+
+  const handleFilterTo = useCallback((filter: TableCellFilter) => {
+    switch (filter.kind) {
+      case 'account':
+        handleAccountToggle(filter.value);
+        break;
+      case 'category':
+        handleCategoryToggle(filter.value);
+        break;
+      case 'merchant':
+        setMerchantFilter(prev => prev.trim().toLowerCase() === filter.value.toLowerCase() ? '' : filter.value);
+        break;
+      case 'location':
+        handleLocationToggle(filter.value);
+        break;
+    }
+  }, [handleAccountToggle, handleCategoryToggle, handleLocationToggle]);
 
   const locationOf = (tx: DisplayTransaction) => {
     const location = formatTransactionLocation(tx, user);
@@ -1296,12 +1422,297 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   if (urlTab === 'review') return <ReviewQueue />;
 
   const money = (value: number, tone: 'flow' | 'plain' = 'plain') => <Amount value={value} currency={getMainCurrency()} tone={tone} />;
-  const checkList = (options: { value: string; label: string }[], selected: string[], onToggle: (value: string) => void) => (
-    <div className="flex max-h-64 min-w-48 flex-col gap-1 overflow-y-auto">
-      {options.length === 0 && <p className="type-body text-muted">Nothing to choose from yet.</p>}
-      {options.map(option => <Checkbox key={option.value} isSelected={selected.includes(option.value)} onChange={() => onToggle(option.value)}>{option.label}</Checkbox>)}
-    </div>
-  );
+
+  const accountFilterOptions: FilterOption[] = useMemo(() => {
+    const ACCOUNT_TYPE_ORDER = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets', 'Lending', 'Credit Card', 'Loan', 'Other Liabilities'];
+    const rank = (type: string) => {
+      const i = ACCOUNT_TYPE_ORDER.indexOf(type);
+      return i === -1 ? ACCOUNT_TYPE_ORDER.length : i;
+    };
+    const open = accounts.filter(a => a.status !== 'closed').sort((a, b) => rank(a.type) - rank(b.type));
+    const closed = accounts.filter(a => a.status === 'closed');
+
+    const mapAccount = (a: Account, group: string): FilterOption => {
+      const logoUrl = a.imageUrl
+        || getAccountBrandfetchUrl(a, brandfetchClientId, effectiveMerchantLogoOverrides)
+        || (a.financialInstitution ? getMerchantLogoUrl(a.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
+      return {
+        id: a.id,
+        label: a.name,
+        hint: a.last4 ? `•••• ${a.last4}` : a.type,
+        group,
+        visual: (
+          <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded bg-white shadow-2xs">
+            {logoUrl ? (
+              <img src={logoUrl} alt="" className="size-full object-contain p-0.5" />
+            ) : (
+              <Icon name="account_balance" size={12} className="text-muted" />
+            )}
+          </span>
+        ),
+      };
+    };
+
+    return [
+      ...open.map(a => mapAccount(a, a.type)),
+      ...closed.map(a => mapAccount(a, 'Closed')),
+    ];
+  }, [accounts, brandfetchClientId, effectiveMerchantLogoOverrides]);
+
+  const accountQuickFiltersList: QuickFilter[] = useMemo(() => {
+    const open = accounts.filter(a => a.status !== 'closed');
+    const ids = (predicate: (a: Account) => boolean) => open.filter(predicate).map(a => a.id);
+    const debt = ['Credit Card', 'Loan', 'Other Liabilities'];
+    const liquid = ['Checking', 'Savings', 'Credit Card'];
+    const presets: QuickFilter[] = [
+      { label: 'All Accounts', ids: ids(() => true) },
+      { label: 'Liquid Only', ids: ids(a => liquid.includes(a.type)) },
+      { label: 'All Assets', ids: ids(a => !debt.includes(a.type)) },
+      { label: 'All Liabilities', ids: ids(a => debt.includes(a.type)) },
+      { label: 'Investments', ids: ids(a => a.type === 'Investment') },
+    ];
+    return presets.filter(p => p.ids.length > 0);
+  }, [accounts]);
+
+  const categoryFilterOptionsList: FilterOption[] = useMemo(() => {
+    const txCounts = new Map<string, number>();
+    transactions.forEach(t => {
+      if (t.category) {
+        txCounts.set(t.category, (txCounts.get(t.category) ?? 0) + 1);
+      }
+    });
+
+    const seen = new Set<string>();
+    const buildList = (cats: Category[], group: string): FilterOption[] => {
+      const res: FilterOption[] = [];
+      cats.forEach(c => {
+        if (!seen.has(c.name)) {
+          seen.add(c.name);
+          const count = txCounts.get(c.name);
+          res.push({
+            id: c.name,
+            label: c.name,
+            hint: count ? String(count) : undefined,
+            color: c.color,
+            group,
+            level: 0,
+            visual: (
+              <span
+                className="flex size-5 shrink-0 items-center justify-center rounded-md"
+                style={{ backgroundColor: `${c.color || 'var(--muted)'}22`, color: c.color || 'var(--muted)' }}
+              >
+                <Icon name={c.icon || 'category'} size={12} />
+              </span>
+            ),
+          });
+        }
+        (c.subCategories || []).forEach(sub => {
+          if (!seen.has(sub.name)) {
+            seen.add(sub.name);
+            const count = txCounts.get(sub.name);
+            res.push({
+              id: sub.name,
+              label: sub.name,
+              hint: count ? String(count) : undefined,
+              color: sub.color || c.color,
+              group,
+              level: 1,
+              visual: (
+                <span
+                  className="flex size-5 shrink-0 items-center justify-center rounded-md"
+                  style={{
+                    backgroundColor: `${sub.color || c.color || 'var(--muted)'}22`,
+                    color: sub.color || c.color || 'var(--muted)',
+                  }}
+                >
+                  <Icon name={sub.icon || c.icon || 'category'} size={12} />
+                </span>
+              ),
+            });
+          }
+        });
+      });
+      return res;
+    };
+
+    return [
+      ...buildList(expenseCategories, 'Expenses'),
+      ...buildList(incomeCategories, 'Income'),
+    ];
+  }, [transactions, expenseCategories, incomeCategories]);
+
+  const tagFilterOptionsList: FilterOption[] = useMemo(() => {
+    const tagCounts = new Map<string, number>();
+    transactions.forEach(t => {
+      (t.tagIds || []).forEach(id => {
+        tagCounts.set(id, (tagCounts.get(id) ?? 0) + 1);
+      });
+    });
+    return tags.map(t => {
+      const count = tagCounts.get(t.id);
+      return {
+        id: t.id,
+        label: t.name,
+        hint: count ? String(count) : undefined,
+        color: t.color,
+        visual: (
+          <span
+            className="flex size-5 shrink-0 items-center justify-center rounded-md"
+            style={{ backgroundColor: `${t.color || 'var(--muted)'}22`, color: t.color || 'var(--muted)' }}
+          >
+            <Icon name={t.icon || 'tag'} size={12} />
+          </span>
+        ),
+      };
+    });
+  }, [tags, transactions]);
+
+  const merchantOptionsList: FilterOption[] = useMemo(() => {
+    const merchantCounts = new Map<string, number>();
+    transactions.forEach(t => {
+      const m = t.merchant?.trim();
+      if (m) {
+        merchantCounts.set(m, (merchantCounts.get(m) ?? 0) + 1);
+      }
+    });
+    const sorted = [...merchantCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 150);
+
+    return sorted.map(([name, count]) => {
+      const logo = getMerchantLogoUrl(name, brandfetchClientId, effectiveMerchantLogoOverrides, {
+        fallback: 'lettermark',
+        type: 'icon',
+        width: 48,
+        height: 48,
+      });
+      return {
+        id: name,
+        label: name,
+        hint: String(count),
+        visual: (
+          <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded bg-white shadow-2xs">
+            {logo ? (
+              <img src={logo} alt="" className="size-full object-contain p-0.5" />
+            ) : (
+              <Icon name="wallet" size={12} className="text-muted" />
+            )}
+          </span>
+        ),
+      };
+    });
+  }, [transactions, brandfetchClientId, effectiveMerchantLogoOverrides]);
+
+  const locationFilterOptionsList: FilterOption[] = useMemo(() => {
+    const counts = new Map<string, { count: number; flag: string }>();
+    transactions.forEach(t => {
+      const loc = formatTransactionLocation(t, user);
+      if (loc.hasLocation && loc.city) {
+        const existing = counts.get(loc.city);
+        counts.set(loc.city, {
+          count: (existing?.count ?? 0) + 1,
+          flag: loc.flag || '📍',
+        });
+      }
+    });
+    return [...counts.entries()]
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([city, data]) => ({
+        id: city,
+        label: `${data.flag} ${city}`,
+        hint: String(data.count),
+      }));
+  }, [transactions, user]);
+
+  const columnFilters = useMemo(() => ({
+    description: {
+      count: (searchTerm.trim() ? 1 : 0) + (merchantFilter.trim() ? 1 : 0),
+      title: 'Filter transactions',
+      content: (
+        <div className="w-72 max-w-[85vw] space-y-3">
+          <TextInput label="Description contains" value={searchTerm} onChange={setSearchTerm} placeholder="Search text..." />
+          <FilterList
+            label="Merchants"
+            options={merchantOptionsList}
+            selected={merchantFilter ? [merchantFilter] : []}
+            onChange={ids => setMerchantFilter(ids[ids.length - 1] || '')}
+            maxHeightClass="max-h-56"
+          />
+        </div>
+      ),
+    },
+    account: {
+      count: selectedAccountIds.length,
+      title: 'Filter by account',
+      content: (
+        <FilterList
+          label="Accounts"
+          quick={accountQuickFiltersList}
+          options={accountFilterOptions}
+          selected={selectedAccountIds}
+          onChange={setSelectedAccountIds}
+        />
+      ),
+    },
+    category: {
+      count: selectedCategoryNames.length,
+      title: 'Filter by category',
+      content: (
+        <FilterList
+          label="Categories"
+          options={categoryFilterOptionsList}
+          selected={selectedCategoryNames}
+          onChange={setSelectedCategoryNames}
+        />
+      ),
+    },
+    location: {
+      count: selectedLocations.length,
+      title: 'Filter by location',
+      content: (
+        <FilterList
+          label="Locations"
+          options={locationFilterOptionsList}
+          selected={selectedLocations}
+          onChange={setSelectedLocations}
+        />
+      ),
+    },
+    tags: {
+      count: selectedTagIds.length,
+      title: 'Filter by tags',
+      content: (
+        <FilterList
+          label="Tags"
+          options={tagFilterOptionsList}
+          selected={selectedTagIds}
+          onChange={setSelectedTagIds}
+        />
+      ),
+    },
+    amount: {
+      count: (typeFilter !== 'all' ? 1 : 0) + (minAmount ? 1 : 0) + (maxAmount ? 1 : 0),
+      title: 'Filter by amount',
+      content: (
+        <div className="w-64 max-w-[85vw] space-y-3">
+          <RadioGroup label="Type" value={typeFilter} onChange={value => setTypeFilter(value as typeof typeFilter)}>
+            {TYPE_FILTER_OPTIONS.map(option => <Radio key={option.value} value={option.value}>{option.label}</Radio>)}
+          </RadioGroup>
+          <div className="grid grid-cols-2 gap-2">
+            <AmountInput label="At least" currency={getMainCurrency()} value={minAmount} onChange={setMinAmount} />
+            <AmountInput label="At most" currency={getMainCurrency()} value={maxAmount} onChange={setMaxAmount} />
+          </div>
+        </div>
+      ),
+    },
+  }), [
+    searchTerm, merchantFilter, merchantOptionsList,
+    selectedAccountIds, accountQuickFiltersList, accountFilterOptions,
+    selectedCategoryNames, categoryFilterOptionsList,
+    selectedLocations, locationFilterOptionsList,
+    selectedTagIds, tagFilterOptionsList,
+    typeFilter, minAmount, maxAmount, getMainCurrency,
+  ]);
 
   const filterSections = [
     {
@@ -1312,21 +1723,23 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         </RadioGroup>
       ),
     },
-    { id: 'accounts', label: 'Accounts', count: selectedAccountIds.length, content: checkList(accounts.map(account => ({ value: account.id, label: account.name })), selectedAccountIds, handleAccountToggle) },
-    { id: 'categories', label: 'Categories', count: selectedCategoryNames.length, content: checkList(categoryOptions, selectedCategoryNames, handleCategoryToggle) },
-    { id: 'tags', label: 'Tags', count: selectedTagIds.length, content: checkList(tagOptions, selectedTagIds, handleTagToggle) },
+    { id: 'accounts', label: 'Accounts', count: selectedAccountIds.length, content: columnFilters.account.content },
+    { id: 'categories', label: 'Categories', count: selectedCategoryNames.length, content: columnFilters.category.content },
+    { id: 'tags', label: 'Tags', count: selectedTagIds.length, content: columnFilters.tags.content },
     {
       id: 'merchant', label: 'Merchant', count: merchantFilter ? 1 : 0,
-      content: <TextInput label="Merchant" value={merchantFilter} onChange={setMerchantFilter} className="w-56 max-md:w-full" />,
+      content: (
+        <FilterList
+          label="Merchants"
+          options={merchantOptionsList}
+          selected={merchantFilter ? [merchantFilter] : []}
+          onChange={ids => setMerchantFilter(ids[ids.length - 1] || '')}
+        />
+      ),
     },
     {
       id: 'location', label: 'Location', count: selectedLocations.length,
-      content: (
-        <div className="space-y-2">
-          <TextInput label="Find a place" value={locationSearch} onChange={setLocationSearch} className="w-56 max-md:w-full" />
-          {checkList(filteredLocationOptions.map(option => ({ value: option.city, label: `${option.flag} ${option.city}` })), selectedLocations, handleLocationToggle)}
-        </div>
-      ),
+      content: columnFilters.location.content,
     },
     {
       id: 'dates', label: 'Dates', count: (startDate ? 1 : 0) + (endDate ? 1 : 0),
@@ -1339,12 +1752,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     },
     {
       id: 'amount', label: 'Amount', count: (minAmount ? 1 : 0) + (maxAmount ? 1 : 0),
-      content: (
-        <div className="grid w-56 gap-3 max-md:w-full">
-          <AmountInput label="At least" currency={getMainCurrency()} value={minAmount} onChange={setMinAmount} />
-          <AmountInput label="At most" currency={getMainCurrency()} value={maxAmount} onChange={setMaxAmount} />
-        </div>
-      ),
+      content: columnFilters.amount.content,
     },
   ];
 
@@ -1529,6 +1937,9 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             locationOf={locationOf}
             logoOf={logoOf}
             menuFor={menuFor}
+            filtersFor={filtersFor}
+            onFilterTo={handleFilterTo}
+            columnFilters={columnFilters}
             categories={allCategories}
             tags={tags}
           />
