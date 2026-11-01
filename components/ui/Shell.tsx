@@ -27,6 +27,8 @@ export interface ShellProps {
   onSearch: () => void;
   onCreate: () => void;
   onLogout: () => void;
+  /** Unset in demo mode, which has no server to hold a lock. */
+  onLock?: () => void;
   notifications: React.ReactNode;
 }
 
@@ -123,7 +125,7 @@ export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>
   );
 };
 
-const ProfileMenu: React.FC<ShellProps> = ({ user, setCurrentPage, isPrivacyMode, togglePrivacyMode, onLogout }) => (
+const ProfileMenu: React.FC<ShellProps> = ({ user, setCurrentPage, isPrivacyMode, togglePrivacyMode, onLogout, onLock }) => (
   <Menu
     title="Your account"
     trigger={
@@ -142,7 +144,8 @@ const ProfileMenu: React.FC<ShellProps> = ({ user, setCurrentPage, isPrivacyMode
       { id: 'profile', label: 'Profile', icon: 'person', onAction: () => setCurrentPage('Personal Info') },
       { id: 'preferences', label: 'Preferences', icon: 'settings', onAction: () => setCurrentPage('Preferences') },
       { id: 'privacy', label: isPrivacyMode ? 'Show amounts' : 'Hide amounts', icon: isPrivacyMode ? 'visibility' : 'visibility_off', onAction: togglePrivacyMode },
-      { id: 'logout', label: 'Sign out', icon: 'logout', startsGroup: true, isDestructive: true, onAction: onLogout },
+      ...(onLock ? [{ id: 'lock', label: 'Lock Crystal', icon: 'lock', startsGroup: true, onAction: onLock }] : []),
+      { id: 'logout', label: 'Sign out', icon: 'logout', startsGroup: !onLock, isDestructive: true, onAction: onLogout },
     ]}
   />
 );
@@ -167,8 +170,8 @@ export const TopBar: React.FC<ShellProps> = props => (
   </div>
 );
 
-/** Seven tools in frosted glass, vertically centred in the left margin (D-018, D-052). Lock joins in module 11. */
-export const ToolRail: React.FC<ShellProps> = ({ currentPage, setCurrentPage, theme, setTheme, isSyncing, onSync, onSearch, onCreate }) => {
+/** Seven tools, and Lock when signed in, in frosted glass, vertically centred in the left margin (D-018, D-052). */
+export const ToolRail: React.FC<ShellProps> = ({ onLock, currentPage, setCurrentPage, theme, setTheme, isSyncing, onSync, onSearch, onCreate }) => {
   const isDark = isDarkNow(theme);
   const tool = { variant: 'glass', tooltipPlacement: 'right', iconSize: 24, className: 'size-11' } as const;
   return (
@@ -180,6 +183,7 @@ export const ToolRail: React.FC<ShellProps> = ({ currentPage, setCurrentPage, th
       <IconButton {...tool} icon="sync_banks" label="Sync banks" isBusy={isSyncing} onPress={onSync} />
       <IconButton {...tool} icon="settings" label="Settings" isActive={hubForPage(currentPage).id === 'settings'} onPress={() => setCurrentPage('Personal Info')} />
       <IconButton {...tool} icon={isDark ? 'light_mode' : 'dark_mode'} label={isDark ? 'Use light theme' : 'Use dark theme'} onPress={() => setTheme(isDark ? 'light' : 'dark')} />
+      {onLock && <IconButton {...tool} icon="lock" label="Lock Crystal (L)" onPress={onLock} />}
     </nav>
   );
 };
@@ -215,7 +219,7 @@ const barItem = 'relative flex h-[58px] min-w-0 flex-[1_1_auto] cursor-pointer f
 
 /** Overview, Accounts, Transactions, Planning and More, in glass, always labelled (D-054). */
 export const PhoneBar: React.FC<ShellProps> = props => {
-  const { currentPage, setCurrentPage, theme, setTheme, isPrivacyMode, togglePrivacyMode, isSyncing, onSync, onLogout, user } = props;
+  const { currentPage, setCurrentPage, theme, setTheme, isPrivacyMode, togglePrivacyMode, isSyncing, onSync, onLogout, onLock, user } = props;
   const [isMoreOpen, setMoreOpen] = useState(false);
   const isKeyboardOpen = useKeyboardOpen();
   const activeHub = hubForPage(currentPage);
@@ -262,6 +266,7 @@ export const PhoneBar: React.FC<ShellProps> = props => {
           <SheetRow icon={isDark ? 'light_mode' : 'dark_mode'} label={isDark ? 'Use light theme' : 'Use dark theme'} onPress={() => setTheme(isDark ? 'light' : 'dark')} />
           <div className="mx-3 my-1.5 border-t border-line" />
           <SheetRow icon="person" label={`${user.firstName} ${user.lastName}`} isCurrent={currentPage === 'Personal Info'} onPress={() => go('Personal Info')} />
+          {onLock && <SheetRow icon="lock" label="Lock Crystal" onPress={() => { setMoreOpen(false); onLock(); }} />}
           <SheetRow icon="logout" label="Sign out" tone="danger" onPress={() => { setMoreOpen(false); onLogout(); }} />
           <p className="type-caption px-3 pt-2 text-muted tabular-nums">{APP_VERSION}</p>
         </div>

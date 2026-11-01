@@ -102,6 +102,9 @@ import { useAuth } from './hooks/useAuth';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
 import { moveLocalChoices } from './utils/syncedChoices';
+import LockScreen from './components/LockScreen';
+import { useIdleLock } from './hooks/useIdleLock';
+import { DEFAULT_AUTO_LOCK_MINUTES } from './utils/lockModel';
 import { migrateRules } from './utils/rulesMigration';
 import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
@@ -173,6 +176,8 @@ const findIbanCandidate = (...sources: any[]): string | undefined => {
 
   return undefined;
 };
+
+const LOCK_CHANNEL = 'crystal-lock';
 
 const routePathMap = Object.entries(pageRegistry).reduce((acc, [page, config]) => {
   acc[page as Page] = config.path;
@@ -392,7 +397,7 @@ const App: React.FC = () => {
   const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
   const initialRoute = parseRoute(initialPath);
 
-  const { user, setUser, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword, authorizedFetch } = useAuth();
+  const { isLocked, lockedOnLoadRef, user, setUser, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword, authorizedFetch } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -469,10 +474,14 @@ const App: React.FC = () => {
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isQuickAddTxModalOpen, setIsQuickAddTxModalOpen] = useState(false);
 
+  const [hasPin, setHasPin] = useState(false);
+  const lockRef = useRef<() => void>(() => undefined);
+
   useKeyboardShortcuts({
     onNavigate: (page) => setCurrentPage(page),
     onOpenNewTransaction: () => setIsQuickAddTxModalOpen(true),
     onToggleShortcutsModal: () => setIsShortcutsModalOpen(prev => !prev),
+    onLock: hasPin ? () => lockRef.current() : undefined,
   });
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
@@ -906,6 +915,8 @@ const App: React.FC = () => {
           body: JSON.stringify(payload),
           keepalive: options?.keepalive,
         });
+        // Another tab locked this session, so this one follows.
+        if (response.status === 423 && !options?.keepalive) window.location.reload();
         if (response.ok) return { ok: true, status: response.status };
         const body = await response.json().catch(() => ({} as any));
         return {
@@ -1051,6 +1062,9 @@ const App: React.FC = () => {
         console.warn('Auth check error:', err);
       }
 
+      // Locked: the server sent nothing, and nothing may load, not even the dev cache (D-107).
+      if (lockedOnLoadRef.current) return;
+
       if (data && hasMaterialData(data)) {
         if (isDevEnvironment) {
           void saveDevCache(data);
@@ -1089,7 +1103,7 @@ const App: React.FC = () => {
       }
     };
     authAndLoad();
-  }, [isDevEnvironment, loadAllFinancialData, checkAuthStatus]);
+  }, [isDevEnvironment, loadAllFinancialData, checkAuthStatus, lockedOnLoadRef]);
 
   useEffect(() => {
     if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding && !preferences.onboardingCompleted) {
@@ -1398,6 +1412,48 @@ const App: React.FC = () => {
   }, [signOut, loadAllFinancialData, setHasCompletedOnboarding, setAuthPage, setIsDemoMode, setDemoUser, isDevEnvironment]);
 
   const forceLogoutRef = useRef(false);
+  useEffect(() => {
+    if (!isAuthenticated || isDemoMode || !isDataLoaded) return;
+    let isCurrent = true;
+    authorizedFetch('/api/lock/status')
+      .then(response => (response.ok ? response.json() : null))
+      .then(status => { if (isCurrent && status) setHasPin(!!status.hasPin); })
+      .catch(() => undefined);
+    return () => { isCurrent = false; };
+  }, [authorizedFetch, isAuthenticated, isDataLoaded, isDemoMode]);
+
+  // Saves first, then reloads once locked, so no data stays in the browser and nothing empty can be saved back (D-107).
+  const handleLock = useCallback(async () => {
+    const currentData = latestDataRef.current;
+    const dirtyKeys = getDirtyKeys(currentData);
+    if (dirtyKeys.length > 0 && hasMaterialData(currentData)) {
+      const partialPayload: Partial<FinancialData> = {};
+      for (const key of dirtyKeys) (partialPayload as any)[key] = currentData[key];
+      const saved = await savePartialData(partialPayload);
+      if (!saved) {
+        toast.error('Crystal didn’t lock', { id: 'lock-failed', description: 'Your latest changes couldn’t be saved first. Check your connection and try again.' });
+        return;
+      }
+    }
+    try {
+      const response = await authorizedFetch('/api/lock/lock', { method: 'POST' });
+      if (!response.ok) throw new Error('Lock refused');
+      new BroadcastChannel(LOCK_CHANNEL).postMessage('locked');
+      window.location.reload();
+    } catch {
+      toast.error('Crystal didn’t lock', { id: 'lock-failed', description: 'Check your connection and try again.' });
+    }
+  }, [authorizedFetch, getDirtyKeys, savePartialData]);
+  lockRef.current = handleLock;
+
+  useEffect(() => {
+    const channel = new BroadcastChannel(LOCK_CHANNEL);
+    channel.onmessage = () => window.location.reload();
+    return () => channel.close();
+  }, []);
+
+  useIdleLock(preferences.autoLockMinutes ?? DEFAULT_AUTO_LOCK_MINUTES, hasPin && isDataLoaded && !isDemoMode, handleLock);
+
   const handleLogout = useCallback(async () => {
     if (!isDemoMode && isAuthenticated && isDataLoaded && !baselinePendingRef.current) {
       const currentData = latestDataRef.current;
@@ -2956,7 +3012,7 @@ const App: React.FC = () => {
       case 'Schedule & Bills': return <SchedulePage />;
       case 'Categories': return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags': return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
-      case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
+      case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} lock={isAuthenticated && !isDemoMode ? { hasPin, fetcher: authorizedFetch, onChanged: setHasPin } : undefined} />;
       case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} onLogExport={handleLogExport} fullFinancialData={dataToSave} />;
       case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
@@ -3003,6 +3059,17 @@ const App: React.FC = () => {
   }), [financialGoals, goalOrder, handleDeleteFinancialGoal, handleSaveFinancialGoal, markSliceDirty]);
   const scheduleContextValue = useMemo(() => ({ recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, memberships, saveRecurringTransaction: handleSaveRecurringTransaction, deleteRecurringTransaction: handleDeleteRecurringTransaction, saveRecurringOverride: handleSaveRecurringOverride, deleteRecurringOverride: handleDeleteRecurringOverride, saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides, saveBillPayment: handleSaveBillPayment, deleteBillPayment: handleDeleteBillPayment, markBillAsPaid: handleMarkBillAsPaid, saveMembership: handleSaveMembership, deleteMembership: handleDeleteMembership, }), [billsAndPayments, memberships, handleDeleteBillPayment, handleDeleteRecurringOverride, handleDeleteRecurringTransaction, handleMarkBillAsPaid, handleSaveBillPayment, handleSaveLoanPaymentOverrides, handleSaveRecurringOverride, handleSaveRecurringTransaction, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions,]);
 
+  if (isLocked && user) {
+    return (
+      <LockScreen
+        user={user}
+        fetcher={authorizedFetch}
+        onUnlocked={() => window.location.reload()}
+        onSignOut={() => { void authorizedFetch('/api/auth/logout', { method: 'POST' }).finally(() => window.location.reload()); }}
+      />
+    );
+  }
+
   if (isAuthLoading || !isDataLoaded) return <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]"><svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>;
 
   if (!isAuthenticated && !isDemoMode) {
@@ -3012,6 +3079,7 @@ const App: React.FC = () => {
   if (!currentUser) return <PageLoader label="Loading user profile..." />;
 
   const shellProps: ShellProps = {
+    onLock: isAuthenticated && !isDemoMode ? () => { if (hasPin) void handleLock(); else { toast.info('Set a PIN first'); setCurrentPage('Personal Info'); } } : undefined,
     currentPage,
     setCurrentPage,
     user: currentUser,

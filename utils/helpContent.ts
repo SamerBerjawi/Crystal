@@ -72,6 +72,14 @@ export const HELP_SECTIONS: HelpSection[] = [
     ],
   },
   {
+    id: 'lock',
+    title: 'Locking Crystal',
+    points: [
+      { title: 'PIN lock', text: 'Set a PIN under Profile, then lock from your profile menu or by pressing L. Crystal also locks itself when idle, after a time you choose. Locking clears your data from the browser until you unlock.' },
+      { title: 'Forgot your PIN', text: 'Choose Sign out instead, sign in with your password, then set a new PIN under Profile. Five wrong PINs sign you out.' },
+    ],
+  },
+  {
     id: 'shortcuts',
     title: 'Keyboard shortcuts',
     points: [

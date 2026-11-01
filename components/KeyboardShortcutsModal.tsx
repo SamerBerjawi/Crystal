@@ -9,6 +9,7 @@ interface KeyboardShortcutsModalProps {
 const shortcuts = [
   { key: '⌘ K / Ctrl K', description: 'Open Command Center' },
   { key: 'N', description: 'Create new transaction' },
+  { key: 'L', description: 'Lock Crystal' },
   { key: 'G then D', description: 'Go to Dashboard' },
   { key: 'G then A', description: 'Go to Accounts' },
   { key: 'G then T', description: 'Go to Transactions' },

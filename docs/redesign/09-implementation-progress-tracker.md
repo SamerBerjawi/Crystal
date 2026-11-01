@@ -20,8 +20,8 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Done, committed on `feat/redesign-investments` |
 | 8 | Reports | Reports, Invoices, Challenges | Done, committed on `feat/redesign-reports` |
 | 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Done, committed on `feat/redesign-settings`, PR open |
-| 10 | Rules | Rebuild (`D-009`), with tests first | Done, committed on `feat/redesign-rules` |
-| 11 | PIN lock | Idle lock, server-side design (`D-013`) | Not started |
+| 10 | Rules | Rebuild (`D-009`), with tests first | Done, merged |
+| 11 | PIN lock | Idle lock, server-side design (`D-013`) | Done, committed on `feat/redesign-pin-lock` |
 | 12 | Any currency | Support across the app (`S-010`) | Not started |
 | 13 | Clean-up | Remove bridge, `@base-ui/react`, `DESIGN.md` | Not started |
 
@@ -439,3 +439,23 @@ Not tested:
 - A very large rule list or ledger, because match counts run on every change.
 
 `undoRulesMigration` is tested but has no button. Loading migrates again unless the older code is restored, so it's a recovery tool.
+
+## Module 11 log
+
+- Server: `server/src/lock.ts` and `lockRules.ts`, with a 423 check in `authenticateToken`. Adds `users.pin_hash`, `user_sessions.locked_at` and `user_sessions.pin_failures` with additive `ALTER TABLE` statements.
+- Client: `LockScreen`, `PinPad`, `PinDialog`, `useIdleLock` and `utils/lockModel.ts`. Lock is in the rail, the profile menu and the phone More sheet, and on the L key. PIN and auto-lock settings are under Profile, Security.
+- The mock backend in `server.ts` follows the same rules, so the flow can run without Postgres. Use the `dev-mock` launch configuration.
+
+Tested in the app against the mock at 1440×900, 768×1024 and 375×812, with no overflow: setting a PIN with its three errors, locking by L, the rail and the More sheet, 423 on read and write, no account data on screen, staying locked on reload, wrong PIN by keyboard and keypad, the right PIN, the count of tries, signing out on the fifth, Sign out instead, removing the PIN.
+
+Not tested:
+- The real server routes and SQL against Postgres. Their rules have unit tests, and the routes pass type checks only.
+- Auto-lock firing in the running app, including after a laptop sleeps. The timing has unit tests.
+- A second tab following the lock.
+- Locking with unsaved changes, and when the server can't be reached.
+- A screen reader on the keypad.
+- Whether a browser's own HTTP cache could keep a `/api/data` response.
+
+Known limit: API responses use `private, no-cache` so `/api/data` can answer 304, which means a browser may keep a copy in its disk cache. Crystal won't serve it while locked, because revalidation gets 423, but someone reading the browser's files could. Changing to `no-store` closes this and loses the 304 saving.
+
+In dev builds only, a session that ends falls back to the dev cache. Production has no dev cache.

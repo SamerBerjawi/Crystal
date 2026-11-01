@@ -1,22 +1,34 @@
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Page, User } from '../types';
+import { usePreferencesContext } from '../contexts/DomainProviders';
+import { AUTO_LOCK_OPTIONS, DEFAULT_AUTO_LOCK_MINUTES } from '../utils/lockModel';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import PinDialog from '../components/PinDialog';
 import LocationAutocomplete from '../components/LocationAutocomplete';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import { Button } from '../components/ui/Actions';
 import { Badge } from '../components/ui/Display';
 import { TextInput, Textarea } from '../components/ui/Fields';
+import { Select } from '../components/ui/Pickers';
 
 interface PersonalInfoProps {
   user: User;
   setUser: (updates: Partial<User>) => Promise<boolean> | void;
   onChangePassword: (current: string, newPass: string) => Promise<boolean>;
   setCurrentPage: (page: Page) => void;
+  /** Unset in demo mode, which has no server to hold a PIN. */
+  lock?: {
+    hasPin: boolean;
+    fetcher: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+    onChanged: (hasPin: boolean) => void;
+  };
 }
 
-const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePassword, setCurrentPage }) => {
+const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePassword, setCurrentPage, lock }) => {
+  const { preferences, setPreferences } = usePreferencesContext();
+  const [pinMode, setPinMode] = useState<'set' | 'remove' | null>(null);
   const [form, setForm] = useState<User>(user);
   const [isPictureBroken, setPictureBroken] = useState(false);
   const [isPasswordOpen, setPasswordOpen] = useState(false);
@@ -51,6 +63,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
   return (
     <div className="space-y-8">
       <SettingsSubpageHeader title="Profile" setCurrentPage={setCurrentPage} />
+      {lock && <PinDialog mode={pinMode} hasPin={lock.hasPin} fetcher={lock.fetcher} onClose={() => setPinMode(null)} onChanged={lock.onChanged} />}
       <ChangePasswordModal isOpen={isPasswordOpen} onClose={() => setPasswordOpen(false)} onChangePassword={onChangePassword} />
 
       <SettingsGroup id="profile-details" title="Your details" description="Crystal uses your default city on new transactions.">
@@ -93,6 +106,29 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
           <p className="type-body min-w-0 text-ink">Password</p>
           <Button variant="secondary" size="sm" onPress={() => setPasswordOpen(true)}>Change password</Button>
         </div>
+        {lock && (
+          <div className="mt-4 border-t border-line pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0 flex-1 basis-48">
+                <p className="type-body text-ink">PIN lock</p>
+                <p className="type-caption mt-0.5 text-muted">{lock.hasPin ? 'On. Press L or use your profile menu to lock.' : 'Lock Crystal without signing out.'}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {lock.hasPin && <Button variant="ghost" size="sm" onPress={() => setPinMode('remove')}>Remove</Button>}
+                <Button variant="secondary" size="sm" onPress={() => setPinMode('set')}>{lock.hasPin ? 'Change PIN' : 'Set a PIN'}</Button>
+              </div>
+            </div>
+            {lock.hasPin && (
+              <Select
+                label="Auto-lock"
+                className="mt-4 md:max-w-xs"
+                options={AUTO_LOCK_OPTIONS}
+                value={String(preferences.autoLockMinutes ?? DEFAULT_AUTO_LOCK_MINUTES)}
+                onChange={id => setPreferences(prev => ({ ...prev, autoLockMinutes: Number(id) }))}
+              />
+            )}
+          </div>
+        )}
       </SettingsGroup>
     </div>
   );

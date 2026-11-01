@@ -87,6 +87,10 @@ export const initializeDatabase = async () => {
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+        // PIN lock: the hash sits on the user, and locks and failed tries on each session.
+        await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_hash TEXT`);
+        await db.query(`ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ`);
+        await db.query(`ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS pin_failures INTEGER NOT NULL DEFAULT 0`);
         await db.query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
         await db.query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at)`);
         console.log('Database tables are ready.');

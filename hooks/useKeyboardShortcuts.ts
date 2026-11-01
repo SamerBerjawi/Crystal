@@ -5,12 +5,14 @@ interface KeyboardShortcutsOptions {
   onNavigate: (page: Page) => void;
   onOpenNewTransaction: () => void;
   onToggleShortcutsModal: () => void;
+  onLock?: () => void;
 }
 
 export const useKeyboardShortcuts = ({
   onNavigate,
   onOpenNewTransaction,
   onToggleShortcutsModal,
+  onLock,
 }: KeyboardShortcutsOptions) => {
   const gKeyPressed = useRef<boolean>(false);
   const gTimer = useRef<NodeJS.Timeout | null>(null);
@@ -74,6 +76,12 @@ export const useKeyboardShortcuts = ({
         return;
       }
 
+      if (key === 'l' && onLock && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        onLock();
+        return;
+      }
+
       if (key === 'n' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         onOpenNewTransaction();
@@ -92,5 +100,5 @@ export const useKeyboardShortcuts = ({
       window.removeEventListener('keydown', handleKeyDown);
       if (gTimer.current) clearTimeout(gTimer.current);
     };
-  }, [onNavigate, onOpenNewTransaction, onToggleShortcutsModal]);
+  }, [onNavigate, onOpenNewTransaction, onToggleShortcutsModal, onLock]);
 };

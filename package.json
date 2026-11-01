@@ -1,7 +1,7 @@
 {
   "name": "crystal",
   "private": true,
-  "version": "2.261101.2",
+  "version": "2.261101.3",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "analyze": "ANALYZE=true vite build --mode production",
     "lint": "tsc --noEmit && tsc -p tsconfig.strict.json",
-    "test": "tsx --test tests/unit/*.test.ts && tsx utils.test.ts && tsx server/src/crypto.test.ts && tsx server/src/schemas.test.ts && tsx server/src/rateLimit.test.ts"
+    "test": "tsx --test tests/unit/*.test.ts && tsx utils.test.ts && tsx server/src/crypto.test.ts && tsx server/src/schemas.test.ts && tsx server/src/rateLimit.test.ts && tsx server/src/lockRules.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
