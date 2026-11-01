@@ -24,10 +24,10 @@ import { useCategoryContext, useGoalsContext, useScheduleContext } from '../cont
 import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../lib/utils';
 import {
-  FORECAST_RANGES, WEEKLY_AFTER_DAYS, biggestAhead, drivers, forecastBubbles, horizonSummary, lowestPoints, moveSuggestion, projectBalances, rangeEnd, rangeFromDuration,
+  FORECAST_RANGES, WEEKLY_AFTER_DAYS, biggestAhead, drivers, forecastBubbles, forecastFromData, horizonSummary, lowestPoints, moveSuggestion, projectBalances, rangeEnd, rangeFromDuration,
   type Bubble, type ForecastEvent, type ForecastRange,
 } from '../utils/forecastModel';
-import { buildOccurrences, iso, moveFuture, moveSeries, scheduledItemOf } from '../utils/scheduleModel';
+import { iso, moveFuture, moveSeries, scheduledItemOf } from '../utils/scheduleModel';
 
 const VIEWS = [{ id: 'chart', label: 'Chart' }, { id: 'list', label: 'List' }];
 const LEGEND = [
@@ -84,19 +84,10 @@ const Forecasting: React.FC = () => {
   const end = useMemo(() => rangeEnd(range, today), [range, today]);
 
   const projection = useMemo(() => {
-    const occurrences = buildOccurrences({
-      recurring: recurringTransactions, overrides: recurringTransactionOverrides, bills: billsAndPayments, accounts, transactions, loanPaymentOverrides, from: today, to: end, today,
-    });
-    return projectBalances({
-      accounts: selectedAccounts,
-      startBalances: Object.fromEntries(selectedAccounts.map(account => [account.id, convertToMain(account.balance, account.currency)])),
-      occurrences,
-      goals: financialGoals,
-      activeGoalIds,
-      today,
-      end,
-      convert: convertToMain,
-    });
+    return forecastFromData(
+      { recurring: recurringTransactions, overrides: recurringTransactionOverrides, bills: billsAndPayments, accounts, transactions, loanPaymentOverrides },
+      selectedAccounts, financialGoals, activeGoalIds, today, end, convertToMain,
+    );
   }, [recurringTransactions, recurringTransactionOverrides, billsAndPayments, accounts, transactions, loanPaymentOverrides, today, end, selectedAccounts, financialGoals, activeGoalIds]);
 
   const summary = useMemo(() => horizonSummary(projection, cushion), [projection, cushion]);

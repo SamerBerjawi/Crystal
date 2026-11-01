@@ -24,7 +24,7 @@ const startServer = async () => {
             res.setHeader('X-Frame-Options', 'DENY');
             res.setHeader('Referrer-Policy', 'no-referrer');
             res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-            res.setHeader('Cache-Control', 'private, no-cache');
+            res.setHeader('Cache-Control', 'no-store');
             next();
         });
         const port = Number(process.env.PORT || 3001);

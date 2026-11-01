@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { heroClassFor } from '../utils/accountHero';
 import { Radio, RadioGroup } from 'react-aria-components';
 import { Account, Transaction } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
@@ -19,7 +20,7 @@ const cardMoney = (account: Account) => (
 
 /** A card drawn from what the account stores. Only ever the last four digits. */
 const BankCard: React.FC<{ account: Account; size?: 'small' | 'large' }> = ({ account, size = 'small' }) => (
-  <div className={cn('flex aspect-[1.586] w-full flex-col justify-between rounded-[var(--radius-lg)] bg-pine text-on-pine', size === 'large' ? 'p-5' : 'p-3', account.status === 'closed' && 'opacity-60')}>
+  <div className={cn('flex aspect-[1.586] w-full flex-col justify-between rounded-[var(--radius-lg)] text-on-pine', heroClassFor(account.type), size === 'large' ? 'p-5' : 'p-3', account.status === 'closed' && 'opacity-60')}>
     <div className="flex items-start justify-between gap-2">
       <span className="type-label truncate">{account.financialInstitution || account.name}</span>
       <span className="type-caption shrink-0">{accountCardKind(account)}</span>

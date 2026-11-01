@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { heroClassFor } from '../utils/accountHero';
 import { motion } from 'motion/react';
 import type { Account, Category, Currency, DisplayTransaction, FinancialGoal, Transaction } from '../types';
 import { LINE_MOTION } from '../src/components/charts/animation';
@@ -157,7 +158,7 @@ const AccountFrame: React.FC<AccountFrameProps> = ({ account, context, value, va
 
       {banner}
 
-      <section aria-label={valueLabel} className="space-y-4 rounded-[var(--radius-xl)] bg-pine p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]">
+      <section aria-label={valueLabel} className={cn('space-y-4 rounded-[var(--radius-xl)] p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]', heroClassFor(account.type))}>
         <div>
           <p className="type-label">{valueLabel}</p>
           <p className="type-figure-hero break-words"><Amount value={value ?? account.balance} currency={account.currency} /></p>

@@ -107,6 +107,7 @@ import { Banner } from './components/ui/States';
 import { useIdleLock } from './hooks/useIdleLock';
 import { DEFAULT_AUTO_LOCK_MINUTES } from './utils/lockModel';
 import { migrateRules } from './utils/rulesMigration';
+import { defaultCategory } from './utils/overviewSummary';
 import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
 const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
@@ -1778,7 +1779,7 @@ const App: React.FC = () => {
             transactionsToUpdate.push(updatedTx);
           }
         } else {
-          const newTx: Transaction = { ...transactionData, category: transactionData.category || 'Transfer', id: transactionData.id || `txn-${uuidv4()}` } as Transaction;
+          const newTx: Transaction = { ...transactionData, category: transactionData.category || defaultCategory(transactionData), id: transactionData.id || `txn-${uuidv4()}` } as Transaction;
           const account = accounts.find(a => a.id === newTx.accountId);
           let changeAmount = newTx.amount;
           if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }

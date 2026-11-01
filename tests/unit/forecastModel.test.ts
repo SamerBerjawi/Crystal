@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type { Account, BillPayment, FinancialGoal, RecurringTransaction } from '../../types';
 import { buildOccurrences, iso, makeConverter, moveFuture, moveSeries } from '../../utils/scheduleModel';
 import {
-  chartSeries, daysBelow, forecastBubbles, horizonSummary, moveSuggestion, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
+  chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
 } from '../../utils/forecastModel';
 import {
   accountCoverage, goalTree, monthlyTargets, moveGoal, planGoal, projectGoal, summaryRings, emptyGoalDraft,
@@ -245,4 +245,38 @@ test('moving a series shifts it, and moving the future splits it', () => {
   assert.equal(started.startDate, '2026-12-04');
   assert.equal(started.nextDueDate, '2026-12-04');
   assert.equal('id' in started, false);
+});
+
+test('Overview and Forecast share one calculation, starting from today', () => {
+  const account = { id: 'a', name: 'Main', type: 'Checking', balance: 1000, currency: 'EUR', status: 'open' } as any;
+  const today = new Date(2026, 10, 1);
+  const end = new Date(2026, 10, 30);
+  const data = {
+    recurring: [{ id: 'rent', accountId: 'a', description: 'Rent', amount: 400, type: 'expense', category: 'Housing', currency: 'EUR', frequency: 'monthly', startDate: '2026-11-10', nextDueDate: '2026-11-10', weekendAdjustment: 'on' }] as any[],
+    overrides: [], bills: [], accounts: [account], transactions: [], loanPaymentOverrides: {},
+  };
+  const projection = forecastFromData(data as any, [account], [], [], today, end, amount => amount);
+  assert.equal(projection.start, 1000);
+  assert.equal(projection.days[0].date, '2026-11-01');
+  assert.equal(projection.days.at(-1)?.total, 600);
+});
+
+test('each tile shows the true lowest from today, even when periods share it', () => {
+  const today = new Date(2026, 10, 1);
+  const days = [
+    { date: '2026-11-01', total: 1000 }, { date: '2026-11-20', total: 800 },
+    { date: '2026-12-15', total: 200 }, { date: '2027-02-10', total: 900 },
+    { date: '2027-09-01', total: 50 },
+  ];
+  const tiles = horizonTiles(days, today);
+  assert.deepEqual(tiles.map(tile => tile.period), ['This Month', 'Next 3 Months', 'Next 6 Months', 'Next Year']);
+  assert.deepEqual(tiles.map(tile => tile.lowestBalance), [800, 200, 200, 50]);
+  assert.equal(tiles[1].date, '2026-12-15');
+  assert.equal(tiles[3].date, '2027-09-01');
+});
+
+test('tiles ignore past days, and an empty forecast has none', () => {
+  const today = new Date(2026, 10, 10);
+  assert.equal(horizonTiles([{ date: '2026-11-01', total: -5 }, { date: '2026-11-10', total: 40 }], today)[0].lowestBalance, 40);
+  assert.deepEqual(horizonTiles([], today), []);
 });

@@ -988,6 +988,16 @@ img {
  * ------------------------------------------------------------------ */
 :root {
   color-scheme: light;
+  /* Account heroes (D-080). Fixed in both themes, so --on-pine stays at AA on them. */
+  --hero-savings: #1F7A3F;
+  --hero-investment: #2A4FA8;
+  --hero-property: #5B3FA6;
+  --hero-vehicle: #4A5568;
+  --hero-other-assets: #8A5A12;
+  --hero-lending: #0B6E7A;
+  --hero-credit-card: #A63A1C;
+  --hero-loan: #8E2440;
+  --hero-other-liabilities: #A8326E;
   --canvas: #EBE8E1;
   --mesh-a: rgba(242, 211, 189, .95);
   --mesh-b: rgba(207, 223, 205, .95);
