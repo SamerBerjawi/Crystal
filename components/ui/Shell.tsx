@@ -176,7 +176,7 @@ export const ToolRail: React.FC<ShellProps> = ({ currentPage, setCurrentPage, th
       <IconButton {...tool} icon="search" label="Search (⌘K)" onPress={onSearch} />
       <IconButton {...tool} icon="add" label="Add transaction (N)" onPress={onCreate} />
       <IconButton {...tool} icon="today" label="Today" isActive={currentPage === 'Schedule & Bills'} onPress={() => setCurrentPage('Schedule & Bills')} />
-      <IconButton {...tool} icon="review_queue" label="Review queue" onPress={() => setCurrentPage('Transactions')} />
+      <IconButton {...tool} icon="review_queue" label="Review queue" onPress={() => { setCurrentPage('Transactions'); setUrlTab('review'); }} />
       <IconButton {...tool} icon="sync_banks" label="Sync banks" isBusy={isSyncing} onPress={onSync} />
       <IconButton {...tool} icon="settings" label="Settings" isActive={hubForPage(currentPage).id === 'settings'} onPress={() => setCurrentPage('Personal Info')} />
       <IconButton {...tool} icon={isDark ? 'light_mode' : 'dark_mode'} label={isDark ? 'Use light theme' : 'Use dark theme'} onPress={() => setTheme(isDark ? 'light' : 'dark')} />

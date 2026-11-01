@@ -14,11 +14,8 @@ import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialOverview from '../components/FinancialOverview';
 import ForecastOverview from '../components/ForecastOverview';
 import AddWidgetModal from '../components/AddWidgetModal';
-import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
-import { useSyncedBillMatcher, SyncedBillMatchSuggestion } from '../hooks/useSyncedBillMatcher';
-import { useMatcherConfig } from '../hooks/useMatcherConfig';
-import UnifiedPendingMatchesModal from '../components/UnifiedPendingMatchesModal';
-import PendingMatchesView from '../components/PendingMatchesView';
+import { useReview } from '../contexts/ReviewContext';
+import { setUrlTab } from '../hooks/useUrlTab';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
@@ -48,7 +45,7 @@ import AssetAllocationWidget from '../components/AssetAllocationWidget';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Switch } from '../components/ui/Fields';
 import { Amount, PrivacyContext, useFirstVisit } from '../components/ui/Money';
-import { BottomSheet, FullPanel, Popover } from '../components/ui/Overlays';
+import { BottomSheet, Popover } from '../components/ui/Overlays';
 import { MultiSelect, Select } from '../components/ui/Pickers';
 import { AccountsSummary, KeyRatios, NeedsYou, NetWorthHero, SafeToSpendWidget, WrittenSummary } from '../components/ui/Summaries';
 import WidgetGrid, { type WidgetGridItem, type WidgetLayoutItem } from '../components/ui/WidgetGrid';
@@ -220,9 +217,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isPhoneEditOpen, setPhoneEditOpen] = useState(false);
-  const [isMatchesPanelOpen, setMatchesPanelOpen] = useState(false);
-  const [isUnifiedPendingModalOpen, setIsUnifiedPendingModalOpen] = useState(false);
-  const [unifiedModalInitialFilter, setUnifiedModalInitialFilter] = useState<'all' | 'transfer' | 'bill'>('all');
 
   const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
   const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
@@ -236,36 +230,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
 
-  const { config: matcherConfig, updateConfig: updateMatcherConfig, resetConfig: resetMatcherConfig } = useMatcherConfig();
-
-  const {
-    suggestions,
-    confirmMatch,
-    dismissSuggestion,
-    confirmSelectedMatches,
-    dismissSelectedMatches,
-    confirmAllMatches,
-    dismissAllSuggestions,
-  } = useTransactionMatcher(transactions, accounts, saveTransaction, matcherConfig);
-
-  const {
-    billSuggestions,
-    confirmBillMatch,
-    dismissBillMatch,
-    confirmSelectedBillMatches,
-    dismissSelectedBillMatches,
-    confirmAllBillMatches,
-    dismissAllBillMatches,
-  } = useSyncedBillMatcher(
-    transactions,
-    recurringTransactions,
-    billsAndPayments,
-    accounts,
-    saveTransaction,
-    saveRecurringTransaction,
-    saveBillPayment,
-    matcherConfig
-  );
+  const review = useReview();
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
 
@@ -1377,47 +1342,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [layout, allWidgets]);
 
 
-  const filteredBillSuggestions = useMemo(() => {
-    if (selectedAccountIds.length === 0) return billSuggestions;
-    return billSuggestions.filter(s => selectedAccountIds.includes(s.transaction.accountId));
-  }, [billSuggestions, selectedAccountIds]);
-
-  const filteredTransferSuggestions = useMemo(() => {
-    if (selectedAccountIds.length === 0) return suggestions;
-    return suggestions.filter(s => selectedAccountIds.includes(s.expenseTx.accountId) || selectedAccountIds.includes(s.incomeTx.accountId));
-  }, [suggestions, selectedAccountIds]);
-
-  // Harmonize & deduplicate matches across both transfer and bill matchers
-  const { dedupedTransferSuggestions, dedupedBillSuggestions } = useMemo(() => {
-    // If a transaction appears in both transfer suggestions and bill suggestions,
-    // assign it to whichever matcher produced the higher matchScore to avoid conflicting duplicate prompts.
-    const billByTxId = new Map<string, SyncedBillMatchSuggestion>();
-    filteredBillSuggestions.forEach(b => {
-      billByTxId.set(b.transaction.id, b);
-    });
-
-    const suppressedTransferIds = new Set<string>();
-    const suppressedBillIds = new Set<string>();
-
-    filteredTransferSuggestions.forEach(t => {
-      const expConflict = billByTxId.get(t.expenseTx.id);
-      const incConflict = billByTxId.get(t.incomeTx.id);
-      const conflict = expConflict || incConflict;
-
-      if (conflict) {
-        if (t.matchScore >= conflict.matchScore) {
-          suppressedBillIds.add(conflict.id);
-        } else {
-          suppressedTransferIds.add(t.id);
-        }
-      }
-    });
-
-    return {
-      dedupedTransferSuggestions: filteredTransferSuggestions.filter(s => !suppressedTransferIds.has(s.id)),
-      dedupedBillSuggestions: filteredBillSuggestions.filter(b => !suppressedBillIds.has(b.id)),
-    };
-  }, [filteredTransferSuggestions, filteredBillSuggestions]);
+  const dedupedTransferSuggestions = useMemo(() => (selectedAccountIds.length === 0 ? review.transfers : review.transfers.filter(s => selectedAccountIds.includes(s.expenseTx.accountId) || selectedAccountIds.includes(s.incomeTx.accountId))), [review.transfers, selectedAccountIds]);
+  const dedupedBillSuggestions = useMemo(() => (selectedAccountIds.length === 0 ? review.billMatches : review.billMatches.filter(s => selectedAccountIds.includes(s.transaction.accountId))), [review.billMatches, selectedAccountIds]);
 
   const totalPendingMatchesCount = dedupedTransferSuggestions.length + dedupedBillSuggestions.length;
   const { notificationCount: billsDue } = useBillNotifications({ recurringTransactions, billsAndPayments });
@@ -1441,10 +1367,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       .reduce((sum, tx) => sum + convertToEur(tx.amount, tx.currency), 0), 2);
   }, [analyticsTransactions, analyticsSelectedAccountIds]);
 
-  const openMatches = useCallback((filter: 'all' | 'transfer' | 'bill') => {
-    setUnifiedModalInitialFilter(filter);
-    setIsUnifiedPendingModalOpen(true);
-  }, []);
+  const openReview = useCallback(() => {
+    setCurrentPage('Transactions');
+    setUrlTab('review');
+  }, [setCurrentPage]);
 
   const summaryFacts = buildSummaryFacts({
     incomeYesterday: incomeYesterday > 0 ? formatCurrency(eurToDisplay(incomeYesterday), preferredCurrency) : null,
@@ -1498,24 +1424,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [saveLayout]);
 
 
-  const highConfidencePendingCount = useMemo(() => {
-    const highTransfers = dedupedTransferSuggestions.filter(s => s.matchScore >= 80).length;
-    const highBills = dedupedBillSuggestions.filter(s => s.matchScore >= 80).length;
-    return highTransfers + highBills;
-  }, [dedupedTransferSuggestions, dedupedBillSuggestions]);
-
-  const handleQuickReconcileHighConfidence = useCallback(() => {
-    const highTransfers = dedupedTransferSuggestions.filter(s => s.matchScore >= 80);
-    const highBills = dedupedBillSuggestions.filter(s => s.matchScore >= 80);
-    if (highTransfers.length > 0) confirmSelectedMatches(highTransfers);
-    if (highBills.length > 0) confirmSelectedBillMatches(highBills);
-  }, [dedupedTransferSuggestions, dedupedBillSuggestions, confirmSelectedMatches, confirmSelectedBillMatches]);
-
-  const handleDismissAllPending = useCallback(() => {
-    dismissAllSuggestions();
-    dismissAllBillMatches();
-  }, [dismissAllSuggestions, dismissAllBillMatches]);
-
   return (
     <div className="relative">
       {isTransactionModalOpen && (
@@ -1549,34 +1457,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         onDelete={handleDeleteTransaction}
       />
       <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
-      {isUnifiedPendingModalOpen && (
-        <UnifiedPendingMatchesModal
-          isOpen={isUnifiedPendingModalOpen}
-          onClose={() => setIsUnifiedPendingModalOpen(false)}
-          transferSuggestions={dedupedTransferSuggestions}
-          billSuggestions={dedupedBillSuggestions}
-          accounts={analyticsAccounts}
-          initialFilter={unifiedModalInitialFilter}
-          onConfirmTransferMatch={confirmMatch}
-          onDismissTransferMatch={dismissSuggestion}
-          onConfirmSelectedTransferMatches={confirmSelectedMatches}
-          onDismissSelectedTransferMatches={dismissSelectedMatches}
-          onConfirmBillMatch={confirmBillMatch}
-          onDismissBillMatch={dismissBillMatch}
-          onConfirmSelectedBillMatches={confirmSelectedBillMatches}
-          onDismissSelectedBillMatches={dismissSelectedBillMatches}
-          onConfirmAll={() => {
-            confirmAllMatches();
-            confirmAllBillMatches();
-          }}
-          onDismissAll={handleDismissAllPending}
-          onOpenFullPageTab={() => {
-            setIsUnifiedPendingModalOpen(false);
-            setMatchesPanelOpen(true);
-          }}
-        />
-      )}
-
       {/* Forecast Interaction Modals */}
       {(isRecurringModalOpen || isBillModalOpen) && (
         <RecurringTransactionModal
@@ -1641,8 +1521,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
               onFact={fact => {
                 if (fact === 'bills') setCurrentPage('Schedule & Bills');
                 else if (fact === 'tasks') setCurrentPage('Tasks');
-                else if (fact === 'income' || toCategorise > 0) setCurrentPage('Transactions');
-                else openMatches('all');
+                else if (fact === 'income') setCurrentPage('Transactions');
+                else openReview();
               }}
             />
 
@@ -1661,16 +1541,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
               </div>
               <NeedsYou
                 items={[
-                  { id: 'categorise', label: 'To categorise', count: toCategorise, onOpen: () => setCurrentPage('Transactions') },
-                  { id: 'transfers', label: 'Transfers to match', count: dedupedTransferSuggestions.length, onOpen: () => openMatches('transfer') },
-                  { id: 'bill-matches', label: 'Bills to match', count: dedupedBillSuggestions.length, onOpen: () => openMatches('bill') },
+                  { id: 'categorise', label: 'To categorise', count: toCategorise, onOpen: openReview },
+                  { id: 'transfers', label: 'Transfers to match', count: dedupedTransferSuggestions.length, onOpen: openReview },
+                  { id: 'bill-matches', label: 'Bills to match', count: dedupedBillSuggestions.length, onOpen: openReview },
                   { id: 'bills', label: 'Bills due soon', count: billsDue, onOpen: () => setCurrentPage('Schedule & Bills') },
                   { id: 'tasks', label: 'Tasks due', count: tasksDue, onOpen: () => setCurrentPage('Tasks') },
                 ]}
                 footer={totalPendingMatchesCount > 0 && (
                   <>
-                    {highConfidencePendingCount > 0 && <Button size="sm" variant="soft" onPress={handleQuickReconcileHighConfidence}>Confirm {highConfidencePendingCount} likely</Button>}
-                    <Button size="sm" variant="ghost" onPress={handleDismissAllPending}>Dismiss matches</Button>
+                    {review.likelyCount > 0 && <Button size="sm" variant="soft" onPress={review.confirmLikely}>Confirm {review.likelyCount} likely</Button>}
+                    <Button size="sm" variant="ghost" onPress={review.dismissAll}>Dismiss matches</Button>
                   </>
                 )}
               />
@@ -1755,25 +1635,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
           ))}
         </ul>
       </BottomSheet>
-
-      <FullPanel isOpen={isMatchesPanelOpen} onClose={() => setMatchesPanelOpen(false)} title="Pending matches">
-        <PendingMatchesView
-          billSuggestions={dedupedBillSuggestions}
-          transferSuggestions={dedupedTransferSuggestions}
-          accounts={analyticsAccounts}
-          config={matcherConfig}
-          onUpdateConfig={updateMatcherConfig}
-          onResetConfig={resetMatcherConfig}
-          onConfirmBillMatch={confirmBillMatch}
-          onDismissBillMatch={dismissBillMatch}
-          onConfirmSelectedBillMatches={confirmSelectedBillMatches}
-          onDismissSelectedBillMatches={dismissSelectedBillMatches}
-          onConfirmTransferMatch={confirmMatch}
-          onDismissTransferMatch={dismissSuggestion}
-          onConfirmSelectedTransferMatches={confirmSelectedMatches}
-          onDismissSelectedTransferMatches={dismissSelectedMatches}
-        />
-      </FullPanel>
 
       <ConfirmDialog />
     </div>

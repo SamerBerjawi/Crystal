@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Account, BillPayment, RecurringTransaction, Transaction } from '../../types';
 import { OVERVIEW_LAYOUT_KEY, resolveOverviewLayout } from '../../utils/overviewLayout';
-import { buildSummaryFacts, isUncategorised } from '../../utils/overviewSummary';
+import { buildSummaryFacts, isUncategorised, suggestCategories } from '../../utils/overviewSummary';
 import { computeSafeToSpend, spendingAccounts } from '../../utils/safeToSpend';
 
 const account = (overrides: Partial<Account>): Account => ({
@@ -143,4 +143,11 @@ test('old tabs carry over in order, at half the column count, without removed wi
   assert.equal(layout[2].w, 6);
   assert.ok(!ids.includes('transactionMap'));
   assert.ok(ids.includes('wealthVelocity'));
+});
+
+test('category suggestions put the rule first, then the merchant, then the kind, and never Transfer', () => {
+  const tx = (merchant: string, category: string, type = 'expense') => ({ merchant, category, type }) as Transaction;
+  const history = [tx('Shop', 'Food'), tx('Shop', 'Food'), tx('Shop', 'Gifts'), tx('Other', 'Fuel'), tx('Other', 'Transfer'), tx('Boss', 'Salary', 'income')];
+  assert.deepEqual(suggestCategories(tx('Shop', ''), history, 'Treats'), ['Treats', 'Food', 'Gifts']);
+  assert.deepEqual(suggestCategories(tx('Nobody', ''), history), ['Food', 'Gifts', 'Fuel']);
 });
