@@ -2,7 +2,7 @@
 
 Phase 9 tracker. It records what's built, what was tested and what wasn't. A module is only Done after checks at 1440 × 900, 768 × 1024 and 390 × 844, in light and dark. Anything skipped is written here.
 
-**Base:** this work stacks on `feat/redesign-primitives-shell`, then `feat/redesign-foundation`, then `refactor/remove-new-ui`. None were merged into `main` when this was written. Nothing is committed until the owner asks.
+**Base:** this work stacks on `feat/redesign-overview`, then `feat/redesign-primitives-shell`, then `feat/redesign-foundation`, then `refactor/remove-new-ui`. None were merged into `main` when this was written. Nothing is committed until the owner asks.
 
 **How old pages keep working:** the old colour names are mapped onto the new palette. Every page takes the new look at once and keeps working until its module is rebuilt. This bridge isn't the finished design, and it's removed in the final module.
 
@@ -13,7 +13,7 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 0 | Foundation | Tokens, Manrope, Hugeicons, colour bridge | Done |
 | 1 | Primitives | Buttons, fields, menus, overlays, table, states | Done |
 | 2 | App shell | Pills, tab row, rail, phone bar, More, top bar | Done, with the gaps listed below |
-| 3 | Overview | Summary, hero, Needs you, Safe to spend, grid | Not started |
+| 3 | Overview | Summary, hero, Needs you, Safe to spend, grid | Done |
 | 4 | Accounts | Hub tabs, account frame, one account form | Not started |
 | 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Not started |
 | 6 | Rules | Rebuild (`D-009`), with tests first | Not started |
@@ -119,3 +119,45 @@ Phase 10 (final QA) follows module 13.
 - `IconPicker`, `ColorPicker` and `CategoryPicker` are built with their modules (10 and 5).
 - Layer values are the approved order times ten, until module 13 removes the old `z-50` to `z-500` values.
 - Vite doesn't see file changes on this volume, so the preview server needs a restart after edits.
+
+### Module 3: Overview
+
+**Status:** Done, committed on `feat/redesign-overview`.
+
+**Built**
+- One Overview page with no tabs (`D-078`): written summary, Net Worth hero, Needs you, filters, then the widget grid. `pages/Dashboard.tsx` keeps its data logic.
+- `components/ui/WidgetGrid.tsx`: KokonutUI's Widget Grid (MIT), with Crystal tokens, edit mode, row spans, a remove button and three columns on tablets. `react-grid-layout` is uninstalled (`D-077`).
+- `components/ui/Money.tsx`: `Amount`, `Change`, `useFirstVisit` and `PrivacyContext`. `Amount` hides figures from screen readers too.
+- `components/ui/Summaries.tsx`: `WrittenSummary`, `NetWorthHero`, `NeedsYou`, `SafeToSpendWidget`, `AccountsSummary`, `KeyRatios`.
+- `utils/safeToSpend.ts` (`D-076`), `utils/overviewLayout.ts` and `utils/overviewSummary.ts`, with 12 tests in `tests/unit/overview.test.ts`.
+- New widgets for what the old tabs held: Key ratios, Asset allocation, Accounts and Safe to spend.
+- Phones have their own order, a Filter sheet and a Customise sheet to reorder and hide. `MobileDashboardView` is removed.
+- Fixed: the old Net Flow card always showed zero, because it subtracted a value from itself. It's now income less spending.
+
+**Tested**
+
+| Check | Result |
+|---|---|
+| Type checks, `npm test`, Vite build | Clean, with 238 tests passed and 0 failed |
+| Overview at 1440, 768 and 390 px | No sideways scroll, in dark and light at 1440 and 768, dark at 390 |
+| 320 px width | No sideways scroll, and all phone bar labels fit |
+| Grid columns | Six at 1440 px, three at 768 px |
+| Edit mode | Remove, Add widget, keyboard move with Space and arrows, keyboard resize. The move was announced |
+| Phone | Filter sheet, Customise sheet, move up, hide |
+| Summary and Needs you | Agree with each other. Demo data shows tasks due |
+
+**Not tested**
+- Saving a layout or cushion to a real account. Demo mode doesn't persist, so reload resets them.
+- Migrating a real saved layout. Unit tests cover it, but no real account did.
+- Dragging or resizing with a pointer or finger, and pull to refresh.
+- The first-visit stagger and count-up by eye, and reduced motion.
+- Privacy mode on this page, and Safe to spend with real bills and income. Unit tests cover the sums.
+- The hero, sentence and cards in a final visual check. The pane shrank during testing, so only low-resolution screenshots exist for this module, and the layout was checked by measurement.
+
+**Known issues**
+- Widgets inside the grid keep their old charts and styling until their chart work. Their colours are bridge colours.
+- The hero's split covers assets only, so debts appear as a fourth figure beside it.
+- Cash in Safe to spend is EUR-based, like the rest of the page, until module 12.
+- Filters on desktop still use the old account and period controls until `FilterBar` in module 5.
+- Pending Matches opens in a full panel until module 5 replaces it.
+- Forecast on phones stacks four cards, which is tall.
