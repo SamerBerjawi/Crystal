@@ -32,8 +32,6 @@ Used often, or large enough that restyling would keep a poor structure.
 
 | Screen | Size | Old styling | Plan |
 |---|---|---|---|
-| `SignIn`, `SignUp` | 363 | 79 | The first thing anyone sees, on the new tokens |
-| `OnboardingModal` | 351 | 75 | Steps in a full panel |
 | `IconPicker` | 439 | 114 | Works and looks fine, but it's its own drawer. Rebuild on the shared panel |
 
 ## Restyle
@@ -56,7 +54,7 @@ The structure is fine. These swap to shared dialogs, fields and tokens.
 4. **Quick overview**: compare against the account page, then delete. Done (`D-117`).
 5. **Account dialogs and transaction tools**, as one batch. Done (`D-118`).
 6. **Bulk edit, split and mileage.** Done (`D-120`).
-7. **Sign-in and onboarding.**
+7. **Sign-in and onboarding.** Done (`D-121`).
 8. **Overview widgets and shared bits**, plus the forecast engine move.
 9. **Contrast check** on anything restyled.
 10. **Module 13**: the bridge styles, `@base-ui/react`, `DESIGN.md`, then Phase 10. Also decide on map credits: `index.css` hides them on every map, and OpenStreetMap's licence requires them.

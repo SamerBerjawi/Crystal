@@ -1,8 +1,9 @@
-
 import React, { useState } from 'react';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, CrystalLogo } from '../constants';
-import { Theme, User } from '../types';
-import Icon from '../components/ui/Icon';
+import AuthCard from '../components/AuthCard';
+import { Button, TextLink } from '../components/ui/Actions';
+import { TextInput } from '../components/ui/Fields';
+import { Banner } from '../components/ui/States';
+import { User } from '../types';
 
 interface SignUpProps {
   onSignUp: (newUser: Pick<User, 'firstName' | 'lastName' | 'email'> & { password: string }) => void;
@@ -32,161 +33,23 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
     onSignUp({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), password });
   };
 
-  const FeatureItem = ({ icon, title, desc }: { icon: string, title: string, desc: string }) => (
-      <div className="flex gap-4">
-          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 backdrop-blur-md border border-white/15 shadow-sm">
-              <Icon name={icon} className="text-2xl text-white" />
-          </div>
-          <div>
-              <h3 className="font-bold text-white text-lg">{title}</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">{desc}</p>
-          </div>
-      </div>
-  );
-
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]">
-      {/* Left Side - Visuals/Features */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-indigo-900 to-gray-900 relative overflow-hidden items-center justify-center p-12">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-primary-600/20 rounded-full blur-[100px] pointer-events-none"></div>
-        
-        <div className="relative z-10 max-w-lg">
-            <div className="mb-8">
-                 <CrystalLogo showText={false} />
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-8 leading-tight">
-                Join thousands of users <br/> mastering their money.
-            </h2>
-            
-            <div className="space-y-8">
-                <FeatureItem 
-                    icon="lock" 
-                    title="Private & Secure" 
-                    desc="Your data is stored locally or on your own private server. We prioritize your financial privacy." 
-                />
-                <FeatureItem 
-                    icon="timeline" 
-                    title="Visual Analytics" 
-                    desc="Beautiful charts and heatmaps give you an instant understanding of your spending habits." 
-                />
-                <FeatureItem 
-                    icon="hub" 
-                    title="All-in-One Tracking" 
-                    desc="Manage cash, investments, property, and debts in a single, unified dashboard." 
-                />
-            </div>
+    <AuthCard
+      title="Create your account"
+      description="Next, a short set-up for your currency and first account."
+      footer={<>Already have an account? <TextLink onPress={onNavigateToSignIn}>Sign in</TextLink></>}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {(localError || error) && <Banner tone="error">{localError || error}</Banner>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput autoFocus label="First name" autoComplete="given-name" isRequired value={firstName} onChange={setFirstName} />
+          <TextInput label="Last name" autoComplete="family-name" isRequired value={lastName} onChange={setLastName} />
         </div>
-      </div>
-
-      {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 relative z-10 bg-light-card dark:bg-dark-card lg:bg-transparent lg:dark:bg-transparent">
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-300 mb-2">
-            <Icon name="person_add" className="text-xl" />
-            <span>Get Started</span>
-          </div>
-          <h1 className="text-3xl font-bold text-light-text dark:text-dark-text mb-2">Create Your Account</h1>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary">
-            A quick walkthrough to set currency, goals, and your first funding source.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-            {(localError || error) && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
-                    <Icon name="error" className="text-lg mt-0.5" />
-                    <span>{localError || error}</span>
-                </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-1.5">
-                <label htmlFor="firstName" className="block text-sm font-semibold text-light-text dark:text-dark-text">First Name</label>
-                <input
-                  id="firstName"
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className={`${INPUT_BASE_STYLE} !h-12`}
-                  placeholder="John"
-                  required
-                  autoComplete="given-name"
-                />
-              </div>
-               <div className="space-y-1.5">
-                <label htmlFor="lastName" className="block text-sm font-semibold text-light-text dark:text-dark-text">Last Name</label>
-                <input
-                  id="lastName"
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className={`${INPUT_BASE_STYLE} !h-12`}
-                  placeholder="Doe"
-                  required
-                  autoComplete="family-name"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="email-signup" className="block text-sm font-semibold text-light-text dark:text-dark-text">Email Address</label>
-              <div className="relative">
-                 <input
-                    id="email-signup"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`${INPUT_BASE_STYLE} pl-10 !h-12`}
-                    placeholder="name@company.com"
-                    required
-                    autoComplete="email"
-                 />
-                 <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="password-signup" className="block text-sm font-semibold text-light-text dark:text-dark-text">Password</label>
-              <div className="relative">
-                 <input
-                    id="password-signup"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`${INPUT_BASE_STYLE} pl-10 !h-12`}
-                    placeholder="Min. 8 characters"
-                    required
-                    autoComplete="new-password"
-                 />
-                 <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
-              </div>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                  Must be at least 8 characters long.
-              </p>
-            </div>
-            
-            <button type="submit" className={`${BTN_PRIMARY_STYLE} w-full !py-3.5 !text-base !rounded-xl shadow-lg shadow-primary-500/20 mt-4`} disabled={isLoading}>
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating Account...
-                </div>
-              ) : 'Create Account'}
-            </button>
-        </form>
-
-        <p className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary mt-8">
-            Already have an account?{' '}
-            <button onClick={onNavigateToSignIn} className="font-bold text-primary-600 hover:text-primary-500 transition-colors">
-              Sign In
-            </button>
-        </p>
-      </div>
-    </div>
+        <TextInput label="Email" type="email" autoComplete="email" isRequired value={email} onChange={setEmail} />
+        <TextInput label="Password" type="password" help="At least 8 characters." autoComplete="new-password" isRequired value={password} onChange={setPassword} />
+        <Button type="submit" block isBusy={isLoading}>Create account</Button>
+      </form>
+    </AuthCard>
   );
 };
 
