@@ -498,3 +498,9 @@ All seven Proposed decisions are closed: `D-074`, `D-075`, `D-079`, `D-080`, `D-
 - The Subscriptions timeline had overlapping labels. Labels now take lanes and can't overlap. A label with no free lane shows as a dot with its name on hover.
 - Not real gaps: price bindings and account and task order already sync.
 - Still open: contrast of restyled old screens, which goes with the screen sort. `HistoricalBalanceTrend` and account detail's lowest point still use `generateBalanceForecast`.
+
+### Old screens (sorted, step 1 done)
+
+[The sort](11-old-screens.md) puts every old screen into delete, rebuild or restyle, with an order of work ending in Module 13.
+
+Step 1 deleted 97 source files and 2 test files, about 17,200 lines, including Overview's forecast dialogs and handlers that nothing could open. Types, 404 tests (438 less the 34 in the removed files) and the build pass, and every route opens. Package dependencies stay for Module 13.
