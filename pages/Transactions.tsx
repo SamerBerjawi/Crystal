@@ -1382,16 +1382,18 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const clearSelection = () => { setSelectedIds(new Set()); setSelecting(false); };
 
   const summary = (
-    <aside aria-label="This view at a glance" className="space-y-4 rounded-[var(--radius-xl)] surface-card p-5">
-      <h2 className="type-card-title text-ink">This view</h2>
-      <dl className="space-y-2">
-        <div className="flex justify-between gap-3"><dt className="type-body text-muted">Transactions</dt><dd className="type-figure-row text-ink">{filteredTransactions.length.toLocaleString()}</dd></div>
-        <div className="flex justify-between gap-3"><dt className="type-body text-muted">Income</dt><dd className="type-figure-row text-ink">{money(totalIncome, 'flow')}</dd></div>
-        <div className="flex justify-between gap-3"><dt className="type-body text-muted">Spending</dt><dd className="type-figure-row text-ink">{money(-Math.abs(totalExpense))}</dd></div>
-        <div className="flex justify-between gap-3 border-t border-line pt-2"><dt className="type-body-strong text-ink">Net</dt><dd className="type-figure-row text-ink">{money(netFlow, 'flow')}</dd></div>
-      </dl>
+    <aside aria-label="This view at a glance" className="flex flex-col justify-between space-y-4 rounded-[var(--radius-xl)] surface-card p-5 h-full">
+      <div className="space-y-4">
+        <h2 className="type-card-title text-ink">This view</h2>
+        <dl className="space-y-2">
+          <div className="flex justify-between gap-3"><dt className="type-body text-muted">Transactions</dt><dd className="type-figure-row text-ink">{filteredTransactions.length.toLocaleString()}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="type-body text-muted">Income</dt><dd className="type-figure-row text-ink">{money(totalIncome, 'flow')}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="type-body text-muted">Spending</dt><dd className="type-figure-row text-ink">{money(-Math.abs(totalExpense))}</dd></div>
+          <div className="flex justify-between gap-3 border-t border-line pt-2"><dt className="type-body-strong text-ink">Net</dt><dd className="type-figure-row text-ink">{money(netFlow, 'flow')}</dd></div>
+        </dl>
+      </div>
       {topCategories.length > 0 && (
-        <div>
+        <div className="border-t border-line pt-3">
           <h3 className="type-label mb-1.5 text-muted">Most spent on</h3>
           <ul className="space-y-1">
             {topCategories.map(([name, value]) => (
@@ -1487,7 +1489,10 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         </>
       ) : (
         <>
-          <TransactionScatter transactions={filteredTransactions} onOpen={handleOpenOverview} />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]">
+            <TransactionScatter transactions={filteredTransactions} onOpen={handleOpenOverview} />
+            {summary}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {search}
             {filterSections.map(section => (
@@ -1503,43 +1508,40 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         </>
       )}
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="min-w-0">
-          {tableRenderItems.length > 0 ? (
-            <LedgerTable
-              items={tableRenderItems}
-              isPhone={isMobile}
-              isCompact={density === 'high'}
-              selectedIds={selectedIds}
-              isSelecting={isSelecting || selectedIds.size > 0}
-              sort={sortDescriptor as LedgerSort}
-              onSort={handleHeaderSort}
-              onToggle={toggleOne}
-              onToggleGroup={toggleGroup}
-              onOpen={handleOpenOverview}
-              onCategorise={tx => { setSelectedIds(new Set([tx.id])); setIsCategorizeModalOpen(true); }}
-              onExpand={id => toggleExpandParent(id)}
-              onStartSelecting={id => { setSelecting(true); toggleOne(id); }}
-              amountOf={resolveTransferDisplay}
-              accountOf={accountOf}
-              locationOf={locationOf}
-              logoOf={logoOf}
-              menuFor={menuFor}
-              categories={allCategories}
-              tags={tags}
-            />
-          ) : (
-            <EmptyState
-              icon="search"
-              title={transactions.length ? 'Nothing matches' : 'No transactions yet'}
-              description={transactions.length ? 'Try fewer filters.' : 'Add one, or connect a bank in Settings.'}
-              actionLabel={transactions.length ? 'Clear filters' : 'Add transaction'}
-              onAction={transactions.length ? clearFilters : handleOpenAddModal}
-            />
-          )}
-          <ShowMore remaining={displayItemsWithSubs.length - visibleCount} onPress={() => setVisibleCount(count => count + LEDGER_BATCH)} />
-        </div>
-        {!isMobile && <div className="xl:sticky xl:top-0">{summary}</div>}
+      <div className="w-full min-w-0">
+        {tableRenderItems.length > 0 ? (
+          <LedgerTable
+            items={tableRenderItems}
+            isPhone={isMobile}
+            isCompact={density === 'high'}
+            selectedIds={selectedIds}
+            isSelecting={isSelecting || selectedIds.size > 0}
+            sort={sortDescriptor as LedgerSort}
+            onSort={handleHeaderSort}
+            onToggle={toggleOne}
+            onToggleGroup={toggleGroup}
+            onOpen={handleOpenOverview}
+            onCategorise={tx => { setSelectedIds(new Set([tx.id])); setIsCategorizeModalOpen(true); }}
+            onExpand={id => toggleExpandParent(id)}
+            onStartSelecting={id => { setSelecting(true); toggleOne(id); }}
+            amountOf={resolveTransferDisplay}
+            accountOf={accountOf}
+            locationOf={locationOf}
+            logoOf={logoOf}
+            menuFor={menuFor}
+            categories={allCategories}
+            tags={tags}
+          />
+        ) : (
+          <EmptyState
+            icon="search"
+            title={transactions.length ? 'Nothing matches' : 'No transactions yet'}
+            description={transactions.length ? 'Try fewer filters.' : 'Add one, or connect a bank in Settings.'}
+            actionLabel={transactions.length ? 'Clear filters' : 'Add transaction'}
+            onAction={transactions.length ? clearFilters : handleOpenAddModal}
+          />
+        )}
+        <ShowMore remaining={displayItemsWithSubs.length - visibleCount} onPress={() => setVisibleCount(count => count + LEDGER_BATCH)} />
       </div>
 
       {selectedIds.size > 0 && !isCategorizeModalOpen && (

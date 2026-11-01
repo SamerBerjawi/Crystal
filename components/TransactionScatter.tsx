@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { DisplayTransaction } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency, currencySign } from '../utils';
+import { cn } from '../lib/utils';
 
-const HEIGHT = 220;
+const DEFAULT_HEIGHT = 280;
 const PAD = { top: 12, right: 12, bottom: 24, left: 52 };
 const MAX_POINTS = 400;
 const RADIUS = 4;
@@ -17,15 +18,23 @@ interface Point {
 }
 
 /** Each dot is a transaction: when it happened, and how big it was. A log scale keeps coffees and rent on one chart. */
-const TransactionScatter: React.FC<{ transactions: DisplayTransaction[]; onOpen: (tx: DisplayTransaction) => void }> = ({ transactions, onOpen }) => {
+const TransactionScatter: React.FC<{
+  transactions: DisplayTransaction[];
+  onOpen: (tx: DisplayTransaction) => void;
+  className?: string;
+}> = ({ transactions, onOpen, className }) => {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [hovered, setHovered] = useState<Point | null>(null);
 
   useEffect(() => {
     const element = box.current;
     if (!element) return;
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0) setWidth(Math.round(entry.contentRect.width));
+      if (entry.contentRect.height > 0) setHeight(Math.round(entry.contentRect.height));
+    });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
@@ -40,7 +49,7 @@ const TransactionScatter: React.FC<{ transactions: DisplayTransaction[]; onOpen:
     const span = Math.max(Math.max(...times) - start, 86_400_000);
     const top = Math.log10(Math.max(10, ...amounts) * 1.2);
     const plotWidth = width - PAD.left - PAD.right;
-    const plotHeight = HEIGHT - PAD.top - PAD.bottom;
+    const plotHeight = height - PAD.top - PAD.bottom;
     const toY = (value: number) => PAD.top + plotHeight * (1 - Math.log10(value) / top);
 
     const months = new Map<string, number>();
@@ -62,27 +71,27 @@ const TransactionScatter: React.FC<{ transactions: DisplayTransaction[]; onOpen:
       months: [...months.entries()],
       hasIncome: list.some(tx => tx.type === 'income'),
     };
-  }, [transactions, width]);
+  }, [transactions, width, height]);
 
   if (points.length === 0) return null;
 
   const label = `${points.length} transactions plotted by date and size. The list below has the same transactions.`;
 
   return (
-    <section aria-label="Transactions by date and size" className="rounded-[var(--radius-xl)] surface-card p-5">
-      <div className="mb-2 flex items-center justify-end gap-4">
+    <section aria-label="Transactions by date and size" className={cn("rounded-[var(--radius-xl)] surface-card p-5 flex flex-col h-full", className)}>
+      <div className="mb-2 flex items-center justify-end gap-4 shrink-0">
         <span className="type-caption flex items-center gap-1.5 text-muted"><span aria-hidden="true" className="size-2 rounded-full bg-[var(--chart-1)]" />Spending</span>
         {hasIncome && <span className="type-caption flex items-center gap-1.5 text-muted"><span aria-hidden="true" className="size-2 rounded-full bg-money-in" />Income</span>}
       </div>
-      <div ref={box} className="relative" onPointerLeave={() => setHovered(null)}>
-        <svg role="img" aria-label={label} width={width} height={HEIGHT} className="block max-w-full">
+      <div ref={box} className="relative flex-1 min-h-[220px] overflow-hidden" onPointerLeave={() => setHovered(null)}>
+        <svg role="img" aria-label={label} width={width} height={height} className="block max-w-full">
           {ticks.map(({ tick, y }) => (
             <g key={tick}>
               <line x1={PAD.left} x2={width - PAD.right} y1={y} y2={y} stroke="var(--line)" />
               <text x={PAD.left - 8} y={y + 4} textAnchor="end" fontSize={12} fontWeight={600} fill="var(--muted)">{currencySign(getMainCurrency())}{tick >= 1000 ? `${tick / 1000}k` : tick}</text>
             </g>
           ))}
-          {months.map(([name, x]) => <text key={name} x={x} y={HEIGHT - 6} fontSize={12} fontWeight={600} fill="var(--muted)">{name}</text>)}
+          {months.map(([name, x]) => <text key={name} x={x} y={height - 6} fontSize={12} fontWeight={600} fill="var(--muted)">{name}</text>)}
           {points.map(point => (
             <g key={point.tx.id}>
               <circle cx={point.x} cy={point.y} r={RADIUS} fill={point.isIncome ? 'var(--money-in)' : 'var(--chart-1)'} fillOpacity={hovered && hovered !== point ? 0.3 : 0.8} stroke="var(--solid)" strokeWidth={1} />
