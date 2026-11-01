@@ -68,6 +68,27 @@ export async function fetchSymbolMetadata(symbol: string, apiKey: string): Promi
     }
 }
 
+export interface Quote { price: number; currency: Currency; exchange?: string }
+
+/** A quote's price and currency. Refuses a quote with no currency, because guessing is how a USD price gets valued as EUR (DEF-04). */
+export const parseQuote = (data: Record<string, unknown>, supported: readonly string[]): Quote => {
+    if (data.status === 'error' || data.code) throw new Error(String(data.message || 'Unable to fetch price'));
+    const price = Number(data.close ?? data.price);
+    if (!Number.isFinite(price) || price <= 0) throw new Error('Invalid price returned');
+    const currency = String(data.currency || data.currency_quote || '').toUpperCase();
+    if (!supported.includes(currency)) throw new Error(`Twelve Data quoted this in ${currency || 'an unknown currency'}`);
+    return { price, currency: currency as Currency, exchange: data.exchange ? String(data.exchange) : undefined };
+};
+
+/** The latest quote for a ticker, from one exchange when you've chosen it. */
+export async function fetchQuote(symbol: string, apiKey: string, exchange: string | undefined, supported: readonly string[]): Promise<Quote> {
+    if (!apiKey) throw new Error('Missing Twelve Data API key');
+    const params = new URLSearchParams({ symbol: symbol.toUpperCase(), apikey: apiKey });
+    if (exchange) params.set('exchange', exchange);
+    const response = await fetchWithTimeout(`https://api.twelvedata.com/quote?${params.toString()}`);
+    return parseQuote(await response.json(), supported);
+}
+
 export async function fetchAllExchangeRates(base: Currency, targets: Currency[], apiKey: string): Promise<Record<string, number>> {
     const rates: Record<string, number> = { [base]: 1 };
     
@@ -107,4 +128,16 @@ export async function fetchAllExchangeRates(base: Currency, targets: Currency[],
     }
 
     return rates;
+}
+
+/** A ticker on its own listing, then as a EUR pair for crypto. A pair like BTC/USD is asked for as it's written. */
+export async function fetchBestQuote(ticker: string, apiKey: string, exchange: string | undefined, supported: readonly string[]): Promise<Quote> {
+    const symbol = ticker.toUpperCase();
+    if (symbol.includes('/')) return fetchQuote(symbol, apiKey, undefined, supported);
+    try {
+        return await fetchQuote(symbol, apiKey, exchange, supported);
+    } catch (error) {
+        if (exchange) throw error;
+        return fetchQuote(`${symbol}/EUR`, apiKey, undefined, supported);
+    }
 }

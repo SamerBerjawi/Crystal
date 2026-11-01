@@ -1,1606 +1,525 @@
-
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview, PriceHistoryEntry } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, BRAND_COLORS } from '../constants';
-import Card from '../components/Card';
-import { formatCurrency, parseLocalDate, toLocalISOString, convertToEur, safeRound } from '../utils';
-import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
-import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
-import AccountForm from '../components/AccountForm';
-import WarrantModal from '../components/WarrantModal';
-import WarrantPriceModal from '../components/WarrantPriceModal';
-import { LINE_MOTION } from '../src/components/charts/animation';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
-import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
-import { buildHoldingsOverview } from '../utils/investments';
-import { buildPortfolioHistory } from '../utils/portfolioHistory';
-import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart';
-import PageHeader, { type PageStat } from '../components/PageHeader';
-import HeaderButton from '../components/HeaderButton';
-import AccountsListSection from '../components/AccountsListSection';
-import AccountOverviewModal from '../components/AccountOverviewModal';
-import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
-import ConfirmationModal from '../components/ConfirmationModal';
-import Modal from '../components/Modal';
-import { motion, AnimatePresence } from 'motion/react';
-import { useSafeState } from '../hooks/useSafeState';
-import Icon from '../components/ui/Icon';
-import { MobileInvestmentsView } from '../components/MobileInvestmentsView';
-import { useIsMobile } from '../hooks/useIsMobile';
-import { SmartPriceBinding } from '../types';
-import { fetchWithTimeout } from '../utils/fetchWithTimeout';
-import { warnIgnored } from '../utils/logging';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-
-const CACHE_KEYS = {
-  INVESTMENT_INSIGHTS: 'crystal_investment_insights'
-};
+import type { Account, Currency, HoldingSummary, HoldingsOverview, InvestmentTransaction, PriceHistoryEntry, SmartPriceBinding, Transaction, Warrant } from '../types';
+import { CURRENCY_OPTIONS } from '../constants';
+import { convertCurrency, convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { buildHoldingsOverview, formatHoldingType, historyWindow, holdingsInSegment, mergedPriceLog, portfolioBySegment, realizedGains, SEGMENT_NAMES, segmentOf, type InvestmentSegment, type SegmentName } from '../utils/investments';
+import { buildPortfolioHistory } from '../utils/portfolioHistory';
+import { fetchSmartPrice } from '../utils/smartPrice';
+import { warnIgnored } from '../utils/logging';
+import { fetchBestQuote } from '../src/services/twelveDataService';
+import { usePreferencesContext } from '../contexts/DomainProviders';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { useSafeState } from '../hooks/useSafeState';
+import { useUrlTab } from '../hooks/useUrlTab';
+import { Panel, ValueChart } from '../components/AccountFrame';
+import AccountCard from '../components/AccountCard';
+import AccountForm from '../components/AccountForm';
+import AccountOverviewModal from '../components/AccountOverviewModal';
+import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
+import HoldingPanel from '../components/HoldingPanel';
+import HoldingsTable, { type HoldingRow } from '../components/HoldingsTable';
+import InvestmentModal from '../components/InvestmentModal';
+import PageHeader, { type PageStat } from '../components/PageHeader';
+import WarrantPriceModal from '../components/WarrantPriceModal';
+import { Button, IconButton } from '../components/ui/Actions';
+import { Badge, ShowMore } from '../components/ui/Display';
+import { Switch } from '../components/ui/Fields';
+import { Menu, type MenuAction } from '../components/ui/Menu';
+import { Amount, Change } from '../components/ui/Money';
+import { ConfirmDialog } from '../components/ui/Overlays';
+import SegmentedControl from '../components/ui/SegmentedControl';
+import { EmptyState } from '../components/ui/States';
 
 interface InvestmentsProps {
-    accounts: Account[];
-    cashAccounts: Account[];
-    investmentTransactions: InvestmentTransaction[];
-    saveInvestmentTransaction: (transaction: Omit<InvestmentTransaction, 'id'> & { id?: string }) => void;
-    saveAccount: (accountData: Omit<Account, 'id'> & { id?: string }) => void;
-    deleteInvestmentTransaction: (id: string) => void;
-    saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete?: string[]) => void;
-    warrants: Warrant[];
-    saveWarrant: (warrant: Omit<Warrant, 'id'> & { id?: string }) => void;
-    deleteWarrant: (id: string) => void;
-    manualPrices: Record<string, number | undefined>;
-    onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
-    prices: Record<string, number | null>;
-    onOpenHoldingDetail?: (symbol: string) => void;
-    onToggleAccountStatus: (accountId: string) => void;
-    deleteAccount: (id: string) => void;
-    transactions: Transaction[];
-    onViewAccount?: (accountId: string) => void;
-    holdingsOverview?: HoldingsOverview;
-    priceHistory?: Record<string, PriceHistoryEntry[]>;
+  accounts: Account[];
+  cashAccounts: Account[];
+  investmentTransactions: InvestmentTransaction[];
+  saveInvestmentTransaction: (transaction: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
+  saveAccount: (accountData: Omit<Account, 'id'> & { id?: string }) => void;
+  deleteInvestmentTransaction: (id: string) => void;
+  saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete?: string[]) => void;
+  warrants: Warrant[];
+  saveWarrant: (warrant: Omit<Warrant, 'id'> & { id?: string }) => void;
+  deleteWarrant: (id: string) => void;
+  manualPrices: Record<string, number | undefined>;
+  onManualPriceChange: (isin: string, price: number | null | { date: string; price: number }[], date?: string) => void;
+  prices: Record<string, number | null>;
+  onToggleAccountStatus: (accountId: string) => void;
+  deleteAccount: (id: string) => void;
+  transactions: Transaction[];
+  onViewAccount?: (accountId: string) => void;
+  priceHistory?: Record<string, PriceHistoryEntry[]>;
+  /** A holding reached by its own address opens in the panel (D-025). */
+  linkedSymbol?: string;
+  onCloseLinkedHolding?: () => void;
 }
 
-type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Spare Change' | 'Pension Fund' | 'Other';
+const SEGMENT_LABELS: Record<SegmentName, string> = { Stock: 'Stocks', ETF: 'ETFs', Crypto: 'Crypto', Warrant: 'Warrants', 'Spare Change': 'Spare change', 'Pension Fund': 'Pension', Other: 'Other' };
+/** Colour follows the segment, so filtering never repaints one. */
+const SEGMENT_COLORS: Record<SegmentName, string> = { Stock: 'var(--chart-1)', ETF: 'var(--chart-3)', Crypto: 'var(--chart-4)', Warrant: 'var(--chart-5)', 'Spare Change': 'var(--chart-2)', 'Pension Fund': 'var(--primary)', Other: 'var(--muted)' };
+const RANGES = [{ id: '30', label: '1M' }, { id: '91', label: '3M' }, { id: '182', label: '6M' }, { id: '365', label: '1Y' }, { id: 'all', label: 'All' }];
+const RANGE_WORDS: Record<string, string> = { '30': 'in a month', '91': 'in 3 months', '182': 'in 6 months', '365': 'in a year', all: 'since the start' };
+const SUPPORTED_CURRENCIES = CURRENCY_OPTIONS.map(option => option.split(' ')[0]);
+const ACTIVITY_STEP = 25;
+const ALLOCATION_ROWS = 6;
 
-// Investments main component
+const shortDate = (date: string) => parseLocalDate(date.slice(0, 10)).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const percentOf = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100 : 0);
+
+const AllocationRow: React.FC<{ label: string; value: number; total: number; color: string }> = ({ label, value, total, color }) => {
+  const share = percentOf(value, total);
+  return (
+    <li>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="type-body min-w-0 truncate text-ink">{label}</span>
+        <span className="type-caption shrink-0 text-muted"><Amount value={value} currency="EUR" />, {share.toFixed(1)}%</span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-inset"><div className="h-full rounded-full" style={{ width: `${share}%`, background: color }} /></div>
+    </li>
+  );
+};
+
+/** Rivet's portfolio view with warrants, pension and spare change, on one page for every screen (D-025). */
 const Investments: React.FC<InvestmentsProps> = ({
-    accounts,
-    cashAccounts,
-    investmentTransactions,
-    saveInvestmentTransaction,
-    saveAccount,
-    deleteInvestmentTransaction,
-    saveTransaction,
-    warrants,
-    saveWarrant,
-    deleteWarrant,
-    manualPrices,
-    onManualPriceChange,
-    prices,
-    onOpenHoldingDetail,
-    onToggleAccountStatus,
-    deleteAccount,
-    transactions,
-    onViewAccount,
-    holdingsOverview: propHoldingsOverview,
-    priceHistory = {}
+  accounts, cashAccounts, investmentTransactions, saveInvestmentTransaction, saveAccount, deleteInvestmentTransaction, saveTransaction, warrants, saveWarrant, deleteWarrant,
+  manualPrices, onManualPriceChange, prices, onToggleAccountStatus, deleteAccount, transactions, onViewAccount, priceHistory = {}, linkedSymbol, onCloseLinkedHolding,
 }) => {
-    const isMobile = useIsMobile();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
-    const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
-    const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
-    const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-    const [isAccountModalOpen, setAccountModalOpen] = useState(false);
-    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
-    const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice?: number } | null>(null);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; account: Account } | null>(null);
-    const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
-    const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
-    const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useSafeState(false);
-    const [activeSegment, setActiveSegment] = useState<InvestmentSegment>('all');
-    const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
-    const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
-    const [overviewAccount, setOverviewAccount] = useState<Account | null>(null);
-    const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
+  const { preferences, setPreferences } = usePreferencesContext();
+  const isPhone = useIsMobile();
+  const urlTab = useUrlTab();
+  const tab = urlTab === 'holdings' || urlTab === 'activity' ? urlTab : 'portfolio';
+  const [segment, setSegment] = useState<InvestmentSegment>('all');
+  const [range, setRange] = useState('182');
+  const [showInactive, setShowInactive] = useState(false);
+  const [activityShown, setActivityShown] = useState(ACTIVITY_STEP);
+  const [openSymbol, setOpenSymbol] = useState<string | null>(linkedSymbol ?? null);
+  const [tradeForm, setTradeForm] = useState<{ mode?: 'trade' | 'grant'; symbol?: string; trade?: InvestmentTransaction; grant?: Warrant } | null>(null);
+  const [priceTarget, setPriceTarget] = useState<{ symbol: string; name: string; entry?: PriceHistoryEntry } | null>(null);
+  const [accountForm, setAccountForm] = useState<Account | null>(null);
+  const [overviewAccount, setOverviewAccount] = useState<Account | null>(null);
+  const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+  const [activityToDelete, setActivityToDelete] = useState<{ id: string; isGrant: boolean; label: string } | null>(null);
+  const [isUpdatingPrices, setUpdatingPrices] = useSafeState(false);
 
-    const openOverviewModal = (account: Account) => {
-        setOverviewAccount(account);
-        setIsOverviewModalOpen(true);
-    };
+  useEffect(() => setOpenSymbol(linkedSymbol ?? null), [linkedSymbol]);
 
-    const { preferences, setPreferences } = usePreferencesContext();
-    const twelveDataApiKey = preferences.twelveDataApiKey || '';
-    const preferredCurrency = preferences.currency || 'EUR';
-    const conversionRates = preferences.conversionRates;
-
-    // Auto-migrate any local storage price bindings into cloud-synced AppPreferences
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem('smartPriceBindings');
-            if (stored) {
-                const localBindings = JSON.parse(stored) as Record<string, SmartPriceBinding>;
-                const existingBindings = preferences.smartPriceBindings || {};
-                let hasNew = false;
-                const merged = { ...existingBindings };
-                for (const [sym, b] of Object.entries(localBindings)) {
-                    if (!merged[sym] && b && b.url && b.selector) {
-                        merged[sym] = b;
-                        hasNew = true;
-                    }
-                }
-                if (hasNew) {
-                    setPreferences(prev => ({
-                        ...prev,
-                        smartPriceBindings: merged,
-                    }));
-                }
-            }
-        } catch (err) {
-            console.warn('Unable to migrate local price bindings to app preferences', err);
+  // Moves price bindings saved in this browser into the synced preferences.
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('smartPriceBindings');
+      if (!stored) return;
+      const local = JSON.parse(stored) as Record<string, SmartPriceBinding>;
+      const merged = { ...(preferences.smartPriceBindings || {}) };
+      let hasNew = false;
+      Object.entries(local).forEach(([symbol, binding]) => {
+        if (!merged[symbol] && binding?.url && binding.selector) {
+          merged[symbol] = binding;
+          hasNew = true;
         }
-    }, [preferences.smartPriceBindings, setPreferences]);
-
-    // Include all Investment accounts for the Investments page
-    const investmentAccounts = useMemo(() => (
-        accounts || []
-    ).filter(a => a.type === 'Investment'), [accounts]);
-
-    const activeInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status !== 'closed'), [investmentAccounts]);
-    const closedInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status === 'closed'), [investmentAccounts]);
-    const [showInactiveHoldings, setShowInactiveHoldings] = useState(false);
-
-    // Filter accounts and warrants based on active segment
-    const filteredInvestmentAccounts = useMemo(() => {
-        if (activeSegment === 'all') return activeInvestmentAccounts;
-        return activeInvestmentAccounts.filter(a => a.subType === activeSegment);
-    }, [activeInvestmentAccounts, activeSegment]);
-
-    const filteredWarrants = useMemo(() => {
-        if (activeSegment === 'all' || activeSegment === 'Warrant') return warrants;
-        return [];
-    }, [warrants, activeSegment]);
-
-    const activeOverview = useMemo(() => buildHoldingsOverview(filteredInvestmentAccounts, investmentTransactions, filteredWarrants, prices), [filteredInvestmentAccounts, investmentTransactions, filteredWarrants, prices]);
-    const { holdings: allActiveHoldings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = activeOverview;
-    const activeHoldings = useMemo(() => allActiveHoldings.filter(h => h.quantity > 0.000001 || h.type === 'Warrant'), [allActiveHoldings]);
-
-    // Global overview for sparkline and summary
-    const globalOverview = useMemo(() => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices), [activeInvestmentAccounts, investmentTransactions, warrants, prices]);
-
-    const displayHoldings = useMemo(
-        () => {
-            const overview = activeSegment === 'all' 
-                ? buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices)
-                : buildHoldingsOverview(
-                    investmentAccounts.filter(a => a.subType === (activeSegment as any)),
-                    investmentTransactions,
-                    activeSegment === 'Warrant' ? warrants : [],
-                    prices
-                );
-            
-            const allHoldings = overview.holdings;
-            if (showInactiveHoldings) {
-                return allHoldings;
-            }
-            return allHoldings.filter(h => h.quantity > 0.000001 || h.type === 'Warrant');
-        },
-        [investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings, activeSegment]
-    );
-
-    const accountBySymbol = useMemo(() => {
-        const map = new Map<string, Account>();
-        investmentAccounts.forEach(account => {
-            if (account.symbol) {
-                map.set(account.symbol, account);
-            }
-        });
-        return map;
-    }, [investmentAccounts]);
-
-    const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
-        (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
-        return acc;
-    }, {} as Record<string, Transaction[]>), [transactions]);
-
-    const nonSymbolDataByType = useMemo(() => {
-        const balances: Record<string, number> = {};
-        const costBases: Record<string, number> = {};
-        activeInvestmentAccounts.forEach(acc => {
-            if (!acc.symbol) {
-                const sub = acc.subType || 'Other';
-                const eurVal = convertToEur(acc.balance, acc.currency, conversionRates);
-                const eurCost = convertToEur(acc.purchasePrice && acc.purchasePrice > 0 ? acc.purchasePrice : acc.balance, acc.currency, conversionRates);
-                balances[sub] = (balances[sub] || 0) + eurVal;
-                costBases[sub] = (costBases[sub] || 0) + eurCost;
-            }
-        });
-        return { balances, costBases };
-    }, [activeInvestmentAccounts, conversionRates]);
-
-    // Strict segment values where segmentValues.all strictly equals the sum of all individual segments
-    const segmentValues = useMemo(() => {
-        const stocks = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Stock'), investmentTransactions, [], prices);
-        const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
-        const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
-        const warrantsOnly = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Warrant'), investmentTransactions, warrants, prices);
-        const spareChangeHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Spare Change'), investmentTransactions, [], prices);
-        const pensionHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Pension Fund'), investmentTransactions, [], prices);
-        const otherHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Other'), investmentTransactions, [], prices);
-
-        const stockTotal = safeRound(stocks.totalValue + (nonSymbolDataByType.balances['Stock'] || 0), 2);
-        const etfTotal = safeRound(etfs.totalValue + (nonSymbolDataByType.balances['ETF'] || 0), 2);
-        const cryptoTotal = safeRound(crypto.totalValue + (nonSymbolDataByType.balances['Crypto'] || 0), 2);
-        const warrantTotal = safeRound(warrantsOnly.totalValue + (nonSymbolDataByType.balances['Warrant'] || 0), 2);
-        const spareChangeTotal = safeRound(spareChangeHoldings.totalValue + (nonSymbolDataByType.balances['Spare Change'] || 0), 2);
-        const pensionTotal = safeRound(pensionHoldings.totalValue + (nonSymbolDataByType.balances['Pension Fund'] || 0), 2);
-        const otherTotal = safeRound(otherHoldings.totalValue + (nonSymbolDataByType.balances['Other'] || 0), 2);
-
-        const allTotal = safeRound(
-            stockTotal + etfTotal + cryptoTotal + warrantTotal + spareChangeTotal + pensionTotal + otherTotal,
-            2
-        );
-
-        return {
-            all: allTotal,
-            Stock: stockTotal,
-            ETF: etfTotal,
-            Crypto: cryptoTotal,
-            Warrant: warrantTotal,
-            'Spare Change': spareChangeTotal,
-            'Pension Fund': pensionTotal,
-            Other: otherTotal,
-        };
-    }, [activeInvestmentAccounts, investmentTransactions, warrants, prices, nonSymbolDataByType]);
-
-    const segmentCostBases = useMemo(() => {
-        const stocks = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Stock'), investmentTransactions, [], prices);
-        const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
-        const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
-        const warrantsOnly = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Warrant'), investmentTransactions, warrants, prices);
-        const spareChangeHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Spare Change'), investmentTransactions, [], prices);
-        const pensionHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Pension Fund'), investmentTransactions, [], prices);
-        const otherHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Other'), investmentTransactions, [], prices);
-
-        const stockCost = safeRound(stocks.totalCostBasis + (nonSymbolDataByType.costBases['Stock'] || 0), 2);
-        const etfCost = safeRound(etfs.totalCostBasis + (nonSymbolDataByType.costBases['ETF'] || 0), 2);
-        const cryptoCost = safeRound(crypto.totalCostBasis + (nonSymbolDataByType.costBases['Crypto'] || 0), 2);
-        const warrantCost = safeRound(warrantsOnly.totalCostBasis + (nonSymbolDataByType.costBases['Warrant'] || 0), 2);
-        const spareChangeCost = safeRound(spareChangeHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Spare Change'] || 0), 2);
-        const pensionCost = safeRound(pensionHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Pension Fund'] || 0), 2);
-        const otherCost = safeRound(otherHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Other'] || 0), 2);
-
-        const allCost = safeRound(
-            stockCost + etfCost + cryptoCost + warrantCost + spareChangeCost + pensionCost + otherCost,
-            2
-        );
-
-        return {
-            all: allCost,
-            Stock: stockCost,
-            ETF: etfCost,
-            Crypto: cryptoCost,
-            Warrant: warrantCost,
-            'Spare Change': spareChangeCost,
-            'Pension Fund': pensionCost,
-            Other: otherCost,
-        };
-    }, [activeInvestmentAccounts, investmentTransactions, warrants, prices, nonSymbolDataByType]);
-
-    const currentValuation = segmentValues[activeSegment] ?? segmentValues.all;
-    const currentCostBasis = segmentCostBases[activeSegment] ?? segmentCostBases.all;
-
-    const segmentPriceHistory = useMemo(() => {
-        // Combine dictionary priceHistory with account.priceHistory logs
-        const getSymbolHistory = (symbol: string) => {
-            const fromDict = priceHistory[symbol] || [];
-            const fromAcc = accountBySymbol.get(symbol)?.priceHistory || [];
-            const map = new Map<string, number>();
-            [...fromDict, ...fromAcc].forEach(entry => {
-                if (entry && entry.date && typeof entry.price === 'number') {
-                    map.set(entry.date, entry.price);
-                }
-            });
-            return Array.from(map.entries())
-                .map(([date, price]) => ({ date, price }))
-                .sort((a, b) => a.date.slice(0, 10).localeCompare(b.date.slice(0, 10)));
-        };
-
-        return buildPortfolioHistory({
-            holdings: activeOverview.holdings,
-            warrants: (activeSegment === 'all' || activeSegment === 'Warrant') ? warrants : [],
-            investmentTransactions,
-            allSegments: activeSegment === 'all',
-            priceHistoryFor: getSymbolHistory,
-            prices,
-            nonSymbolAccounts: activeInvestmentAccounts.filter(acc =>
-                !acc.symbol && (activeSegment === 'all' || (acc.subType || 'Other') === activeSegment)
-            ),
-            transactionsByAccount,
-            toEur: (amount, currency) => convertToEur(amount, currency, conversionRates),
-            currentValuation,
-            today: toLocalISOString(new Date()),
-        });
-    }, [activeOverview, activeSegment, warrants, priceHistory, investmentTransactions, prices, currentValuation, accountBySymbol, activeInvestmentAccounts, transactionsByAccount, conversionRates]);
-
-    // Only this segment's trades count as money moved in or out of the chart's holdings.
-    const chartTransactions = useMemo(() => {
-        if (activeSegment === 'all') return investmentTransactions;
-        const symbols = new Set(activeOverview.holdings.map(h => h.symbol));
-        return investmentTransactions.filter(t => symbols.has(t.symbol));
-    }, [activeSegment, investmentTransactions, activeOverview]);
-
-    const safeCurrentVal = currentValuation > 0 ? currentValuation : 0;
-    const formatPercent = (value: number, digits = 1) => (
-        safeCurrentVal > 0 ? ((value / safeCurrentVal) * 100).toFixed(digits) : '0.0'
-    );
-
-    const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
-        if (!adjustingAccount) return;
-        const txData: Omit<Transaction, 'id'> = {
-            accountId: adjustingAccount.id,
-            date,
-            description: 'Balance Adjustment',
-            merchant: notes || 'Manual balance correction',
-            amount: adjustmentAmount,
-            category: adjustmentAmount >= 0 ? 'Income' : 'Miscellaneous',
-            type: adjustmentAmount >= 0 ? 'income' : 'expense',
-            currency: adjustingAccount.currency,
-            isBalanceAdjustment: true,
-        };
-        saveTransaction([txData], []);
-        setAdjustingAccount(null);
-        setAdjustModalOpen(false);
-    };
-
-    const handleOpenModal = (tx?: InvestmentTransaction) => {
-        setEditingTransaction(tx || null);
-        setIsModalOpen(true);
-    };
-    
-    const handleOpenWarrantModal = (warrant?: Warrant) => {
-         setEditingWarrant(warrant || null);
-         setWarrantModalOpen(true);
+      });
+      if (hasNew) setPreferences(prev => ({ ...prev, smartPriceBindings: merged }));
+    } catch (error) {
+      warnIgnored('moving local price bindings', error);
     }
+  }, [preferences.smartPriceBindings, setPreferences]);
 
-    const handleOpenAccountModal = (account: Account) => {
-        setEditingAccount(account);
-        setAccountModalOpen(true);
-    };
+  const rates = preferences.conversionRates;
+  const configs = preferences.investmentPriceConfigs;
+  const toEur = useCallback((amount: number, currency: Currency) => convertToEur(amount, currency, rates), [rates]);
+  const currencyOf = useCallback((symbol: string): Currency => configs?.[symbol]?.currency ?? 'EUR', [configs]);
 
-    const handleOpenPriceModal = useCallback((symbol: string, name: string, currentPrice: number | null) => {
-        setEditingPriceItem({ symbol, name, currentPrice });
-        setIsPriceModalOpen(true);
-    }, []);
+  const investmentAccounts = useMemo(() => accounts.filter(account => account.type === 'Investment'), [accounts]);
+  const activeAccounts = useMemo(() => investmentAccounts.filter(account => account.status !== 'closed'), [investmentAccounts]);
+  const closedAccounts = useMemo(() => investmentAccounts.filter(account => account.status === 'closed'), [investmentAccounts]);
+  const accountBySymbol = useMemo(() => new Map(investmentAccounts.filter(account => account.symbol).map(account => [account.symbol!, account])), [investmentAccounts]);
+  const transactionsByAccount = useMemo(() => transactions.reduce((groups, transaction) => {
+    (groups[transaction.accountId] = groups[transaction.accountId] || []).push(transaction);
+    return groups;
+  }, {} as Record<string, Transaction[]>), [transactions]);
 
-    // Holdings without a price are left out of gain/loss so a missing quote never reads as a loss.
-    const pricedCostBasis = totalCostBasis - (activeOverview.unpricedCostBasis || 0);
-    const totalGainLoss = (totalValue - (activeOverview.unpricedValue || 0)) - pricedCostBasis;
-    const totalGainLossPercent = pricedCostBasis > 0 ? (totalGainLoss / pricedCostBasis) * 100 : 0;
-    
-    const recentActivity = useMemo(() => {
-        const txs = investmentTransactions.map(tx => ({
-            id: tx.id,
-            date: tx.date,
-            type: tx.type?.toLowerCase() === 'buy' ? 'BUY' : 'SELL',
-            symbol: tx.symbol,
-            quantity: tx.quantity,
-            price: tx.price,
-            isWarrant: false,
-            data: tx
-        }));
+  const overview: HoldingsOverview = useMemo(() => buildHoldingsOverview(activeAccounts, investmentTransactions, warrants, prices, { currencyOf, toEur }), [activeAccounts, investmentTransactions, warrants, prices, currencyOf, toEur]);
+  const everything: HoldingsOverview = useMemo(() => buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices, { currencyOf, toEur }), [investmentAccounts, investmentTransactions, warrants, prices, currencyOf, toEur]);
+  const figures = useMemo(() => portfolioBySegment(overview, activeAccounts, toEur), [overview, activeAccounts, toEur]);
+  const presentSegments = SEGMENT_NAMES.filter(name => figures[name].value !== 0 || figures[name].cost !== 0);
+  const activeSegment = segment === 'all' || presentSegments.includes(segment) ? segment : 'all';
+  const current = figures[activeSegment];
+  const gain = current.value - current.unpricedValue - (current.cost - current.unpricedCost);
+  const gainPct = percentOf(gain, current.cost - current.unpricedCost);
 
-        const grants = warrants.map(w => ({
-            id: w.id,
-            date: w.grantDate,
-            type: 'GRANT',
-            symbol: w.isin,
-            quantity: w.quantity,
-            price: w.grantPrice,
-            isWarrant: true,
-            data: w
-        }));
+  const heldHoldings = useMemo(() => holdingsInSegment(overview.holdings, activeSegment).filter(holding => holding.quantity > 0.000001 || holding.type === 'Warrant'), [overview, activeSegment]);
+  const shownHoldings = useMemo(
+    () => (showInactive ? holdingsInSegment(everything.holdings, activeSegment) : heldHoldings).slice().sort((a, b) => b.currentValue - a.currentValue),
+    [showInactive, everything, heldHoldings, activeSegment]
+  );
+  const accountRows = useMemo(() => activeAccounts.filter(account => !account.symbol && (activeSegment === 'all' || segmentOf({ type: 'Standard', subType: account.subType }) === activeSegment)), [activeAccounts, activeSegment]);
+  const logFor = useCallback((symbol: string) => mergedPriceLog(priceHistory[symbol], accountBySymbol.get(symbol)?.priceHistory), [priceHistory, accountBySymbol]);
 
-        return [...txs, ...grants].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
-    }, [investmentTransactions, warrants]);
+  const portfolioHistory = useMemo(() => buildPortfolioHistory({
+    holdings: heldHoldings,
+    warrants: activeSegment === 'all' || activeSegment === 'Warrant' ? warrants : [],
+    investmentTransactions,
+    allSegments: activeSegment === 'all',
+    priceHistoryFor: logFor,
+    prices,
+    nonSymbolAccounts: accountRows,
+    transactionsByAccount,
+    toEur,
+    currencyOf,
+    currentValuation: current.value,
+    today: toLocalISOString(new Date()),
+  }), [heldHoldings, activeSegment, warrants, investmentTransactions, logFor, prices, accountRows, transactionsByAccount, toEur, currencyOf, current.value]);
+  const chartWindow = useMemo(() => historyWindow(portfolioHistory, range === 'all' ? null : Number(range), new Date()), [portfolioHistory, range]);
+  const chartData = useMemo(() => chartWindow.points.map(point => ({ date: shortDate(point.date), value: point.price })), [chartWindow]);
 
-    const realizedPerformance = useMemo(() => {
-        // Sort transactions chronologically
-        const sortedTxs = [...investmentTransactions].sort(
-            (a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
-        );
-
-        const symbolStates: Record<string, { currentQty: number; averagePrice: number }> = {};
-        const realizedSales: {
-            id: string;
-            symbol: string;
-            date: string;
-            quantity: number;
-            buyPrice: number;
-            sellPrice: number;
-            gain: number;
-            gainPercent: number;
-        }[] = [];
-
-        sortedTxs.forEach(tx => {
-            if (!tx.symbol) return;
-            const symbol = tx.symbol.toUpperCase();
-            const txType = tx.type?.toLowerCase();
-            const q = Number(tx.quantity) || 0;
-            const p = Number(tx.price) || 0;
-
-            if (!symbolStates[symbol]) {
-                symbolStates[symbol] = { currentQty: 0, averagePrice: 0 };
-            }
-
-            const state = symbolStates[symbol];
-
-            if (txType === 'buy') {
-                const totalCostBefore = state.currentQty * state.averagePrice;
-                const totalCostAdded = q * p;
-                state.currentQty += q;
-                state.averagePrice = state.currentQty > 0 ? (totalCostBefore + totalCostAdded) / state.currentQty : 0;
-            } else if (txType === 'sell') {
-                const gain = q * (p - state.averagePrice);
-                const gainPercent = state.averagePrice > 0 ? ((p - state.averagePrice) / state.averagePrice) * 100 : 0;
-                
-                realizedSales.push({
-                    id: tx.id,
-                    symbol,
-                    date: tx.date,
-                    quantity: q,
-                    buyPrice: state.averagePrice,
-                    sellPrice: p,
-                    gain,
-                    gainPercent
-                });
-
-                state.currentQty -= q;
-                if (state.currentQty < 0) {
-                    state.currentQty = 0;
-                }
-            }
-        });
-
-        let totalRealizedGain = 0;
-        let winsCount = 0;
-        let lossesCount = 0;
-        let biggestWin = { symbol: '', gain: 0, gainPercent: 0 };
-        let biggestLoss = { symbol: '', gain: 0, gainPercent: 0 };
-
-        realizedSales.forEach(sale => {
-            totalRealizedGain += sale.gain;
-            if (sale.gain >= 0) {
-                winsCount++;
-                if (sale.gain > biggestWin.gain) {
-                    biggestWin = { symbol: sale.symbol, gain: sale.gain, gainPercent: sale.gainPercent };
-                }
-            } else {
-                lossesCount++;
-                if (sale.gain < biggestLoss.gain) {
-                    biggestLoss = { symbol: sale.symbol, gain: sale.gain, gainPercent: sale.gainPercent };
-                }
-            }
-        });
-
-        return {
-            realizedSales: realizedSales.reverse(),
-            totalRealizedGain,
-            winsCount,
-            lossesCount,
-            biggestWin,
-            biggestLoss
-        };
-    }, [investmentTransactions]);
-    
-    const handleContextMenu = (event: React.MouseEvent, account: Account) => {
-        event.preventDefault();
-        setContextMenu({ x: event.clientX, y: event.clientY, account });
-    };
-
-    const handleAccountClick = (accountId: string) => {
-        const acc = accounts.find(a => a.id === accountId);
-        if (acc) {
-            openOverviewModal(acc);
-        } else if (onViewAccount) {
-            onViewAccount(accountId);
-        }
-    };
-
-    const normalizeDecimalString = useCallback((rawValue: string): string => {
-        const cleaned = rawValue
-            .replace(/\s+/g, '')
-            .replace(/\u00A0/g, '')
-            .replace(/[^0-9.,-]/g, '');
-
-        const lastDot = cleaned.lastIndexOf('.');
-        const lastComma = cleaned.lastIndexOf(',');
-        const decimalSeparator = lastDot > lastComma ? '.' : (lastComma > lastDot ? ',' : null);
-
-        if (decimalSeparator) {
-            const thousandsSeparator = decimalSeparator === '.' ? ',' : '.';
-            const withoutThousands = cleaned.split(thousandsSeparator).join('');
-            return withoutThousands.replace(decimalSeparator, '.');
-        }
-
-        return cleaned.replace(/,/g, '.');
-    }, []);
-
-    const parsePriceFromText = useCallback((text: string): number | null => {
-        const numericPart = text.match(/-?\d[\d.,-]*/);
-        if (!numericPart) return null;
-
-        const normalized = normalizeDecimalString(numericPart[0]);
-        const parsed = parseFloat(normalized);
-        return isNaN(parsed) ? null : parsed;
-    }, [normalizeDecimalString]);
-
-    const fetchFromTwelveData = useCallback(async (symbol: string): Promise<number> => {
-        if (!twelveDataApiKey) {
-            throw new Error('Missing Twelve Data API key');
-        }
-
-        const fetchPrice = async (query: string) => {
-            const response = await fetchWithTimeout(query);
-            const data = await response.json();
-            if (data.status === 'error' || data.code) {
-                throw new Error(data.message || 'Unable to fetch price');
-            }
-            const parsed = parseFloat(data.price);
-            if (isNaN(parsed)) throw new Error('Invalid price returned');
-            return parsed;
-        };
-
-        const upperSymbol = symbol.toUpperCase();
-        const candidates = upperSymbol.includes('/')
-            ? [upperSymbol]
-            : [`${upperSymbol}/EUR`, `${upperSymbol}/USD`, upperSymbol];
-
-        for (const candidate of candidates) {
-            const queryParams = new URLSearchParams({
-                symbol: candidate,
-                apikey: twelveDataApiKey,
-            });
-
-            if (!candidate.toUpperCase().endsWith('/EUR')) {
-                queryParams.set('currency', 'EUR');
-            }
-
-            try {
-                return await fetchPrice(`https://api.twelvedata.com/price?${queryParams.toString()}`);
-            } catch {
-                continue;
-            }
-        }
-
-        throw new Error('Price not available from Twelve Data');
-    }, [twelveDataApiKey]);
-
-    const fetchFromSmartBinding = useCallback(async (symbol: string, binding: { url: string; selector: string; cookies?: string }) => {
-        const encodedUrl = encodeURIComponent(binding.url);
-        const cookieParam = binding.cookies ? `&cookies=${encodeURIComponent(binding.cookies)}` : '';
-        const response = await fetchWithTimeout(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
-        if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
-        }
-        const html = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const element = doc.querySelector(binding.selector);
-        if (!element) {
-            throw new Error(`Saved selector for ${symbol} no longer matches`);
-        }
-        const price = parsePriceFromText(element.textContent || '');
-        if (price === null) {
-            throw new Error(`Could not parse price for ${symbol}`);
-        }
-        return price;
-    }, [parsePriceFromText]);
-
-    const handleUpdateAllPrices = useCallback(async () => {
-        if (isUpdatingAllPrices || displayHoldings.length === 0) return;
-
-        setIsUpdatingAllPrices(true);
-        try {
-            const syncedSmartBindings = preferences.smartPriceBindings || {};
-            const syncedPriceConfigs = preferences.investmentPriceConfigs || {};
-
-            // Fallback to localStorage if any unmigrated bindings exist
-            let localFallbackBindings: Record<string, SmartPriceBinding> = {};
-            try {
-                const raw = localStorage.getItem('smartPriceBindings');
-                if (raw) localFallbackBindings = JSON.parse(raw) as Record<string, SmartPriceBinding>;
-            } catch (error) { warnIgnored('reading local price bindings', error); }
-
-            const settled = await Promise.allSettled(displayHoldings.map(async (holding) => {
-                const binding = syncedSmartBindings[holding.symbol] || syncedPriceConfigs[holding.symbol]?.binding || localFallbackBindings[holding.symbol];
-                const targetTicker = syncedPriceConfigs[holding.symbol]?.ticker || holding.symbol;
-
-                let nextPrice: number;
-                let sourceLabel: string;
-
-                if (binding && binding.url && binding.selector) {
-                    nextPrice = await fetchFromSmartBinding(holding.symbol, binding);
-                    sourceLabel = 'Custom site';
-                } else {
-                    nextPrice = await fetchFromTwelveData(targetTicker);
-                    sourceLabel = 'Twelve Data';
-                }
-
-                onManualPriceChange(holding.symbol, nextPrice, toLocalISOString(new Date()));
-                return { symbol: holding.symbol, source: sourceLabel, price: nextPrice };
-            }));
-
-            const successCount = settled.filter(result => result.status === 'fulfilled').length;
-            const failed = settled
-                .map((result, index) => ({ result, symbol: displayHoldings[index].symbol }))
-                .filter(item => item.result.status === 'rejected');
-
-            if (failed.length > 0) {
-                const failedSymbols = failed.map(item => item.symbol).join(', ');
-                toast.warning(`Updated ${successCount}/${displayHoldings.length} holdings. Failed: ${failedSymbols}`);
-            } else {
-                toast.success(`Updated prices for ${successCount} holdings.`);
-            }
-        } catch (error) {
-            console.error('Failed to update holdings prices', error);
-            toast.error('Unable to update prices right now. Please try again.');
-        } finally {
-            setIsUpdatingAllPrices(false);
-        }
-    }, [displayHoldings, fetchFromSmartBinding, fetchFromTwelveData, isUpdatingAllPrices, onManualPriceChange, preferences.smartPriceBindings, preferences.investmentPriceConfigs]);
-
-    const holdingsByType = useMemo(() => {
-        const groups = new Map<string, any[]>();
-        
-        // Add regular holdings
-        displayHoldings.forEach((holding) => {
-            const key = holding.type === 'Warrant' ? 'Warrants' : (holding.subType || 'Other');
-            const existing = groups.get(key) || [];
-            existing.push(holding);
-            groups.set(key, existing);
-        });
-
-        // Add non-symbol accounts (portfolios / brokerages / pension funds / spare change)
-        const nonSymbolAccounts = activeInvestmentAccounts.filter(a => !a.symbol);
-        
-        // Filter non-symbol accounts based on activeSegment
-        const filteredNonSymbol = nonSymbolAccounts.filter(acc => {
-            if (activeSegment === 'all') return true;
-            return acc.subType === activeSegment;
-        });
-
-        filteredNonSymbol.forEach(acc => {
-            let key = 'Other Portfolios';
-            if (acc.subType === 'Spare Change') {
-                key = 'Spare Change';
-            } else if (acc.subType === 'Pension Fund') {
-                key = 'Pension Funds';
-            } else if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
-                key = 'Brokerage Cash';
-            }
-
-            const linkedAcc = accounts?.find(a => a.id === acc.linkedAccountId);
-            const txs = transactionsByAccount[acc.id] || [];
-            
-            // Quantity calculation based on type
-            let quantity = txs.length;
-            let qtyLabel = 'transactions';
-            let subtext = '';
-
-            if (acc.subType === 'Spare Change') {
-                quantity = txs.filter(t => t.amount > 0).length;
-                qtyLabel = `${quantity} saves`;
-                subtext = linkedAcc ? `Linked: ${linkedAcc.name}` : 'Round-up Savings';
-            } else if (acc.subType === 'Pension Fund') {
-                quantity = acc.expectedRetirementYear || 0;
-                qtyLabel = quantity ? `Target: ${quantity}` : 'No target';
-                subtext = 'Pension Portfolio';
-            } else if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
-                quantity = txs.length;
-                qtyLabel = `${quantity} trades`;
-                subtext = `${acc.subType} Brokerage Account`;
-            } else {
-                quantity = txs.length;
-                qtyLabel = `${quantity} items`;
-                subtext = 'Alternative Portfolio';
-            }
-
-            const holdingObj = {
-                symbol: acc.name,
-                name: subtext,
-                quantity: quantity,
-                qtyLabel: qtyLabel,
-                totalCost: acc.balance,
-                currentValue: acc.balance,
-                currentPrice: acc.balance,
-                type: 'Standard',
-                subType: acc.subType,
-                isCustomAccount: true,
-                account: acc
-            };
-
-            const existing = groups.get(key) || [];
-            existing.push(holdingObj);
-            groups.set(key, existing);
-        });
-
-        return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    }, [displayHoldings, activeSegment, activeInvestmentAccounts, accounts, transactionsByAccount]);
-
-    const segmentMetrics = useMemo(() => {
-        const currentSegmentValue = segmentValues[activeSegment] ?? segmentValues.all ?? 0;
-        const currentSegmentCost = segmentCostBases[activeSegment] ?? segmentCostBases.all ?? 0;
-
-        const totalGainLoss = currentSegmentValue - currentSegmentCost;
-        const totalGainLossPercent = currentSegmentCost > 0 ? (totalGainLoss / currentSegmentCost) * 100 : 0;
-        
-        let details = [
-            { label: 'Invested Capital', value: formatCurrency(currentSegmentCost, 'EUR'), icon: 'credit_card' },
-            { label: 'Gain/Loss', value: `${totalGainLoss >= 0 ? '+' : ''}${formatCurrency(totalGainLoss, 'EUR')}`, icon: 'candlestick_chart' },
-            { label: 'Performance', value: `${totalGainLossPercent >= 0 ? '+' : ''}${totalGainLossPercent.toFixed(1)}%`, icon: 'trending_up' },
-        ];
-
-        if (activeSegment === 'Warrant') {
-            details = [
-                { label: 'Granted Value', value: formatCurrency(grantedCapital, 'EUR'), icon: 'award' },
-                { label: 'Active Grants', value: activeHoldings.length.toString(), icon: 'list' },
-                { label: 'Unrealized PnL', value: `${totalGainLoss >= 0 ? '+' : ''}${formatCurrency(totalGainLoss, 'EUR')}`, icon: 'candlestick_chart' },
-            ];
-        } else if (activeSegment === 'Spare Change') {
-            const spareAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Spare Change');
-            const spareAccountIds = new Set(spareAccounts.map(a => a.id));
-            details = [
-                { label: 'Total Saved', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'piggy_bank' },
-                { label: 'Round-ups Count', value: transactions.filter(t => spareAccountIds.has(t.accountId) && t.amount > 0).length.toString(), icon: 'tag' },
-                { label: 'Active Portfolios', value: spareAccounts.length.toString(), icon: 'folder' },
-            ];
-        } else if (activeSegment === 'Pension Fund') {
-            const pensionAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Pension Fund');
-            details = [
-                { label: 'Total Pension Value', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'assured_workload' },
-                { label: 'Active Funds', value: pensionAccounts.length.toString(), icon: 'folder' },
-                { label: 'Avg Retirement Target', value: pensionAccounts.some(a => a.expectedRetirementYear) ? Math.round(pensionAccounts.filter(a => a.expectedRetirementYear).reduce((sum, a) => sum + (a.expectedRetirementYear || 0), 0) / pensionAccounts.filter(a => a.expectedRetirementYear).length).toString() : 'N/A', icon: 'calendar' },
-            ];
-        } else if (activeSegment === 'Other') {
-            const otherAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Other');
-            details = [
-                { label: 'Other Asset Value', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'folder' },
-                { label: 'Active Portfolios', value: otherAccounts.length.toString(), icon: 'folder' },
-            ];
-        }
-
-        return { totalValue: currentSegmentValue, details };
-    }, [activeSegment, grantedCapital, activeHoldings.length, activeInvestmentAccounts, transactions, segmentValues, segmentCostBases]);
-
-    const trendData = useMemo(() => {
-        // Mock trend data for investments since we don't have historical snapshots here
-        // We'll base it on current value with some random fluctuations for the sparkline effect
-        const data = [];
-        const baseValue = currentValuation;
-        for (let i = 0; i < 30; i++) {
-            data.push({
-                date: i.toString(),
-                value: baseValue * (1 + (Math.sin(i / 2) * 0.05) + (Math.random() * 0.02))
-            });
-        }
-        return data;
-    }, [currentValuation]);
-
-    const activeDistributionData = useMemo(() => {
-        const list = [...distributionData];
-        const relevantNonSym = activeInvestmentAccounts.filter(acc =>
-            !acc.symbol && (activeSegment === 'all' || (acc.subType || 'Other') === activeSegment)
-        );
-        relevantNonSym.forEach((acc, idx) => {
-            const val = convertToEur(acc.balance, acc.currency, conversionRates);
-            if (val > 0) {
-                const color = BRAND_COLORS[(list.length + idx) % BRAND_COLORS.length];
-                list.push({
-                    name: acc.name,
-                    value: val,
-                    color
-                });
-            }
-        });
-        return list.sort((a, b) => b.value - a.value);
-    }, [distributionData, activeInvestmentAccounts, activeSegment, conversionRates]);
-
-    const segments = useMemo(() => {
-        const base: { id: InvestmentSegment; label: string; icon: string; color: string }[] = [
-            { id: 'all', label: 'All Assets', icon: 'layout_alt', color: 'indigo' },
-            { id: 'Stock', label: 'Stocks', icon: 'candlestick_chart', color: 'blue' },
-            { id: 'ETF', label: 'ETFs', icon: 'bar_chart', color: 'teal' },
-            { id: 'Crypto', label: 'Crypto', icon: 'zap', color: 'amber' },
-            { id: 'Warrant', label: 'Warrants', icon: 'Certificate01', color: 'rose' },
-        ];
-
-        if (activeInvestmentAccounts.some(a => a.subType === 'Spare Change')) {
-            base.push({ id: 'Spare Change', label: 'Spare Change', icon: 'coins_stacked', color: 'emerald' });
-        }
-        if (activeInvestmentAccounts.some(a => a.subType === 'Pension Fund')) {
-            base.push({ id: 'Pension Fund', label: 'Pension', icon: 'assured_workload', color: 'purple' });
-        }
-        if (activeInvestmentAccounts.some(a => a.subType === 'Other')) {
-            base.push({ id: 'Other', label: 'Other', icon: 'folder', color: 'gray' });
-        }
-
-        return base;
-    }, [activeInvestmentAccounts]);
-
-    const heroGradient = activeSegment === 'Stock'
-        ? 'from-blue-500 via-blue-600 to-indigo-700'
-        : activeSegment === 'ETF'
-            ? 'from-teal-500 via-emerald-600 to-cyan-700'
-            : activeSegment === 'Crypto'
-                ? 'from-amber-500 via-orange-600 to-yellow-700'
-                : activeSegment === 'Warrant'
-                    ? 'from-rose-500 via-rose-600 to-pink-700'
-                    : activeSegment === 'Spare Change'
-                        ? 'from-emerald-500 via-teal-600 to-cyan-700'
-                        : activeSegment === 'Pension Fund'
-                            ? 'from-purple-500 via-indigo-600 to-violet-700'
-                            : activeSegment === 'Other'
-                                ? 'from-slate-500 via-gray-600 to-neutral-700'
-                                : 'from-indigo-600 via-violet-700 to-purple-800';
-
-    const pageStats: PageStat[] = [
-      { label: 'Portfolio value', icon: 'candlestick_chart', value: totalValue, format: 'money' },
-      { label: 'Gain or loss', icon: 'trending_up', value: totalGainLoss, format: 'money', badge: `${totalGainLossPercent.toFixed(1)}%`, badgeTone: totalGainLoss >= 0 ? 'pine' as const : 'tomato' as const },
-      { label: 'Holdings', icon: 'layers', value: activeHoldings.length },
+  const allocation = useMemo(() => {
+    if (activeSegment === 'all') return presentSegments.map(name => ({ id: name, label: SEGMENT_LABELS[name], value: figures[name].value, color: SEGMENT_COLORS[name] })).filter(row => row.value > 0).sort((a, b) => b.value - a.value);
+    const rows = [
+      ...heldHoldings.map(holding => ({ id: holding.symbol, label: holding.name || holding.symbol, value: holding.currentValue })),
+      ...accountRows.map(account => ({ id: account.id, label: account.name, value: toEur(account.balance, account.currency) })),
+    ].filter(row => row.value > 0).sort((a, b) => b.value - a.value).map(row => ({ ...row, color: SEGMENT_COLORS[activeSegment] }));
+    if (rows.length <= ALLOCATION_ROWS) return rows;
+    const rest = rows.slice(ALLOCATION_ROWS - 1);
+    return [...rows.slice(0, ALLOCATION_ROWS - 1), { id: 'rest', label: `${rest.length} others`, value: rest.reduce((sum, row) => sum + row.value, 0), color: 'var(--muted)' }];
+  }, [activeSegment, presentSegments, figures, heldHoldings, accountRows, toEur]);
+  const biggest = useMemo(() => {
+    const rows = [
+      ...heldHoldings.map(holding => ({ label: holding.name || holding.symbol, value: holding.currentValue })),
+      ...accountRows.map(account => ({ label: account.name, value: toEur(account.balance, account.currency) })),
     ];
+    return rows.reduce<{ label: string; value: number } | null>((top, row) => (!top || row.value > top.value ? row : top), null);
+  }, [heldHoldings, accountRows, toEur]);
+  const movers = useMemo(
+    () => heldHoldings.filter(holding => !holding.priceUnavailable).map(holding => ({ holding, gain: holding.currentValue - holding.totalCost })).sort((a, b) => Math.abs(b.gain) - Math.abs(a.gain)).slice(0, 5),
+    [heldHoldings]
+  );
 
-    return (
-        <div className="relative">
-            {/* Shared Modals for both Mobile and Desktop */}
-            {isModalOpen && (
-                <AddInvestmentTransactionModal
-                    onClose={() => setIsModalOpen(false)}
-                    onSave={saveInvestmentTransaction}
-                    onSaveGrant={saveWarrant}
-                    accounts={accounts}
-                    cashAccounts={cashAccounts}
-                    transactionToEdit={editingTransaction}
-                    holdings={activeHoldings}
-                />
-            )}
-            {isWarrantModalOpen && (
-                <WarrantModal 
-                    onClose={() => setWarrantModalOpen(false)} 
-                    onSave={(w) => { saveWarrant(w); setWarrantModalOpen(false); }} 
-                    warrantToEdit={editingWarrant} 
-                />
-            )}
-            {isAccountModalOpen && editingAccount && (
-                <AccountForm
-                    onClose={() => setAccountModalOpen(false)}
-                    onSave={(account) => { saveAccount(account); setAccountModalOpen(false); }}
-                    onDelete={(accountId) => {
-                        const acc = accounts.find(a => a.id === accountId);
-                        if (acc) setAccountToDelete(acc);
-                        setAccountModalOpen(false);
-                    }}
-                    account={editingAccount}
-                    accounts={accounts}
-                    warrants={warrants}
-                    onToggleStatus={onToggleAccountStatus}
-                />
-            )}
-            {isAdjustModalOpen && adjustingAccount && (
-                <BalanceAdjustmentModal
-                    onClose={() => setAdjustModalOpen(false)}
-                    onSave={handleSaveAdjustment}
-                    account={adjustingAccount}
-                />
-            )}
-            {isPriceModalOpen && editingPriceItem && (
-                <WarrantPriceModal
-                    onClose={() => setIsPriceModalOpen(false)}
-                    onSave={onManualPriceChange}
-                    isin={editingPriceItem.symbol}
-                    name={editingPriceItem.name}
-                    manualPrice={manualPrices[editingPriceItem.symbol]}
-                />
-            )}
+  const symbolsInView = useMemo(() => new Set(holdingsInSegment(everything.holdings, activeSegment).map(holding => holding.symbol)), [everything, activeSegment]);
+  const tradesInView = useMemo(() => investmentTransactions.filter(trade => activeSegment === 'all' || symbolsInView.has(trade.symbol)), [investmentTransactions, activeSegment, symbolsInView]);
+  const grantsInView = useMemo(() => warrants.filter(grant => activeSegment === 'all' || symbolsInView.has(grant.isin)), [warrants, activeSegment, symbolsInView]);
+  const realized = useMemo(() => realizedGains(tradesInView, grantsInView), [tradesInView, grantsInView]);
+  const activity = useMemo(() => [
+    ...tradesInView.map(trade => ({
+      id: trade.id, date: trade.date, kind: trade.type?.toLowerCase() === 'buy' ? 'Buy' : 'Sell', symbol: trade.symbol, name: trade.name, quantity: trade.quantity, price: trade.price, currency: (trade.currency ?? 'EUR') as Currency, trade, grant: undefined as Warrant | undefined,
+    })),
+    ...grantsInView.map(grant => ({
+      id: grant.id, date: grant.grantDate, kind: 'Grant', symbol: grant.isin, name: grant.name, quantity: grant.quantity, price: grant.grantPrice, currency: 'EUR' as Currency, trade: undefined as InvestmentTransaction | undefined, grant,
+    })),
+  ].sort((a, b) => (a.date < b.date ? 1 : -1)), [tradesInView, grantsInView]);
 
-            <ConfirmationModal
-                isOpen={!!accountToDelete}
-                onClose={() => setAccountToDelete(null)}
-                onConfirm={() => {
-                    if (accountToDelete) {
-                        deleteAccount(accountToDelete.id);
-                        setAccountToDelete(null);
-                    }
-                }}
-                title="Delete Account"
-                message={`Are you sure you want to delete ${accountToDelete?.name}? This will remove all associated transactions and data. This action cannot be undone.`}
-                confirmButtonText="Delete Account"
-            />
-            
-            <ConfirmationModal
-                isOpen={!!itemToDelete}
-                onClose={() => setItemToDelete(null)}
-                onConfirm={() => {
-                    if (itemToDelete) {
-                        if (itemToDelete.isWarrant) {
-                            deleteWarrant(itemToDelete.id);
-                        } else {
-                            deleteInvestmentTransaction(itemToDelete.id);
-                        }
-                        setItemToDelete(null);
-                    }
-                }}
-                title="Delete Activity"
-                message="Are you sure you want to delete this activity? This will recalculate your holdings basis."
-                confirmButtonText="Delete"
-            />
+  const openHolding = useMemo(() => (openSymbol ? everything.holdings.find(holding => holding.symbol === openSymbol) ?? null : null), [openSymbol, everything]);
+  const closeHolding = () => {
+    setOpenSymbol(null);
+    if (linkedSymbol) onCloseLinkedHolding?.();
+  };
 
-            {/* Responsive View Switch */}
-            {isMobile ? (
-                <MobileInvestmentsView
-          stats={pageStats}
-                    accounts={accounts}
-                    cashAccounts={cashAccounts}
-                    investmentTransactions={investmentTransactions}
-                    warrants={warrants}
-                    transactions={transactions}
-                    prices={prices}
-                    manualPrices={manualPrices}
-                    holdingsOverview={propHoldingsOverview}
-                    globalOverview={globalOverview}
-                    activeOverview={activeOverview}
-                    displayHoldings={displayHoldings}
-                    holdingsByType={holdingsByType}
-                    segmentValues={segmentValues}
-                    segmentCostBases={segmentCostBases}
-                    segmentMetrics={segmentMetrics}
-                    recentActivity={recentActivity}
-                    realizedPerformance={realizedPerformance}
-                    activeSegment={activeSegment}
-                    setActiveSegment={setActiveSegment}
-                    segments={segments}
-                    showInactiveHoldings={showInactiveHoldings}
-                    setShowInactiveHoldings={setShowInactiveHoldings}
-                    onOpenHoldingDetail={onOpenHoldingDetail}
-                    onAddTransaction={(tx) => handleOpenModal(tx)}
-                    onAddWarrant={(w) => handleOpenWarrantModal(w)}
-                    onEditAccount={(acc) => handleOpenAccountModal(acc)}
-                    onAdjustBalance={(acc) => {
-                        setAdjustingAccount(acc);
-                        setAdjustModalOpen(true);
-                    }}
-                    onDeleteAccount={(acc) => setAccountToDelete(acc)}
-                    onDeleteActivity={(id, isWarrant) => setItemToDelete({ id, isWarrant })}
-                    onOpenPriceModal={handleOpenPriceModal}
-                    onUpdateAllPrices={handleUpdateAllPrices}
-                    isUpdatingPrices={isUpdatingAllPrices}
-                    onViewAccount={onViewAccount}
-                    onOverviewClick={openOverviewModal}
-                    preferredCurrency={preferredCurrency}
-                    conversionRates={conversionRates}
-                />
-            ) : (
-                <div className="space-y-5">
-                <PageHeader 
-                    markerIcon="candlestick_chart"
-                    markerLabel="Investment Center"
-                    title="Investments"
-                    stats={pageStats}
-                    actions={
-                        <div className="flex items-center gap-2">
-                            <HeaderButton
-                                variant="emerald"
-                                icon="sync"
-                                isLoading={isUpdatingAllPrices}
-                                onClick={() => handleUpdateAllPrices()}
-                                title="Sync Market Prices"
-                            >
-                                {isUpdatingAllPrices ? 'Syncing...' : 'Sync Prices'}
-                            </HeaderButton>
-                            <HeaderButton
-                                variant="primary"
-                                icon="PlusCircle"
-                                onClick={() => handleOpenModal()}
-                            >
-                                Trade
-                            </HeaderButton>
-                        </div>
-                    }
-                />
+  const updateAllPrices = useCallback(async () => {
+    const targets = heldHoldings;
+    if (isUpdatingPrices || targets.length === 0) return;
+    setUpdatingPrices(true);
+    try {
+      let localBindings: Record<string, SmartPriceBinding> = {};
+      try {
+        localBindings = JSON.parse(localStorage.getItem('smartPriceBindings') || '{}');
+      } catch (error) {
+        warnIgnored('reading local price bindings', error);
+      }
+      const settled = await Promise.allSettled(targets.map(async holding => {
+        const config = configs?.[holding.symbol];
+        const binding = preferences.smartPriceBindings?.[holding.symbol] || config?.binding || localBindings[holding.symbol];
+        let price: number;
+        if (binding?.url && binding.selector) {
+          price = await fetchSmartPrice(holding.symbol, binding);
+        } else {
+          if (!preferences.twelveDataApiKey) throw new Error('Missing Twelve Data API key');
+          const quote = await fetchBestQuote(config?.ticker || holding.symbol, preferences.twelveDataApiKey, config?.exchange, SUPPORTED_CURRENCIES);
+          // The price log stays in the holding's currency, whatever the quote came in.
+          price = convertCurrency(quote.price, quote.currency, currencyOf(holding.symbol), rates);
+        }
+        onManualPriceChange(holding.symbol, price, toLocalISOString(new Date()));
+      }));
+      const failed = settled.flatMap((result, index) => (result.status === 'rejected' ? [targets[index].symbol] : []));
+      if (failed.length > 0) toast.warning(`Updated ${targets.length - failed.length} of ${targets.length}. Failed: ${failed.join(', ')}`);
+      else toast.success(`Updated ${targets.length} ${targets.length === 1 ? 'price' : 'prices'}`);
+    } catch (error) {
+      console.error('Failed to update holdings prices', error);
+      toast.error("Couldn't update prices. Try again.");
+    } finally {
+      setUpdatingPrices(false);
+    }
+  }, [heldHoldings, isUpdatingPrices, configs, preferences.smartPriceBindings, preferences.twelveDataApiKey, currencyOf, rates, onManualPriceChange, setUpdatingPrices]);
 
-                {/* --- Unified Top Row: 1/3 Hero Portfolio Command & 2/3 Candlestick Performance --- */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    {/* --- Left 1/3 (Col 4): Investment Portfolio Command Hero Card --- */}
-                    <div className="lg:col-span-4 glass-section rounded-2xl p-4 sm:p-5 border border-slate-200/60 dark:border-white/5 shadow-card overflow-hidden relative flex flex-col gap-3 group">
-                        <div className="relative z-10 space-y-3">
-                            {/* Header: Valuation & Sparkline */}
-                            <div>
-                                <div className="flex items-center justify-between gap-2 mb-1">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center">
-                                            <Icon name={activeSegment === 'all' ? "candlestick_chart" : (segments.find(s => s.id === activeSegment)?.icon || "candlestick_chart")} className="text-primary-700 dark:text-primary-400 text-sm" />
-                                        </div>
-                                        <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
-                                            {activeSegment === 'all' ? 'Portfolio Valuation' : `${segments.find(s => s.id === activeSegment)?.label} Segment`}
-                                        </span>
-                                    </div>
+  const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
+    if (!adjustingAccount) return;
+    saveTransaction([{
+      accountId: adjustingAccount.id, date, description: 'Balance Adjustment', merchant: notes || 'Manual balance correction', amount: adjustmentAmount,
+      category: adjustmentAmount >= 0 ? 'Income' : 'Miscellaneous', type: adjustmentAmount >= 0 ? 'income' : 'expense', currency: adjustingAccount.currency, isBalanceAdjustment: true,
+    }], []);
+    setAdjustingAccount(null);
+  };
 
-                                    {activeSegment !== 'all' && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setActiveSegment('all')}
-                                            className="text-2xs font-bold uppercase tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
-                                        >
-                                            View All
-                                        </button>
-                                    )}
-                                </div>
+  const holdingRows: HoldingRow[] = useMemo(() => shownHoldings.map(holding => ({
+    holding,
+    trend: historyWindow(logFor(holding.symbol), 30, new Date()).points.map(point => ({ value: point.price })),
+    menu: [
+      { id: 'details', label: 'Details', icon: 'visibility', onAction: () => setOpenSymbol(holding.symbol) },
+      { id: 'price', label: 'Log or fetch a price', icon: 'edit', onAction: () => setPriceTarget({ symbol: holding.symbol, name: holding.name }) },
+      { id: 'trade', label: 'Trade', icon: 'swap_horiz', onAction: () => setTradeForm({ mode: 'trade', symbol: holding.symbol }) },
+    ],
+  })), [shownHoldings, logFor]);
 
-                                <div className="flex items-baseline justify-between gap-3">
-                                    <h2 className="text-2.5xl sm:text-3xl font-black font-mono tracking-tight privacy-blur text-light-text dark:text-dark-text">
-                                        {formatCurrency(segmentValues[activeSegment] || segmentValues.all, 'EUR')}
-                                    </h2>
-                                    <div className="w-20 h-6 opacity-60">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={trendData}>
-                                                <Area {...LINE_MOTION} type="monotone" dataKey="value" stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} strokeWidth={2} fill="transparent" animationDuration={1500} />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-                            </div>
+  const accountMenu = (account: Account): MenuAction[] => [
+    { id: 'overview', label: 'Quick overview', icon: 'visibility', onAction: () => setOverviewAccount(account) },
+    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setAccountForm(account) },
+    ...(account.status === 'closed' ? [] : [{ id: 'adjust', label: 'Adjust balance', icon: 'tune', onAction: () => setAdjustingAccount(account) }]),
+    { id: 'status', label: account.status === 'closed' ? 'Reopen' : 'Close', icon: account.status === 'closed' ? 'lock_open' : 'lock', startsGroup: true, onAction: () => onToggleAccountStatus(account.id) },
+    { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, onAction: () => setAccountToDelete(account) },
+  ];
 
-                            {/* Middle: Segment Allocation Grid */}
-                            <div className="space-y-1">
-                                <div className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">
-                                    Allocation by Segment
-                                </div>
-                                <div className="grid grid-cols-2 gap-1.5">
-                                    {segments.map(seg => {
-                                        const isActive = activeSegment === seg.id;
-                                        const val = segmentValues[seg.id as keyof typeof segmentValues];
-                                        return (
-                                            <button
-                                                key={seg.id}
-                                                type="button"
-                                                onClick={() => setActiveSegment(seg.id)}
-                                                className={`p-2 rounded-xl transition-all border text-left flex items-center justify-between cursor-pointer ${
-                                                    isActive
-                                                        ? 'bg-primary-500/15 border-primary-500/35 text-primary-600 dark:text-primary-400 shadow-xs'
-                                                        : 'glass-tile text-light-text-secondary dark:text-dark-text-secondary'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
-                                                        isActive ? 'bg-primary-500/20 text-primary-600 dark:text-primary-400' : 'bg-white dark:bg-white/10 text-gray-500 shadow-2xs'
-                                                    }`}>
-                                                        <Icon name={seg.icon} className="text-xs" />
-                                                    </div>
-                                                    <span className={`text-2xs font-semibold truncate ${isActive ? 'text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-600 dark:text-gray-300'}`}>
-                                                        {seg.label}
-                                                    </span>
-                                                </div>
-                                                <span className={`text-xs font-bold font-mono privacy-blur ml-1 shrink-0 ${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'}`}>
-                                                    {formatCurrency(val, 'EUR')}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
+  const stats: PageStat[] = [
+    { label: 'Portfolio value', icon: 'nav_investments', value: current.value, format: 'money', currency: 'EUR' },
+    { label: 'Gain or loss', icon: gain >= 0 ? 'trending_up' : 'trending_down', value: gain, format: 'money', currency: 'EUR', badge: `${gain >= 0 ? '+' : '−'}${Math.abs(gainPct).toFixed(1)}%`, badgeTone: gain >= 0 ? 'pine' : 'tomato' },
+    { label: 'Realised', icon: 'payments', value: realized.total, format: 'money', currency: 'EUR' },
+  ];
 
-                        {/* Footer: Dynamic Segment Metrics & Inactive Toggle */}
-                        <div className="relative z-10 mt-3 pt-3 border-t border-slate-200/60 dark:border-white/5 space-y-2">
-                            <div className="grid grid-cols-3 gap-1.5">
-                                {segmentMetrics.details.map((detail, i) => (
-                                    <div key={i} className="p-1.5 px-2 rounded-xl glass-subwell flex flex-col">
-                                        <span className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary/70 truncate">{detail.label}</span>
-                                        <span className="text-xs font-black font-mono text-light-text dark:text-dark-text privacy-blur truncate mt-0.5">{detail.value}</span>
-                                    </div>
-                                ))}
-                            </div>
+  const hasNothing = investmentAccounts.length === 0 && warrants.length === 0 && investmentTransactions.length === 0;
+  const addMenu: MenuAction[] = [
+    { id: 'trade', label: 'Trade', icon: 'swap_horiz', onAction: () => setTradeForm({ mode: 'trade' }) },
+    { id: 'grant', label: 'Equity grant', icon: 'workspace_premium', onAction: () => setTradeForm({ mode: 'grant' }) },
+  ];
+  const segmentItems = [{ id: 'all', label: 'All' }, ...presentSegments.map(name => ({ id: name, label: SEGMENT_LABELS[name] }))];
 
-                            <div className="flex items-center justify-between text-xs pt-0.5">
-                                <span className="text-2xs font-semibold uppercase tracking-wider text-gray-400">Display Options</span>
-                                <label className="flex items-center gap-1.5 text-2xs bg-light-fill dark:bg-dark-fill px-2.5 py-1 rounded-lg font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                    <input type="checkbox" checked={showInactiveHoldings} onChange={(event) => setShowInactiveHoldings(event.target.checked)} className={CHECKBOX_STYLE} />
-                                    <span>Show Inactive</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+  return (
+    <div className="space-y-6 pb-8 max-md:space-y-4">
+      <PageHeader
+        title="Investments"
+        stats={stats}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" icon="refresh" isBusy={isUpdatingPrices} isDisabled={heldHoldings.length === 0} onPress={updateAllPrices}>Update prices</Button>
+            <Menu title="Add" trigger={<Button icon="add">Add</Button>} items={addMenu} />
+          </div>
+        }
+      />
 
-                    {/* --- Right 2/3 (Col 8): Candlestick OHLC Performance Trend Chart --- */}
-                    <div className="lg:col-span-8 flex flex-col">
-                        <InvestmentCandlestickChart
-                            title={`${activeSegment === 'all' ? 'All Portfolio Assets' : (segments.find(s => s.id === activeSegment)?.label || activeSegment)} Candlestick Performance`}
-                            subtitle="Open, High, Low, and Close price action analysis for selected investment segment"
-                            currentValue={currentValuation}
-                            costBasis={currentCostBasis}
-                            isNegativeTrend={currentValuation < (currentCostBasis || 0)}
-                            priceHistory={segmentPriceHistory}
-                            transactions={chartTransactions}
-                            currency="EUR"
-                        />
-                    </div>
+      {hasNothing ? (
+        <EmptyState icon="nav_investments" title="No investments yet" description="Add a trade or an equity grant to start your portfolio." actionLabel="Add a trade" onAction={() => setTradeForm({ mode: 'trade' })} />
+      ) : (
+        <>
+          {presentSegments.length > 1 && <SegmentedControl scrollable items={segmentItems} activeId={activeSegment} onChange={id => setSegment(id as InvestmentSegment)} />}
+          {current.unpricedValue > 0 && <p className="type-caption text-muted">{formatCurrency(current.unpricedValue, 'EUR')} is valued at its last trade, because there's no current price. It's left out of the gain.</p>}
+
+          {tab === 'portfolio' && (
+            <div className="grid grid-cols-1 gap-5 min-[1100px]:grid-cols-3">
+              <section aria-label="Performance" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 min-[1100px]:col-span-2">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="type-card-title text-ink">Performance</h2>
+                    {chartData.length > 1 && <Change value={chartWindow.change} currency="EUR" period={RANGE_WORDS[range]} className="type-caption text-muted" />}
+                  </div>
+                  <SegmentedControl items={RANGES} activeId={range} onChange={setRange} />
                 </div>
-
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-                    {/* Main Table Column */}
-                    <div className="xl:col-span-8 space-y-8">
-                        <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl">
-                            <div className="px-6 py-5 flex justify-between items-center border-b border-slate-200/60 dark:border-white/5 glass-subwell">
-                                <div className="flex items-center gap-3 text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
-                                    <Icon name="list_alt" className="text-primary-500" />
-                                    <span>{activeSegment === 'all' ? 'All Holdings' : `${segments.find(s => s.id === activeSegment)?.label} Positions`}</span>
-                                </div>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-900/[0.03] dark:bg-white/[0.03] backdrop-blur-md">
-                                        <tr className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-200/60 dark:border-white/5">
-                                            <th className="py-4 pl-4 sm:pl-6">Instrument</th>
-                                            <th className="py-4 text-right hidden sm:table-cell">Last Price</th>
-                                            <th className="py-4 text-right hidden lg:table-cell">Qty</th>
-                                            <th className="py-4 text-right hidden md:table-cell">Cost</th>
-                                            <th className="py-4 text-right">Market</th>
-                                            <th className="py-4 text-right">G/L</th>
-                                            <th className="py-4 text-center pr-4 sm:pr-6 w-32">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200/60 dark:divide-white/5 bg-transparent">
-                                        {holdingsByType.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="py-12 text-center text-gray-400 italic">
-                                                    No active holdings found. Start by adding a transaction.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            holdingsByType.flatMap(([typeName, holdings]) => ([
-                                                <tr key={`group-${typeName}`} className="bg-gray-50/80 dark:bg-white/[0.02]">
-                                                    <td colSpan={7} className="py-2 pl-6 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-                                                        {typeName}
-                                                    </td>
-                                                </tr>,
-                                                ...holdings.map(holding => {
-                                                    if (holding.isCustomAccount) {
-                                                        const acc = holding.account;
-                                                        // Resolve icons and colors dynamically
-                                                        let icon = 'account_balance_wallet';
-                                                        let iconColorClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-                                                        let headerLabel = 'Cash Balance';
-                                                        let badgeLabel = 'Active';
-                                                        let badgeColorClass = 'text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20';
-
-                                                        if (acc.subType === 'Spare Change') {
-                                                            icon = 'savings';
-                                                            iconColorClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
-                                                            headerLabel = 'Auto-Save';
-                                                        } else if (acc.subType === 'Pension Fund') {
-                                                            icon = 'assured_workload';
-                                                            iconColorClass = 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
-                                                            headerLabel = 'Retirement';
-                                                            badgeLabel = 'Pension';
-                                                            badgeColorClass = 'text-purple-600 dark:text-purple-400 bg-purple-100/50 dark:bg-purple-900/20';
-                                                        } else if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
-                                                            icon = 'account_balance_wallet';
-                                                            iconColorClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-                                                            headerLabel = 'Brokerage Cash';
-                                                            badgeLabel = acc.subType || 'Brokerage';
-                                                            badgeColorClass = 'text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/20';
-                                                        } else {
-                                                            icon = 'folder';
-                                                            iconColorClass = 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
-                                                            headerLabel = 'Asset Balance';
-                                                            badgeLabel = 'Portfolio';
-                                                            badgeColorClass = 'text-gray-600 dark:text-gray-400 bg-gray-100/50 dark:bg-gray-900/20';
-                                                        }
-
-                                                        return (
-                                                            <tr 
-                                                                key={acc.id} 
-                                                                className="group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer"
-                                                                onClick={() => handleAccountClick(acc.id)}
-                                                            >
-                                                                <td className="py-4 pl-6">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 ${iconColorClass}`}>
-                                                                            <Icon name={icon} className="text-base" />
-                                                                        </div>
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{acc.name}</p>
-                                                                            <p className="text-xs text-gray-400 truncate font-medium">{holding.name}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-4 text-right hidden sm:table-cell">
-                                                                    <span className="text-sm font-medium text-gray-400 dark:text-gray-500">{headerLabel}</span>
-                                                                </td>
-                                                                <td className="py-4 text-right hidden lg:table-cell">
-                                                                    <span className="text-sm font-medium text-light-text dark:text-dark-text">{holding.qtyLabel}</span>
-                                                                </td>
-                                                                <td className="py-4 text-right hidden md:table-cell">
-                                                                    <span className="text-sm font-mono text-gray-500 privacy-blur">-</span>
-                                                                </td>
-                                                                <td className="py-4 text-right">
-                                                                    <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(acc.balance, acc.currency)}</span>
-                                                                </td>
-                                                                <td className="py-4 text-right">
-                                                                    <div className={`text-xs font-semibold ${badgeColorClass} px-2 py-0.5 rounded-full inline-block`}>
-                                                                        {badgeLabel}
-                                                                    </div>
-                                                                </td>
-                                                                  <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
-                                                                    <div className="flex items-center justify-center gap-1">
-                                                                        <button 
-                                                                            onClick={() => handleOpenAccountModal(acc)}
-                                                                            className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
-                                                                            title="Edit Account Settings"
-                                                                        >
-                                                                            <Icon name="edit" className="text-base" />
-                                                                        </button>
-                                                                        <button 
-                                                                            onClick={() => { setAdjustingAccount(acc); setAdjustModalOpen(true); }}
-                                                                            className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-amber-500 transition-colors"
-                                                                            title="Adjust Balance"
-                                                                        >
-                                                                            <Icon name="tune" className="text-base" />
-                                                                        </button>
-                                                                        <button 
-                                                                            onClick={() => handleAccountClick(acc.id)}
-                                                                            className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-blue-500 transition-colors"
-                                                                            title="Account Details"
-                                                                        >
-                                                                            <Icon name="analytics" className="text-base" />
-                                                                        </button>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    }
-
-                                                    const gainLoss = holding.priceUnavailable ? 0 : holding.currentValue - holding.totalCost;
-                                                    const gainLossPercent = !holding.priceUnavailable && holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
-                                                    const isPositive = gainLoss >= 0;
-                                                    const holdingAccount = accountBySymbol.get(holding.symbol);
-                                                    const isClosed = holdingAccount?.status === 'closed';
-
-                                                    return (
-                                                        <tr 
-                                                            key={holding.symbol} 
-                                                            className={`group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer ${isClosed ? 'opacity-50' : ''}`}
-                                                            onClick={() => holdingAccount ? openOverviewModal(holdingAccount) : onOpenHoldingDetail(holding.symbol)}
-                                                        >
-                                                            <td className="py-4 pl-6">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 ${holding.type === 'Warrant' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'}`}>
-                                                                        {holding.symbol.substring(0, 2)}
-                                                                    </div>
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
-                                                                        <p className="text-xs text-gray-400 truncate font-medium">{holding.name}</p>
-                                                                        {holding.priceUnavailable && <p className="text-2xs font-semibold text-amber-700 dark:text-amber-400">Price unavailable</p>}
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-4 text-right hidden sm:table-cell">
-                                                                <span className="text-sm font-mono text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</span>
-                                                            </td>
-                                                            <td className="py-4 text-right hidden lg:table-cell">
-                                                                <span className="text-sm font-medium text-light-text dark:text-dark-text">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                                                            </td>
-                                                            <td className="py-4 text-right hidden md:table-cell">
-                                                                <span className="text-sm font-mono text-gray-500 privacy-blur">{formatCurrency(holding.totalCost, 'EUR')}</span>
-                                                            </td>
-                                                            <td className="py-4 text-right">
-                                                                <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
-                                                            </td>
-                                                            <td className="py-4 text-right">
-                                                                <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                                                    {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
-                                                                </div>
-                                                                <div className="text-xs text-gray-400 privacy-blur hidden sm:block">
-                                                                    {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
-                                                                <div className="flex items-center justify-center gap-1">
-                                                                    <button 
-                                                                        onClick={() => handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice || null)}
-                                                                        className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-indigo-500 transition-colors"
-                                                                        title="Log / Fetch Price"
-                                                                    >
-                                                                        <Icon name="price_change" className="text-base" />
-                                                                    </button>
-                                                                    <button 
-                                                                        onClick={() => handleOpenModal({ id: '', type: 'buy', symbol: holding.symbol, name: holding.name, quantity: 1, price: holding.currentPrice || 0, date: toLocalISOString(new Date()) })}
-                                                                        className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-emerald-500 transition-colors"
-                                                                        title="Trade Asset"
-                                                                    >
-                                                                        <Icon name="swap_horiz" className="text-base" />
-                                                                    </button>
-                                                                    <button 
-                                                                        onClick={() => onOpenHoldingDetail(holding.symbol)}
-                                                                        className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-blue-500 transition-colors"
-                                                                        title="Holding Details"
-                                                                    >
-                                                                        <Icon name="analytics" className="text-base" />
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })
-                                            ]))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Card>
-
-                    <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl">
-                        <div className="px-6 py-5 border-b border-slate-200/60 dark:border-white/5 glass-subwell">
-                            <h3 className="font-bold text-light-text dark:text-dark-text flex items-center gap-3">
-                                <Icon name="history" className="text-primary-500" />
-                                Activity Log
-                            </h3>
-                        </div>
-                        <div className="divide-y divide-slate-200/60 dark:divide-white/5">
-                            {recentActivity.slice(0, 10).map(item => (
-                                <div 
-                                    key={item.id} 
-                                    className="px-6 py-4 flex items-center justify-between hover:bg-white/60 dark:hover:bg-white/[0.04] transition-colors cursor-pointer group"
-                                    onClick={() => item.isWarrant ? handleOpenWarrantModal(item.data as Warrant) : handleOpenModal(item.data as InvestmentTransaction)}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${item.type === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : item.type === 'SELL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'}`}>
-                                            {item.type.substring(0, 1)}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">{item.symbol}</p>
-                                            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{item.type} • {parseLocalDate(item.date).toLocaleDateString()}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right flex items-center gap-6">
-                                        <div className="hidden sm:block">
-                                            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur">{item.quantity} units @ {formatCurrency(item.price, 'EUR')}</p>
-                                        </div>
-                                        <div className="min-w-[100px]">
-                                            <p className="text-sm font-bold font-mono text-light-text dark:text-dark-text privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                                            <button 
-                                                aria-label={`Delete ${item.symbol || 'holding'}`}
-                                                onClick={(e) => { e.stopPropagation(); setItemToDelete({ id: item.id, isWarrant: item.isWarrant }); }}
-                                                className="p-1 text-gray-400 hover:text-red-500"
-                                            >
-                                                <Icon name="delete" className="text-lg" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Sidebar Column */}
-                <div className="xl:col-span-4 space-y-8">
-                     {/* Exposure Chart */}
-                    <Card className="border border-slate-200/60 dark:border-white/5 shadow-card">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
-                            <button className="text-xs font-semibold text-primary-700 dark:text-primary-400 uppercase tracking-wider hover:underline">Analysis</button>
-                        </div>
-                        <div className="h-48 relative mb-6 flex items-center justify-center">
-                            <BklitPieChart
-                                data={activeDistributionData.map((item) => ({
-                                    label: item.name,
-                                    value: item.value,
-                                    color: item.color,
-                                }))}
-                                innerRadius={55}
-                                cornerRadius={6}
-                                padAngle={activeDistributionData.length > 1 ? 0.04 : 0}
-                                className="w-full h-48"
-                            >
-                                {activeDistributionData.map((_, index) => (
-                                    <PieSlice key={index} index={index} showGlow />
-                                ))}
-                                <PieCenter defaultLabel="Total">
-                                    {({ value, label, isHovered }) => (
-                                        <div className="flex flex-col items-center justify-center text-center">
-                                            <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-semibold tracking-wider uppercase">
-                                                {label}
-                                            </span>
-                                            <span className="text-base font-bold font-mono text-light-text dark:text-dark-text privacy-blur">
-                                                {formatCurrency(isHovered ? value : currentValuation, 'EUR')}
-                                            </span>
-                                        </div>
-                                    )}
-                                </PieCenter>
-                            </BklitPieChart>
-                        </div>
-                        <div className="space-y-3">
-                            {activeDistributionData.slice(0, 4).map(item => (
-                                <div key={item.name} className="flex items-center justify-between group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                        <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{item.name}</span>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs font-bold font-mono text-light-text dark:text-dark-text privacy-blur">{formatPercent(item.value, 0)}%</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-
-                    {/* Performance Rankings */}
-                    <Card className="border border-slate-200/60 dark:border-white/5 shadow-card">
-                        <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 mb-6">Relative Performance</h3>
-                        <div className="space-y-4">
-                            {displayHoldings
-                                .map(h => ({ ...h, gain: !h.priceUnavailable && h.totalCost > 0 ? ((h.currentValue - h.totalCost) / h.totalCost) * 100 : 0 }))
-                                .sort((a, b) => b.gain - a.gain)
-                                .slice(0, 5)
-                                .map((h, i) => (
-                                    <div key={h.symbol} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xs font-semibold text-light-text-secondary/50 dark:text-dark-text-secondary/50 w-4">{i + 1}</span>
-                                            <div>
-                                                <p className="text-xs font-bold text-light-text dark:text-dark-text">{h.symbol}</p>
-                                                <p className="text-xs text-gray-400 font-medium">{h.name}</p>
-                                            </div>
-                                        </div>
-                                        <div className={`text-xs font-black ${h.gain >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                            {h.gain >= 0 ? '▲' : '▼'} {Math.abs(h.gain).toFixed(1)}%
-                                        </div>
-                                    </div>
-                                ))}
-                        </div>
-                    </Card>
-
-                    {/* Historic Performance / Realized Gains Widget */}
-                    <Card className="border border-slate-200/60 dark:border-white/5 shadow-card">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <Icon name="workspace_premium" className="text-primary-500 text-lg" />
-                                <span>Realized Return</span>
-                            </h3>
-                            <span className="text-xs font-semibold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded">
-                                {realizedPerformance.winsCount}W - {realizedPerformance.lossesCount}L
-                            </span>
-                        </div>
-
-                        <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.03] mb-6">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70">Total Realized Returns</span>
-                            <div className="flex items-baseline gap-2 mt-1">
-                                <h4 className={`text-2xl font-black tracking-tight privacy-blur ${realizedPerformance.totalRealizedGain >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                    {realizedPerformance.totalRealizedGain >= 0 ? '+' : ''}{formatCurrency(realizedPerformance.totalRealizedGain, 'EUR')}
-                                </h4>
-                                <span className="text-xs text-gray-400 font-medium">
-                                    {realizedPerformance.winsCount + realizedPerformance.lossesCount} closed trades
-                                </span>
-                            </div>
-                        </div>
-
-                        {realizedPerformance.realizedSales.length === 0 ? (
-                            <div className="py-6 text-center text-xs text-gray-400 italic">
-                                No sales recorded. Realized gain/loss will appear when you sell holdings.
-                            </div>
-                        ) : (
-                            <div className="space-y-4 max-h-[280px] overflow-y-auto pr-1">
-                                {realizedPerformance.realizedSales.map((sale) => {
-                                    const isWin = sale.gain >= 0;
-                                    return (
-                                        <div key={sale.id} className="flex items-center justify-between group border-b border-black/[0.02] dark:border-white/[0.02] pb-3 last:border-b-0 last:pb-0">
-                                            <div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="font-bold text-xs text-light-text dark:text-dark-text">{sale.symbol}</span>
-                                                    <span className="text-xs text-gray-400 font-medium font-mono">({sale.quantity.toLocaleString()} units)</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 mt-0.5">
-                                                    <span className="text-xs text-gray-400">Buy: {formatCurrency(sale.buyPrice, 'EUR')}</span>
-                                                    <span className="text-xs text-gray-400">•</span>
-                                                    <span className="text-xs text-gray-400">Sell: {formatCurrency(sale.sellPrice, 'EUR')}</span>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className={`text-xs font-black ${isWin ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                                    {isWin ? '+' : ''}{formatCurrency(sale.gain, 'EUR')}
-                                                </p>
-                                                <p className={`text-xs font-semibold ${isWin ? 'text-green-500/80' : 'text-red-500/80'}`}>
-                                                    {isWin ? '▲' : '▼'} {Math.abs(sale.gainPercent).toFixed(1)}%
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </Card>
-                </div>
+                {chartData.length > 1 ? <ValueChart data={chartData} currency="EUR" dataKey="value" fitValues /> : <p className="type-body py-10 text-center text-muted">Log prices or add trades to see this over time.</p>}
+              </section>
+              <section aria-label="Allocation" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
+                <h2 className="type-card-title text-ink">Allocation</h2>
+                <ul className="mt-3 space-y-3">
+                  {allocation.map(row => <AllocationRow key={row.id} label={row.label} value={row.value} total={current.value} color={row.color} />)}
+                </ul>
+                {biggest && biggest.value > 0 && <p className="type-caption mt-4 border-t border-line pt-3 text-muted">Biggest single position: {biggest.label}, {percentOf(biggest.value, current.value).toFixed(1)}% of this view.</p>}
+              </section>
+              {movers.length > 0 && (
+                <section aria-label="Performance by holding" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 min-[1100px]:col-span-3">
+                  <h2 className="type-card-title text-ink">Performance by holding</h2>
+                  <ul className="mt-1 divide-y divide-line">
+                    {movers.map(({ holding, gain: holdingGain }) => (
+                      <li key={holding.symbol}>
+                        <button type="button" onClick={() => setOpenSymbol(holding.symbol)} className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 text-left">
+                          <span className="min-w-0">
+                            <span className="type-body-strong block truncate text-ink">{holding.name || holding.symbol}</span>
+                            <span className="type-caption block text-muted">{holding.symbol}, {holding.type === 'Warrant' ? 'Warrant' : formatHoldingType(holding.subType)}</span>
+                          </span>
+                          <span className="shrink-0 text-right">
+                            <span className="type-figure-row block"><Amount value={holdingGain} currency="EUR" tone="flow" /></span>
+                            <span className="type-caption block text-muted">{holdingGain >= 0 ? '+' : '−'}{Math.abs(percentOf(holdingGain, holding.totalCost)).toFixed(1)}%</span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
             </div>
+          )}
 
-
-
-            {/* Closed Accounts Section */}
-            {closedInvestmentAccounts.length > 0 && activeSegment === 'all' && (
-                <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
-                    <AccountsListSection
-                        title="Closed portfolios"
-                        accounts={closedInvestmentAccounts}
-                        transactionsByAccount={transactionsByAccount}
-                        linkedEnableBankingAccountIds={new Set(accounts.filter(a => !!a.linkedAccountId).map(a => a.id))}
-                        onAccountClick={handleAccountClick}
-                        menuFor={account => [
-                          { id: 'overview', label: 'Quick overview', icon: 'visibility', onAction: () => openOverviewModal(account) },
-                          { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => handleOpenAccountModal(account) },
-                        ]}
-                        onEditClick={handleOpenAccountModal}
-                        onAdjustBalanceClick={() => {}}
-                        onOverviewClick={openOverviewModal}
-                        sortBy="name"
-                        accountOrder={[]}
-                        isCollapsible={true}
-                        defaultExpanded={false}
-                        layoutMode="stacked"
-                    />
+          {tab === 'holdings' && (
+            <>
+              <section aria-label="Holdings" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="type-card-title text-ink">Holdings</h2>
+                  <Switch isSelected={showInactive} onChange={setShowInactive}>Show sold holdings</Switch>
                 </div>
-            )}
+                {holdingRows.length > 0 ? <HoldingsTable rows={holdingRows} isPhone={isPhone} onOpen={holding => setOpenSymbol(holding.symbol)} /> : <p className="type-body py-8 text-center text-muted">No holdings in this view.</p>}
+              </section>
+              {accountRows.length > 0 && (
+                <section aria-label="Accounts" className="space-y-3">
+                  <h2 className="type-card-title text-ink">Accounts</h2>
+                  {accountRows.map(account => <AccountCard key={account.id} account={account} transactions={transactionsByAccount[account.id] || []} layout="row" menuItems={accountMenu(account)} onOpen={() => setOverviewAccount(account)} />)}
+                </section>
+              )}
+              {closedAccounts.length > 0 && activeSegment === 'all' && (
+                <section aria-label="Closed portfolios" className="space-y-3">
+                  <h2 className="type-card-title text-ink">Closed portfolios</h2>
+                  {closedAccounts.map(account => <AccountCard key={account.id} account={account} transactions={transactionsByAccount[account.id] || []} layout="row" menuItems={accountMenu(account)} onOpen={() => setOverviewAccount(account)} />)}
+                </section>
+              )}
+            </>
+          )}
 
-            {/* Account Overview Modal */}
-            {isOverviewModalOpen && overviewAccount && (
-                <AccountOverviewModal
-                    isOpen={isOverviewModalOpen}
-                    onClose={() => setIsOverviewModalOpen(false)}
-                    account={overviewAccount}
-                    transactions={transactions}
-                    investmentTransactions={investmentTransactions}
-                    prices={prices as Record<string, number>}
-                    accounts={accounts}
-                    warrants={warrants}
-                    onViewAccount={onViewAccount}
-                    onEditAccount={handleOpenAccountModal}
-                    onAdjustBalance={(acc) => {
-                        setAdjustingAccount(acc);
-                        setAdjustModalOpen(true);
-                    }}
-                    onOpenHoldingDetail={onOpenHoldingDetail}
-                />
-            )}
+          {tab === 'activity' && (
+            <div className="grid grid-cols-1 gap-5 min-[1100px]:grid-cols-3">
+              <section aria-label="Activity" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 min-[1100px]:col-span-2">
+                <h2 className="type-card-title text-ink">Activity</h2>
+                {activity.length === 0 ? <p className="type-body py-8 text-center text-muted">No trades or grants in this view.</p> : (
+                  <>
+                    <ul className="mt-1 divide-y divide-line">
+                      {activity.slice(0, activityShown).map(item => (
+                        <li key={item.id} className="flex min-h-14 items-center gap-2 py-1">
+                          <Badge tone={item.kind === 'Sell' ? 'attention' : item.kind === 'Grant' ? 'neutral' : 'positive'}>{item.kind}</Badge>
+                          <span className="min-w-0 flex-1">
+                            <span className="type-body-strong block truncate text-ink">{item.name || item.symbol}</span>
+                            <span className="type-caption block truncate text-muted">{item.quantity.toLocaleString()} at {formatCurrency(item.price, item.currency)}, {shortDate(item.date)}</span>
+                          </span>
+                          <span className="type-figure-row shrink-0 text-ink"><Amount value={item.quantity * item.price} currency={item.currency} /></span>
+                          <Menu
+                            title={item.symbol}
+                            trigger={<IconButton icon="more_horiz" label={`Actions for ${item.kind.toLowerCase()} of ${item.symbol}`} tooltipPlacement="left" />}
+                            items={[
+                              { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setTradeForm({ trade: item.trade, grant: item.grant }) },
+                              { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setActivityToDelete({ id: item.id, isGrant: !!item.grant, label: `${item.kind.toLowerCase()} of ${item.symbol}` }) },
+                            ]}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    <ShowMore remaining={activity.length - activityShown} onPress={() => setActivityShown(count => count + ACTIVITY_STEP)} />
+                  </>
+                )}
+              </section>
+              <section aria-label="Realised gains" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
+                <h2 className="type-card-title text-ink">Realised gains</h2>
+                {realized.sales.length === 0 ? <p className="type-body mt-1 text-muted">Gains appear here when you sell.</p> : (
+                  <>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+                      <div><dt className="type-label text-muted">Winning sales</dt><dd className="type-figure-row text-ink">{realized.wins}</dd></div>
+                      <div><dt className="type-label text-muted">Losing sales</dt><dd className="type-figure-row text-ink">{realized.losses}</dd></div>
+                      {realized.biggestWin && <div><dt className="type-label text-muted">Biggest win</dt><dd className="type-figure-row"><Amount value={realized.biggestWin.gain} currency="EUR" tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestWin.symbol}</dd></div>}
+                      {realized.biggestLoss && <div><dt className="type-label text-muted">Biggest loss</dt><dd className="type-figure-row"><Amount value={realized.biggestLoss.gain} currency="EUR" tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestLoss.symbol}</dd></div>}
+                    </dl>
+                    <ul className="mt-3 divide-y divide-line border-t border-line">
+                      {realized.sales.slice(0, 10).map(sale => (
+                        <li key={sale.id} className="flex min-h-12 items-center justify-between gap-3 py-1">
+                          <span className="min-w-0">
+                            <span className="type-body-strong block truncate text-ink">{sale.symbol}</span>
+                            <span className="type-caption block text-muted">{sale.quantity.toLocaleString()} sold {shortDate(sale.date)}</span>
+                          </span>
+                          <span className="shrink-0 text-right">
+                            <span className="type-figure-row block"><Amount value={sale.gain} currency="EUR" tone="flow" /></span>
+                            <span className="type-caption block text-muted">{sale.gainPercent >= 0 ? '+' : '−'}{Math.abs(sale.gainPercent).toFixed(1)}%</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </section>
+            </div>
+          )}
+        </>
+      )}
 
-            {/* Balance Adjustment Modal */}
-            {isAdjustModalOpen && adjustingAccount && (
-                <BalanceAdjustmentModal
-                    onClose={() => {
-                        setAdjustingAccount(null);
-                        setAdjustModalOpen(false);
-                    }}
-                    onSave={(adjustmentAmount, date, notes) => {
-                        const txData: Omit<Transaction, 'id'> = {
-                            accountId: adjustingAccount.id,
-                            date,
-                            description: 'Balance Adjustment',
-                            merchant: notes || 'Manual balance correction',
-                            amount: adjustmentAmount,
-                            category: 'Income',
-                            type: adjustmentAmount >= 0 ? 'income' : 'expense',
-                            currency: adjustingAccount.currency,
-                            isBalanceAdjustment: true,
-                        };
-                        saveTransaction([txData], []);
-                        setAdjustingAccount(null);
-                        setAdjustModalOpen(false);
-                    }}
-                    account={adjustingAccount}
-                />
-            )}
-        </div>
-        )}
+      {openHolding && (
+        <HoldingPanel
+          holding={openHolding}
+          account={accountBySymbol.get(openHolding.symbol)}
+          trades={investmentTransactions.filter(trade => trade.symbol === openHolding.symbol)}
+          grants={warrants.filter(grant => grant.isin === openHolding.symbol)}
+          priceLog={logFor(openHolding.symbol)}
+          onClose={closeHolding}
+          onLogPrice={entry => setPriceTarget({ symbol: openHolding.symbol, name: openHolding.name, entry })}
+          onDeletePrice={date => onManualPriceChange(openHolding.symbol, null, date)}
+          onTrade={() => setTradeForm({ mode: 'trade', symbol: openHolding.symbol })}
+          onEditTrade={trade => setTradeForm({ trade })}
+          onEditGrant={grant => setTradeForm({ grant })}
+        />
+      )}
+      {tradeForm && (
+        <InvestmentModal
+          onClose={() => setTradeForm(null)}
+          onSaveTrade={saveInvestmentTransaction}
+          onSaveGrant={saveWarrant}
+          accounts={accounts}
+          cashAccounts={cashAccounts}
+          holdings={overview.holdings}
+          initialMode={tradeForm.mode}
+          initialSymbol={tradeForm.symbol}
+          transactionToEdit={tradeForm.trade}
+          warrantToEdit={tradeForm.grant}
+        />
+      )}
+      {priceTarget && (
+        <WarrantPriceModal
+          onClose={() => setPriceTarget(null)}
+          onSave={onManualPriceChange}
+          isin={priceTarget.symbol}
+          name={priceTarget.name}
+          initialEntry={priceTarget.entry}
+          manualPrice={manualPrices[priceTarget.symbol]}
+        />
+      )}
+      {accountForm && <AccountForm account={accountForm} accounts={accounts} warrants={warrants} onClose={() => setAccountForm(null)} onSave={account => { saveAccount(account); setAccountForm(null); }} onDelete={id => { setAccountToDelete(accounts.find(account => account.id === id) ?? null); setAccountForm(null); }} />}
+      {adjustingAccount && <BalanceAdjustmentModal onClose={() => setAdjustingAccount(null)} onSave={handleSaveAdjustment} account={adjustingAccount} />}
+      {overviewAccount && (
+        <AccountOverviewModal
+          isOpen
+          onClose={() => setOverviewAccount(null)}
+          account={overviewAccount}
+          transactions={transactions}
+          investmentTransactions={investmentTransactions}
+          prices={prices as Record<string, number>}
+          accounts={accounts}
+          warrants={warrants}
+          onViewAccount={onViewAccount}
+          onEditAccount={setAccountForm}
+          onAdjustBalance={setAdjustingAccount}
+          onOpenHoldingDetail={setOpenSymbol}
+        />
+      )}
+      <ConfirmDialog
+        isOpen={!!accountToDelete}
+        onClose={() => setAccountToDelete(null)}
+        onConfirm={() => { if (accountToDelete) deleteAccount(accountToDelete.id); setAccountToDelete(null); }}
+        title={`Delete ${accountToDelete?.name ?? 'this account'}?`}
+        message="This deletes the account and its history. You can't undo it."
+        confirmLabel="Delete"
+        isDestructive
+      />
+      <ConfirmDialog
+        isOpen={!!activityToDelete}
+        onClose={() => setActivityToDelete(null)}
+        onConfirm={() => {
+          if (activityToDelete?.isGrant) deleteWarrant(activityToDelete.id);
+          else if (activityToDelete) deleteInvestmentTransaction(activityToDelete.id);
+          setActivityToDelete(null);
+        }}
+        title={`Delete ${activityToDelete?.label ?? 'this entry'}?`}
+        message="Your holding and gains are worked out again without it. You can't undo this."
+        confirmLabel="Delete"
+        isDestructive
+      />
     </div>
-);
+  );
 };
 
 export default Investments;

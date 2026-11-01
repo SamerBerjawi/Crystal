@@ -109,7 +109,6 @@ const Subscriptions: React.FC = () => {
       <PageHeader
         title="Subscriptions"
         stats={pageStats}
-        className="!mb-0"
         actions={tab === 'wallet'
           ? <Button icon="add" onPress={() => { setCardToEdit(null); setCardFormOpen(true); }}>Add a card</Button>
           : <Button icon="add" onPress={() => openForm(null)}>Add a service</Button>}

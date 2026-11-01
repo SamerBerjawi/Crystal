@@ -89,13 +89,13 @@ export const MonthlyBars: React.FC<{ data: Record<string, unknown>[]; currency: 
   </div>
 );
 
-export const ValueChart: React.FC<{ data: Record<string, unknown>[]; currency: Currency; dataKey: string; trendKey?: string }> = ({ data, currency, dataKey, trendKey }) => (
+export const ValueChart: React.FC<{ data: Record<string, unknown>[]; currency: Currency; dataKey: string; trendKey?: string; fitValues?: boolean }> = ({ data, currency, dataKey, trendKey, fitValues }) => (
   <div className="h-[220px] md:h-[280px]">
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data}>
         <CartesianGrid vertical={false} stroke="var(--line)" />
         <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={48} />
-        <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={56} tickFormatter={value => (value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value)} />
+        <YAxis domain={fitValues ? ['auto', 'auto'] : undefined} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={56} tickFormatter={value => (value >= 1000 ? `${(value / 1000).toFixed(fitValues ? 1 : 0)}k` : value)} />
         <Tooltip contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number) => [formatCurrency(value, currency), 'Value']} />
         <Area {...LINE_MOTION} type="monotone" dataKey={dataKey} stroke="var(--chart-1)" strokeWidth={2} fill="var(--chart-1)" fillOpacity={0.12} />
         {trendKey && <Line {...LINE_MOTION} type="monotone" dataKey={trendKey} stroke="var(--chart-3)" strokeWidth={2} strokeDasharray="4 4" dot={false} />}

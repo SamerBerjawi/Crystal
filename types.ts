@@ -338,6 +338,8 @@ export interface InvestmentTransaction {
   price: number; // Price per unit
   date: string;
   type: 'buy' | 'sell';
+  /** The currency of `price`. Older trades have none and count as EUR (D-026). */
+  currency?: Currency;
 }
 
 export interface HoldingSummary {
@@ -347,7 +349,9 @@ export interface HoldingSummary {
   remainingQuantity?: number;
   totalCost: number;
   currentValue: number;
+  /** In the holding's own currency. `currentValue` and `totalCost` are in EUR. */
   currentPrice: number;
+  currency?: Currency;
   /** True when no live or manual price exists, so currentValue falls back to the last trade price or cost basis. */
   priceUnavailable?: boolean;
   type: 'Standard' | 'Warrant';
@@ -624,6 +628,10 @@ export type InvestmentPriceSource = 'twelvedata' | 'web' | 'manual';
 export interface InvestmentPriceConfig {
   source?: InvestmentPriceSource;
   ticker?: string;
+  /** The listing to quote, for tickers traded in several places (D-026). */
+  exchange?: string;
+  /** The currency its prices are in. Without one, they count as EUR. */
+  currency?: Currency;
   binding?: SmartPriceBinding;
   lastFetchedPrice?: number;
   lastFetchedAt?: string;

@@ -239,7 +239,6 @@ const SchedulePage: React.FC = () => {
       <PageHeader
         title="Calendar"
         stats={pageStats}
-        className="!mb-0"
         actions={
           <Menu
             title="Add"

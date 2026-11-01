@@ -50,3 +50,23 @@ test('ends with today at the current valuation', () => {
     const h = buildPortfolioHistory({ ...base, currentValuation: 123.456, nonSymbolAccounts: [{ id: 'a', balance: 5, currency: 'EUR', priceHistory: [{ date: '2026-01-01', price: 5 }] } as any] });
     assert.deepEqual(h[h.length - 1], { date: '2026-10-16', price: 123.46 });
 });
+
+test('DEF-05: history deducts sold grant units from the sale date on', () => {
+  const grant: any = { id: 'w', isin: 'XS1', name: 'Grant', grantDate: '2026-01-01', quantity: 10, grantPrice: 5 };
+  const sale: any = { id: 's', symbol: 'XS1', name: 'Grant', quantity: 4, price: 8, date: '2026-03-01', type: 'sell' };
+  const history = buildPortfolioHistory({
+    holdings: [], warrants: [grant], investmentTransactions: [sale], allSegments: true,
+    priceHistoryFor: () => [{ date: '2026-01-01', price: 10 }], prices: {}, nonSymbolAccounts: [], transactionsByAccount: {}, toEur: amount => amount, currentValuation: 60, today: '2026-04-01',
+  });
+  assert.equal(history.find(point => point.date === '2026-01-01')?.price, 100);
+  assert.equal(history.find(point => point.date === '2026-03-01')?.price, 60);
+});
+
+test('DEF-04: history values a foreign holding in EUR', () => {
+  const history = buildPortfolioHistory({
+    holdings: [{ symbol: 'AAPL', type: 'Standard', quantity: 2, currentPrice: 100 }], warrants: [], investmentTransactions: [], allSegments: false,
+    priceHistoryFor: () => [{ date: '2026-01-01', price: 100 }], prices: {}, nonSymbolAccounts: [], transactionsByAccount: {},
+    toEur: (amount, currency) => (currency === 'USD' ? amount / 2 : amount), currencyOf: () => 'USD', currentValuation: 100, today: '2026-01-02',
+  });
+  assert.equal(history[0].price, 100);
+});

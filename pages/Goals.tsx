@@ -126,7 +126,7 @@ const Goals: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-8 max-md:space-y-4">
-      <PageHeader title="Goals" stats={pageStats} className="!mb-0" actions={<Button icon="add" onPress={() => openForm()}>New goal</Button>} />
+      <PageHeader title="Goals" stats={pageStats} actions={<Button icon="add" onPress={() => openForm()}>New goal</Button>} />
 
       {financialGoals.length === 0 ? (
         <EmptyState icon="flag" title="No goals yet" description="Set a number and a date, and Crystal works out the monthly amount." actionLabel="New goal" onAction={() => openForm()} />

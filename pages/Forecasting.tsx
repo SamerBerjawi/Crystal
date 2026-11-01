@@ -233,7 +233,6 @@ const Forecasting: React.FC = () => {
       <PageHeader
         title="Forecast"
         stats={pageStats}
-        className="!mb-0"
         actions={<Button icon="add" onPress={() => { setFormDate(undefined); setFormMode('one-time'); }}>Add bill</Button>}
       />
 

@@ -10,23 +10,21 @@ import {
 import { formatCurrency } from '../utils';
 import { dayOf } from '../utils/portfolioHistory';
 import { PriceHistoryEntry, InvestmentTransaction, Currency } from '../types';
-import Icon from './ui/Icon';
+import SegmentedControl from './ui/SegmentedControl';
 
 export type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 export type GranularityOption = 'raw' | 'weekly';
 
+const GROUPINGS = [{ id: 'raw', label: 'Each log' }, { id: 'weekly', label: 'Weekly' }];
+const TIMEFRAMES = [{ id: '1M', label: '1M' }, { id: '3M', label: '3M' }, { id: '6M', label: '6M' }, { id: '1Y', label: '1Y' }, { id: 'ALL', label: 'All' }];
+
 export interface InvestmentCandlestickChartProps {
-  title?: string;
-  subtitle?: string;
   currentValue: number;
   costBasis?: number;
   priceHistory?: PriceHistoryEntry[];
   transactions?: InvestmentTransaction[];
   currency?: Currency;
-  height?: number;
   className?: string;
-  compact?: boolean;
-  isNegativeTrend?: boolean;
   initialGranularity?: GranularityOption;
 }
 
@@ -66,45 +64,36 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
   });
 
   return (
-    <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 text-xs space-y-2.5 min-w-[220px] select-none">
-      <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-2">
-        <span className="font-semibold text-gray-600 dark:text-gray-400 text-xs tracking-wider uppercase">
-          {formattedDate} {granularity === 'weekly' ? '(Week End)' : '(Logged Entry)'}
+    <div className="bg-solid p-3 rounded-[var(--radius-lg)] shadow-lg border border-line type-caption space-y-2 min-w-[200px] select-none">
+      <div className="flex items-center justify-between border-b border-line pb-2">
+        <span className="type-label text-ink">
+          {granularity === 'weekly' ? `Week to ${formattedDate}` : formattedDate}
         </span>
-        <span
-          className={`px-2.5 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
-            isPositive
-              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-              : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
-          }`}
-        >
-          {isPositive ? '+' : ''}
-          {percentChange.toFixed(2)}%
-        </span>
+        <span className={`font-bold ${isPositive ? 'text-money-in' : 'text-money-out'}`}>{isPositive ? '+' : '−'}{Math.abs(percentChange).toFixed(2)}%</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-xs">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 font-sans text-xs font-medium">Open</span>
-          <span className="font-bold text-light-text dark:text-dark-text">{formatCurrency(open, currency)}</span>
+          <span className="text-muted">Open</span>
+          <span className="font-bold text-ink">{formatCurrency(open, currency)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 font-sans text-xs font-medium">High</span>
-          <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(high, currency)}</span>
+          <span className="text-muted">High</span>
+          <span className="font-bold text-ink">{formatCurrency(high, currency)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 font-sans text-xs font-medium">Low</span>
-          <span className="font-bold text-rose-700 dark:text-rose-400">{formatCurrency(low, currency)}</span>
+          <span className="text-muted">Low</span>
+          <span className="font-bold text-ink">{formatCurrency(low, currency)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 font-sans text-xs font-medium">Close</span>
-          <span className="font-black text-primary-700 dark:text-primary-400">{formatCurrency(close, currency)}</span>
+          <span className="text-muted">Close</span>
+          <span className="font-bold text-ink">{formatCurrency(close, currency)}</span>
         </div>
       </div>
 
-      <div className="pt-1.5 border-t border-black/5 dark:border-white/5 flex justify-between items-center font-mono text-xs">
-        <span className="text-gray-400 font-sans">{granularity === 'weekly' ? 'Weekly Return' : 'Log Return'}</span>
-        <span className={`font-bold ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
+      <div className="pt-1.5 border-t border-line flex justify-between items-center">
+        <span className="text-muted">{granularity === 'weekly' ? 'Weekly change' : 'Change'}</span>
+        <span className={`font-bold ${isPositive ? 'text-money-in' : 'text-money-out'}`}>
           {isPositive ? '+' : ''}{formatCurrency(diff, currency)}
         </span>
       </div>
@@ -150,17 +139,12 @@ const netFlowBetween = (transactions: InvestmentTransaction[], from: Date, to: D
   }, 0);
 
 export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProps> = ({
-  title = 'Candlestick OHLC Performance',
-  subtitle = 'Open, High, Low, and Close trends for portfolio assets',
   currentValue,
   costBasis,
   priceHistory = [],
   transactions = [],
   currency = 'EUR',
-  height = 320,
   className = '',
-  compact = false,
-  isNegativeTrend,
   initialGranularity = 'raw',
 }) => {
   const [timeframe, setTimeframe] = useState<TimeframeOption>('3M');
@@ -378,126 +362,21 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
   }, [stats.startDate, timeframe]);
 
   return (
-    <div
-      className={`glass-section rounded-2xl p-4 sm:p-5 border border-slate-200/60 dark:border-white/5 shadow-card relative overflow-hidden flex flex-col justify-between ${className}`}
-    >
-      {/* Top Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0">
-            <Icon name="candlestick_chart" className="text-primary-700 dark:text-primary-400 text-sm" />
-          </div>
-          <div>
-            <h3 className="text-xs sm:text-sm font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
-              <span>{title}</span>
-            </h3>
-            {subtitle && (
-              <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-90 truncate max-w-md">
-                {subtitle}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* View Mode & Timeframe Selector */}
-        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
-          {/* Granularity / Grouping Selector */}
-          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-0.5 rounded-lg border border-black/5 dark:border-white/5 text-2xs">
-            <button
-              type="button"
-              onClick={() => setGranularity('raw')}
-              className={`px-2 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
-                granularity === 'raw'
-                  ? 'bg-white dark:bg-dark-card text-primary-700 dark:text-primary-400 shadow-xs'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              Raw Logs
-            </button>
-            <button
-              type="button"
-              onClick={() => setGranularity('weekly')}
-              className={`px-2 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
-                granularity === 'weekly'
-                  ? 'bg-white dark:bg-dark-card text-primary-700 dark:text-primary-400 shadow-xs'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              Weekly
-            </button>
-          </div>
-
-          {/* Timeframe Selector (1M, 3M, 6M, 1Y, ALL) */}
-          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-0.5 rounded-lg border border-black/5 dark:border-white/5 text-2xs">
-            {(['1M', '3M', '6M', '1Y', 'ALL'] as TimeframeOption[]).map((tf) => (
-              <button
-                key={tf}
-                type="button"
-                onClick={() => setTimeframe(tf)}
-                className={`px-1.5 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
-                  timeframe === tf
-                    ? 'bg-white dark:bg-dark-card text-primary-700 dark:text-primary-400 shadow-xs'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                }`}
-              >
-                {tf === 'ALL' ? 'All Time' : tf}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className={className}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <SegmentedControl items={GROUPINGS} activeId={granularity} onChange={id => setGranularity(id as GranularityOption)} />
+        <SegmentedControl items={TIMEFRAMES} activeId={timeframe} onChange={id => setTimeframe(id as TimeframeOption)} />
       </div>
 
-      {/* Summary OHLC Metric Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-gray-50/80 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-xl mb-2 text-xs">
-        <div className="flex flex-col px-2">
-          <span className="text-2xs font-semibold tracking-wider text-gray-600 dark:text-gray-400 uppercase">Period Start</span>
-          <span className="text-xs font-bold font-mono text-light-text dark:text-dark-text mt-0.5">
-            {startDateFormatted}
-          </span>
+      <dl className="mb-2 grid grid-cols-2 gap-x-4 gap-y-2 min-[440px]:grid-cols-4">
+        <div><dt className="type-label text-muted">From {startDateFormatted}</dt><dd className="type-figure-row text-ink">{formatCurrency(stats.open, currency)}</dd></div>
+        <div><dt className="type-label text-muted">High</dt><dd className="type-figure-row text-ink">{formatCurrency(stats.high, currency)}</dd></div>
+        <div><dt className="type-label text-muted">Low</dt><dd className="type-figure-row text-ink">{formatCurrency(stats.low, currency)}</dd></div>
+        <div>
+          <dt className="type-label text-muted">Change</dt>
+          <dd className={`type-figure-row ${stats.change >= 0 ? 'text-money-in' : 'text-money-out'}`}>{stats.change >= 0 ? '+' : '−'}{Math.abs(stats.changePercent).toFixed(1)}%</dd>
         </div>
-        <div className="flex flex-col px-2">
-          <span className="text-2xs font-semibold tracking-wider text-gray-600 dark:text-gray-400 uppercase">Open</span>
-          <span className="text-xs font-bold font-mono text-light-text dark:text-dark-text privacy-blur mt-0.5">
-            {formatCurrency(stats.open, currency)}
-          </span>
-        </div>
-        <div className="flex flex-col px-2">
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-2xs font-semibold tracking-wider text-emerald-700 dark:text-emerald-400 uppercase">High</span>
-          </div>
-          <span className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-400 privacy-blur mt-0.5">
-            {formatCurrency(stats.high, currency)}
-          </span>
-        </div>
-        <div className="flex flex-col px-2">
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            <span className="text-2xs font-semibold tracking-wider text-rose-700 dark:text-rose-400 uppercase">Low</span>
-          </div>
-          <span className="text-xs font-bold font-mono text-rose-700 dark:text-rose-400 privacy-blur mt-0.5">
-            {formatCurrency(stats.low, currency)}
-          </span>
-        </div>
-        <div className="col-span-2 sm:col-span-1 flex flex-col px-2 justify-center">
-          <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold tracking-wider text-primary-700 dark:text-primary-400 uppercase">Return</span>
-            <span
-              className={`text-2xs font-bold font-mono px-1.5 py-0.5 rounded-md ${
-                stats.change >= 0
-                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                  : 'bg-rose-500/10 text-rose-700 dark:text-rose-400'
-              }`}
-            >
-              {stats.change >= 0 ? '+' : ''}
-              {stats.changePercent.toFixed(1)}%
-            </span>
-          </div>
-          <span className="text-xs font-black font-mono text-primary-700 dark:text-primary-400 privacy-blur mt-0.5">
-            {formatCurrency(stats.close, currency)}
-          </span>
-        </div>
-      </div>
+      </dl>
 
       {/* Main Candlestick Chart Area */}
       <div className="w-full relative h-[180px] min-h-[175px] max-h-[180px]">
@@ -510,17 +389,17 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
             style={{ height: 180, minHeight: 175 }}
             candleGap={0.25}
           >
-            <Grid horizontal stroke="rgba(128,128,128,0.12)" />
+            <Grid horizontal stroke="var(--line)" />
             <Candlestick
-              positiveFill="#10b981"
-              negativeFill="#ef4444"
+              positiveFill="var(--money-in)"
+              negativeFill="var(--money-out)"
               fadedOpacity={0.25}
             />
             <ChartTooltip
               showCrosshair={true}
               showDots={false}
               indicatorColor={(pt) =>
-                Number(pt.close) >= Number(pt.open) ? '#10b981' : '#ef4444'
+                Number(pt.close) >= Number(pt.open) ? 'var(--money-in)' : 'var(--money-out)'
               }
               content={({ point, index }) => (
                 <OHLCTooltipContent point={point} index={index} currency={currency} granularity={granularity} />
@@ -529,15 +408,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
             <XAxis />
           </CandlestickChart>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-200/80 dark:border-white/10 rounded-xl bg-slate-500/[0.02]">
-            <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-500 mb-1.5">
-              <Icon name="candlestick_chart" className="text-base" />
-            </div>
-            <p className="text-xs font-semibold text-light-text dark:text-dark-text">No Historical Checkpoints</p>
-            <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary max-w-sm mt-0.5">
-              Candlesticks require historical valuation logs or symbol price checkpoints. Add transactions or log price updates to view OHLC trends.
-            </p>
-          </div>
+          <p className="type-body py-10 text-center text-muted">No logged prices in this period.</p>
         )}
       </div>
     </div>
