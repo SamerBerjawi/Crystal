@@ -206,7 +206,7 @@ export const AccountsSummary: React.FC<{
             <Row
               title={account.name}
               context={account.type}
-              trailing={<Amount value={toDisplay(account.balance, account.currency)} currency={currency} tone="loss" />}
+              trailing={<Amount value={toDisplay(account.balance, account.currency)} currency={currency} />}
               onPress={() => onOpen(account.id)}
             />
           </li>

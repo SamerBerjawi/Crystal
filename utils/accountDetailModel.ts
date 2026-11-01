@@ -1969,3 +1969,36 @@ export function solveLoanParameter(
   return null;
 }
 
+
+export interface ExtraPaymentResult {
+  monthsSaved: number;
+  interestSaved: number;
+  monthsLeft: number;
+}
+
+const monthsToClear = (balance: number, monthlyRate: number, payment: number) => {
+  let remaining = balance;
+  let months = 0;
+  let interest = 0;
+  while (remaining > 0 && months < 1200) {
+    const charge = remaining * monthlyRate;
+    if (payment <= charge) return { months: Infinity, interest: Infinity };
+    interest += charge;
+    remaining = remaining + charge - payment;
+    months += 1;
+  }
+  return { months, interest };
+};
+
+/** "What if you paid extra?" (D-039): the time and interest saved by adding to each monthly payment. */
+export function computeExtraPaymentSavings(balance: number, annualRatePercent: number, monthlyPayment: number, extra: number): ExtraPaymentResult {
+  const rate = annualRatePercent / 100 / 12;
+  const current = monthsToClear(balance, rate, monthlyPayment);
+  const faster = monthsToClear(balance, rate, monthlyPayment + extra);
+  if (!isFinite(current.months) || !isFinite(faster.months)) return { monthsSaved: 0, interestSaved: 0, monthsLeft: isFinite(faster.months) ? faster.months : 0 };
+  return {
+    monthsSaved: current.months - faster.months,
+    interestSaved: safeRound(current.interest - faster.interest, 2),
+    monthsLeft: faster.months,
+  };
+}

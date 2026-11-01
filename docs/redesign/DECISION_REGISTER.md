@@ -141,6 +141,10 @@ Used to weigh priorities. None of this removes any feature.
 | D-076 | 2026-10-31 | Safe to spend is cash in the primary checking and cash accounts, less everything due before the next income, less a cushion you set. With no scheduled income it runs to the end of the month | Owner | New function. Other accounts, including savings, don't count. With no primary set, every checking account counts |
 | D-077 | 2026-10-31 | The grid test passed, so KokonutUI's Widget Grid replaces react-grid-layout, with an edit mode, row spans and three columns on tablets added | KokonutUI | Confirms `D-035`. The source is the registry's `bento-grid`, MIT |
 | D-078 | 2026-10-31 | Overview has no tabs. Analysis and Activity widgets join one grid. Pending Matches opens from Needs you until the Review queue exists | Direction section 3 | Saved layouts carry over. Old keys stay in place |
+| D-079 | 2026-10-31 | Proposed: hub tabs that share one page keep their tab in the URL as `?tab=`, so Accounts stays one page with five tabs | None | Reload and Back keep the tab. Awaiting the owner |
+| D-080 | 2026-10-31 | Proposed: account pages use the green hero, the same as Overview, so "once per page" holds and every type looks alike | `D-038` | Awaiting the owner |
+| D-081 | 2026-10-31 | Accounts follows Rivolo's Wallet. Tabs are Cards (the default), Accounts, Loans and Assets. All is removed, and investment accounts stay in the Investments hub | Owner, Rivolo | **Replaces `D-020`.** Cards lists any account with a card, read from the account: card details, a credit card or a meal voucher |
+| D-082 | 2026-10-31 | An account with a card appears under Cards and as a pot under Accounts. Credit cards and meal vouchers appear under Cards only | Owner, Rivolo | |
 
 ## Open questions
 
