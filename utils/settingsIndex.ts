@@ -19,6 +19,8 @@ export const SETTINGS_INDEX: SettingEntry[] = [
   { id: 'city', label: 'Default city', page: 'Personal Info', where: 'Profile', anchor: 'profile-details' },
   { id: 'address', label: 'Address', page: 'Personal Info', where: 'Profile', anchor: 'profile-details' },
   { id: 'password', label: 'Change password', page: 'Personal Info', where: 'Profile', anchor: 'profile-security' },
+  { id: 'pin', label: 'PIN lock', page: 'Personal Info', where: 'Profile', anchor: 'profile-security' },
+  { id: 'auto-lock', label: 'Auto-lock', page: 'Personal Info', where: 'Profile', anchor: 'profile-security' },
   preference('theme', 'Theme', 'preferences-appearance'),
   preference('typeface', 'Typeface', 'preferences-appearance'),
   preference('currency', 'Main currency', 'preferences-region'),

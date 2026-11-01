@@ -1,4 +1,5 @@
 import { Request as ExpressRequest, Response as ExpressResponse, NextFunction } from 'express';
+import { isOpenWhileLocked } from './lockRules';
 import jwt from 'jsonwebtoken';
 import { db } from './database';
 import { AUTH_COOKIE_NAME, JWT_SECRET } from './authConfig';
@@ -57,7 +58,7 @@ export const authenticateToken = async (req: AuthRequest, res: ExpressResponse, 
         }
 
         const sessionResult = await db.query(
-            `SELECT id
+            `SELECT id, locked_at
              FROM user_sessions
              WHERE id = $1
                AND user_id = $2
@@ -68,6 +69,11 @@ export const authenticateToken = async (req: AuthRequest, res: ExpressResponse, 
 
         if (sessionResult.rows.length === 0) {
             return res.status(403).json({ message: 'Session expired or revoked.' });
+        }
+
+        // A locked session keeps its sign-in but can't read or change anything (D-107).
+        if (sessionResult.rows[0].locked_at && !isOpenWhileLocked(req.originalUrl)) {
+            return res.status(423).json({ message: 'Crystal is locked.', isLocked: true });
         }
 
         // last_seen_at is informational: refresh it at most every 5 minutes instead of on every request.

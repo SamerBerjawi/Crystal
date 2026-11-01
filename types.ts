@@ -685,6 +685,8 @@ export interface AppPreferences {
   regexCategorizationRules?: RegexCategorizationRule[];
   transactionRules?: TransactionRule[];
   rulesVersion?: number;
+  /** Idle minutes before Crystal locks. 0 means never. Unset means the default. */
+  autoLockMinutes?: number;
   rulesMigrationBackup?: import('./utils/rulesMigration').RulesMigrationBackup;
   lastRuleRunBackup?: RuleRunBackup;
   ruleExecutionHistory?: RuleRunBackup[];

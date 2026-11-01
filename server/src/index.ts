@@ -1,4 +1,5 @@
 import express from 'express';
+import lockRouter from './lock';
 import cors from 'cors';
 import compression from 'compression';
 import authRouter from './auth';
@@ -121,6 +122,7 @@ const startServer = async () => {
         app.use('/api/data', dataRouter);
         app.use('/api/enable-banking', enableBankingRouter);
         app.use('/api/users', usersRouter);
+        app.use('/api/lock', lockRouter);
         app.use('/api/smart-fetch', smartFetcherRouter);
 
         // Last line of defence: anything that escapes a route becomes a JSON 500, never a crash or an HTML page.

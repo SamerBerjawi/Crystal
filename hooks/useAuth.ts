@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { User, FinancialData } from '../types';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
@@ -29,6 +29,8 @@ const extractApiUser = (payload: AuthResponse | null) => {
 };
 
 export const useAuth = () => {
+  const [isLocked, setIsLocked] = useState(false);
+  const lockedOnLoadRef = useRef(false);
   const [user, setUserState] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -159,6 +161,12 @@ export const useAuth = () => {
       setUserState(mapApiUserToUser(userPayload));
       setIsAuthenticated(true);
 
+      if (dataRes.status === 423) {
+        lockedOnLoadRef.current = true;
+        setIsLocked(true);
+        return null;
+      }
+
       if (!dataRes.ok) {
         if (dataRes.status === 401 || dataRes.status === 403) {
           setUserState(null);
@@ -243,5 +251,5 @@ export const useAuth = () => {
     [authorizedFetch, signOut]
   );
 
-  return { user, setUser, isAuthenticated, isLoading, error, signIn, signUp, signOut, checkAuthStatus, setError, changePassword, authorizedFetch };
+  return { isLocked, lockedOnLoadRef, user, setUser, isAuthenticated, isLoading, error, signIn, signUp, signOut, checkAuthStatus, setError, changePassword, authorizedFetch };
 };

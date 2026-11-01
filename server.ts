@@ -55,6 +55,47 @@ async function startServer() {
     lastLogin: string;
   }
 
+  function handleMockLock(req: express.Request, res: express.Response, subpath: string, session: string) {
+    const user = getSessionUser(req);
+    if (!user) return res.status(401).json({ message: 'Authentication required.' });
+    const record = mockUsers.get(user.email);
+    const { password, pin } = req.body || {};
+    if (subpath === '/lock/status') return res.json({ hasPin: mockPins.has(user.id), isLocked: mockLockedSessions.has(session) });
+    if (subpath === '/lock/pin') {
+      if (record?.password !== password) return res.status(401).json({ message: 'Your password is wrong.' });
+      if (req.method === 'DELETE') {
+        mockPins.delete(user.id);
+        mockLockedSessions.clear();
+        return res.json({ hasPin: false });
+      }
+      if (typeof pin !== 'string' || !/^\d{4}$/.test(pin)) return res.status(400).json({ message: 'A PIN is four digits.' });
+      mockPins.set(user.id, pin);
+      return res.json({ hasPin: true });
+    }
+    if (subpath === '/lock/lock') {
+      if (!mockPins.has(user.id)) return res.status(409).json({ message: 'Set a PIN first.' });
+      mockLockedSessions.add(session);
+      mockPinFailures.set(session, 0);
+      return res.json({ isLocked: true });
+    }
+    if (subpath === '/lock/unlock') {
+      if (pin === mockPins.get(user.id)) {
+        mockLockedSessions.delete(session);
+        return res.json({ isLocked: false });
+      }
+      const failures = (mockPinFailures.get(session) ?? 0) + 1;
+      mockPinFailures.set(session, failures);
+      if (failures >= 5) {
+        mockLockedSessions.delete(session);
+        activeSessions.delete(session);
+        res.setHeader('Set-Cookie', 'crystal_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+        return res.status(401).json({ message: 'Too many wrong PINs.', triesLeft: 0, isSignedOut: true });
+      }
+      return res.status(401).json({ message: 'Wrong PIN.', triesLeft: 5 - failures, isSignedOut: false });
+    }
+    return res.status(404).json({ error: `Not found: ${subpath}` });
+  }
+
   const mockUsers = new Map<string, { user: MockUser; password: string }>();
   const mockFinancialData = new Map<number, any>();
   const activeSessions = new Map<string, number>();
@@ -88,8 +129,21 @@ async function startServer() {
     return null;
   }
 
+  const mockLockedSessions = new Set<string>();
+  const mockPins = new Map<number, string>();
+  const mockPinFailures = new Map<string, number>();
+  const mockSessionId = (req: express.Request) => (req.headers.cookie || '').match(/crystal_session=([^;]+)/)?.[1] ?? '';
+
   async function handleMockApi(req: express.Request, res: express.Response) {
     const subpath = req.path;
+    const lockSession = mockSessionId(req);
+
+    if (subpath.startsWith('/lock')) return handleMockLock(req, res, subpath, lockSession);
+
+    // Same rule as server/src/lockRules.ts.
+    if (mockLockedSessions.has(lockSession) && subpath !== '/auth/me' && subpath !== '/auth/logout') {
+      return res.status(423).json({ message: 'Crystal is locked.', isLocked: true });
+    }
 
     if (subpath === '/health' || subpath === '') {
       return res.json({ status: 'healthy', uptime: process.uptime(), timestamp: new Date().toISOString() });
