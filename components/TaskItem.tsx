@@ -1,95 +1,55 @@
-
 import React from 'react';
-import { Task, TaskPriority } from '../types';
-import { parseLocalDate } from '../utils';
+import type { Task, TaskPriority, TaskStatus } from '../types';
+import { dueLabel } from '../utils/tasksModel';
+import { cn } from '../lib/utils';
+import { IconButton } from './ui/Actions';
+import { Badge } from './ui/Display';
+import { Checkbox } from './ui/Fields';
 import Icon from './ui/Icon';
+import { Menu } from './ui/Menu';
+
+const PRIORITY_TONE: Record<TaskPriority, 'negative' | 'attention' | 'neutral'> = { High: 'negative', Medium: 'attention', Low: 'neutral' };
+const STATUSES: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
 
 interface TaskItemProps {
   task: Task;
+  today: Date;
   onEdit: (task: Task) => void;
-  isJustCompleted: boolean;
+  onTick: (task: Task) => void;
+  onMove: (task: Task, status: TaskStatus) => void;
+  onDelete: (id: string) => void;
+  /** Handles shown when reordering. */
+  reorder?: React.ReactNode;
 }
 
-const PRIORITY_STYLES: Record<TaskPriority, { text: string; bg: string; dot: string }> = {
-    'High': { text: 'text-red-700 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-900/20', dot: 'bg-red-500' },
-    'Medium': { text: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-900/20', dot: 'bg-amber-500' },
-    'Low': { text: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-900/20', dot: 'bg-blue-500' },
-};
-
-const getRelativeDate = (dateString: string): { text: string; color: string } => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const date = parseLocalDate(dateString);
-    const diffTime = date.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return { text: `${Math.abs(diffDays)}d overdue`, color: 'text-red-700 dark:text-red-400 font-bold' };
-    if (diffDays === 0) return { text: 'Today', color: 'text-orange-700 dark:text-orange-400 font-bold' };
-    if (diffDays === 1) return { text: 'Tomorrow', color: 'text-amber-700 dark:text-amber-400' };
-    if (diffDays <= 7) return { text: `In ${diffDays} days`, color: 'text-light-text-secondary dark:text-dark-text-secondary' };
-    
-    return { 
-        text: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), 
-        color: 'text-light-text-secondary dark:text-dark-text-secondary' 
-    };
-};
-
-const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) => {
-    const priorityStyle = PRIORITY_STYLES[task.priority];
-    const dateInfo = task.dueDate ? getRelativeDate(task.dueDate) : null;
-
-    return (
-        <div 
-            onClick={() => onEdit(task)} 
-            className={`
-                group relative glass-tile p-5 rounded-[2rem] shadow-card
-                hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden
-                ${isJustCompleted ? 'animate-celebrate ring-2 ring-primary-500' : ''} 
-                ${task.status === 'Done' ? 'opacity-60' : ''}
-            `}
-        >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            
-            <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                    <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider border border-black/5 dark:border-white/5 shadow-sm ${priorityStyle.bg} ${priorityStyle.text}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${priorityStyle.dot} shadow-sm`}></div>
-                        {task.priority}
-                    </div>
-                    {task.status === 'Done' && (
-                        <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                             <Icon name="check" className="text-base font-bold" />
-                        </div>
-                    )}
-                </div>
-
-                <h4 className={`text-sm font-bold text-light-text dark:text-dark-text mb-2 leading-snug tracking-tight ${task.status === 'Done' ? 'line-through opacity-50' : ''}`}>
-                    {task.title}
-                </h4>
-                
-                {task.description && (
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-75 line-clamp-2 mb-4 leading-relaxed">
-                        {task.description}
-                    </p>
-                )}
-
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-black/5 dark:border-white/5">
-                    {dateInfo ? (
-                        <div className={`flex items-center gap-2 text-xs font-semibold tracking-wider ${dateInfo.color}`}>
-                            <Icon name="calendar_today" className="text-sm opacity-40" />
-                            <span>{dateInfo.text}</span>
-                        </div>
-                    ) : (
-                        <span className="text-xs font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-40">No Temporal Limit</span>
-                    )}
-                    
-                    {task.reminderDate && (
-                        <Icon name="notifications" className="text-base text-slate-400 dark:text-slate-500 group-hover:text-primary-500 transition-colors shrink-0" />
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+/** A task as a line on a checklist (D-017): tick it, open it, or use the menu. */
+const TaskItem: React.FC<TaskItemProps> = ({ task, today, onEdit, onTick, onMove, onDelete, reorder }) => {
+  const isDone = task.status === 'Done';
+  const due = task.dueDate ? dueLabel(task.dueDate, today) : null;
+  return (
+    <div className="flex items-start gap-2 py-2">
+      <span className="shrink-0 pt-0.5"><Checkbox isSelected={isDone} onChange={() => onTick(task)}><span className="sr-only">{task.title} done</span></Checkbox></span>
+      <button type="button" onClick={() => onEdit(task)} className="min-w-0 flex-1 cursor-pointer text-left">
+        <span className={cn('type-body-strong block truncate text-ink', isDone && 'text-muted line-through')}>{task.title}</span>
+        {task.description && <span className="type-caption block truncate text-muted">{task.description}</span>}
+        <span className="mt-1 flex flex-wrap items-center gap-2">
+          <Badge tone={PRIORITY_TONE[task.priority]}>{task.priority}</Badge>
+          {due && !isDone && <span className={cn('type-caption', due.isLate ? 'text-money-out' : due.isSoon ? 'text-attention-text' : 'text-muted')}>{due.text}</span>}
+          {task.reminderDate && <Icon name="notifications" size={14} className="text-muted" aria-label="Has a reminder" />}
+        </span>
+      </button>
+      {reorder}
+      <Menu
+        title={task.title}
+        trigger={<IconButton icon="more_horiz" label={`Actions for ${task.title}`} tooltipPlacement="left" />}
+        items={[
+          { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => onEdit(task) },
+          ...STATUSES.filter(status => status !== task.status).map(status => ({ id: status, label: `Move to ${status}`, icon: 'arrow_forward', onAction: () => onMove(task, status) })),
+          { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => onDelete(task.id) },
+        ]}
+      />
+    </div>
+  );
 };
 
 export default React.memo(TaskItem);

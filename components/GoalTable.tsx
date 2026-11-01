@@ -1,292 +1,142 @@
-
 import React, { useMemo, useState } from 'react';
-import { FinancialGoal, Account } from '../types';
-import { formatCurrency, parseLocalDate } from '../utils';
+import type { Account, FinancialGoal } from '../types';
+import { parseLocalDate } from '../utils';
+import { goalCategoryOf } from '../utils/forecastModel';
+import { goalCardView, isGoalDone } from '../utils/goalsModel';
+import { cn } from '../lib/utils';
+import { GOAL_STATUS } from './GoalCard';
+import { IconButton } from './ui/Actions';
+import { Badge } from './ui/Display';
+import { Checkbox } from './ui/Fields';
 import Icon from './ui/Icon';
+import { Amount } from './ui/Money';
+import SegmentedControl from './ui/SegmentedControl';
 
 interface GoalTableProps {
   goals: FinancialGoal[];
   accounts: Account[];
-  onGoalClick: (goal: FinancialGoal) => void;
+  today: Date;
   onEdit: (goal: FinancialGoal) => void;
-  onDelete: (id: string) => void;
-  onToggleComplete?: (goal: FinancialGoal) => void;
+  onDelete: (goal: FinancialGoal) => void;
+  onToggleComplete: (goal: FinancialGoal) => void;
 }
 
 type SortField = 'name' | 'amount' | 'currentAmount' | 'date' | 'progress' | 'status';
-type SortOrder = 'asc' | 'desc';
 
-const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onEdit, onDelete, onToggleComplete }) => {
+const COLUMNS: { id: SortField; label: string; end?: boolean }[] = [
+  { id: 'name', label: 'Goal' },
+  { id: 'amount', label: 'Target', end: true },
+  { id: 'currentAmount', label: 'Saved', end: true },
+  { id: 'progress', label: 'Progress' },
+  { id: 'date', label: 'Due' },
+];
+const GROUPINGS = [{ id: 'all', label: 'List all' }, { id: 'bucket', label: 'By bucket' }];
+const CATEGORY_LABEL = { savings: 'Saving', expense: 'Spending', income: 'Income' };
+const shortDate = (date?: string) => (date ? parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+
+/** Goals as a sortable list (GOL-05). */
+const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, onDelete, onToggleComplete }) => {
   const [sortField, setSortField] = useState<SortField>('date');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [groupByBucket, setGroupByBucket] = useState(false);
+  const [isAscending, setAscending] = useState(true);
+  const [grouping, setGrouping] = useState('all');
 
-  const getAccountName = (id?: string) => {
-    if (!id) return '-';
-    return accounts.find(a => a.id === id)?.name || 'Unknown';
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'on-track': return { text: 'On Track', color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' };
-      case 'at-risk': return { text: 'At Risk', color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20' };
-      case 'off-track': return { text: 'Off Track', color: 'text-rose-600 bg-rose-50 dark:bg-rose-900/20' };
-      default: return { text: 'Unknown', color: 'text-gray-600 bg-gray-50' };
-    }
-  };
-
-  const sortedGoals = useMemo(() => {
-    const list = [...goals].filter(g => !g.isBucket);
-    
-    list.sort((a, b) => {
-      let valA: any = a[sortField as keyof FinancialGoal] || 0;
-      let valB: any = b[sortField as keyof FinancialGoal] || 0;
-
-      if (sortField === 'progress') {
-        valA = a.amount > 0 ? a.currentAmount / a.amount : 0;
-        valB = b.amount > 0 ? b.currentAmount / b.amount : 0;
-      } else if (sortField === 'status') {
-        valA = a.projection?.status || '';
-        valB = b.projection?.status || '';
-      } else if (sortField === 'date') {
-        valA = a.date ? parseLocalDate(a.date).getTime() : Infinity;
-        valB = b.date ? parseLocalDate(b.date).getTime() : Infinity;
+  const rows = useMemo(() => {
+    const value = (goal: FinancialGoal, view: ReturnType<typeof goalCardView>): string | number => {
+      switch (sortField) {
+        case 'name': return goal.name.toLowerCase();
+        case 'amount': return goal.amount;
+        case 'currentAmount': return goal.currentAmount;
+        case 'progress': return view.pct;
+        case 'status': return view.status;
+        default: return goal.date ? parseLocalDate(goal.date).getTime() : Infinity;
       }
+    };
+    const direction = isAscending ? 1 : -1;
+    return goals
+      .filter(goal => !goal.isBucket)
+      .map(goal => ({ goal, view: goalCardView(goal, [], today) }))
+      .sort((a, b) => {
+        const left = value(a.goal, a.view);
+        const right = value(b.goal, b.view);
+        return left < right ? -direction : left > right ? direction : 0;
+      });
+  }, [goals, today, sortField, isAscending]);
 
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return list;
-  }, [goals, sortField, sortOrder]);
-
-  const buckets = useMemo(() => {
-    return goals.filter(g => g.isBucket);
-  }, [goals]);
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
+  const sortBy = (field: SortField) => {
+    if (field === sortField) setAscending(ascending => !ascending);
+    else {
       setSortField(field);
-      setSortOrder('asc');
+      setAscending(true);
     }
   };
 
-  const renderSortIcon = (field: SortField) => {
-    if (sortField !== field) return <Icon name="swap_vert" className="text-xs opacity-50" />;
-    return <Icon name={sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'} className="text-xs" />;
-  };
+  const groups = useMemo(() => {
+    if (grouping === 'all') return [{ id: 'all', name: '', rows }];
+    const buckets = goals.filter(goal => goal.isBucket).map(bucket => ({ id: bucket.id, name: bucket.name, rows: rows.filter(row => row.goal.parentId === bucket.id) }));
+    return [...buckets, { id: 'loose', name: 'No bucket', rows: rows.filter(row => !row.goal.parentId) }].filter(group => group.rows.length > 0);
+  }, [grouping, rows, goals]);
 
-  const renderGoalRow = (goal: FinancialGoal) => {
-    const progress = goal.amount > 0 ? (goal.currentAmount / goal.amount) * 100 : 0;
-    const status = getStatusLabel(goal.projection?.status || '');
-    const isCompleted = !!goal.completed || progress >= 100;
-    const category = goal.goalCategory || (goal.transactionType === 'income' ? 'income' : 'savings');
-
-    const getGoalIcon = () => {
-      switch (category) {
-        case 'expense': return 'shopping_cart';
-        case 'income': return 'monetization_on';
-        default: return 'savings';
-      }
-    };
-
-    const getGoalColor = () => {
-      if (isCompleted) return 'bg-emerald-500/10 text-emerald-500';
-      switch (category) {
-        case 'expense': return 'bg-rose-500/10 text-rose-500';
-        case 'income': return 'bg-emerald-500/10 text-emerald-500';
-        default: return 'bg-primary-500/10 text-primary-500';
-      }
-    };
-
-    return (
-      <tr key={goal.id} className={`border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group ${isCompleted ? 'bg-emerald-50/20 dark:bg-emerald-950/10' : ''}`}>
-        <td className="py-4 px-4">
-          <div className="flex items-center gap-3">
-            {onToggleComplete && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleComplete(goal);
-                }}
-                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
-                  isCompleted
-                    ? 'bg-emerald-500 border-emerald-600 text-white shadow-xs'
-                    : 'border-slate-300 dark:border-slate-600 hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20'
-                }`}
-                title={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
-              >
-                {isCompleted && <Icon name="check" className="text-xs font-bold" />}
-              </button>
-            )}
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getGoalColor()}`}>
-              <Icon name={isCompleted ? 'check_circle' : getGoalIcon()} className="text-base" />
-            </div>
-            <div>
-              <p className={`font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors cursor-pointer ${isCompleted ? 'line-through opacity-80' : ''}`} onClick={() => onGoalClick(goal)}>{goal.name}</p>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">{getAccountName(goal.paymentAccountId)}</p>
-                <span className="w-1 h-1 rounded-full bg-black/10 dark:bg-white/10" />
-                <p className="text-xs text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">{category === 'savings' ? 'Saving' : category === 'expense' ? 'Expense' : 'Income'}</p>
-                {isCompleted && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-emerald-500/50" />
-                    <span className="text-2xs font-bold text-emerald-700 dark:text-emerald-400">Completed</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </td>
-        <td className="py-4 px-4 text-right font-mono text-xs font-bold text-light-text dark:text-dark-text">
-          {formatCurrency(goal.amount, goal.currency)}
-        </td>
-        <td className="py-4 px-4 text-right font-mono text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary">
-          {formatCurrency(goal.currentAmount, goal.currency)}
-        </td>
-        <td className="py-4 px-4">
-          <div className="space-y-1">
-            <div className="flex justify-between items-center text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">
-              <span>{progress.toFixed(0)}%</span>
-            </div>
-            <div className="w-full h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-primary-500'}`}
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
-            </div>
-          </div>
-        </td>
-        <td className="py-4 px-4">
-          <p className="text-sm text-light-text dark:text-dark-text font-medium text-center">
-            {goal.date ? parseLocalDate(goal.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
-          </p>
-        </td>
-        <td className="py-4 px-4">
-          <p className="text-sm text-center font-bold text-primary-700 dark:text-primary-400">
-            {goal.projection?.projectedDate && goal.projection.projectedDate !== 'Beyond forecast' && goal.projection.projectedDate !== 'Goal reached'
-              ? parseLocalDate(goal.projection.projectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-              : goal.projection?.projectedDate || '-'}
-          </p>
-        </td>
-        <td className="py-4 px-4">
-           {!isCompleted ? (
-              <div className={`px-2.5 py-1 rounded-full text-2xs font-bold uppercase tracking-wider text-center ${status.color}`}>
-                {status.text}
-              </div>
-           ) : (
-             <div className="px-2.5 py-1 rounded-full text-2xs font-bold uppercase tracking-wider text-center bg-emerald-500 text-white shadow-sm">
-                Completed
-             </div>
-           )}
-        </td>
-        <td className="py-4 px-4">
-          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-            <button aria-label={`Edit goal ${goal.name}`} onClick={() => onEdit(goal)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 rounded-lg">
-              <Icon name="edit" className="text-base" />
-            </button>
-            <button aria-label={`Delete goal ${goal.name}`} onClick={() => onDelete(goal.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-500 rounded-lg">
-              <Icon name="delete" className="text-base" />
-            </button>
-          </div>
-        </td>
-      </tr>
-    );
-  };
+  const header = (column: { id: SortField; label: string; end?: boolean }) => (
+    <th key={column.id} scope="col" aria-sort={sortField === column.id ? (isAscending ? 'ascending' : 'descending') : 'none'} className={cn('px-3 py-2', column.end && 'text-right')}>
+      <button type="button" onClick={() => sortBy(column.id)} className={cn('type-label inline-flex min-h-11 cursor-pointer items-center gap-1 text-muted hover:text-ink', column.end && 'flex-row-reverse')}>
+        {column.label}
+        {sortField === column.id && <Icon name={isAscending ? 'arrow_upward' : 'arrow_downward'} size={14} />}
+      </button>
+    </th>
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4 bg-light-fill dark:bg-dark-fill p-2 rounded-xl border border-black/5 dark:border-white/5 self-start inline-flex">
-          <button 
-            onClick={() => setGroupByBucket(false)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-700 dark:text-primary-400' : 'text-light-text-secondary dark:text-neutral-300'}`}
-          >
-            List All
-          </button>
-          <button 
-            onClick={() => setGroupByBucket(true)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-700 dark:text-primary-400' : 'text-light-text-secondary dark:text-neutral-300'}`}
-          >
-            Group by Bucket
-          </button>
+    <section aria-label="Goals table" className="surface-card overflow-hidden rounded-[var(--radius-xl)]">
+      <div className="flex justify-end p-3">
+        <SegmentedControl items={GROUPINGS} activeId={grouping} onChange={setGrouping} />
       </div>
-
-      <div className="overflow-x-auto rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-sm">
-        <table className="w-full text-left border-collapse">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse">
           <thead>
-            <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-              <th className="py-4 px-4 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('name')}>
-                 <div className="flex items-center gap-1">Goal {renderSortIcon('name')}</div>
-              </th>
-              <th className="py-4 px-4 text-right text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('amount')}>
-                 <div className="flex items-center justify-end gap-1">Target {renderSortIcon('amount')}</div>
-              </th>
-              <th className="py-4 px-4 text-right text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('currentAmount')}>
-                 <div className="flex items-center justify-end gap-1">Saved {renderSortIcon('currentAmount')}</div>
-              </th>
-              <th className="py-4 px-4 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('progress')}>
-                 <div className="flex items-center gap-1">Progress {renderSortIcon('progress')}</div>
-              </th>
-              <th className="py-4 px-4 text-xs font-semibold uppercase tracking-wider text-light-text-secondary text-center dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('date')}>
-                 <div className="flex items-center justify-center gap-1">Due Date {renderSortIcon('date')}</div>
-              </th>
-              <th className="py-4 px-4 text-xs font-semibold uppercase tracking-wider text-light-text-secondary text-center dark:text-neutral-400 cursor-pointer hover:text-primary-500">
-                 <div className="flex items-center justify-center gap-1">Projected</div>
-              </th>
-              <th className="py-4 px-4 text-xs font-semibold uppercase tracking-wider text-light-text-secondary text-center dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('status')}>
-                 <div className="flex items-center justify-center gap-1">Status {renderSortIcon('status')}</div>
-              </th>
-              <th className="py-4 px-4"></th>
+            <tr className="border-y border-line text-left">
+              {COLUMNS.map(header)}
+              <th scope="col" className="type-label px-3 py-2 text-left text-muted">Expected</th>
+              {header({ id: 'status', label: 'Status' })}
+              <th scope="col"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
-          <tbody>
-            {groupByBucket ? (
-              buckets.map(bucket => {
-                const subGoals = sortedGoals.filter(g => g.parentId === bucket.id);
-                if (subGoals.length === 0) return null;
+          {groups.map(group => (
+            <tbody key={group.id}>
+              {group.name && <tr className="bg-inset"><th scope="rowgroup" colSpan={8} className="type-label px-3 py-1.5 text-left text-ink">{group.name}</th></tr>}
+              {group.rows.map(({ goal, view }) => {
+                const status = GOAL_STATUS[view.status];
+                const account = accounts.find(item => item.id === goal.paymentAccountId)?.name;
                 return (
-                  <React.Fragment key={bucket.id}>
-                    <tr className="bg-black/[0.01] dark:bg-white/[0.01]">
-                      <td colSpan={8} className="py-2 px-4 border-b border-black/5 dark:border-white/5">
-                        <div className="flex items-center gap-2">
-                           <Icon name="folder" className="text-sm text-indigo-500" />
-                           <span className="text-xs font-bold tracking-wider text-indigo-500">{bucket.name}</span>
-                        </div>
-                      </td>
-                    </tr>
-                    {subGoals.map(renderGoalRow)}
-                  </React.Fragment>
-                );
-              }).concat(
-                <React.Fragment key="unassigned">
-                  <tr className="bg-black/[0.01] dark:bg-white/[0.01]">
-                    <td colSpan={8} className="py-2 px-4 border-b border-black/5 dark:border-white/5">
+                  <tr key={goal.id} className="border-b border-line last:border-0">
+                    <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                         <Icon name="label_off" className="text-sm text-gray-400" />
-                         <span className="text-xs font-semibold tracking-wider text-gray-400">Unassigned</span>
+                        <Checkbox isSelected={isGoalDone(goal)} onChange={() => onToggleComplete(goal)}><span className="sr-only">{goal.name} reached</span></Checkbox>
+                        <button type="button" onClick={() => onEdit(goal)} className="min-w-0 cursor-pointer text-left">
+                          <span className="type-body-strong block truncate text-ink">{goal.name}</span>
+                          <span className="type-caption block truncate text-muted">{CATEGORY_LABEL[goalCategoryOf(goal)]}{account ? `, ${account}` : ''}</span>
+                        </button>
                       </div>
                     </td>
+                    <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={view.target} currency="EUR" /></td>
+                    <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={view.saved} currency="EUR" /></td>
+                    <td className="px-3 py-2">
+                      <span className="type-caption text-ink">{Math.round(view.pct)}%</span>
+                      <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-inset"><div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${view.pct}%` }} /></div>
+                    </td>
+                    <td className="type-body whitespace-nowrap px-3 py-2 text-ink">{shortDate(view.date)}</td>
+                    <td className="type-body whitespace-nowrap px-3 py-2 text-ink">{shortDate(view.projectedDate)}</td>
+                    <td className="px-3 py-2"><Badge tone={status.tone}>{status.label}</Badge></td>
+                    <td className="px-1 py-2 text-right">
+                      <IconButton icon="delete" label={`Delete ${goal.name}`} tooltipPlacement="left" onPress={() => onDelete(goal)} />
+                    </td>
                   </tr>
-                  {sortedGoals.filter(g => !g.parentId).map(renderGoalRow)}
-                </React.Fragment>
-              )
-            ) : (
-              sortedGoals.map(renderGoalRow)
-            )}
-          </tbody>
+                );
+              })}
+            </tbody>
+          ))}
         </table>
-        {sortedGoals.length === 0 && (
-          <div className="py-20 text-center">
-            <Icon name="flag" className="text-4xl text-light-text-secondary opacity-20" />
-            <p className="mt-2 text-sm font-medium text-light-text-secondary">No goals found for this view.</p>
-          </div>
-        )}
       </div>
-    </div>
+    </section>
   );
 };
 

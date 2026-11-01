@@ -1,10 +1,10 @@
-
-import React, { useMemo, useState } from 'react';
-import { Membership } from '../types';
+import React, { useState } from 'react';
+import type { Membership } from '../types';
 import { parseLocalDate } from '../utils';
-import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
-import Icon from './ui/Icon';
+import { BrandMark } from './ServiceCard';
+import { Button, IconButton } from './ui/Actions';
+import { Badge } from './ui/Display';
+import { Menu } from './ui/Menu';
 
 interface LoyaltyCardProps {
   membership: Membership;
@@ -12,158 +12,62 @@ interface LoyaltyCardProps {
   onDelete: (id: string) => void;
 }
 
+/** A membership in the Wallet, in Tilvo's card style (D-028), with its colour along the top. */
 const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete }) => {
-  const [copied, setCopied] = useState(false);
-  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const [logoError, setLogoError] = useState(false);
+  const [isCopied, setCopied] = useState(false);
+  const expiry = membership.expiryDate ? parseLocalDate(membership.expiryDate.slice(0, 10)) : null;
+  const isExpired = !!expiry && expiry < new Date();
 
-  const normalizeColor = (hexColor: string) => hexColor.replace('#', '');
-
-  const toRgba = (hexColor: string, alpha = 1) => {
-    const sanitized = normalizeColor(hexColor);
-    const normalized = sanitized.length === 3
-      ? sanitized.split('').map(char => char + char).join('')
-      : sanitized;
-
-    if (normalized.length !== 6) return `rgba(79, 70, 229, ${alpha})`;
-
-    const r = parseInt(normalized.substring(0, 2), 16);
-    const g = parseInt(normalized.substring(2, 4), 16);
-    const b = parseInt(normalized.substring(4, 6), 16);
-
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
-
-  const cardColor = membership.color || '#4f46e5';
-
-  const formattedExpiry = membership.expiryDate
-    ? parseLocalDate(membership.expiryDate).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })
-    : 'Never';
-
-  const isExpired = useMemo(() => {
-    if (!membership.expiryDate) return false;
-    return new Date(membership.expiryDate) < new Date();
-  }, [membership.expiryDate]);
-
-  const gradientBackground = useMemo(() => ({
-    background: `linear-gradient(135deg, ${toRgba(cardColor, 0.9)} 0%, ${toRgba(cardColor, 0.7)} 100%)`,
-  }), [cardColor]);
-
-  const handleCopyId = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const copyId = () => {
     navigator.clipboard.writeText(membership.memberId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  
-  const handleWebsiteClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-  };
-
-  const logoUrl = getMerchantLogoUrl(membership.provider, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
-  const hasLogo = Boolean(logoUrl && !logoError);
 
   return (
-    <div 
-        onClick={() => onEdit(membership)}
-        className="group relative w-full aspect-[1.586/1] rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden border border-white/10 select-none bg-black cursor-pointer"
-    >
-      
-      {/* Background Layer */}
-      <div className="absolute inset-0 z-0 bg-cover bg-center brightness-90 saturate-[1.2] transition-transform duration-700 group-hover:scale-110" style={gradientBackground}></div>
-      
-      {/* Dynamic Glow Overlay */}
-      <div className="absolute inset-0 z-0 opacity-40 group-hover:opacity-60 transition-opacity duration-500" style={{ background: `radial-gradient(circle at 100% 0%, ${toRgba(cardColor, 0.4)} 0%, transparent 60%)` }} />
-      <div className="absolute -inset-24 z-0 bg-white/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-white/10 transition-colors" />
-
-      {/* Texture & Watermark */}
-      <div className="absolute inset-0 z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
-      {!hasLogo && (
-        <div className="absolute -right-8 -bottom-8 text-white opacity-10 z-0 pointer-events-none transform rotate-12 transition-transform duration-700 group-hover:rotate-0">
-             <Icon name={membership.icon || 'loyalty'} className="text-[160px] leading-none" />
+    <article className="surface-card relative flex h-full flex-col gap-3 overflow-hidden rounded-[var(--radius-xl)] p-5 pt-6">
+      <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: membership.color || 'var(--primary)' }} />
+      <header className="flex items-start gap-3">
+        <BrandMark name={membership.provider} />
+        <div className="min-w-0 flex-1">
+          <h3 className="type-body-strong truncate text-ink">
+            <button type="button" onClick={() => onEdit(membership)} className="cursor-pointer text-left after:absolute after:inset-0">{membership.provider}</button>
+          </h3>
+          <p className="type-caption truncate text-muted">{membership.category || 'Membership'}</p>
         </div>
-      )}
-      
-      {/* Actions (Floating) */}
-      <div className="absolute top-6 right-6 z-30 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(membership.id); }}
-            className="w-10 h-10 rounded-xl bg-black/20 hover:bg-rose-500 text-white flex items-center justify-center backdrop-blur-md border border-white/10 transition-all shadow-xl"
-            title="Delete"
-          >
-             <Icon name="delete" className="text-sm" />
-          </button>
+        {membership.tier && <Badge tone="neutral">{membership.tier}</Badge>}
+        <span className="relative z-10 -mr-2 -mt-2">
+          <Menu
+            title={membership.provider}
+            trigger={<IconButton icon="more_horiz" label={`Actions for ${membership.provider}`} tooltipPlacement="left" />}
+            items={[
+              { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => onEdit(membership) },
+              ...(membership.website ? [{ id: 'site', label: 'Open website', icon: 'open_in_new', onAction: () => { window.open(membership.website, '_blank', 'noopener,noreferrer'); } }] : []),
+              { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => onDelete(membership.id) },
+            ]}
+          />
+        </span>
+      </header>
+
+      <div className="relative z-10 flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-inset pl-3">
+        <span className="min-w-0">
+          <span className="type-caption block text-muted">Member number</span>
+          <span className="type-body-strong block truncate text-ink tabular-nums">{membership.memberId}</span>
+        </span>
+        <Button variant="ghost" size="sm" icon={isCopied ? 'check' : 'content_copy'} onPress={copyId}>{isCopied ? 'Copied' : 'Copy'}</Button>
       </div>
 
-      {/* Main Content Layout */}
-      <div className="relative z-10 flex flex-col justify-between h-full p-6 text-white">
-        
-        {/* Top: Branding */}
-        <div className="flex justify-between items-start">
-             <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-white/10'}`}>
-                    {hasLogo ? (
-                        <img 
-                            src={logoUrl!} 
-                            alt={membership.provider} 
-                            className="w-full h-full object-cover p-0 border-0" 
-                            onError={() => setLogoError(true)}
-                        />
-                    ) : (
-                        <Icon name={membership.icon || 'loyalty'} className="text-2xl text-white/80" />
-                    )}
-                </div>
-                
-                <div className="flex flex-col">
-                    <h3 className="font-bold text-xl leading-none drop-shadow-lg tracking-tight">{membership.provider}</h3>
-                    {membership.tier && (
-                        <span className="text-xs font-semibold uppercase tracking-wider text-white/60 mt-1">{membership.category || 'Membership'}</span>
-                    )}
-                </div>
-             </div>
-             
-             {membership.tier && (
-                <div className="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-md border border-white/20 shadow-sm group-hover:bg-white transition-colors group-hover:text-black">
-                    {membership.tier}
-                </div>
-             )}
+      <dl className="mt-auto grid grid-cols-2 gap-x-3 gap-y-1">
+        {membership.holderName && <div className="min-w-0"><dt className="type-caption text-muted">Holder</dt><dd className="type-body truncate text-ink">{membership.holderName}</dd></div>}
+        {membership.points && <div className="min-w-0"><dt className="type-caption text-muted">Points</dt><dd className="type-body truncate text-ink">{membership.points}</dd></div>}
+        {membership.memberSince && <div className="min-w-0"><dt className="type-caption text-muted">Member since</dt><dd className="type-body truncate text-ink">{membership.memberSince}</dd></div>}
+        <div className="min-w-0">
+          <dt className="type-caption text-muted">Valid until</dt>
+          <dd className="type-body truncate text-ink">{expiry ? expiry.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'No expiry'}{isExpired ? ', expired' : ''}</dd>
         </div>
-
-        {/* Middle: ID */}
-        <div className="flex flex-col justify-center flex-grow py-4">
-             <div 
-                onClick={handleCopyId}
-                className="group/id inline-flex flex-col text-left hover:bg-white/10 p-2 -ml-2 rounded-2xl transition-all duration-300 relative w-fit"
-             >
-                <span className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-1">Asset ID</span>
-                <div className="flex items-center gap-4">
-                    <span className="font-mono text-2xl font-bold tracking-[0.15em] drop-shadow-xl text-white">
-                        {membership.memberId}
-                    </span>
-                    <div className={`flex items-center justify-center w-6 h-6 rounded-xl transition-all duration-300 ${copied ? 'bg-emerald-400 text-black scale-110' : 'bg-white/20 text-white scale-90 opacity-0 group-hover/id:opacity-100'}`}>
-                        <Icon name={copied ? 'check' : 'content_copy'} className="text-xs font-bold" />
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* Bottom Details Grid */}
-        <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/10">
-             <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wider text-white/40">Holder</span>
-                <span className="text-xs font-bold tracking-tight truncate">{membership.holderName || 'Card Holder'}</span>
-             </div>
-             <div className="flex flex-col gap-1 text-right">
-                <span className="text-xs font-semibold uppercase tracking-wider text-white/40">Status / Balance</span>
-                <span className="text-xs font-bold tracking-tight text-white tabular-nums">
-                    {membership.points || (isExpired ? 'EXPIRED' : formattedExpiry !== 'Never' ? `VAL: ${formattedExpiry}` : 'ACTIVE')}
-                </span>
-             </div>
-        </div>
-      </div>
-    </div>
+      </dl>
+    </article>
   );
 };
 
-export default React.memo(LoyaltyCard);
+export default LoyaltyCard;

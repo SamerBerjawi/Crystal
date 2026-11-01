@@ -354,3 +354,109 @@ export const sumHistories = (histories: { date: string; value: number }[][]): { 
   for (const h of histories) for (const p of h) map.set(p.date, safeAdd(map.get(p.date) ?? 0, p.value));
   return [...map.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, value]) => ({ date, value: round2(value) }));
 };
+
+// ---------------------------------------------------------------------------------------------------------------
+// The Forecast page (D-010, D-090)
+// ---------------------------------------------------------------------------------------------------------------
+
+export type ForecastRange = '30' | '60' | '90' | '6M' | 'EOY' | '1Y';
+export const FORECAST_RANGES: { id: ForecastRange; label: string }[] = [
+  { id: '30', label: '30 days' },
+  { id: '60', label: '60 days' },
+  { id: '90', label: '90 days' },
+  { id: '6M', label: '6 months' },
+  { id: 'EOY', label: 'End of year' },
+  { id: '1Y', label: '1 year' },
+];
+
+/** The saved default period, as one of the ranges. */
+export const rangeFromDuration = (duration?: string): ForecastRange => (duration === '3M' ? '90' : duration === '6M' || duration === 'EOY' ? duration : '1Y');
+
+export const rangeEnd = (range: ForecastRange, today: Date): Date => {
+  if (range === '30' || range === '60' || range === '90') return addDays(today, Number(range));
+  return horizonEnd(range, today);
+};
+
+const WEEK_DAYS = 7;
+/** Past this many days, bubbles group by week so they stay readable. */
+export const WEEKLY_AFTER_DAYS = 100;
+
+export type BubbleLane = 'in' | 'out' | 'fixed';
+
+export interface Bubble {
+  key: string;
+  /** The day it sits on: its own, or the first of its week when grouped. */
+  date: string;
+  lane: BubbleLane;
+  /** Size, always positive. */
+  amount: number;
+  label: string;
+  events: ForecastEvent[];
+  /** Only a single bill or recurring item can be dragged. Payments from accounts are fixed. */
+  isMovable: boolean;
+}
+
+const canMove = (event: ForecastEvent) => (event.kind === 'recurring' || event.kind === 'bill') && !event.occurrence?.isReadOnly;
+
+const laneOf = (event: ForecastEvent): BubbleLane => {
+  if (event.kind !== 'recurring' && event.kind !== 'bill') return 'fixed';
+  return event.amount > 0 ? 'in' : 'out';
+};
+
+/** Every event in the range as a bubble, or one per lane and week on the long ranges. */
+export const forecastBubbles = (events: ForecastEvent[], weekly: boolean, today: Date): Bubble[] => {
+  const moving = events.filter(event => Math.abs(event.amount) >= 0.005);
+  if (!weekly) {
+    return moving.map(event => ({ key: event.key, date: event.date, lane: laneOf(event), amount: Math.abs(event.amount), label: event.description, events: [event], isMovable: canMove(event) }));
+  }
+  const weeks = new Map<string, Bubble>();
+  for (const event of moving) {
+    const offset = Math.floor((parseLocalDate(event.date).getTime() - today.getTime()) / (WEEK_DAYS * 86400000));
+    const date = iso(addDays(today, offset * WEEK_DAYS));
+    const lane = laneOf(event);
+    const key = `${lane}|${date}`;
+    const bubble = weeks.get(key) ?? { key, date, lane, amount: 0, label: '', events: [], isMovable: false };
+    bubble.amount = round2(bubble.amount + Math.abs(event.amount));
+    bubble.events.push(event);
+    bubble.label = bubble.events.length === 1 ? event.description : `${bubble.events.length} items`;
+    weeks.set(key, bubble);
+  }
+  return [...weeks.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+};
+
+export interface HorizonSummary { today: number; expectedIn: number; goingOut: number; end: number; lowest: { value: number; date: string } | null; below: { count: number; first: string | null } }
+
+export const horizonSummary = (projection: Projection, cushion: number): HorizonSummary => {
+  const expectedIn = projection.events.reduce((sum, event) => (event.amount > 0 ? safeAdd(sum, event.amount) : sum), 0);
+  const goingOut = projection.events.reduce((sum, event) => (event.amount < 0 ? safeAdd(sum, event.amount) : sum), 0);
+  return {
+    today: projection.start,
+    expectedIn,
+    goingOut,
+    end: projection.days[projection.days.length - 1]?.total ?? projection.start,
+    lowest: lowestPoint(projection.days),
+    below: daysBelow(projection.days, cushion),
+  };
+};
+
+/** The biggest movements ahead, largest first. */
+export const biggestAhead = (events: ForecastEvent[], limit = 8) =>
+  [...events].filter(event => Math.abs(event.amount) >= 0.005).sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, limit);
+
+export interface MoveSuggestion { event: ForecastEvent; toDate: string }
+
+/**
+ * When the line dips under the buffer: the largest movable payment in the two weeks up to the dip, and the day
+ * after the next income, which is where moving it would help most.
+ */
+export const moveSuggestion = (projection: Projection, cushion: number): MoveSuggestion | null => {
+  const { first } = daysBelow(projection.days, cushion);
+  if (!first) return null;
+  const income = nextIncomeAfter(projection.events, first);
+  if (!income) return null;
+  const earliest = iso(addDays(parseLocalDate(first), -14));
+  const candidates = projection.events
+    .filter(event => event.amount < 0 && canMove(event) && event.date >= earliest && event.date <= first)
+    .sort((a, b) => a.amount - b.amount);
+  return candidates[0] ? { event: candidates[0], toDate: iso(addDays(parseLocalDate(income.date), 1)) } : null;
+};

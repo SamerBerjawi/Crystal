@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { liveSeries } from '../utils/scheduleModel';
 import type { Account, Category, DisplayTransaction, LoanPaymentOverrides, MileageLog, ScheduledPayment, Transaction } from '../types';
 import { LINE_MOTION } from '../src/components/charts/animation';
 import { ResponsiveContainer, Area, CartesianGrid, ComposedChart, Legend, Line, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
@@ -74,7 +75,8 @@ const useRawTransactions = (props: AccountPanelProps) => useMemo(() => props.acc
 
 const GeneralPanel: React.FC<AccountPanelProps> = props => {
   const { account } = props;
-  const { recurringTransactions, recurringTransactionOverrides, billsAndPayments, loanPaymentOverrides } = useScheduleContext();
+  const { recurringTransactions: everySeries, recurringTransactionOverrides, billsAndPayments, loanPaymentOverrides } = useScheduleContext();
+  const recurringTransactions = useMemo(() => liveSeries(everySeries), [everySeries]);
   const { financialGoals } = useGoalsContext();
   const { transactions: allTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
+import { liveSeries } from '../utils/scheduleModel';
 import type { Transaction } from '../types';
 import { useAccountsContext, useTransactionsContext } from './DomainProviders';
 import { useScheduleContext } from './FinancialDataContext';
@@ -36,7 +37,8 @@ const ReviewContext = createContext<ReviewContextValue | null>(null);
 export const ReviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction } = useTransactionsContext();
-  const { recurringTransactions, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
+  const { recurringTransactions: everySeries, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
+  const recurringTransactions = useMemo(() => liveSeries(everySeries), [everySeries]);
   const { config, updateConfig, resetConfig } = useMatcherConfig();
 
   const { suggestions, confirmMatch, dismissSuggestion, confirmSelectedMatches, dismissSelectedMatches, dismissAllSuggestions } =

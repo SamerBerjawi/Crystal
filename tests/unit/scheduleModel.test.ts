@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Account, BillPayment, RecurringTransaction, RecurringTransactionOverride, Transaction } from '../../types';
-import {
+import { heatKind, postDetails,
   buildOccurrences, cadenceLabel, classifyFlow, dailyCommitted, groupUpcoming, makeConverter, monthGrid, monthlyEquivalent,
   endSeriesAt, firstDueOnOrAfter, nextDueAfterPaying, splitSeriesAt, parseAmountInput, planSeries, seriesGroups, summarize, emptySeriesDraft, oldUnpaidBills, type Occurrence,
 } from '../../utils/scheduleModel';
@@ -226,4 +226,24 @@ test('"this and future" ends the old series the day before and starts the new on
   assert.equal(started.nextDueDate, '2027-01-01');
   const occ = build([ended, { ...started, id: 'rt2' }]);
   assert.deepEqual(occ.map(o => `${o.date}:${o.amount}`).slice(0, 4), ['2026-11-01:1200', '2026-12-01:1200', '2027-01-01:1300', '2027-02-01:1300']);
+});
+
+test('a heatmap day shows one kind of money, or mixed', () => {
+  assert.equal(heatKind({ in: 0, out: 0, moves: 0 }), 'none');
+  assert.equal(heatKind({ in: 5, out: 0, moves: 0 }), 'in');
+  assert.equal(heatKind({ in: 0, out: 5, moves: 0 }), 'out');
+  assert.equal(heatKind({ in: 0, out: 0, moves: 5 }), 'move');
+  assert.equal(heatKind({ in: 5, out: 5, moves: 0 }), 'mixed');
+});
+
+test('posting fills the form the way money flows', () => {
+  const base = { date: '2026-11-01', amount: 12.5, description: 'Gym', accountId: 'a' } as Occurrence;
+  const paid = postDetails({ ...base, type: 'expense', category: 'Health' });
+  assert.equal(paid.initialFromAccountId, 'a');
+  assert.equal(paid.initialCategory, 'Health');
+  assert.equal(paid.initialDetails.amount, '12.50');
+  const deposit = postDetails({ ...base, type: 'deposit', bill: {} as Occurrence['bill'] });
+  assert.equal(deposit.initialType, 'income');
+  assert.equal(deposit.initialToAccountId, 'a');
+  assert.equal(deposit.initialCategory, 'Income');
 });

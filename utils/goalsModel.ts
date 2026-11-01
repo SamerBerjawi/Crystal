@@ -270,3 +270,87 @@ export const planGoal = (draft: GoalDraft, existing?: FinancialGoal): GoalPlan =
 
 /** Accounts a goal can pay from or into (open, not debts). */
 export const goalAccounts = (accounts: Account[]) => accounts.filter(a => a.status !== 'closed' && !['Credit Card', 'Loan', 'Other Liabilities'].includes(a.type));
+
+// ---------------------------------------------------------------------------------------------------------------
+// The Goals page
+// ---------------------------------------------------------------------------------------------------------------
+
+export const isGoalDone = (g: Pick<FinancialGoal, 'completed' | 'amount' | 'currentAmount'>) =>
+  !!g.completed || (g.amount > 0 && (g.currentAmount ?? 0) >= g.amount);
+
+/** A goal shown on a card. A bucket adds up its items, with their latest date and worst status. */
+export interface GoalCardView extends GoalProjectionView { target: number; saved: number; pct: number; date?: string; done: boolean }
+
+const worstStatus = (views: GoalProjectionView[]): GoalProjectionView['status'] => {
+  const open = views.filter(v => v.status !== 'done');
+  if (!views.length) return 'no-plan';
+  if (!open.length) return 'done';
+  for (const status of ['off-track', 'at-risk', 'no-plan'] as const) if (open.some(v => v.status === status)) return status;
+  return 'on-track';
+};
+
+export const goalCardView = (goal: FinancialGoal, children: FinancialGoal[], today: Date): GoalCardView => {
+  if (!goal.isBucket) {
+    const view = projectGoal(goal, today);
+    const target = goal.amount;
+    const saved = goal.currentAmount ?? 0;
+    return { ...view, target, saved, pct: target > 0 ? Math.min(100, (saved / target) * 100) : 0, date: goal.type === 'one-time' ? goal.date : goal.endDate, done: isGoalDone(goal) };
+  }
+  const views = children.map(child => projectGoal(child, today));
+  const target = round2(children.reduce((sum, child) => safeAdd(sum, child.amount), 0));
+  const saved = round2(children.reduce((sum, child) => safeAdd(sum, child.currentAmount ?? 0), 0));
+  const status = goal.completed ? 'done' : worstStatus(views);
+  return {
+    target,
+    saved,
+    pct: target > 0 ? Math.min(100, (saved / target) * 100) : 0,
+    remaining: Math.max(0, round2(target - saved)),
+    status,
+    projectedDate: views.map(v => v.projectedDate).filter(Boolean).sort().pop(),
+    date: children.map(child => child.date).filter(Boolean).sort().pop(),
+    neededMonthly: views.some(v => v.neededMonthly) ? round2(views.reduce((sum, v) => sum + (v.neededMonthly ?? 0), 0)) : undefined,
+    done: status === 'done',
+  };
+};
+
+export type PlanLine =
+  | { kind: 'done' }
+  | { kind: 'no-plan'; need?: number; date?: string }
+  | { kind: 'late'; date: string }
+  | { kind: 'ongoing'; contribution: number; projectedDate?: string }
+  | { kind: 'on-pace'; monthly: number; date: string }
+  | { kind: 'short'; need: number; contribution: number; date: string; projectedDate?: string };
+
+/** The sentence under a goal: what a month gets you there, or what falls short. */
+export const planLine = (goal: FinancialGoal, view: GoalCardView, today: Date): PlanLine => {
+  if (view.done) return { kind: 'done' };
+  const date = view.date;
+  const contribution = goal.monthlyContribution && goal.monthlyContribution > 0 ? (goal.monthlyContribution * perYear(goal.frequency)) / 12 : 0;
+  if (date && date < iso(today) && goal.type === 'one-time') return { kind: 'late', date };
+  if (!contribution) return { kind: 'no-plan', need: view.neededMonthly, date };
+  if (!date) return { kind: 'ongoing', contribution, projectedDate: view.projectedDate };
+  if (view.status === 'on-track') return { kind: 'on-pace', monthly: contribution, date };
+  const monthsToDate = Math.max(1, (parseLocalDate(date).getTime() - today.getTime()) / (DAY_MS * 30.44));
+  return { kind: 'short', need: view.neededMonthly ?? round2(view.remaining / monthsToDate), contribution, date, projectedDate: view.projectedDate };
+};
+
+/** What the unfinished goals ask for each month: their contribution, or the amount needed by their date. */
+export const monthlyNeed = (goals: FinancialGoal[], today: Date) => round2(goals.reduce((total, goal) => {
+  if (goal.isBucket || goal.disabled || isGoalDone(goal)) return total;
+  if (goal.monthlyContribution && goal.monthlyContribution > 0) return total + (goal.monthlyContribution * perYear(goal.frequency)) / 12;
+  return total + (projectGoal(goal, today).neededMonthly ?? 0);
+}, 0));
+
+/** The goals to save when one is ticked: a bucket's items follow it, and a bucket follows its last item. */
+export const completionChanges = (goal: FinancialGoal, goals: FinancialGoal[]): FinancialGoal[] => {
+  const next = !isGoalDone(goal);
+  if (goal.isBucket) return [goal, ...goals.filter(item => item.parentId === goal.id)].map(item => ({ ...item, completed: next }));
+  const changes = [{ ...goal, completed: next }];
+  const parent = goal.parentId ? goals.find(item => item.id === goal.parentId) : undefined;
+  if (parent) {
+    const othersDone = goals.filter(item => item.parentId === parent.id && item.id !== goal.id).every(isGoalDone);
+    if (next && othersDone) changes.push({ ...parent, completed: true });
+    else if (!next) changes.push({ ...parent, completed: false });
+  }
+  return changes;
+};

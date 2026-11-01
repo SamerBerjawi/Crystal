@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // Financial data and page definitions
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
   type: AccountType;
@@ -258,6 +258,8 @@ export interface RecurringTransaction {
   dueDateOfMonth?: number; // Day of month (1-31) for monthly/yearly recurrences
   weekendAdjustment: WeekendAdjustment;
   isSynthetic?: boolean;
+  /** The day you paused it. A paused item leaves totals and forecasts until you resume it (D-093). */
+  pausedAt?: string;
   isSkipped?: boolean;
 }
 
