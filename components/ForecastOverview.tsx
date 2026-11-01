@@ -1,7 +1,7 @@
 
 import React from 'react';
 import Card from './Card';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseLocalDate, getMainCurrency } from '../utils';
 import { Currency } from '../types';
 import Icon from './ui/Icon';
 
@@ -17,7 +17,7 @@ interface ForecastOverviewProps {
     noCard?: boolean;
 }
 
-const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency = 'EUR', noCard = false }) => {
+const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency = getMainCurrency(), noCard = false }) => {
     const timeZone = getPreferredTimeZone();
 
     const sortedForecasts = [...forecasts].sort((a, b) => {

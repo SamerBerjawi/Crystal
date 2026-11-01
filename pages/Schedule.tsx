@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { BillPayment, RecurringTransaction, Transaction } from '../types';
-import { convertToEur, parseLocalDate } from '../utils';
+import { convertToMain, parseLocalDate, getMainCurrency } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { CalendarMonth, CalendarWeek, FlowTotal, weekOf } from '../components/CalendarMonth';
 import DayBars from '../components/DayBars';
@@ -37,7 +37,7 @@ const OVERDUE_FILTERS = [{ id: 'all', label: 'All' }, { id: 'recurring', label: 
 const HORIZON_DAYS = 365;
 const OVERDUE_DAYS = 7;
 
-const convert = (amount: number, currency: Parameters<typeof convertToEur>[1]) => convertToEur(amount, currency);
+const convert = (amount: number, currency: Parameters<typeof convertToMain>[1]) => convertToMain(amount, currency);
 const longDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -297,7 +297,7 @@ const SchedulePage: React.FC = () => {
           {groups.length === 0 ? <p className="type-body text-muted">Nothing matches.</p> : (
             <div className="space-y-3">
               {groups.map(group => (
-                <DayGroup key={group.id} label={group.label} total={<Amount value={group.net} currency="EUR" tone="flow" />}>
+                <DayGroup key={group.id} label={group.label} total={<Amount value={group.net} currency={getMainCurrency()} tone="flow" />}>
                   {group.id === 'overdue' && <SegmentedControl className="my-2" items={OVERDUE_FILTERS} activeId={overdueFilter} onChange={id => setOverdueFilter(id as OverdueFilter)} />}
                   <ul className="divide-y divide-line">{group.items.map(item => <OccurrenceRow key={item.key} occurrence={item} accountName={accountName} showDate {...actions} />)}</ul>
                 </DayGroup>
@@ -314,8 +314,8 @@ const SchedulePage: React.FC = () => {
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="type-card-title text-ink">{group.label}</h2>
                 <p className="type-caption text-muted">
-                  {group.monthlyIn > 0 && <><Amount value={group.monthlyIn} currency="EUR" /> a month in </>}
-                  {group.monthlyOut > 0 && <><Amount value={group.monthlyOut} currency="EUR" /> a month out</>}
+                  {group.monthlyIn > 0 && <><Amount value={group.monthlyIn} currency={getMainCurrency()} /> a month in </>}
+                  {group.monthlyOut > 0 && <><Amount value={group.monthlyOut} currency={getMainCurrency()} /> a month out</>}
                 </p>
               </div>
               <ul className="mt-2 divide-y divide-line">

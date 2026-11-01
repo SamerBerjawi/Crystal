@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Budget, Category, Transaction, Account, AppPreferences } from '../types';
 import { LIQUID_ACCOUNT_TYPES, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
-import { formatCurrency, convertToEur } from '../utils';
+import { formatCurrency, convertToMain, getMainCurrency } from '../utils';
 import BudgetModal from '../components/BudgetModal';
 import BudgetRow from '../components/BudgetRow';
 import PageHeader, { type PageStat } from '../components/PageHeader';
@@ -102,7 +102,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
     for (const tx of relevantTransactions) {
       const parentCategory = findParentCategory(tx.category, expenseCategories);
       if (parentCategory) {
-        spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
+        spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToMain(tx.amount, tx.currency));
       }
     }
 
@@ -117,7 +117,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
 
     averageSpending.forEach(item => {
       const existingBudget = budgets.find(b => b.categoryName === item.categoryName);
-      saveBudget({ id: existingBudget?.id, categoryName: item.categoryName, amount: item.averageMonthlySpending, period: 'monthly', currency: 'EUR' });
+      saveBudget({ id: existingBudget?.id, categoryName: item.categoryName, amount: item.averageMonthlySpending, period: 'monthly', currency: getMainCurrency() });
     });
 
     toast.success(`${averageSpending.length} ${averageSpending.length === 1 ? 'budget' : 'budgets'} created or updated from your spending.`);
@@ -147,14 +147,14 @@ const Budgeting: React.FC<BudgetingProps> = ({
       if (tx.type === 'income') continue;
       const parentCategory = findParentCategory(tx.category, expenseCategories);
       if (parentCategory) {
-        spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
+        spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToMain(tx.amount, tx.currency));
       } else {
-        spending.Uncategorized = (spending.Uncategorized || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
+        spending.Uncategorized = (spending.Uncategorized || 0) + Math.abs(convertToMain(tx.amount, tx.currency));
       }
     }
 
     return {
-      totalBudgeted: budgets.reduce((sum, b) => sum + b.amount, 0),
+      totalBudgeted: budgets.reduce((sum, b) => sum + convertToMain(b.amount, b.currency), 0),
       totalSpent: Object.values(spending).reduce((sum, amount) => sum + amount, 0),
       spendingByCategory: spending,
     };
@@ -238,15 +238,15 @@ const Budgeting: React.FC<BudgetingProps> = ({
       <section aria-label="Month summary" className="surface-card flex items-center gap-6 rounded-[var(--radius-xl)] p-6 max-sm:flex-col max-sm:items-start max-md:p-5">
         <ProgressRing value={overallProgress} tone={ringTone} label={`${Math.round(overallProgress)}%`} caption="used" />
         <div className="min-w-0">
-          <p className="type-figure-lg text-ink"><Amount value={totalSpent} currency="EUR" countUp /> <span className="type-body text-muted">of <Amount value={totalBudgeted} currency="EUR" /> budgeted</span></p>
+          <p className="type-figure-lg text-ink"><Amount value={totalSpent} currency={getMainCurrency()} countUp /> <span className="type-body text-muted">of <Amount value={totalBudgeted} currency={getMainCurrency()} /> budgeted</span></p>
           <p className="type-body mt-1 text-muted">
             {pace.left > 0
               ? totalRemaining >= 0
-                ? <><Amount value={totalRemaining} currency="EUR" /> left for the next {pace.left} {pace.left === 1 ? 'day' : 'days'}, about <Amount value={dailySafeSpend} currency="EUR" /> a day.</>
-                : <><Amount value={Math.abs(totalRemaining)} currency="EUR" /> over budget, with {pace.left} {pace.left === 1 ? 'day' : 'days'} to go.</>
+                ? <><Amount value={totalRemaining} currency={getMainCurrency()} /> left for the next {pace.left} {pace.left === 1 ? 'day' : 'days'}, about <Amount value={dailySafeSpend} currency={getMainCurrency()} /> a day.</>
+                : <><Amount value={Math.abs(totalRemaining)} currency={getMainCurrency()} /> over budget, with {pace.left} {pace.left === 1 ? 'day' : 'days'} to go.</>
               : totalRemaining >= 0
-                ? <>This month closed with <Amount value={totalRemaining} currency="EUR" /> left.</>
-                : <>This month closed <Amount value={Math.abs(totalRemaining)} currency="EUR" /> over budget.</>}
+                ? <>This month closed with <Amount value={totalRemaining} currency={getMainCurrency()} /> left.</>
+                : <>This month closed <Amount value={Math.abs(totalRemaining)} currency={getMainCurrency()} /> over budget.</>}
           </p>
           {lines.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -286,14 +286,14 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     pct={line.pct}
                     status={line.status}
                     pacePct={pace.when === 'current' ? pace.elapsedPct : undefined}
-                    currency="EUR"
+                    currency={getMainCurrency()}
                     onPress={() => openForm(line.budget)}
                   />
                 );
               })}
               {uncapped.map(item => {
                 const category = categoryOf(item.name);
-                return <BudgetRow key={item.name} name={item.name} icon={category?.icon} color={category?.color} spent={item.spent} currency="EUR" onPress={() => openForm(undefined, category ? item.name : undefined)} />;
+                return <BudgetRow key={item.name} name={item.name} icon={category?.icon} color={category?.color} spent={item.spent} currency={getMainCurrency()} onPress={() => openForm(undefined, category ? item.name : undefined)} />;
               })}
             </div>
           ) : (
@@ -315,7 +315,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                 <li key={share.name}>
                   <p className="type-body flex justify-between gap-3 text-ink">
                     <span className="truncate">{share.name}</span>
-                    <span className="type-figure-row shrink-0">{formatCurrency(share.value, 'EUR')}</span>
+                    <span className="type-figure-row shrink-0">{formatCurrency(share.value, getMainCurrency())}</span>
                   </p>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-inset">
                     <div className="h-full rounded-full bg-[var(--chart-1)]" style={{ width: `${share.pct}%` }} />

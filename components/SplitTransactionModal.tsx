@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Transaction, Category } from '../types';
-import { formatCurrency, safeRound } from '../utils';
+import { formatCurrency, safeRound, currencySign } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Icon from './ui/Icon';
 import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
@@ -264,7 +264,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                           Amount
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">€</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">{currencySign(transaction.currency)}</span>
                           <input
                             type="number"
                             step="0.01"

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, ScheduledPayment } from '../types';
-import { formatCurrency, parseLocalDate, generateAmortizationSchedule } from '../utils';
+import { formatCurrency, parseLocalDate, generateAmortizationSchedule, currencySign } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
 import Icon from './ui/Icon';
 
@@ -168,7 +168,7 @@ const LoanEarlyPaymentModal: React.FC<LoanEarlyPaymentModalProps> = ({
           </label>
           <div className="relative group">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-400 group-focus-within:text-primary-500 transition-colors">
-              {account.currency === 'EUR' ? '€' : account.currency === 'USD' ? '$' : account.currency}
+              {currencySign(account.currency)}
             </span>
             <input
               id="extra-amount"

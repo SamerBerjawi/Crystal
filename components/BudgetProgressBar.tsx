@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Currency } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
 
 export interface BudgetProgressBarProps {
@@ -24,7 +24,7 @@ export interface BudgetProgressBarProps {
 export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
   spent,
   budgeted,
-  currency = 'EUR',
+  currency = getMainCurrency(),
   categoryName,
   categoryColor,
   warningThreshold = 80,

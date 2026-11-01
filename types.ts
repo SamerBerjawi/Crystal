@@ -13,7 +13,8 @@ export interface AccountTypeItem {
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'BTC' | 'RON';
+/** An ISO 4217 code, or BTC. See utils/currencies.ts. */
+export type Currency = string;
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -666,6 +667,9 @@ export interface AppPreferences {
   smartPriceBindings?: Record<string, SmartPriceBinding>;
   investmentPriceConfigs?: Record<string, InvestmentPriceConfig>;
   conversionRates?: Record<string, number>;
+  /** Rates you set yourself, as the value in EUR of one unit. They win over fetched rates. */
+  manualRates?: Record<string, number>;
+  ratesUpdatedAt?: string;
   merchantLogoOverrides?: Record<string, string>; // Deprecated in favor of merchantRules, kept for backward compat if needed
   merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name
   hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden

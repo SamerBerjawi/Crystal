@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Account, OtherAssetSubType, OtherLiabilitySubType, Transaction } from '../types';
-import { convertToEur, normalizeCurrency } from '../utils';
+import { convertToMain, normalizeCurrency, getMainCurrency } from '../utils';
 import { computeAccount90dSparkline, computeAccountDisplayBalance } from '../utils/accountsModel';
 import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
@@ -79,9 +79,9 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
     () => computeAccount90dSparkline(account, transactions, balance, { conversionRates }),
     [account, transactions, balance, conversionRates]
   );
-  const isForeign = normalizeCurrency(account.currency) !== 'EUR';
+  const isForeign = normalizeCurrency(account.currency) !== getMainCurrency();
   const hasTrend = transactions.length > 0 && Math.abs(trend) > 0;
-  const eur = convertToEur(balance, account.currency);
+  const eur = convertToMain(balance, account.currency);
 
   const openMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -133,7 +133,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
         <div className="min-w-0 flex-1">{name}</div>
         {hasTrend && <Sparkline data={sparklineData} isPositive={isPositiveTrend} className="max-lg:hidden" />}
         <div className="shrink-0 text-right">
-          <p className="type-figure-row text-ink"><Amount value={eur} currency="EUR" /></p>
+          <p className="type-figure-row text-ink"><Amount value={eur} currency={getMainCurrency()} /></p>
           {isForeign && <p className="type-caption text-muted"><Amount value={balance} currency={account.currency} /></p>}
         </div>
         <div className="relative z-10 flex shrink-0 items-center">{reorder}<span className="max-md:hidden">{menu}</span></div>
@@ -150,9 +150,9 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
       </div>
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="type-figure-lg truncate text-ink"><Amount value={eur} currency="EUR" /></p>
+          <p className="type-figure-lg truncate text-ink"><Amount value={eur} currency={getMainCurrency()} /></p>
           {isForeign && <p className="type-caption text-muted"><Amount value={balance} currency={account.currency} /></p>}
-          {hasTrend && <Change value={trend} currency="EUR" period="in 90 days" className="type-caption text-muted" />}
+          {hasTrend && <Change value={trend} currency={getMainCurrency()} period="in 90 days" className="type-caption text-muted" />}
         </div>
         {hasTrend && <Sparkline data={sparklineData} isPositive={isPositiveTrend} width={96} height={36} />}
       </div>

@@ -26,6 +26,7 @@ export const SETTINGS_INDEX: SettingEntry[] = [
   preference('currency', 'Main currency', 'preferences-region'),
   preference('country', 'Country', 'preferences-region'),
   preference('timezone', 'Timezone', 'preferences-region'),
+  preference('rates', 'Exchange rates', 'preferences-rates'),
   preference('date-format', 'Date format', 'preferences-calendar'),
   preference('fiscal-year', 'Financial year start', 'preferences-calendar'),
   preference('default-period', 'Default Overview period', 'preferences-defaults'),

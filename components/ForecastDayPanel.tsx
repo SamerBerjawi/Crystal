@@ -1,5 +1,5 @@
 import React from 'react';
-import { parseLocalDate } from '../utils';
+import { parseLocalDate, getMainCurrency } from '../utils';
 import type { ForecastEvent } from '../utils/forecastModel';
 import { Button } from './ui/Actions';
 import { Badge } from './ui/Display';
@@ -36,8 +36,8 @@ const ForecastDayPanel: React.FC<ForecastDayPanelProps> = ({ date, events, balan
       footer={<Button variant="secondary" icon="add" onPress={onAdd}>Add to this day</Button>}
     >
       <dl className="mb-4 flex gap-8">
-        <div><dt className="type-label text-muted">Net change</dt><dd className="type-figure-lg text-ink"><Amount value={net} currency="EUR" tone="flow" /></dd></div>
-        {balance !== undefined && <div><dt className="type-label text-muted">Balance</dt><dd className="type-figure-lg text-ink"><Amount value={balance} currency="EUR" /></dd></div>}
+        <div><dt className="type-label text-muted">Net change</dt><dd className="type-figure-lg text-ink"><Amount value={net} currency={getMainCurrency()} tone="flow" /></dd></div>
+        {balance !== undefined && <div><dt className="type-label text-muted">Balance</dt><dd className="type-figure-lg text-ink"><Amount value={balance} currency={getMainCurrency()} /></dd></div>}
       </dl>
       {events.length === 0 ? (
         <p className="type-body text-muted">Nothing is planned for this day.</p>
@@ -54,8 +54,8 @@ const ForecastDayPanel: React.FC<ForecastDayPanelProps> = ({ date, events, balan
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="type-figure-row text-ink"><Amount value={event.amount} currency="EUR" tone="flow" /></p>
-                  <p className="type-caption text-muted">Leaves <Amount value={event.balanceAfter} currency="EUR" /></p>
+                  <p className="type-figure-row text-ink"><Amount value={event.amount} currency={getMainCurrency()} tone="flow" /></p>
+                  <p className="type-caption text-muted">Leaves <Amount value={event.balanceAfter} currency={getMainCurrency()} /></p>
                 </div>
               </div>
               {movable(event) ? (

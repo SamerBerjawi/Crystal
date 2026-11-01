@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Account, Currency, HoldingSummary, HoldingsOverview, InvestmentTransaction, PriceHistoryEntry, SmartPriceBinding, Transaction, Warrant } from '../types';
 import { CURRENCY_OPTIONS } from '../constants';
-import { convertCurrency, convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { convertCurrency, convertToMain, formatCurrency, parseLocalDate, toLocalISOString, getMainCurrency } from '../utils';
 import { buildHoldingsOverview, formatHoldingType, historyWindow, holdingsInSegment, mergedPriceLog, portfolioBySegment, realizedGains, SEGMENT_NAMES, segmentOf, type InvestmentSegment, type SegmentName } from '../utils/investments';
 import { buildPortfolioHistory } from '../utils/portfolioHistory';
 import { fetchSmartPrice } from '../utils/smartPrice';
@@ -73,7 +73,7 @@ const AllocationRow: React.FC<{ label: string; value: number; total: number; col
     <li>
       <div className="flex items-baseline justify-between gap-3">
         <span className="type-body min-w-0 truncate text-ink">{label}</span>
-        <span className="type-caption shrink-0 text-muted"><Amount value={value} currency="EUR" />, {share.toFixed(1)}%</span>
+        <span className="type-caption shrink-0 text-muted"><Amount value={value} currency={getMainCurrency()} />, {share.toFixed(1)}%</span>
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-inset"><div className="h-full rounded-full" style={{ width: `${share}%`, background: color }} /></div>
     </li>
@@ -127,7 +127,7 @@ const Investments: React.FC<InvestmentsProps> = ({
 
   const rates = preferences.conversionRates;
   const configs = preferences.investmentPriceConfigs;
-  const toEur = useCallback((amount: number, currency: Currency) => convertToEur(amount, currency, rates), [rates]);
+  const toEur = useCallback((amount: number, currency: Currency) => convertToMain(amount, currency, rates), [rates]);
   const currencyOf = useCallback((symbol: string): Currency => configs?.[symbol]?.currency ?? 'EUR', [configs]);
 
   const investmentAccounts = useMemo(() => accounts.filter(account => account.type === 'Investment'), [accounts]);
@@ -204,7 +204,7 @@ const Investments: React.FC<InvestmentsProps> = ({
       id: trade.id, date: trade.date, kind: trade.type?.toLowerCase() === 'buy' ? 'Buy' : 'Sell', symbol: trade.symbol, name: trade.name, quantity: trade.quantity, price: trade.price, currency: (trade.currency ?? 'EUR') as Currency, trade, grant: undefined as Warrant | undefined,
     })),
     ...grantsInView.map(grant => ({
-      id: grant.id, date: grant.grantDate, kind: 'Grant', symbol: grant.isin, name: grant.name, quantity: grant.quantity, price: grant.grantPrice, currency: 'EUR' as Currency, trade: undefined as InvestmentTransaction | undefined, grant,
+      id: grant.id, date: grant.grantDate, kind: 'Grant', symbol: grant.isin, name: grant.name, quantity: grant.quantity, price: grant.grantPrice, currency: getMainCurrency() as Currency, trade: undefined as InvestmentTransaction | undefined, grant,
     })),
   ].sort((a, b) => (a.date < b.date ? 1 : -1)), [tradesInView, grantsInView]);
 
@@ -278,9 +278,9 @@ const Investments: React.FC<InvestmentsProps> = ({
   ];
 
   const stats: PageStat[] = [
-    { label: 'Portfolio value', icon: 'nav_investments', value: current.value, format: 'money', currency: 'EUR' },
-    { label: 'Gain or loss', icon: gain >= 0 ? 'trending_up' : 'trending_down', value: gain, format: 'money', currency: 'EUR', badge: `${gain >= 0 ? '+' : '−'}${Math.abs(gainPct).toFixed(1)}%`, badgeTone: gain >= 0 ? 'pine' : 'tomato' },
-    { label: 'Realised', icon: 'payments', value: realized.total, format: 'money', currency: 'EUR' },
+    { label: 'Portfolio value', icon: 'nav_investments', value: current.value, format: 'money', currency: getMainCurrency() },
+    { label: 'Gain or loss', icon: gain >= 0 ? 'trending_up' : 'trending_down', value: gain, format: 'money', currency: getMainCurrency(), badge: `${gain >= 0 ? '+' : '−'}${Math.abs(gainPct).toFixed(1)}%`, badgeTone: gain >= 0 ? 'pine' : 'tomato' },
+    { label: 'Realised', icon: 'payments', value: realized.total, format: 'money', currency: getMainCurrency() },
   ];
 
   const hasNothing = investmentAccounts.length === 0 && warrants.length === 0 && investmentTransactions.length === 0;
@@ -308,7 +308,7 @@ const Investments: React.FC<InvestmentsProps> = ({
       ) : (
         <>
           {presentSegments.length > 1 && <SegmentedControl scrollable items={segmentItems} activeId={activeSegment} onChange={id => setSegment(id as InvestmentSegment)} />}
-          {current.unpricedValue > 0 && <p className="type-caption text-muted">{formatCurrency(current.unpricedValue, 'EUR')} is valued at its last trade, because there's no current price. It's left out of the gain.</p>}
+          {current.unpricedValue > 0 && <p className="type-caption text-muted">{formatCurrency(current.unpricedValue, getMainCurrency())} is valued at its last trade, because there's no current price. It's left out of the gain.</p>}
 
           {tab === 'portfolio' && (
             <div className="grid grid-cols-1 gap-5 min-[1100px]:grid-cols-3">
@@ -316,11 +316,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="type-card-title text-ink">Performance</h2>
-                    {chartData.length > 1 && <Change value={chartWindow.change} currency="EUR" period={RANGE_WORDS[range]} className="type-caption text-muted" />}
+                    {chartData.length > 1 && <Change value={chartWindow.change} currency={getMainCurrency()} period={RANGE_WORDS[range]} className="type-caption text-muted" />}
                   </div>
                   <SegmentedControl items={RANGES} activeId={range} onChange={setRange} />
                 </div>
-                {chartData.length > 1 ? <ValueChart data={chartData} currency="EUR" dataKey="value" fitValues /> : <p className="type-body py-10 text-center text-muted">Log prices or add trades to see this over time.</p>}
+                {chartData.length > 1 ? <ValueChart data={chartData} currency={getMainCurrency()} dataKey="value" fitValues /> : <p className="type-body py-10 text-center text-muted">Log prices or add trades to see this over time.</p>}
               </section>
               <section aria-label="Allocation" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
                 <h2 className="type-card-title text-ink">Allocation</h2>
@@ -341,7 +341,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <span className="type-caption block text-muted">{holding.symbol}, {holding.type === 'Warrant' ? 'Warrant' : formatHoldingType(holding.subType)}</span>
                           </span>
                           <span className="shrink-0 text-right">
-                            <span className="type-figure-row block"><Amount value={holdingGain} currency="EUR" tone="flow" /></span>
+                            <span className="type-figure-row block"><Amount value={holdingGain} currency={getMainCurrency()} tone="flow" /></span>
                             <span className="type-caption block text-muted">{holdingGain >= 0 ? '+' : '−'}{Math.abs(percentOf(holdingGain, holding.totalCost)).toFixed(1)}%</span>
                           </span>
                         </button>
@@ -414,8 +414,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
                       <div><dt className="type-label text-muted">Winning sales</dt><dd className="type-figure-row text-ink">{realized.wins}</dd></div>
                       <div><dt className="type-label text-muted">Losing sales</dt><dd className="type-figure-row text-ink">{realized.losses}</dd></div>
-                      {realized.biggestWin && <div><dt className="type-label text-muted">Biggest win</dt><dd className="type-figure-row"><Amount value={realized.biggestWin.gain} currency="EUR" tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestWin.symbol}</dd></div>}
-                      {realized.biggestLoss && <div><dt className="type-label text-muted">Biggest loss</dt><dd className="type-figure-row"><Amount value={realized.biggestLoss.gain} currency="EUR" tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestLoss.symbol}</dd></div>}
+                      {realized.biggestWin && <div><dt className="type-label text-muted">Biggest win</dt><dd className="type-figure-row"><Amount value={realized.biggestWin.gain} currency={getMainCurrency()} tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestWin.symbol}</dd></div>}
+                      {realized.biggestLoss && <div><dt className="type-label text-muted">Biggest loss</dt><dd className="type-figure-row"><Amount value={realized.biggestLoss.gain} currency={getMainCurrency()} tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestLoss.symbol}</dd></div>}
                     </dl>
                     <ul className="mt-3 divide-y divide-line border-t border-line">
                       {realized.sales.slice(0, 10).map(sale => (
@@ -425,7 +425,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <span className="type-caption block text-muted">{sale.quantity.toLocaleString()} sold {shortDate(sale.date)}</span>
                           </span>
                           <span className="shrink-0 text-right">
-                            <span className="type-figure-row block"><Amount value={sale.gain} currency="EUR" tone="flow" /></span>
+                            <span className="type-figure-row block"><Amount value={sale.gain} currency={getMainCurrency()} tone="flow" /></span>
                             <span className="type-caption block text-muted">{sale.gainPercent >= 0 ? '+' : '−'}{Math.abs(sale.gainPercent).toFixed(1)}%</span>
                           </span>
                         </li>

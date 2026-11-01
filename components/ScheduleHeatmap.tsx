@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ScheduledItem } from '../types';
-import { parseLocalDate, toLocalISOString, formatCurrency } from '../utils';
+import { parseLocalDate, toLocalISOString, formatCurrency, getMainCurrency } from '../utils';
 import {
   HeatmapChart,
   HeatmapCells,
@@ -166,10 +166,10 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items, hideLegend = f
       parts.push(`${dayStat.transferCount} transfer(s)`);
     }
     if (dayStat.incomeCount > 0) {
-      parts.push(`${dayStat.incomeCount} income (+${formatCurrency(dayStat.totalIncome, 'EUR')})`);
+      parts.push(`${dayStat.incomeCount} income (+${formatCurrency(dayStat.totalIncome, getMainCurrency())})`);
     }
     if (dayStat.expenseCount > 0) {
-      parts.push(`${dayStat.expenseCount} expense(s) (-${formatCurrency(dayStat.totalExpense, 'EUR')})`);
+      parts.push(`${dayStat.expenseCount} expense(s) (-${formatCurrency(dayStat.totalExpense, getMainCurrency())})`);
     }
 
     return parts.join(', ');

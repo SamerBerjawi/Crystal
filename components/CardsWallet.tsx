@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { Radio, RadioGroup } from 'react-aria-components';
 import { Account, Transaction } from '../types';
-import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
+import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { accountCardKind, latestTransactions, topMerchantsThisMonth } from '../utils/accountsModel';
 import { DetailList, Panel, ProgressBar } from './AccountFrame';
 import { shortDate } from './AccountPot';
@@ -144,7 +144,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
                   {merchants.map(item => (
                     <li key={item.name} className="type-body flex min-h-9 items-center justify-between gap-3 text-ink">
                       <span className="min-w-0 truncate">{item.name}</span>
-                      <span className="type-figure-row shrink-0"><Amount value={convertToEur(item.amount, selected.currency)} currency="EUR" /></span>
+                      <span className="type-figure-row shrink-0"><Amount value={convertToMain(item.amount, selected.currency)} currency={getMainCurrency()} /></span>
                     </li>
                   ))}
                 </ul>

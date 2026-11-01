@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { FinancialGoal, Account } from '../types';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseLocalDate, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
 
 interface FinancialGoalCardProps {
@@ -211,7 +211,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                   Completed Bucket
                 </span>
                 <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-2xs font-mono font-semibold bg-emerald-200/60 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 shrink-0">
-                  {formatCurrency(goalToDisplay.amount, 'EUR')} target met
+                  {formatCurrency(goalToDisplay.amount, getMainCurrency())} target met
                 </span>
               </div>
             </div>
@@ -273,7 +273,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
 
           {/* Mobile target met summary */}
           <div className="sm:hidden mt-1.5 flex items-center justify-between text-xs font-medium text-emerald-700 dark:text-emerald-400">
-            <span className="font-mono font-bold">{formatCurrency(goalToDisplay.amount, 'EUR')} target met</span>
+            <span className="font-mono font-bold">{formatCurrency(goalToDisplay.amount, getMainCurrency())} target met</span>
             <span className="text-[11px] opacity-75">{subGoals.length} items completed</span>
           </div>
 
@@ -315,7 +315,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                           )}
                           <span className={`font-medium text-light-text dark:text-dark-text truncate ${isSubComplete ? 'line-through opacity-80' : ''}`}>{sg.name}</span>
                         </div>
-                        <span className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold shrink-0 ml-2">{formatCurrency(sg.amount, 'EUR')}</span>
+                        <span className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold shrink-0 ml-2">{formatCurrency(sg.amount, getMainCurrency())}</span>
                       </div>
                     );
                   })}
@@ -456,11 +456,11 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 <div className="flex justify-between items-end mb-2">
                     <div>
                         <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-0.5 block">{bucketTypeLabel}</span>
-                        <span className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(goalToDisplay.currentAmount, 'EUR')}</span>
+                        <span className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(goalToDisplay.currentAmount, getMainCurrency())}</span>
                     </div>
                     <div className="text-right">
                         <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Target</span>
-                        <span className="block font-medium text-sm text-light-text dark:text-dark-text">{formatCurrency(goalToDisplay.amount, 'EUR')}</span>
+                        <span className="block font-medium text-sm text-light-text dark:text-dark-text">{formatCurrency(goalToDisplay.amount, getMainCurrency())}</span>
                     </div>
                 </div>
 
@@ -556,7 +556,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                      </div>
                                  </div>
                                  <div className="flex items-center gap-3">
-                                     <span className={`font-mono font-semibold ${isSubComplete ? 'text-green-700 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(sg.amount, 'EUR')}</span>
+                                     <span className={`font-mono font-semibold ${isSubComplete ? 'text-green-700 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(sg.amount, getMainCurrency())}</span>
                                      <div className="flex opacity-0 group-hover/subgoal:opacity-100 transition-opacity gap-1">
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); onEdit(sg); }}

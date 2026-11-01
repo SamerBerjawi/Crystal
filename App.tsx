@@ -93,7 +93,7 @@ import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES }
 import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import { linkBudgetsToCategories } from './utils/budgetModel';
-import { convertCurrency, convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound } from './utils';
+import { missingRates, setMainCurrency, convertCurrency, convertToMain, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound, getMainCurrency } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { applySavedRules, spareChangeFor } from './utils/rules';
 import { upsertEntity, removeEntityById } from './utils/collection';
@@ -103,6 +103,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
 import { moveLocalChoices } from './utils/syncedChoices';
 import LockScreen from './components/LockScreen';
+import { Banner } from './components/ui/States';
 import { useIdleLock } from './hooks/useIdleLock';
 import { DEFAULT_AUTO_LOCK_MINUTES } from './utils/lockModel';
 import { migrateRules } from './utils/rulesMigration';
@@ -115,6 +116,8 @@ import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { PhoneBar, PhoneTopBar, SkipLink, TabRow, ToolRail, TopBar, type ShellProps } from './components/ui/Shell';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
+import { fetchEcbRates } from './src/services/exchangeRates';
+import { currenciesInUse } from './utils/currencies';
 import { saveDevCache, loadDevCache, clearDevCache } from './utils/browserCache';
 import { threeWayMerge } from './utils/threeWayMerge';
 import { warnIgnored } from './utils/logging';
@@ -450,6 +453,8 @@ const App: React.FC = () => {
   });
 
   const [preferences, setPreferences] = useState<AppPreferences>(emptyFinancialData.preferences);
+  // Set while rendering, so every total below this reads the right currency on its first pass.
+  setMainCurrency(preferences.currency);
   const [incomeCategories, setIncomeCategories] = useState<Category[]>(emptyFinancialData.incomeCategories);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>(emptyFinancialData.expenseCategories);
   const [transactions, setTransactions] = useState<Transaction[]>(emptyFinancialData.transactions);
@@ -597,7 +602,7 @@ const App: React.FC = () => {
   const holdingsOverview = useMemo(() => {
     const overview = buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, assetPrices, {
       currencyOf: symbol => preferences.investmentPriceConfigs?.[symbol]?.currency ?? 'EUR',
-      toEur: (amount, currency) => convertToEur(amount, currency, preferences.conversionRates),
+      toEur: (amount, currency) => convertToMain(amount, currency, preferences.conversionRates),
     });
     return {
       ...overview,
@@ -840,6 +845,12 @@ const App: React.FC = () => {
     latestDataRef.current = dataToLoad;
   }, [setAccountOrder, setTaskOrder]);
 
+  const usedCurrencies = useMemo(
+    () => currenciesInUse(accounts, transactions, budgets, financialGoals, recurringTransactions, billsAndPayments),
+    [accounts, transactions, budgets, financialGoals, recurringTransactions, billsAndPayments],
+  );
+  const ratelessCurrencies = useMemo(() => missingRates(usedCurrencies, preferences.conversionRates), [usedCurrencies, preferences.conversionRates, preferences.currency]);
+
   // FX Rates Auto-update
   // Choices that used to stay in this browser move to preferences once, as a normal change so they get saved (S-002).
   const hasMovedLocalChoices = useRef(false);
@@ -850,24 +861,28 @@ const App: React.FC = () => {
     if (moved.hasChanged) setPreferences(moved.preferences);
   }, [isDataLoaded, preferences]);
 
+  // Free ECB rates cover the majors. A Twelve Data key adds what's in use, and rates you set yourself win over both (D-109).
   useEffect(() => {
-    if (!preferences.twelveDataApiKey || !isDataLoaded) return;
+    if (!isDataLoaded) return;
 
     const fetchRates = async () => {
-      try {
-        const targets: Currency[] = ['USD', 'GBP', 'BTC', 'RON', 'EUR'];
-        const rates = await fetchAllExchangeRates('EUR', targets, preferences.twelveDataApiKey!);
+      const results = await Promise.allSettled([
+        fetchEcbRates(),
+        preferences.twelveDataApiKey
+          ? fetchAllExchangeRates('EUR', [...new Set(['USD', 'GBP', 'BTC', 'RON', 'EUR', ...usedCurrencies])], preferences.twelveDataApiKey)
+          : Promise.resolve({}),
+      ]);
+      results.forEach(result => { if (result.status === 'rejected') console.error('Failed to fetch FX rates:', result.reason); });
+      const fetched = Object.assign({}, ...results.map(result => (result.status === 'fulfilled' ? result.value : {}))) as Record<string, number>;
+      if (Object.keys(fetched).length === 0) return;
 
-        setPreferences(prev => {
-          const hasChanged = JSON.stringify(prev.conversionRates) !== JSON.stringify(rates);
-          if (!hasChanged) return prev;
-          updateConversionRates(rates);
-          return { ...prev, conversionRates: rates };
-        });
-        markSliceDirty('preferences');
-      } catch (error) {
-        console.error('Failed to fetch FX rates:', error);
-      }
+      setPreferences(prev => {
+        const rates = { ...prev.conversionRates, ...fetched, ...prev.manualRates };
+        if (JSON.stringify(prev.conversionRates) === JSON.stringify(rates)) return prev;
+        updateConversionRates(rates);
+        return { ...prev, conversionRates: rates, ratesUpdatedAt: new Date().toISOString() };
+      });
+      markSliceDirty('preferences');
     };
 
     // Fetch on load
@@ -876,7 +891,7 @@ const App: React.FC = () => {
     // Refresh every 4 hours
     const interval = setInterval(fetchRates, 4 * 60 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [preferences.twelveDataApiKey, isDataLoaded, markSliceDirty]);
+  }, [preferences.twelveDataApiKey, isDataLoaded, markSliceDirty, usedCurrencies]);
 
   const handleSetUser = useCallback((updates: Partial<User>): Promise<boolean> => {
     if (isDemoMode) { setDemoUser(prev => prev ? { ...prev, ...updates } as User : null); return Promise.resolve(true); }
@@ -1741,7 +1756,7 @@ const App: React.FC = () => {
           const account = accounts.find(a => a.id === tx.accountId);
           let changeAmount = tx.amount;
           if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) { changeAmount = tx.principalAmount; }
-          balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToEur(changeAmount, tx.currency);
+          balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToMain(changeAmount, tx.currency);
         });
       }
 
@@ -1755,11 +1770,11 @@ const App: React.FC = () => {
             const originalAccount = accounts.find(a => a.id === originalTx.accountId);
             let originalChangeAmount = originalTx.amount;
             if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) { originalChangeAmount = originalTx.principalAmount; }
-            balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToEur(originalChangeAmount, originalTx.currency);
+            balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToMain(originalChangeAmount, originalTx.currency);
             const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
             let updatedChangeAmount = updatedTx.amount;
             if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) { updatedChangeAmount = updatedTx.principalAmount; }
-            balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToEur(updatedChangeAmount, updatedTx.currency);
+            balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToMain(updatedChangeAmount, updatedTx.currency);
             transactionsToUpdate.push(updatedTx);
           }
         } else {
@@ -1767,7 +1782,7 @@ const App: React.FC = () => {
           const account = accounts.find(a => a.id === newTx.accountId);
           let changeAmount = newTx.amount;
           if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }
-          balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToEur(changeAmount, newTx.currency);
+          balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToMain(changeAmount, newTx.currency);
           transactionsToAdd.push(newTx);
         }
       });
@@ -3014,7 +3029,7 @@ const App: React.FC = () => {
       case 'Tags': return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
       case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} lock={isAuthenticated && !isDemoMode ? { hasPin, fetcher: authorizedFetch, onChanged: setHasPin } : undefined} />;
       case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} onLogExport={handleLogExport} fullFinancialData={dataToSave} />;
-      case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
+      case 'Preferences': return <PreferencesPage currenciesInUse={usedCurrencies} preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
       case 'Investments': return renderInvestments();
@@ -3127,7 +3142,12 @@ const App: React.FC = () => {
           <main className="relative min-h-0 flex-1 overflow-y-auto scroll-touch focus:outline-none" id="main-content" tabIndex={-1}>
             <div className="mx-auto w-full max-w-[1488px] px-4 pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-4 md:pb-8 md:pl-[84px] md:pr-6 md:pt-6 lg:pl-[96px] lg:pr-8 lg:pt-8">
               <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
-                <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
+                {ratelessCurrencies.length > 0 && (
+                  <Banner tone="attention" className="mb-4" actionLabel="Add a rate" onAction={() => setCurrentPage('Preferences')}>
+                    Totals leave out {ratelessCurrencies.join(', ')}, which {ratelessCurrencies.length === 1 ? 'has' : 'have'} no exchange rate.
+                  </Banner>
+                )}
+                <Suspense key={getMainCurrency()} fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={currentPage + (viewingAccountId || '') + (viewingHoldingSymbol || '')}

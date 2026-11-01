@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Category, MerchantRule, MerchantLocation, Transaction, TransactionRule } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { BarChart, Bar, Grid, BarXAxis, YAxis, ChartTooltip } from '@/src/components/charts';
 import { getMerchantLogoUrl, isBrandfetchLogoRefreshable, normalizeMerchantKey } from '../utils/brandfetch';
 import { toast } from 'sonner';
@@ -597,7 +597,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         Volume
                                     </p>
                                     <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
-                                        {formatCurrency(totalAmount, 'EUR')}
+                                        {formatCurrency(totalAmount, getMainCurrency())}
                                     </p>
                                 </div>
                                 <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
@@ -605,7 +605,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         Avg Ticket
                                     </p>
                                     <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
-                                        {formatCurrency(averageAmount, 'EUR')}
+                                        {formatCurrency(averageAmount, getMainCurrency())}
                                     </p>
                                 </div>
                                 <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
@@ -1395,7 +1395,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             </div>
                                             <div className="text-right">
                                                 <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">
-                                                    Period Volume: <span className="text-light-text dark:text-dark-text font-mono font-bold">{formatCurrency(totalAmount, 'EUR')}</span>
+                                                    Period Volume: <span className="text-light-text dark:text-dark-text font-mono font-bold">{formatCurrency(totalAmount, getMainCurrency())}</span>
                                                 </span>
                                             </div>
                                         </div>
@@ -1419,10 +1419,10 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                     <BarXAxis showAllLabels maxLabels={6} />
                                                     <YAxis 
                                                         numTicks={4} 
-                                                        formatValue={(v: number) => formatCurrency(v, 'EUR', { compact: true })} 
+                                                        formatValue={(v: number) => formatCurrency(v, getMainCurrency(), { compact: true })} 
                                                     />
                                                     <ChartTooltip
-                                                        valueFormatter={(val: number) => formatCurrency(val, 'EUR')}
+                                                        valueFormatter={(val: number) => formatCurrency(val, getMainCurrency())}
                                                     />
                                                 </BarChart>
                                             </div>

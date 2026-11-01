@@ -1,4 +1,5 @@
 
+import { CURRENCY_CODES, currencyPreference } from './utils/currencies';
 import { Category, Page, AccountType, Currency, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration, OtherAssetSubType, OtherLiabilitySubType } from './types';
 import { ICON_LIBRARY } from './utils/materialSymbols';
 
@@ -218,7 +219,7 @@ export const ASSET_TYPES: AccountType[] = ['Checking', 'Savings', 'Investment', 
 export const DEBT_TYPES: AccountType[] = ['Credit Card', 'Loan', 'Other Liabilities'];
 export const ALL_ACCOUNT_TYPES: AccountType[] = [...ASSET_TYPES, ...DEBT_TYPES];
 export const LIQUID_ACCOUNT_TYPES: AccountType[] = ['Checking', 'Savings', 'Credit Card'];
-export const CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'BTC', 'RON'];
+export const CURRENCIES: Currency[] = CURRENCY_CODES;
 export const INVESTMENT_SUB_TYPES: InvestmentSubType[] = ['Stock', 'ETF', 'Crypto', 'Warrant', 'Pension Fund', 'Spare Change', 'Other'];
 export const PROPERTY_TYPES: PropertyType[] = ['Apartment', 'Detached House', 'Semi-Detached House', 'Terraced House', 'Land', 'Commercial', 'Other'];
 export const FUEL_TYPES: FuelType[] = ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'LPG'];
@@ -241,9 +242,7 @@ export const WEEKEND_ADJUSTMENTS: { value: WeekendAdjustment, label: string }[] 
   { value: 'after', label: 'Monday after' },
 ];
 
-export const CURRENCY_OPTIONS = [
-  'EUR (€)', 'USD ($)', 'GBP (£)', 'RON (lei)', 'JPY (¥)', 'CAD (C$)', 'AUD (A$)', 'CHF (CHF)', 'CNY (¥)', 'INR (₹)'
-];
+export const CURRENCY_OPTIONS = CURRENCY_CODES.map(currencyPreference);
 
 export const TIMEZONE_OPTIONS = [
   "Pacific/Midway", "Pacific/Honolulu", "America/Anchorage", "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York", "America/Caracas", "America/Halifax", "America/Sao_Paulo", "Atlantic/Azores", "Etc/GMT", "Europe/London", "Europe/Brussels", "Europe/Athens", "Europe/Moscow", "Asia/Dubai", "Asia/Karachi", "Asia/Kolkata", "Asia/Dhaka", "Asia/Bangkok", "Asia/Shanghai", "Asia/Tokyo", "Australia/Sydney", "Pacific/Auckland"

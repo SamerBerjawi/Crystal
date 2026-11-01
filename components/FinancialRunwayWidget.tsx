@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction } from '../types';
-import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
+import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
 import Icon from './ui/Icon';
 
@@ -15,7 +15,7 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
     // 1. Calculate Liquid Assets
     const liquid = accounts
       .filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type) && a.status !== 'closed')
-      .reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
+      .reduce((sum, a) => sum + convertToMain(a.balance, a.currency), 0);
 
     // 2. Calculate Average Monthly Burn (Last 90 days)
     const ninetyDaysAgo = new Date();
@@ -23,7 +23,7 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
     
     const expenses = transactions
       .filter(t => t.type === 'expense' && !t.transferId && parseLocalDate(t.date) >= ninetyDaysAgo)
-      .reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
+      .reduce((sum, t) => sum + Math.abs(convertToMain(t.amount, t.currency)), 0);
     
     const burn = expenses / 3;
     const months = burn > 0 ? liquid / burn : 99; // 99 as infinity fallback
@@ -59,11 +59,11 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
         <div className="bg-black/[0.03] dark:bg-white/[0.03] rounded-2xl p-4 border border-black/5 dark:border-white/5">
           <div className="flex justify-between text-xs mb-1">
             <span className="text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">Avg. Monthly Burn</span>
-            <span className="font-bold text-rose-500">{formatCurrency(monthlyBurn, 'EUR')}</span>
+            <span className="font-bold text-rose-500">{formatCurrency(monthlyBurn, getMainCurrency())}</span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">Liquid Assets</span>
-            <span className="font-bold text-emerald-500">{formatCurrency(liquidAssets, 'EUR')}</span>
+            <span className="font-bold text-emerald-500">{formatCurrency(liquidAssets, getMainCurrency())}</span>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import { Account, Transaction } from '../types';
-import { convertToEur } from '../utils';
+import { convertToMain } from '../utils';
 import { normalizeMerchantKey } from './brandfetch';
 
 export interface TrendEntity { id: string; type: string; logoKey: string }
@@ -29,7 +29,7 @@ export const computeSpendTrends = (
     if (!showBalanceAdjustments && tx.isBalanceAdjustment) continue;
     const idx = monthIndex.get(tx.date.slice(0, 7));
     if (idx === undefined) continue;
-    const amount = Math.abs(convertToEur(tx.amount, tx.currency));
+    const amount = Math.abs(convertToMain(tx.amount, tx.currency));
     if (tx.merchant) {
       const key = normalizeMerchantKey(tx.merchant);
       if (key) bucket(byMerchant, key)[idx] += amount;

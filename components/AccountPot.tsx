@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction } from '../types';
-import { convertToEur, normalizeCurrency, parseLocalDate } from '../utils';
+import { convertToMain, normalizeCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { computeAccount90dSparkline, computeAccountDisplayBalance, latestTransactions } from '../utils/accountsModel';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
@@ -47,7 +47,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
     [account, transactions, balance, conversionRates]
   );
   const latest = useMemo(() => latestTransactions(transactions, 3), [transactions]);
-  const isForeign = normalizeCurrency(account.currency) !== 'EUR';
+  const isForeign = normalizeCurrency(account.currency) !== getMainCurrency();
 
   return (
     <section aria-label={account.name} className="flex min-w-0 flex-col gap-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
@@ -60,7 +60,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
         <Menu title={account.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${account.name}`} tooltipPlacement="left" />} items={menuItems} />
       </header>
       <div>
-        <p className="type-figure-lg truncate text-ink"><Amount value={convertToEur(balance, account.currency)} currency="EUR" /></p>
+        <p className="type-figure-lg truncate text-ink"><Amount value={convertToMain(balance, account.currency)} currency={getMainCurrency()} /></p>
         {isForeign && <p className="type-caption text-muted"><Amount value={balance} currency={account.currency} /></p>}
       </div>
       {sparklineData.length > 1 && <Sparkline data={sparklineData} isPositive={isPositiveTrend} width={480} height={72} className="h-[72px] w-full" preserveAspect={false} />}

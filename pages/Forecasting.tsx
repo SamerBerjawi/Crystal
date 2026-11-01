@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { BillPayment, FinancialGoal, RecurringTransaction, ScheduledItem } from '../types';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
-import { convertToEur, formatCurrency, parseLocalDate, round2 } from '../utils';
+import { convertToMain, formatCurrency, parseLocalDate, round2, getMainCurrency } from '../utils';
 import EditRecurrenceModal from '../components/EditRecurrenceModal';
 import ForecastDayPanel from '../components/ForecastDayPanel';
 import ForecastHorizonChart, { type ChartLine } from '../components/ForecastHorizonChart';
@@ -89,13 +89,13 @@ const Forecasting: React.FC = () => {
     });
     return projectBalances({
       accounts: selectedAccounts,
-      startBalances: Object.fromEntries(selectedAccounts.map(account => [account.id, convertToEur(account.balance, account.currency)])),
+      startBalances: Object.fromEntries(selectedAccounts.map(account => [account.id, convertToMain(account.balance, account.currency)])),
       occurrences,
       goals: financialGoals,
       activeGoalIds,
       today,
       end,
-      convert: convertToEur,
+      convert: convertToMain,
     });
   }, [recurringTransactions, recurringTransactionOverrides, billsAndPayments, accounts, transactions, loanPaymentOverrides, today, end, selectedAccounts, financialGoals, activeGoalIds]);
 
@@ -305,11 +305,11 @@ const Forecasting: React.FC = () => {
               <h2 className="type-card-title text-ink">What moves the line</h2>
               <p className="type-caption text-muted">Today to {shortDay(iso(end))}</p>
               <dl className="mt-3 space-y-1.5">
-                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Today</dt><dd className="type-figure-row text-ink"><Amount value={summary.today} currency="EUR" /></dd></div>
-                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Expected in</dt><dd className="type-figure-row"><Amount value={summary.expectedIn} currency="EUR" tone="flow" /></dd></div>
-                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Going out</dt><dd className="type-figure-row text-ink"><Amount value={summary.goingOut} currency="EUR" /></dd></div>
-                <div className="flex justify-between gap-3 border-t border-line pt-1.5"><dt className="type-body-strong text-ink">On {shortDay(iso(end))}</dt><dd className="type-figure-row text-ink"><Amount value={summary.end} currency="EUR" /></dd></div>
-                {summary.lowest && <div className="flex justify-between gap-3"><dt className="type-body text-muted">Lowest, {shortDay(summary.lowest.date)}</dt><dd className="type-figure-row text-ink"><Amount value={summary.lowest.value} currency="EUR" /></dd></div>}
+                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Today</dt><dd className="type-figure-row text-ink"><Amount value={summary.today} currency={getMainCurrency()} /></dd></div>
+                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Expected in</dt><dd className="type-figure-row"><Amount value={summary.expectedIn} currency={getMainCurrency()} tone="flow" /></dd></div>
+                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Going out</dt><dd className="type-figure-row text-ink"><Amount value={summary.goingOut} currency={getMainCurrency()} /></dd></div>
+                <div className="flex justify-between gap-3 border-t border-line pt-1.5"><dt className="type-body-strong text-ink">On {shortDay(iso(end))}</dt><dd className="type-figure-row text-ink"><Amount value={summary.end} currency={getMainCurrency()} /></dd></div>
+                {summary.lowest && <div className="flex justify-between gap-3"><dt className="type-body text-muted">Lowest, {shortDay(summary.lowest.date)}</dt><dd className="type-figure-row text-ink"><Amount value={summary.lowest.value} currency={getMainCurrency()} /></dd></div>}
                 <div className="flex justify-between gap-3"><dt className="type-body text-muted">Days under buffer</dt><dd className="type-figure-row text-ink">{summary.below.count}</dd></div>
               </dl>
               {movers.length > 0 && (
@@ -317,7 +317,7 @@ const Forecasting: React.FC = () => {
                   {movers.map(mover => (
                     <li key={mover.key} className="flex justify-between gap-3">
                       <span className="type-body min-w-0 truncate text-ink">{mover.label}{mover.count > 1 ? ` × ${mover.count}` : ''}</span>
-                      <span className="type-figure-row shrink-0"><Amount value={mover.total} currency="EUR" tone="flow" /></span>
+                      <span className="type-figure-row shrink-0"><Amount value={mover.total} currency={getMainCurrency()} tone="flow" /></span>
                     </li>
                   ))}
                 </ul>
@@ -332,7 +332,7 @@ const Forecasting: React.FC = () => {
                 {dipsBelow ? (
                   <>
                     <h2 className="type-body-strong text-ink">Under your buffer for {summary.below.count} {summary.below.count === 1 ? 'day' : 'days'}</h2>
-                    <p className="type-body text-muted">From {shortDay(summary.below.first!)}. The lowest point is {summary.lowest ? formatCurrency(summary.lowest.value, 'EUR') : ''}.</p>
+                    <p className="type-body text-muted">From {shortDay(summary.below.first!)}. The lowest point is {summary.lowest ? formatCurrency(summary.lowest.value, getMainCurrency()) : ''}.</p>
                     {suggestion && (
                       <Button className="mt-2" variant="secondary" onPress={() => requestMove(suggestion.event, suggestion.toDate)}>
                         Move {suggestion.event.description} to {shortDay(suggestion.toDate)}
@@ -342,7 +342,7 @@ const Forecasting: React.FC = () => {
                 ) : (
                   <>
                     <h2 className="type-body-strong text-ink">Above your buffer the whole way</h2>
-                    {summary.lowest && <p className="type-body text-muted">Lowest point {formatCurrency(summary.lowest.value, 'EUR')} on {shortDay(summary.lowest.date)}. Nothing to move.</p>}
+                    {summary.lowest && <p className="type-body text-muted">Lowest point {formatCurrency(summary.lowest.value, getMainCurrency())} on {shortDay(summary.lowest.date)}. Nothing to move.</p>}
                   </>
                 )}
               </div>
@@ -353,7 +353,7 @@ const Forecasting: React.FC = () => {
               <p className="type-caption text-muted">The least you want to keep. Safe to spend uses the same number.</p>
               <div className="mt-3 flex items-end gap-1">
                 <IconButton icon="remove" label="Lower the buffer" isDisabled={cushion <= 0} onPress={() => setCushion(cushion - BUFFER_STEP)} />
-                <AmountInput key={cushion} className="min-w-0 flex-1" label="Buffer" currency="EUR" defaultValue={cushion ? String(cushion) : ''} onBlur={e => setCushion(parseFloat((e.target as HTMLInputElement).value) || 0)} />
+                <AmountInput key={cushion} className="min-w-0 flex-1" label="Buffer" currency={getMainCurrency()} defaultValue={cushion ? String(cushion) : ''} onBlur={e => setCushion(parseFloat((e.target as HTMLInputElement).value) || 0)} />
                 <IconButton icon="add" label="Raise the buffer" onPress={() => setCushion(cushion + BUFFER_STEP)} />
               </div>
             </section>
@@ -368,7 +368,7 @@ const Forecasting: React.FC = () => {
                       <button type="button" onClick={() => setPanel({ date: event.date, events: [event] })} className="flex min-h-12 w-full cursor-pointer items-center gap-3 py-1 text-left">
                         <span className="type-caption w-12 shrink-0 text-muted">{shortDay(event.date)}</span>
                         <span className="type-body min-w-0 flex-1 truncate text-ink">{event.description}</span>
-                        <span className="type-figure-row shrink-0"><Amount value={event.amount} currency="EUR" tone="flow" /></span>
+                        <span className="type-figure-row shrink-0"><Amount value={event.amount} currency={getMainCurrency()} tone="flow" /></span>
                       </button>
                     </li>
                   ))}
@@ -383,7 +383,7 @@ const Forecasting: React.FC = () => {
                   {lows.map(low => (
                     <li key={low.label} className="flex justify-between gap-3">
                       <span className="type-body text-muted">{low.label}<span className="type-caption block">{shortDay(low.date)}</span></span>
-                      <span className="type-figure-row shrink-0 text-ink"><Amount value={low.value} currency="EUR" /></span>
+                      <span className="type-figure-row shrink-0 text-ink"><Amount value={low.value} currency={getMainCurrency()} /></span>
                     </li>
                   ))}
                 </ul>

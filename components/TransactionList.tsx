@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { Category, DisplayTransaction, MerchantRule, Tag } from '../types';
-import { formatCurrency, convertToEur, parseLocalDate, formatDate as formatSharedDate } from '../utils';
+import { formatCurrency, convertToMain, parseLocalDate, formatDate as formatSharedDate, getMainCurrency } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
@@ -86,7 +86,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
         const description = isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.description;
         const amountDisplay = isTransfer
           ? formatCurrency(tx.amount, tx.currency)
-          : formatCurrency(convertToEur(tx.amount, tx.currency), 'EUR');
+          : formatCurrency(convertToMain(tx.amount, tx.currency), getMainCurrency());
         
         const catDetails = categoryDetailsMap.get(tx.category) || {};
         const icon = (isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'SwitchHorizontal01' : (catDetails.icon || catDetails.parentIcon || 'Tag01');
@@ -101,7 +101,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
         const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
 
         const formattedDate = formatDate(tx.date);
-        const spareAmountEur = tx.spareChangeAmount ? formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR') : null;
+        const spareAmountEur = tx.spareChangeAmount ? formatCurrency(convertToMain(Math.abs(tx.spareChangeAmount), tx.currency), getMainCurrency()) : null;
 
         const txTags = (tx.tagIds || []).map(id => tags.find(t => t.id === id)).filter(Boolean) as Tag[];
 

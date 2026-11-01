@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Account } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE } from '../constants';
-import { formatCurrency, toLocalISOString } from '../utils';
+import { formatCurrency, toLocalISOString, currencySign } from '../utils';
 import Icon from './ui/Icon';
 import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
@@ -153,7 +153,7 @@ const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose
                 </label>
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-400 group-focus-within:text-primary-500 transition-colors">
-                    {account.currency === 'USD' ? '$' : account.currency === 'GBP' ? '£' : '€'}
+                    {currencySign(account.currency)}
                   </span>
                   <input
                     id="new-balance"

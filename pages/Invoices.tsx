@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Currency, Invoice, InvoiceStatus, InvoiceType } from '../types';
-import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
+import { convertToMain, parseLocalDate, toLocalISOString, getMainCurrency } from '../utils';
 import { effectiveStatus, INVOICE_STATUSES, invoiceFromQuote, invoiceSummary, QUOTE_STATUSES, STATUS_LABELS, visibleDocuments } from '../utils/invoicesModel';
 import { useInvoicesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -81,7 +81,7 @@ const InvoicesPage: React.FC = () => {
 
   useEffect(() => setShown(PAGE_SIZE), [type, status, search]);
 
-  const summary = useMemo(() => invoiceSummary(invoices, today, (amount: number, currency: Currency) => convertToEur(amount, currency, rates)), [invoices, today, rates]);
+  const summary = useMemo(() => invoiceSummary(invoices, today, (amount: number, currency: Currency) => convertToMain(amount, currency, rates)), [invoices, today, rates]);
   const documents = useMemo(() => visibleDocuments(invoices, type, status, search, today), [invoices, type, status, search, today]);
   const openTotal = summary.aging.reduce((sum, bucket) => sum + bucket.total, 0);
 
@@ -106,9 +106,9 @@ const InvoicesPage: React.FC = () => {
   ];
 
   const stats: PageStat[] = [
-    { label: 'Paid this month', icon: 'check_circle', value: summary.paidThisMonth, format: 'money', currency: 'EUR' },
-    { label: 'Outstanding', icon: 'schedule', value: summary.outstanding, format: 'money', currency: 'EUR' },
-    { label: 'Overdue', icon: 'warning', value: summary.overdue, format: 'money', currency: 'EUR', ...(summary.overdueCount > 0 ? { badge: `${summary.overdueCount} late`, badgeTone: 'tomato' as const } : {}) },
+    { label: 'Paid this month', icon: 'check_circle', value: summary.paidThisMonth, format: 'money', currency: getMainCurrency() },
+    { label: 'Outstanding', icon: 'schedule', value: summary.outstanding, format: 'money', currency: getMainCurrency() },
+    { label: 'Overdue', icon: 'warning', value: summary.overdue, format: 'money', currency: getMainCurrency(), ...(summary.overdueCount > 0 ? { badge: `${summary.overdueCount} late`, badgeTone: 'tomato' as const } : {}) },
   ];
 
   const statusItems = [{ id: 'all', label: 'All' }, ...(type === 'quote' ? QUOTE_STATUSES : INVOICE_STATUSES).map(id => ({ id, label: STATUS_LABELS[id] }))];
@@ -134,7 +134,7 @@ const InvoicesPage: React.FC = () => {
             <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
               <h2 className="type-card-title text-ink">Money owed to you</h2>
               <p className="type-caption text-muted">
-                <Amount value={summary.openQuotes} currency="EUR" /> in open quotes, and you owe <Amount value={summary.youOwe} currency="EUR" />
+                <Amount value={summary.openQuotes} currency={getMainCurrency()} /> in open quotes, and you owe <Amount value={summary.youOwe} currency={getMainCurrency()} />
               </p>
             </div>
             <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full bg-inset" aria-hidden>
@@ -144,7 +144,7 @@ const InvoicesPage: React.FC = () => {
               {summary.aging.map(bucket => (
                 <div key={bucket.id}>
                   <dt className="type-label flex items-center gap-1.5 text-muted"><span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: AGING_COLORS[bucket.id] }} />{bucket.label}</dt>
-                  <dd className="type-figure-row text-ink"><Amount value={bucket.total} currency="EUR" /></dd>
+                  <dd className="type-figure-row text-ink"><Amount value={bucket.total} currency={getMainCurrency()} /></dd>
                 </div>
               ))}
             </dl>

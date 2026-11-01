@@ -1,5 +1,5 @@
 import { Tag, Transaction } from '../types';
-import { convertToEur, parseLocalDate, safeAdd } from '../utils';
+import { convertToMain, parseLocalDate, safeAdd } from '../utils';
 
 export type TagSort = 'count' | 'amount' | 'name';
 
@@ -20,7 +20,7 @@ export const summariseTags = (tags: Tag[], transactions: Transaction[], today = 
 
   transactions.forEach(transaction => {
     if (!transaction.tagIds?.length) return;
-    const amount = convertToEur(transaction.amount, transaction.currency);
+    const amount = convertToMain(transaction.amount, transaction.currency);
     const key = monthKey(parseLocalDate(transaction.date));
     transaction.tagIds.forEach(tagId => {
       const stat = stats.get(tagId);

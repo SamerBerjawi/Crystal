@@ -3,13 +3,12 @@ import { createPortal } from 'react-dom';
 import { Account, Transaction, Tag, Category, Warrant, Currency, InvestmentTransaction } from '../types';
 import {
   formatCurrency,
-  convertToEur,
+  convertToMain,
   convertCurrency,
   normalizeCurrency,
   parseLocalDate,
   generateAmortizationSchedule,
-  toLocalISOString,
-} from '../utils';
+  toLocalISOString, getMainCurrency, currencySign } from '../utils';
 import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
@@ -169,7 +168,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
 
   const eurBalance = useMemo(() => {
     if (!account) return 0;
-    return convertToEur(displayBalance, account.currency);
+    return convertToMain(displayBalance, account.currency);
   }, [account, displayBalance]);
 
   // Loan Payoff Metrics (Amortization & Payment-accurate)
@@ -805,7 +804,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
           <div className="relative z-10 flex items-center justify-between text-2xs text-gray-300 pt-1 border-t border-white/10 font-mono">
             <span>
               {account.monthlyPayment
-                ? `€${account.monthlyPayment.toLocaleString()} / mo`
+                ? `${currencySign(account.currency)}${account.monthlyPayment.toLocaleString()} / mo`
                 : `${account.duration || 0} Mos Term`}
             </span>
             {account.interestRate !== undefined && (
@@ -1042,9 +1041,9 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
                   {formatCurrency(displayBalance, account.currency)}
                 </span>
 
-                {normalizeCurrency(account.currency) !== 'EUR' && (
+                {normalizeCurrency(account.currency) !== getMainCurrency() && (
                   <span className="text-xs font-bold text-slate-600 dark:text-gray-400 font-mono">
-                    ≈ {formatCurrency(eurBalance, 'EUR')}
+                    ≈ {formatCurrency(eurBalance, getMainCurrency())}
                   </span>
                 )}
               </div>

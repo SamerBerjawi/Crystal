@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
 
 interface BreakdownItem {
@@ -29,7 +29,7 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                     </div>
                     <div className="text-right">
                         <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">{title}</p>
-                        <h3 className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white">{formatCurrency(totalValue, 'EUR')}</h3>
+                        <h3 className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white">{formatCurrency(totalValue, getMainCurrency())}</h3>
                     </div>
                 </div>
                 

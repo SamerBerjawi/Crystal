@@ -1,5 +1,5 @@
 import type { Account, BillPayment, RecurringTransaction, RecurringTransactionOverride, Transaction } from '../types';
-import { convertToEur, expandRecurringOccurrences, parseLocalDate, safeAdd, safeRound, safeSubtract, toLocalISOString } from '../utils';
+import { convertToMain, expandRecurringOccurrences, parseLocalDate, safeAdd, safeRound, safeSubtract, toLocalISOString } from '../utils';
 import { resolveRealTodayBalance } from './accountDetailModel';
 
 const INCOME_LOOKAHEAD_DAYS = 62;
@@ -55,7 +55,7 @@ export function computeSafeToSpend({ accounts, transactions, recurringItems, bil
 
   const cash = spending.reduce((sum, account) => {
     const balance = resolveRealTodayBalance(account, transactions.filter(tx => tx.accountId === account.id), { referenceDate: today });
-    return safeAdd(sum, convertToEur(balance, account.currency));
+    return safeAdd(sum, convertToMain(balance, account.currency));
   }, 0);
 
   const tomorrow = new Date(today);
@@ -85,7 +85,7 @@ export function computeSafeToSpend({ accounts, transactions, recurringItems, bil
     .filter(item => !(item.type === 'transfer' && item.toAccountId && ids.has(item.toAccountId)))
     .forEach(item => {
       expandRecurringOccurrences(item, today, lastDay, overrides).forEach(occurrence => {
-        payments.push({ date: occurrence.date, description: occurrence.description, amount: convertToEur(occurrence.amount, item.currency) });
+        payments.push({ date: occurrence.date, description: occurrence.description, amount: convertToMain(occurrence.amount, item.currency) });
       });
     });
 
@@ -93,7 +93,7 @@ export function computeSafeToSpend({ accounts, transactions, recurringItems, bil
   bills
     .filter(bill => bill.type === 'payment' && bill.status === 'unpaid' && !!bill.accountId && ids.has(bill.accountId) && bill.dueDate <= lastDayStr)
     .forEach(bill => {
-      payments.push({ date: bill.dueDate, description: bill.description, amount: convertToEur(Math.abs(bill.amount), bill.currency) });
+      payments.push({ date: bill.dueDate, description: bill.description, amount: convertToMain(Math.abs(bill.amount), bill.currency) });
     });
 
   payments.sort((a, b) => a.date.localeCompare(b.date));

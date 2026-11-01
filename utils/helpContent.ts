@@ -72,6 +72,14 @@ export const HELP_SECTIONS: HelpSection[] = [
     ],
   },
   {
+    id: 'currencies',
+    title: 'Currencies',
+    points: [
+      { title: 'Main currency', text: 'Accounts and transactions keep their own currency. Totals appear in your main currency, set under Preferences, at today’s exchange rate.' },
+      { title: 'Exchange rates', text: 'Crystal gets rates from the European Central Bank, and from Twelve Data if you add a key. If a currency has no rate, amounts in it stay out of totals until you enter one under Preferences.' },
+    ],
+  },
+  {
     id: 'lock',
     title: 'Locking Crystal',
     points: [

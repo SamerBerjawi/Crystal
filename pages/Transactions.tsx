@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType, MerchantRule, User } from '../types';
 import { toast } from 'sonner';
-import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, CONVERSION_RATES, safeRound } from '../utils';
+import { formatCurrency, fuzzySearch, convertToMain, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, CONVERSION_RATES, safeRound, getMainCurrency } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
@@ -384,7 +384,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const indexedTransactions = useMemo(() => {
     return displayTransactions.map(tx => {
-      const amountEur = convertToEur(tx.amount, tx.currency);
+      const amountEur = convertToMain(tx.amount, tx.currency);
       const amountAbsEur = Math.abs(amountEur);
       const searchText = [
         tx.description,
@@ -495,7 +495,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     filteredTransactions.forEach(tx => {
       if (tx.isTransfer) return;
       if (tx.isSplitParent || tx.isCombinedParent) return; // Exclude parent containers from totals to prevent double-counting
-      const amount = convertToEur(tx.amount, tx.currency);
+      const amount = convertToMain(tx.amount, tx.currency);
       if (tx.type === 'income') income += amount;
       else expense += Math.abs(amount);
     });
@@ -1175,7 +1175,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         const groupTxIds: string[] = [];
         currentGroupTxs.forEach(t => {
           const resolved = resolveTransferDisplay(t);
-          totalEur += convertToEur(resolved.amount, resolved.currency);
+          totalEur += convertToMain(resolved.amount, resolved.currency);
           groupTxIds.push(t.id);
         });
 
@@ -1288,14 +1288,14 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const totals = new Map<string, number>();
     filteredTransactions.forEach(tx => {
       if (tx.isTransfer || tx.type !== 'expense') return;
-      totals.set(tx.category || 'Uncategorised', (totals.get(tx.category || 'Uncategorised') ?? 0) + Math.abs(convertToEur(tx.amount, tx.currency)));
+      totals.set(tx.category || 'Uncategorised', (totals.get(tx.category || 'Uncategorised') ?? 0) + Math.abs(convertToMain(tx.amount, tx.currency)));
     });
     return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   }, [filteredTransactions]);
 
   if (urlTab === 'review') return <ReviewQueue />;
 
-  const money = (value: number, tone: 'flow' | 'plain' = 'plain') => <Amount value={value} currency="EUR" tone={tone} />;
+  const money = (value: number, tone: 'flow' | 'plain' = 'plain') => <Amount value={value} currency={getMainCurrency()} tone={tone} />;
   const checkList = (options: { value: string; label: string }[], selected: string[], onToggle: (value: string) => void) => (
     <div className="flex max-h-64 min-w-48 flex-col gap-1 overflow-y-auto">
       {options.length === 0 && <p className="type-body text-muted">Nothing to choose from yet.</p>}
@@ -1341,8 +1341,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       id: 'amount', label: 'Amount', count: (minAmount ? 1 : 0) + (maxAmount ? 1 : 0),
       content: (
         <div className="grid w-56 gap-3 max-md:w-full">
-          <AmountInput label="At least" currency="EUR" value={minAmount} onChange={setMinAmount} />
-          <AmountInput label="At most" currency="EUR" value={maxAmount} onChange={setMaxAmount} />
+          <AmountInput label="At least" currency={getMainCurrency()} value={minAmount} onChange={setMinAmount} />
+          <AmountInput label="At most" currency={getMainCurrency()} value={maxAmount} onChange={setMaxAmount} />
         </div>
       ),
     },

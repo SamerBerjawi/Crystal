@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { Account, Currency, InvestmentTransaction, Prediction, Transaction, UserStats, Warrant } from '../types';
-import { parseLocalDate, toLocalISOString } from '../utils';
+import { parseLocalDate, toLocalISOString, convertCurrency, getMainCurrency } from '../utils';
 import { BADGE_GROUPS, budgetMastery, challengeBadges, challengeMetrics, debtsAndGoals, healthScore, netWorthHistory, personalRecords, predictionValue, resolvePredictions, SPRINTS, sprintProgress, type ActiveSprint } from '../utils/challengesModel';
 import { usePreferencesContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
@@ -55,6 +55,9 @@ interface ChallengesProps {
 }
 
 /** Score, progress, badges, budgets, sprints, predictions and records, in calm tabs with no battle styling (D-029). */
+/** Challenge figures are worked out in EUR, because thresholds are set in EUR. They show in your main currency. */
+const InMain: React.FC<{ value: number }> = ({ value }) => <Amount value={convertCurrency(value, 'EUR', getMainCurrency())} currency={getMainCurrency()} />;
+
 const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions, predictions, savePrediction, deletePrediction, saveUserStats, investmentTransactions, warrants, assetPrices }) => {
   const { budgets } = useBudgetsContext();
   const { financialGoals } = useGoalsContext();
@@ -160,13 +163,13 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                     {progress.debts.map(debt => (
                       <article key={debt.id} className={CARD}>
                         <h3 className="type-body-strong truncate text-ink">{debt.name}</h3>
-                        <p className="type-figure-row mt-1 text-ink"><Amount value={debt.remaining} currency="EUR" /> <span className="type-caption text-muted">left of <Amount value={debt.total} currency="EUR" /></span></p>
+                        <p className="type-figure-row mt-1 text-ink"><InMain value={debt.remaining} /> <span className="type-caption text-muted">left of <InMain value={debt.total} /></span></p>
                         <div className="mt-2"><Meter percent={(1 - debt.remaining / debt.total) * 100} /></div>
-                        {debt.paidPrincipal > 0 && <p className="type-caption mt-2 text-muted">Paid <Amount value={debt.paidPrincipal} currency="EUR" /> off the loan and <Amount value={debt.paidInterest} currency="EUR" /> in interest.</p>}
+                        {debt.paidPrincipal > 0 && <p className="type-caption mt-2 text-muted">Paid <InMain value={debt.paidPrincipal} /> off the loan and <InMain value={debt.paidInterest} /> in interest.</p>}
                         {debt.payments.length > 0 && (
                           <ul className="mt-3 space-y-1 border-t border-line pt-2">
                             {debt.payments.map(payment => (
-                              <li key={`${payment.date}${payment.amount}`} className="type-caption flex justify-between gap-3 text-muted"><span>{shortDate(payment.date)}</span><Amount value={payment.amount} currency="EUR" /></li>
+                              <li key={`${payment.date}${payment.amount}`} className="type-caption flex justify-between gap-3 text-muted"><span>{shortDate(payment.date)}</span><InMain value={payment.amount} /></li>
                             ))}
                           </ul>
                         )}
@@ -182,7 +185,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                     {progress.savings.map(goal => (
                       <article key={goal.id} className={CARD}>
                         <h3 className="type-body-strong truncate text-ink">{goal.name}</h3>
-                        <p className="type-figure-row mt-1 text-ink"><Amount value={goal.remaining} currency="EUR" /> <span className="type-caption text-muted">to go of <Amount value={goal.total} currency="EUR" /></span></p>
+                        <p className="type-figure-row mt-1 text-ink"><InMain value={goal.remaining} /> <span className="type-caption text-muted">to go of <InMain value={goal.total} /></span></p>
                         <div className="mt-2"><Meter percent={(1 - goal.remaining / goal.total) * 100} /></div>
                       </article>
                     ))}
@@ -225,7 +228,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                     <span className="type-body-strong min-w-0 truncate text-ink">{row.categoryName}</span>
                     <Badge tone={row.level === 0 ? 'negative' : row.level === 4 ? 'positive' : 'neutral'}>{row.title}</Badge>
                   </div>
-                  <p className="type-caption mt-1 text-muted"><Amount value={row.spent} currency="EUR" /> of <Amount value={row.amount} currency="EUR" />{row.level > 0 ? `, level ${row.level} of 4` : ''}</p>
+                  <p className="type-caption mt-1 text-muted"><InMain value={row.spent} /> of <InMain value={row.amount} />{row.level > 0 ? `, level ${row.level} of 4` : ''}</p>
                   <div className="mt-2"><Meter percent={row.ratio * 100} color={row.ratio > 1 ? 'var(--money-out)' : 'var(--primary)'} /></div>
                 </li>
               ))}
@@ -247,7 +250,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                     </div>
                     <p className="type-caption mt-1 text-muted">{sprint.daysLeft === 0 ? 'Time is up' : `${sprint.daysLeft} ${sprint.daysLeft === 1 ? 'day' : 'days'} left`}</p>
                     <div className="mt-2"><Meter percent={sprint.timeProgress} /></div>
-                    {sprint.targetType !== 'transaction_limit' && <p className="type-caption mt-2 text-muted"><Amount value={sprint.spent} currency="EUR" /> spent{sprint.limitAmount > 0 ? <>, limit <Amount value={sprint.limitAmount} currency="EUR" /></> : ''}</p>}
+                    {sprint.targetType !== 'transaction_limit' && <p className="type-caption mt-2 text-muted"><InMain value={sprint.spent} /> spent{sprint.limitAmount > 0 ? <>, limit <InMain value={sprint.limitAmount} /></> : ''}</p>}
                     <Button className="mt-3" variant="secondary" size="sm" onPress={() => setActiveSprints(activeSprints.filter(item => item.id !== sprint.id))}>{sprint.status === 'active' ? 'Give up' : 'Clear'}</Button>
                   </article>
                 ))}
@@ -294,7 +297,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                   <span className="type-caption block truncate text-muted">{row.detail}</span>
                 </span>
                 <span className="shrink-0 text-right">
-                  <span className="type-figure-row block text-ink"><Amount value={row.value} currency="EUR" /></span>
+                  <span className="type-figure-row block text-ink"><InMain value={row.value} /></span>
                   {row.changePct !== undefined && <span className="type-caption block text-muted">{row.changePct >= 0 ? '+' : '−'}{Math.abs(row.changePct).toFixed(1)}%</span>}
                 </span>
               </li>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Transaction, RecurringTransaction, BillPayment, Account, Currency } from '../types';
-import { parseLocalDate, toLocalISOString, adjustDateForWeekend, convertToEur } from '../utils';
+import { parseLocalDate, toLocalISOString, adjustDateForWeekend, convertToMain } from '../utils';
 import { MatcherConfig, DEFAULT_MATCHER_CONFIG } from './useMatcherConfig';
 import { warnIgnored } from '../utils/logging';
 
@@ -231,7 +231,7 @@ export const useSyncedBillMatcher = (
     for (const tx of candidateTxs) {
       const txDate = parseLocalDate(tx.date);
       const txCurrency = (tx.currency as Currency) || 'EUR';
-      const txAmountEur = Math.abs(convertToEur(tx.amount, txCurrency));
+      const txAmountEur = Math.abs(convertToMain(tx.amount, txCurrency));
       const txAmountAbs = Math.abs(tx.amount);
       const txCandidates = [tx.merchant, tx.description, tx.notes];
 
@@ -251,7 +251,7 @@ export const useSyncedBillMatcher = (
 
         const billDate = parseLocalDate(bill.dueDate);
         const billCurrency = (bill.currency as Currency) || 'EUR';
-        const billAmountEur = Math.abs(convertToEur(bill.amount, billCurrency));
+        const billAmountEur = Math.abs(convertToMain(bill.amount, billCurrency));
         const billAmountAbs = Math.abs(bill.amount);
 
         // Date variance check
@@ -322,7 +322,7 @@ export const useSyncedBillMatcher = (
         if (tx.type !== rt.type && rt.type !== 'transfer') continue;
 
         const rtCurrency = (rt.currency as Currency) || 'EUR';
-        const rtAmountEur = Math.abs(convertToEur(rt.amount, rtCurrency));
+        const rtAmountEur = Math.abs(convertToMain(rt.amount, rtCurrency));
         const rtAmountAbs = Math.abs(rt.amount);
 
         // Calculate closest recurring cycle due date

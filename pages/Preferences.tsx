@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AppFontCategory, AppPreferences, Page, Theme } from '../types';
-import { CURRENCY_OPTIONS, COUNTRY_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, DURATION_OPTIONS, FORECAST_DURATION_OPTIONS, TIMEZONE_OPTIONS } from '../constants';
+import { COUNTRY_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, DURATION_OPTIONS, FORECAST_DURATION_OPTIONS, TIMEZONE_OPTIONS } from '../constants';
 import { ensureFontLoaded, FONT_CATEGORIES, FONT_DEFINITIONS, normalizeFontKey } from '../hooks/useFont';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
+import ExchangeRates from '../components/ExchangeRates';
 import { Switch, TextInput } from '../components/ui/Fields';
+import { normalizeCurrency } from '../utils';
+import { currencyOptions, currencyPreference } from '../utils/currencies';
 import Icon from '../components/ui/Icon';
 import { Combobox, Select } from '../components/ui/Pickers';
 import SegmentedControl from '../components/ui/SegmentedControl';
@@ -16,6 +19,7 @@ interface PreferencesProps {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   setCurrentPage: (page: Page) => void;
+  currenciesInUse: string[];
 }
 
 const THEMES = [
@@ -46,11 +50,16 @@ const CalculationSwitch: React.FC<{ title: string; description: string; isSelect
   </Switch>
 );
 
-export const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage }) => {
+export const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage, currenciesInUse }) => {
   const [fontCategory, setFontCategory] = useState<'all' | AppFontCategory>('all');
   const [specimen, setSpecimen] = useState('€125,480.00');
 
   const set = <K extends keyof AppPreferences>(key: K, value: AppPreferences[K]) => setPreferences({ ...preferences, [key]: value });
+
+  const currencyList = useMemo(currencyOptions, []);
+  const rateSource = preferences.ratesUpdatedAt
+    ? `From the European Central Bank${preferences.twelveDataApiKey ? ' and Twelve Data' : ''}, updated ${new Date(preferences.ratesUpdatedAt).toLocaleDateString()}.`
+    : 'Rates haven’t been fetched yet.';
 
   const currentFont = normalizeFontKey(preferences.appFont || 'manrope');
   const fonts = useMemo(() => (fontCategory === 'all' ? FONT_LIST : FONT_LIST.filter(font => font.category === fontCategory)), [fontCategory]);
@@ -101,10 +110,14 @@ export const Preferences: React.FC<PreferencesProps> = ({ preferences, setPrefer
 
       <SettingsGroup id="preferences-region" title="Region" description="Totals across Crystal convert to your main currency.">
         <div className="grid gap-4 md:grid-cols-2">
-          <Combobox label="Main currency" options={toOptions(CURRENCY_OPTIONS)} value={preferences.currency} onChange={id => id && set('currency', id as AppPreferences['currency'])} />
+          <Combobox label="Main currency" options={currencyList} value={normalizeCurrency(preferences.currency)} onChange={id => id && set('currency', currencyPreference(id))} />
           <Combobox label="Country" options={toOptions(COUNTRY_OPTIONS)} value={preferences.country} onChange={id => id && set('country', id)} />
           <Combobox label="Timezone" className="md:col-span-2" options={toOptions(TIMEZONE_OPTIONS)} value={preferences.timezone} onChange={id => id && set('timezone', id)} />
         </div>
+      </SettingsGroup>
+
+      <SettingsGroup id="preferences-rates" title="Exchange rates" description={rateSource}>
+        <ExchangeRates preferences={preferences} setPreferences={setPreferences} currenciesInUse={currenciesInUse} />
       </SettingsGroup>
 
       <SettingsGroup id="preferences-calendar" title="Calendar">

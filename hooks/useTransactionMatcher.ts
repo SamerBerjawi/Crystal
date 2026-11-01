@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Transaction, Account } from '../types';
-import { convertToEur, parseLocalDate } from '../utils';
+import { convertToMain, parseLocalDate } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 import { MatcherConfig, DEFAULT_MATCHER_CONFIG } from './useMatcherConfig';
 
@@ -82,7 +82,7 @@ export const useTransactionMatcher = (
     const matchedIncomeIds = new Set<string>();
 
     for (const expense of expenses) {
-      const expenseAmountEur = Math.abs(convertToEur(expense.amount, expense.currency));
+      const expenseAmountEur = Math.abs(convertToMain(expense.amount, expense.currency));
       const expenseDate = parseLocalDate(expense.date);
       const expenseDesc = expense.merchant || expense.description || '';
 
@@ -105,7 +105,7 @@ export const useTransactionMatcher = (
         if (daysDiff > maxDaysDiff + 0.5) continue;
 
         // Amount gate — fuzzy tolerance
-        const incomeAmountEur = Math.abs(convertToEur(income.amount, income.currency));
+        const incomeAmountEur = Math.abs(convertToMain(income.amount, income.currency));
         const amountDiff = Math.abs(expenseAmountEur - incomeAmountEur);
         const amountDiffPct = incomeAmountEur > 0 ? (amountDiff / incomeAmountEur) * 100 : 100;
         if (amountDiffPct > maxAmountPercent + 0.5 && amountDiff > 2.0) continue;

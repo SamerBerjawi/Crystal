@@ -1,3 +1,4 @@
+import { getMainCurrency } from '../utils';
 import React, { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { Account, FinancialGoal, GoalCategory, RecurrenceFrequency } from '../types';
@@ -33,7 +34,7 @@ const NONE = 'none';
 const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, goalToEdit, financialGoals, parentId, accounts }) => {
   const isEditing = !!goalToEdit;
   const isSubGoal = !!parentId;
-  const initial = useRef<GoalDraft>(goalToEdit ? draftFromGoal(goalToEdit) : emptyGoalDraft('EUR', new Date(), parentId));
+  const initial = useRef<GoalDraft>(goalToEdit ? draftFromGoal(goalToEdit) : emptyGoalDraft(getMainCurrency(), new Date(), parentId));
   const [draft, setDraft] = useState<GoalDraft>(initial.current);
   const update = (patch: Partial<GoalDraft>) => setDraft(prev => ({ ...prev, ...patch }));
 
@@ -94,8 +95,8 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
           <>
             <Select label="Goal type" options={CATEGORIES} value={category} onChange={id => update({ category: id as GoalCategory })} />
             <div className="grid grid-cols-2 gap-3">
-              <AmountInput label={labels.target} currency="EUR" value={draft.amount} onChange={amount => update({ amount })} />
-              <AmountInput label={labels.current} currency="EUR" value={draft.saved} onChange={saved => update({ saved })} />
+              <AmountInput label={labels.target} currency={getMainCurrency()} value={draft.amount} onChange={amount => update({ amount })} />
+              <AmountInput label={labels.current} currency={getMainCurrency()} value={draft.saved} onChange={saved => update({ saved })} />
             </div>
 
             {isOngoing ? (
@@ -112,7 +113,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
 
             <AmountInput
               label={isOngoing ? 'Contribution' : 'Monthly contribution'}
-              currency="EUR"
+              currency={getMainCurrency()}
               value={draft.contribution}
               onChange={contribution => update({ contribution })}
               help={isOngoing ? undefined : 'Optional. Leave it blank to see what you would need.'}

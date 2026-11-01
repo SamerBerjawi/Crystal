@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { parseLocalDate } from '../utils';
+import { parseLocalDate, getMainCurrency } from '../utils';
 import type { ForecastDay, ForecastEvent } from '../utils/forecastModel';
 import { Badge, DayGroup } from './ui/Display';
 import { TextInput } from './ui/Fields';
@@ -57,7 +57,7 @@ const ForecastList: React.FC<ForecastListProps> = ({ days, accountName, onOpen }
                   {day.date === overall ? <Badge tone="negative">Lowest</Badge> : monthly.has(day.date) ? <Badge tone="attention">Month's lowest</Badge> : null}
                 </span>
               }
-              total={<Amount value={day.total} currency="EUR" />}
+              total={<Amount value={day.total} currency={getMainCurrency()} />}
             >
               <ul className="divide-y divide-line">
                 {events.map(event => (
@@ -68,8 +68,8 @@ const ForecastList: React.FC<ForecastListProps> = ({ days, accountName, onOpen }
                         <span className="type-caption block truncate text-muted">{[KIND_LABEL[event.kind], accountName(event.accountId), event.overdue ? 'Overdue' : ''].filter(Boolean).join(', ')}</span>
                       </span>
                       <span className="shrink-0 text-right">
-                        <span className="type-figure-row block text-ink"><Amount value={event.amount} currency="EUR" tone="flow" /></span>
-                        <span className="type-caption block text-muted">Leaves <Amount value={event.balanceAfter} currency="EUR" /></span>
+                        <span className="type-figure-row block text-ink"><Amount value={event.amount} currency={getMainCurrency()} tone="flow" /></span>
+                        <span className="type-caption block text-muted">Leaves <Amount value={event.balanceAfter} currency={getMainCurrency()} /></span>
                       </span>
                     </button>
                   </li>

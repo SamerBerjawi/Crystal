@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import Card from './Card';
 import { LINE_MOTION } from '../src/components/charts/animation';
 import { LineChart, Line, ResponsiveContainer, Area, AreaChart } from 'recharts';
@@ -31,7 +31,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, change
         
         <div className="mb-auto">
             <p className="text-2xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
-                {formatCurrency(amount, 'EUR')}
+                {formatCurrency(amount, getMainCurrency())}
             </p>
             
             {change && (

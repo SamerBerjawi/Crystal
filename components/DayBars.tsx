@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { heatKind, type DayCommitted, type HeatKind } from '../utils/scheduleModel';
 import SegmentedControl from './ui/SegmentedControl';
 
@@ -10,7 +10,7 @@ const HEAT_COLOURS: Record<HeatKind, string> = { none: 'var(--inset)', in: 'var(
 const HEAT_LABELS: [HeatKind, string][] = [['in', 'Money in'], ['out', 'Money out'], ['move', 'Transfers'], ['mixed', 'Mixed']];
 
 const dateLabel = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-const describe = (day: DayCommitted) => `${dateLabel(day.date)}: ${[day.in > 0 && `in ${formatCurrency(day.in, 'EUR')}`, day.out > 0 && `out ${formatCurrency(day.out, 'EUR')}`, day.moves > 0 && `moves ${formatCurrency(day.moves, 'EUR')}`].filter(Boolean).join(', ') || 'nothing'}`;
+const describe = (day: DayCommitted) => `${dateLabel(day.date)}: ${[day.in > 0 && `in ${formatCurrency(day.in, getMainCurrency())}`, day.out > 0 && `out ${formatCurrency(day.out, getMainCurrency())}`, day.moves > 0 && `moves ${formatCurrency(day.moves, getMainCurrency())}`].filter(Boolean).join(', ') || 'nothing'}`;
 
 interface DayBarsProps {
   days: DayCommitted[];

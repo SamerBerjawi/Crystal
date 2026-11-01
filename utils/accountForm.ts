@@ -1,3 +1,4 @@
+import { getMainCurrency } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import type { Account, AccountType, Currency, FuelType, InvestmentSubType, MileageLog, OtherAssetSubType, OtherLiabilitySubType, PropertyType, RecurrenceFrequency, VehicleOwnership } from '../types';
@@ -58,7 +59,7 @@ export const emptyDraft = (type: AccountType = 'Checking'): AccountDraft => {
     includeInAnalytics: true,
     hasCard: type === 'Credit Card',
     type,
-    currency: 'EUR',
+    currency: getMainCurrency(),
     subType: 'Stock',
     otherAssetSubType: 'Other',
     otherLiabilitySubType: 'Other',

@@ -6,7 +6,7 @@ import { MerchantRule, Transaction, Category, MerchantLocation } from '../types'
 
 const MapContainerAny = MapContainer as any;
 const MarkerAny = LeafletMarker as any;
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { VectorBasemap } from './VectorBasemap';
@@ -349,7 +349,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                       : 'text-lime-600 dark:text-[#a3e635] dark:drop-shadow-[0_0_15px_rgba(163,230,53,0.55)]'
                   }`}
                 >
-                  {formatCurrency(totalValue, 'EUR')}
+                  {formatCurrency(totalValue, getMainCurrency())}
                 </span>
 
                 <span className="text-xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider font-mono">
@@ -388,7 +388,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Average</span>
                 <span className="font-bold text-slate-900 dark:text-white text-xs font-mono">
-                  {formatCurrency(avgTicket, 'EUR')}
+                  {formatCurrency(avgTicket, getMainCurrency())}
                 </span>
               </div>
             </div>
@@ -436,7 +436,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                     Cumulative Volume
                   </p>
                   <p className="text-sm sm:text-base font-black text-rose-600 dark:text-[#ff375f] truncate leading-tight font-mono">
-                    {formatCurrency(totalValue, 'EUR')}
+                    {formatCurrency(totalValue, getMainCurrency())}
                   </p>
                   <p className="text-2xs text-slate-500 dark:text-gray-500 font-mono">Total Volume</p>
                 </div>
@@ -447,7 +447,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                     Average Ticket
                   </p>
                   <p className="text-sm sm:text-base font-black text-sky-600 dark:text-[#38bdf8] truncate leading-tight font-mono">
-                    {formatCurrency(avgTicket, 'EUR')}
+                    {formatCurrency(avgTicket, getMainCurrency())}
                   </p>
                   <p className="text-2xs text-slate-500 dark:text-gray-500 font-mono">Average Per Transaction</p>
                 </div>

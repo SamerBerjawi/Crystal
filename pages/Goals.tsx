@@ -3,7 +3,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { FinancialGoal } from '../types';
-import { convertToEur } from '../utils';
+import { convertToMain, getMainCurrency } from '../utils';
 import GoalCard from '../components/GoalCard';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import GoalTable from '../components/GoalTable';
@@ -59,18 +59,18 @@ const Goals: React.FC = () => {
     [financialGoals, accountFilter]
   );
   const tree = useMemo(() => goalTree(visibleGoals, goalOrder || []), [visibleGoals, goalOrder]);
-  const rings = useMemo(() => summaryRings(visibleGoals, convertToEur), [visibleGoals]);
+  const rings = useMemo(() => summaryRings(visibleGoals, convertToMain), [visibleGoals]);
   const savings = rings[0];
   const need = useMemo(() => monthlyNeed(visibleGoals, today), [visibleGoals, today]);
   const targets = useMemo(() => {
     const nameOf = (id?: string) => accounts.find(account => account.id === id)?.name ?? '';
-    return monthlyTargets(visibleGoals, activeGoalIds, nameOf, today, convertToEur, schedule);
+    return monthlyTargets(visibleGoals, activeGoalIds, nameOf, today, convertToMain, schedule);
   }, [visibleGoals, activeGoalIds, accounts, today, schedule]);
 
   const shares = useMemo(() => {
     const leaves = (node: GoalNode) => (node.goal.isBucket ? node.children : [node.goal]);
     return tree
-      .map(node => ({ id: node.goal.id, name: node.goal.name, saved: leaves(node).filter(goal => !isGoalDone(goal) && goalCategoryOf(goal) === 'savings').reduce((sum, goal) => sum + convertToEur(goal.currentAmount, goal.currency), 0) }))
+      .map(node => ({ id: node.goal.id, name: node.goal.name, saved: leaves(node).filter(goal => !isGoalDone(goal) && goalCategoryOf(goal) === 'savings').reduce((sum, goal) => sum + convertToMain(goal.currentAmount, goal.currency), 0) }))
       .filter(share => share.saved > 0);
   }, [tree]);
   const sharesTotal = shares.reduce((sum, share) => sum + share.saved, 0);
@@ -136,12 +136,12 @@ const Goals: React.FC = () => {
             <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
               <div>
                 <p className="type-label text-muted">Saved towards your goals</p>
-                <p className="type-figure-hero text-ink"><Amount value={savings.saved} currency="EUR" countUp /></p>
+                <p className="type-figure-hero text-ink"><Amount value={savings.saved} currency={getMainCurrency()} countUp /></p>
               </div>
               {rings.slice(1).filter(ring => ring.count > 0).map(ring => (
                 <div key={ring.category}>
                   <p className="type-label text-muted">{ring.label} goals</p>
-                  <p className="type-figure-lg text-ink"><Amount value={ring.saved} currency="EUR" /> <span className="type-body text-muted">of <Amount value={ring.target} currency="EUR" /></span></p>
+                  <p className="type-figure-lg text-ink"><Amount value={ring.saved} currency={getMainCurrency()} /> <span className="type-body text-muted">of <Amount value={ring.target} currency={getMainCurrency()} /></span></p>
                 </div>
               ))}
             </div>
@@ -154,7 +154,7 @@ const Goals: React.FC = () => {
                   {shares.map((share, index) => (
                     <li key={share.id} className="type-caption flex items-center gap-1.5 text-muted">
                       <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: SHARE_COLOURS[index % SHARE_COLOURS.length] }} />
-                      {share.name} <span className="font-bold text-ink"><Amount value={share.saved} currency="EUR" /></span>
+                      {share.name} <span className="font-bold text-ink"><Amount value={share.saved} currency={getMainCurrency()} /></span>
                     </li>
                   ))}
                 </ul>
@@ -227,9 +227,9 @@ const Goals: React.FC = () => {
                   <li key={target.key} className="flex min-h-11 flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2">
                     <span className="type-body-strong text-ink">{target.label}</span>
                     <span className="flex flex-wrap gap-x-5">
-                      {target.savings > 0 && <span className="type-caption text-muted">Saving <span className="type-figure-row text-ink"><Amount value={target.savings} currency="EUR" /></span></span>}
-                      {target.expense > 0 && <span className="type-caption text-muted">Spending <span className="type-figure-row text-ink"><Amount value={target.expense} currency="EUR" /></span></span>}
-                      {target.income > 0 && <span className="type-caption text-muted">Income <span className="type-figure-row text-ink"><Amount value={target.income} currency="EUR" /></span></span>}
+                      {target.savings > 0 && <span className="type-caption text-muted">Saving <span className="type-figure-row text-ink"><Amount value={target.savings} currency={getMainCurrency()} /></span></span>}
+                      {target.expense > 0 && <span className="type-caption text-muted">Spending <span className="type-figure-row text-ink"><Amount value={target.expense} currency={getMainCurrency()} /></span></span>}
+                      {target.income > 0 && <span className="type-caption text-muted">Income <span className="type-figure-row text-ink"><Amount value={target.income} currency={getMainCurrency()} /></span></span>}
                     </span>
                   </li>
                 ))}
