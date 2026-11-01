@@ -7,7 +7,6 @@ import { formatCurrency, convertCurrency, convertToMain, generateSyntheticLoanPa
 import AddTransactionModal from '../components/AddTransactionModal';
 import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
-import WidgetWrapper from '../components/WidgetWrapper';
 import OutflowsChart from '../components/OutflowsChart';
 import DurationFilter from '../components/DurationFilter';
 import NetWorthChart from '../components/NetWorthChart';
@@ -28,18 +27,10 @@ import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleCont
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, Cell } from 'recharts';
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
-import RecurringTransactionModal from '../components/RecurringTransactionModal';
-import RecurringOverrideModal from '../components/RecurringOverrideModal';
-import EditRecurrenceModal from '../components/EditRecurrenceModal';
-import BillPaymentModal from '../components/BillPaymentModal';
-import GoalScenarioModal from '../components/GoalScenarioModal';
-import FinancialGoalCard from '../components/FinancialGoalCard';
 import ConfirmationModal, { useConfirm } from '../components/ConfirmationModal';
-import GoalContributionPlan from '../components/GoalContributionPlan';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import { useIsMobile } from '../hooks/useIsMobile';
 import BudgetModal from '../components/BudgetModal';
-import MultiSelectFilter from '../components/MultiSelectFilter';
 import { Skeleton } from '../components/ui/States';
 import PullToRefresh from '../components/PullToRefresh';
 import AssetAllocationWidget from '../components/AssetAllocationWidget';
@@ -221,16 +212,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const [isEditMode, setIsEditMode] = useState(false);
   const [isPhoneEditOpen, setPhoneEditOpen] = useState(false);
 
-  const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
-  const [editChoiceItem, setEditChoiceItem] = useState<ScheduledItem | null>(null);
 
-  // States for Forecast Interaction Modals
-  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
-  const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null);
-  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
-  const [editingBill, setEditingBill] = useState<BillPayment | null>(null);
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
 
   const review = useReview();
 
@@ -319,89 +301,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     return { forecastChartData: chartData, lowestBalanceForecasts: horizonTiles(projection.days, today) };
 
   }, [accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides, forecastDuration]);
-
-  const handleEditSingle = () => {
-    if (!editChoiceItem) return;
-    setOverrideModalItem(editChoiceItem);
-    setEditChoiceItem(null);
-  };
-
-  const handleEditSeries = () => {
-    if (!editChoiceItem) return;
-    setEditingRecurring(editChoiceItem.originalItem as RecurringTransaction);
-    setIsRecurringModalOpen(true);
-    setEditChoiceItem(null);
-  };
-
-  const handleEditFuture = () => {
-    if (!editChoiceItem) return;
-    const item = editChoiceItem;
-    const original = item.originalItem as RecurringTransaction;
-
-    const occurrenceDate = parseLocalDate(item.originalDateForOverride || item.date);
-    const dayBefore = new Date(occurrenceDate);
-    dayBefore.setDate(dayBefore.getDate() - 1);
-    const endDateForOld = toLocalISOString(dayBefore);
-
-    const newSeriesStart = item.originalDateForOverride || item.date;
-    const newSeriesData: Omit<RecurringTransaction, 'id'> = {
-      ...original,
-      startDate: newSeriesStart,
-      nextDueDate: newSeriesStart,
-    };
-
-    saveRecurringTransaction({ ...original, endDate: endDateForOld });
-
-    setEditingRecurring({ ...newSeriesData, id: '' } as RecurringTransaction);
-    setEditChoiceItem(null);
-    setIsRecurringModalOpen(true);
-  };
-
-  const handleEditForecastItem = (item: any) => {
-    if (item.type === 'Financial Goal') {
-      setEditingGoal(item.originalItem);
-      setIsGoalModalOpen(true);
-    } else if (item.type === 'Recurring') {
-      if (item.originalItem?.isSynthetic) {
-        return;
-      }
-      const originalRt = item.originalItem as RecurringTransaction;
-      const isOverride = !!(originalRt as any)?.isOverride;
-      const origDateForOverride = (originalRt as any)?.originalDateForOverride || item.date;
-
-      const scheduledItem: ScheduledItem = {
-        id: item.id,
-        isRecurring: true,
-        date: item.date,
-        description: item.description,
-        amount: item.amount,
-        accountName: item.accountName,
-        type: originalRt?.type || (item.amount < 0 ? 'expense' : 'income'),
-        originalItem: originalRt,
-        isTransfer: originalRt?.type === 'transfer',
-        isOverride: isOverride,
-        originalDateForOverride: origDateForOverride,
-        isSkipped: !!(originalRt as any)?.isSkipped,
-        category: originalRt?.category,
-        merchant: originalRt?.merchant,
-        accountId: item.accountId || originalRt?.accountId,
-      };
-
-      if (isOverride) {
-        setOverrideModalItem(scheduledItem);
-      } else {
-        setEditChoiceItem(scheduledItem);
-      }
-    } else if (item.type === 'Bill/Payment') {
-      setEditingBill(item.originalItem);
-      setIsBillModalOpen(true);
-    }
-  };
-
-  const handleAddNewToDate = () => {
-    setEditingRecurring(null);
-    setIsRecurringModalOpen(true);
-  };
 
   const handleOpenTransactionModal = (tx?: Transaction) => {
     setEditingTransaction(tx || null);
@@ -1442,49 +1341,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         onDelete={handleDeleteTransaction}
       />
       <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
-      {/* Forecast Interaction Modals */}
-      {(isRecurringModalOpen || isBillModalOpen) && (
-        <RecurringTransactionModal
-          isOpen={isRecurringModalOpen || isBillModalOpen}
-          onClose={() => {
-            setIsRecurringModalOpen(false);
-            setIsBillModalOpen(false);
-            setEditingRecurring(null);
-            setEditingBill(null);
-          }}
-          onSave={(data) => {
-            saveRecurringTransaction(data);
-            setIsRecurringModalOpen(false);
-            setEditingRecurring(null);
-          }}
-          onSaveBill={(data) => {
-            saveBillPayment(data);
-            setIsBillModalOpen(false);
-            setEditingBill(null);
-          }}
-          accounts={accounts}
-          incomeCategories={incomeCategories}
-          expenseCategories={expenseCategories}
-          recurringTransactionToEdit={editingRecurring}
-          billToEdit={editingBill}
-          initialMode={isBillModalOpen ? 'one-time' : 'recurring'}
-        />
-      )}
-      {isGoalModalOpen && (
-        <GoalScenarioModal
-          onClose={() => setIsGoalModalOpen(false)}
-          onSave={(data) => {
-            saveFinancialGoal(data);
-            setIsGoalModalOpen(false);
-          }}
-          goalToEdit={editingGoal}
-          financialGoals={financialGoals}
-          accounts={accounts}
-        />
-      )}
 
-      {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
-      {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
 
       {(() => {
         const chartOptions = (

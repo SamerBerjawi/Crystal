@@ -175,6 +175,8 @@ Used to weigh priorities. None of this removes any feature.
 | D-110 | 2026-11-01 | Challenges keep their scoring and thresholds in EUR, so a badge means the same in any currency. The figures show in the main currency, and badge text still reads in euros | Claude | Scaling thresholds by rate would make ¥1,000 count like €1,000 |
 | D-111 | 2026-11-01 | Overview and Forecast share `forecastFromData`. Each Overview tile shows the true lowest balance from today to the end of its period, always looking a year ahead. Tiles can repeat a figure | Claude | The old tiles hid repeats by showing the second-lowest, and stopped at the chart's range, so a warning could look better than it was |
 | D-112 | 2026-11-01 | API responses are `no-store`, so a browser keeps no copy of financial data on disk, and the ETag and 304 on `/api/data` are gone | Claude | Closes the gap in the PIN lock. Every load now downloads the data in full |
+| D-113 | 2026-11-01 | Quick overview (`AccountOverviewModal`) is deleted rather than rebuilt as a side panel, because the account page is one click away. Check first that nothing in it is missing from the account page | Owner | Replaces the deferred side panel in the Module 4 notes |
+| D-114 | 2026-11-01 | The merchant map and branches move into the profile on Merchants, and `MerchantOverviewModal` is deleted | Owner | One place for each merchant |
 
 ## Open questions
 
