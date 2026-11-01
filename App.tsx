@@ -93,7 +93,7 @@ import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES }
 import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import { linkBudgetsToCategories } from './utils/budgetModel';
-import { missingRates, setMainCurrency, convertCurrency, convertToMain, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound, getMainCurrency } from './utils';
+import { missingRates, setMainCurrency, convertCurrency, convertToMain, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound, getMainCurrency } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { applySavedRules, spareChangeFor } from './utils/rules';
 import { upsertEntity, removeEntityById } from './utils/collection';
@@ -107,7 +107,7 @@ import { Banner } from './components/ui/States';
 import { useIdleLock } from './hooks/useIdleLock';
 import { DEFAULT_AUTO_LOCK_MINUTES } from './utils/lockModel';
 import { migrateRules } from './utils/rulesMigration';
-import { defaultCategory } from './utils/overviewSummary';
+import { applyBalanceChanges, applyTransactionChanges, planTransactionChanges } from './utils/transactionChanges';
 import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
 const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
@@ -1681,6 +1681,10 @@ const App: React.FC = () => {
     if (viewingHoldingSymbol === accountToDelete.symbol) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
   }, [accounts, recurringTransactions, viewingAccountId, viewingHoldingSymbol, setCurrentPage]);
 
+  // Several saves can land before the next render, so each plans from the one before it.
+  const transactionsRef = useRef(transactions);
+  transactionsRef.current = transactions;
+
   const handleSaveTransaction = useCallback((
     transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[],
     transactionIdsToDelete: string[] = [],
@@ -1746,62 +1750,10 @@ const App: React.FC = () => {
       });
     }
 
-    setTransactions(prev => {
-      const balanceChanges: Record<string, number> = {};
-      const transactionsToUpdate: Transaction[] = [];
-      const transactionsToAdd: Transaction[] = [];
-
-      if (transactionIdsToDelete.length > 0) {
-        const transactionsToDelete = prev.filter(t => transactionIdsToDelete.includes(t.id));
-        transactionsToDelete.forEach(tx => {
-          const account = accounts.find(a => a.id === tx.accountId);
-          let changeAmount = tx.amount;
-          if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) { changeAmount = tx.principalAmount; }
-          balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToMain(changeAmount, tx.currency);
-        });
-      }
-
-      const intermediateState = transactionIdsToDelete.length > 0 ? prev.filter(t => !transactionIdsToDelete.includes(t.id)) : prev;
-
-      finalTxArray.forEach(transactionData => {
-        if (transactionData.id && intermediateState.some(t => t.id === transactionData.id)) {
-          const originalTx = intermediateState.find(t => t.id === transactionData.id);
-          const updatedTx = { ...originalTx, ...transactionData } as Transaction;
-          if (originalTx) {
-            const originalAccount = accounts.find(a => a.id === originalTx.accountId);
-            let originalChangeAmount = originalTx.amount;
-            if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) { originalChangeAmount = originalTx.principalAmount; }
-            balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToMain(originalChangeAmount, originalTx.currency);
-            const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
-            let updatedChangeAmount = updatedTx.amount;
-            if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) { updatedChangeAmount = updatedTx.principalAmount; }
-            balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToMain(updatedChangeAmount, updatedTx.currency);
-            transactionsToUpdate.push(updatedTx);
-          }
-        } else {
-          const newTx: Transaction = { ...transactionData, category: transactionData.category || defaultCategory(transactionData), id: transactionData.id || `txn-${uuidv4()}` } as Transaction;
-          const account = accounts.find(a => a.id === newTx.accountId);
-          let changeAmount = newTx.amount;
-          if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }
-          balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToMain(changeAmount, newTx.currency);
-          transactionsToAdd.push(newTx);
-        }
-      });
-
-      if (Object.keys(balanceChanges).length > 0) {
-        setAccounts(prevAccounts => prevAccounts.map(account => {
-          if (balanceChanges[account.id]) {
-            const changeInAccountCurrency = balanceChanges[account.id] / (CONVERSION_RATES[account.currency] || 1);
-            const newBalance = account.balance + changeInAccountCurrency;
-            return { ...account, balance: parseFloat(newBalance.toFixed(account.currency === 'BTC' ? 8 : 2)) };
-          }
-          return account;
-        }));
-      }
-
-      const updatedTransactions = intermediateState.map(t => transactionsToUpdate.find(ut => ut.id === t.id) || t);
-      return [...updatedTransactions, ...transactionsToAdd];
-    });
+    const changes = planTransactionChanges(transactionsRef.current, finalTxArray, transactionIdsToDelete, accounts);
+    transactionsRef.current = applyTransactionChanges(transactionsRef.current, changes);
+    setTransactions(prev => applyTransactionChanges(prev, changes));
+    if (Object.keys(changes.balanceChanges).length > 0) setAccounts(prev => applyBalanceChanges(prev, changes.balanceChanges));
   }, [accounts, preferences]);
 
   const handleDeleteTransactions = useCallback((transactionIds: string[]) => {

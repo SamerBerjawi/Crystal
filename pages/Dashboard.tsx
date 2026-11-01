@@ -27,7 +27,6 @@ import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleCont
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, Cell } from 'recharts';
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
-import ConfirmationModal, { useConfirm } from '../components/ConfirmationModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import { useIsMobile } from '../hooks/useIsMobile';
 import BudgetModal from '../components/BudgetModal';
@@ -141,7 +140,6 @@ const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statement
 const EMPTY_IDS: string[] = [];
 
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBanks, isSyncingBanks, setCurrentPage, onOpenAccount }) => {
-  const { confirm, ConfirmDialog } = useConfirm();
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
@@ -430,19 +428,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     handleOpenTransactionModal(tx);
   }, [handleOpenTransactionModal]);
 
-  const handleDeleteTransaction = useCallback(async (tx: Transaction) => {
-    const confirmed = await confirm({
-      title: 'Delete Transaction?',
-      message: `Are you sure you want to delete "${tx.description}"?`,
-      confirmLabel: 'Delete',
-      variant: 'danger',
-      icon: 'delete',
-    });
-    if (!confirmed) return;
-
-    deleteTransactions([tx.id]);
+  const handleDeleteTransactions = useCallback((ids: string[]) => {
     setDetailModalOpen(false);
-  }, [confirm, deleteTransactions]);
+    deleteTransactions(ids);
+  }, [deleteTransactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
     const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${analyticsSelectedAccountIds.join(',')}|${duration}`;
@@ -1338,7 +1327,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         accounts={accounts}
         tags={tags}
         onEdit={handleEditTransaction}
-        onDelete={handleDeleteTransaction}
+        onDelete={handleDeleteTransactions}
       />
       <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
 
@@ -1484,7 +1473,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         </ul>
       </BottomSheet>
 
-      <ConfirmDialog />
     </div>
   );
 };

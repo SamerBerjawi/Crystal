@@ -145,12 +145,17 @@ const GeneralPanel: React.FC<AccountPanelProps> = props => {
               <DetailList items={[
                 { label: 'Bank', value: account.financialInstitution },
                 { label: 'Type', value: account.type },
+                { label: 'Kind', value: account.subType || account.otherSubType },
+                { label: 'Symbol', value: account.symbol },
                 { label: 'Currency', value: account.currency },
                 { label: 'Opened', value: day(account.openingDate) },
-                { label: 'Account number', value: account.accountNumber },
-                { label: 'Routing number', value: account.routingNumber },
+                { label: 'Account number', value: account.accountNumber, copy: account.accountNumber },
+                { label: 'Routing number', value: account.routingNumber, copy: account.routingNumber },
                 { label: 'Interest', value: account.apy ? `${account.apy}% APY` : undefined },
                 { label: 'Name on card', value: account.cardholderName },
+                { label: 'Condition', value: account.assetCondition },
+                { label: 'Location', value: account.location },
+                { label: 'Counterparty', value: account.counterparty },
               ]} />
             </Panel>
           ),
@@ -251,6 +256,10 @@ const CreditCardPanel: React.FC<AccountPanelProps> = props => {
                 { label: 'Statement opens', value: account.statementStartDate ? `Day ${account.statementStartDate}` : 'Not set' },
                 { label: 'Payment due', value: account.paymentDate ? `Day ${account.paymentDate}` : 'Not set' },
                 { label: 'Paid by', value: account.settlementAccountId ? 'Auto-pay from a linked account' : 'You, manually' },
+                { label: 'Network', value: account.cardNetwork },
+                { label: 'Card ending', value: account.last4 },
+                { label: 'Expires', value: account.expirationDate },
+                { label: 'Name on card', value: account.cardholderName },
               ]} />
             </Panel>
           ),
@@ -311,8 +320,8 @@ const SavingsPanel: React.FC<AccountPanelProps> = props => {
                 { label: 'Bank', value: account.financialInstitution },
                 { label: 'Currency', value: account.currency },
                 { label: 'Opened', value: day(account.openingDate) },
-                { label: 'Account number', value: account.accountNumber },
-                { label: 'Routing number', value: account.routingNumber },
+                { label: 'Account number', value: account.accountNumber, copy: account.accountNumber },
+                { label: 'Routing number', value: account.routingNumber, copy: account.routingNumber },
               ]} />
             </Panel>
           ),
@@ -509,7 +518,7 @@ const PensionPanel: React.FC<AccountPanelProps> = props => {
                 { label: 'Opened', value: day(account.openingDate) },
                 { label: 'Growth rate', value: account.apy ? `${account.apy}% APY` : undefined },
                 { label: 'Retirement year', value: retirementYear },
-                { label: 'Account number', value: account.accountNumber },
+                { label: 'Account number', value: account.accountNumber, copy: account.accountNumber },
               ]} />
             </Panel>
           ),
@@ -565,7 +574,7 @@ const SpareChangePanel: React.FC<AccountPanelProps> = props => {
                 { label: 'Rounds up from', value: sourceAccount?.name || 'External account' },
                 { label: 'Currency', value: account.currency },
                 { label: 'Opened', value: day(account.openingDate) },
-                { label: 'Account number', value: account.accountNumber },
+                { label: 'Account number', value: account.accountNumber, copy: account.accountNumber },
               ]} />
             </Panel>
           ),

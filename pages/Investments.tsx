@@ -15,7 +15,6 @@ import { useUrlTab } from '../hooks/useUrlTab';
 import { Panel, ValueChart } from '../components/AccountFrame';
 import AccountCard from '../components/AccountCard';
 import AccountForm from '../components/AccountForm';
-import AccountOverviewModal from '../components/AccountOverviewModal';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import HoldingPanel from '../components/HoldingPanel';
 import HoldingsTable, { type HoldingRow } from '../components/HoldingsTable';
@@ -97,7 +96,6 @@ const Investments: React.FC<InvestmentsProps> = ({
   const [tradeForm, setTradeForm] = useState<{ mode?: 'trade' | 'grant'; symbol?: string; trade?: InvestmentTransaction; grant?: Warrant } | null>(null);
   const [priceTarget, setPriceTarget] = useState<{ symbol: string; name: string; entry?: PriceHistoryEntry } | null>(null);
   const [accountForm, setAccountForm] = useState<Account | null>(null);
-  const [overviewAccount, setOverviewAccount] = useState<Account | null>(null);
   const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [activityToDelete, setActivityToDelete] = useState<{ id: string; isGrant: boolean; label: string } | null>(null);
@@ -270,7 +268,7 @@ const Investments: React.FC<InvestmentsProps> = ({
   })), [shownHoldings, logFor]);
 
   const accountMenu = (account: Account): MenuAction[] => [
-    { id: 'overview', label: 'Quick overview', icon: 'visibility', onAction: () => setOverviewAccount(account) },
+    { id: 'open', label: 'Open account', icon: 'open_in_new', onAction: () => onViewAccount?.(account.id) },
     { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setAccountForm(account) },
     ...(account.status === 'closed' ? [] : [{ id: 'adjust', label: 'Adjust balance', icon: 'tune', onAction: () => setAdjustingAccount(account) }]),
     { id: 'status', label: account.status === 'closed' ? 'Reopen' : 'Close', icon: account.status === 'closed' ? 'lock_open' : 'lock', startsGroup: true, onAction: () => onToggleAccountStatus(account.id) },
@@ -365,13 +363,13 @@ const Investments: React.FC<InvestmentsProps> = ({
               {accountRows.length > 0 && (
                 <section aria-label="Accounts" className="space-y-3">
                   <h2 className="type-card-title text-ink">Accounts</h2>
-                  {accountRows.map(account => <AccountCard key={account.id} account={account} transactions={transactionsByAccount[account.id] || []} layout="row" menuItems={accountMenu(account)} onOpen={() => setOverviewAccount(account)} />)}
+                  {accountRows.map(account => <AccountCard key={account.id} account={account} transactions={transactionsByAccount[account.id] || []} layout="row" menuItems={accountMenu(account)} onOpen={() => onViewAccount?.(account.id)} />)}
                 </section>
               )}
               {closedAccounts.length > 0 && activeSegment === 'all' && (
                 <section aria-label="Closed portfolios" className="space-y-3">
                   <h2 className="type-card-title text-ink">Closed portfolios</h2>
-                  {closedAccounts.map(account => <AccountCard key={account.id} account={account} transactions={transactionsByAccount[account.id] || []} layout="row" menuItems={accountMenu(account)} onOpen={() => setOverviewAccount(account)} />)}
+                  {closedAccounts.map(account => <AccountCard key={account.id} account={account} transactions={transactionsByAccount[account.id] || []} layout="row" menuItems={accountMenu(account)} onOpen={() => onViewAccount?.(account.id)} />)}
                 </section>
               )}
             </>
@@ -480,22 +478,6 @@ const Investments: React.FC<InvestmentsProps> = ({
       )}
       {accountForm && <AccountForm account={accountForm} accounts={accounts} warrants={warrants} onClose={() => setAccountForm(null)} onSave={account => { saveAccount(account); setAccountForm(null); }} onDelete={id => { setAccountToDelete(accounts.find(account => account.id === id) ?? null); setAccountForm(null); }} />}
       {adjustingAccount && <BalanceAdjustmentModal onClose={() => setAdjustingAccount(null)} onSave={handleSaveAdjustment} account={adjustingAccount} />}
-      {overviewAccount && (
-        <AccountOverviewModal
-          isOpen
-          onClose={() => setOverviewAccount(null)}
-          account={overviewAccount}
-          transactions={transactions}
-          investmentTransactions={investmentTransactions}
-          prices={prices as Record<string, number>}
-          accounts={accounts}
-          warrants={warrants}
-          onViewAccount={onViewAccount}
-          onEditAccount={setAccountForm}
-          onAdjustBalance={setAdjustingAccount}
-          onOpenHoldingDetail={setOpenSymbol}
-        />
-      )}
       <ConfirmDialog
         isOpen={!!accountToDelete}
         onClose={() => setAccountToDelete(null)}

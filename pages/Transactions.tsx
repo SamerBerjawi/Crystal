@@ -1422,18 +1422,15 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           {...duplicateData}
         />
       )}
-      {isOverviewModalOpen && (
-        <TransactionDetailModal
-          isOpen={isOverviewModalOpen}
-          onClose={() => setIsOverviewModalOpen(false)}
-          transactions={overviewTransactions}
-          accounts={accounts}
-          tags={tags}
-          allCategories={allCategories}
-          onEdit={tx => { setIsOverviewModalOpen(false); setEditingTransaction(tx); setTransactionModalOpen(true); }}
-          onDelete={tx => { setIsOverviewModalOpen(false); deleteTransactions([tx.id]); }}
-        />
-      )}
+      <TransactionDetailModal
+        isOpen={isOverviewModalOpen}
+        onClose={() => setIsOverviewModalOpen(false)}
+        transactions={overviewTransactions}
+        accounts={accounts}
+        tags={tags}
+        onEdit={tx => { setIsOverviewModalOpen(false); setEditingTransaction(tx); setTransactionModalOpen(true); }}
+        onDelete={ids => { setIsOverviewModalOpen(false); deleteTransactions(ids); }}
+      />
       {isRecurringModalOpen && saveRecurringTransaction && (
         <RecurringTransactionModal
           onClose={() => setIsRecurringModalOpen(false)}
@@ -1447,7 +1444,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       {isCategorizeModalOpen && <BulkCategorizeModal onClose={() => setIsCategorizeModalOpen(false)} onSave={handleSaveBulkCategory} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
       {isSplitModalOpen && transactionToSplit && <SplitTransactionModal onClose={() => { setIsSplitModalOpen(false); setTransactionToSplit(null); }} onSave={handleSaveSplits} transaction={transactionToSplit} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
       {isCombineModalOpen && <CombineTransactionsModal onClose={() => { setIsCombineModalOpen(false); setTransactionsToCombine([]); }} onSave={handleSaveCombine} transactionsToCombine={transactionsToCombine} incomeCategories={incomeCategories} expenseCategories={expenseCategories} accounts={accounts} />}
-      {isBulkEditModalOpen && <BulkEditTransactionsModal isOpen={isBulkEditModalOpen} onClose={() => setBulkEditModalOpen(false)} onSave={handleSaveBulkEdits} transactionsToEdit={selectedTransactions} allTransactions={transactions} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} />}
+      {isBulkEditModalOpen && <BulkEditTransactionsModal onClose={() => setBulkEditModalOpen(false)} onSave={handleSaveBulkEdits} transactionsToEdit={selectedTransactions} allTransactions={transactions} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} />}
       <Dialog isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} title={`${deleteLabel}?`} description="You can undo this right after.">
         <HoldButton block label={deleteLabel} onConfirm={handleConfirmBulkDelete} />
       </Dialog>

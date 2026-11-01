@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { heroClassFor } from '../utils/accountHero';
 import { motion } from 'motion/react';
 import type { Account, Category, Currency, DisplayTransaction, FinancialGoal, Transaction } from '../types';
@@ -44,12 +45,20 @@ export const MetricRow: React.FC<{ metrics: FrameMetric[] }> = ({ metrics }) => 
 );
 
 /** Label and value rows for an account's settings and specifications. */
-export const DetailList: React.FC<{ items: { label: string; value?: React.ReactNode }[] }> = ({ items }) => (
+const copyToClipboard = (label: string, text: string) => {
+  // There's no clipboard on a plain http address, which self-hosted installs can use.
+  (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(() => toast.success(`${label} copied`), () => toast.error("Couldn't copy that."));
+};
+
+export const DetailList: React.FC<{ items: { label: string; value?: React.ReactNode; copy?: string }[] }> = ({ items }) => (
   <dl className="divide-y divide-line">
     {items.filter(item => item.value !== undefined && item.value !== null && item.value !== '').map(item => (
       <div key={item.label} className="flex min-h-10 items-center justify-between gap-4 py-1.5">
-        <dt className="type-body text-muted">{item.label}</dt>
-        <dd className="type-body-strong min-w-0 truncate text-right text-ink">{item.value}</dd>
+        <dt className="type-body shrink-0 text-muted">{item.label}</dt>
+        <dd className="type-body-strong flex min-w-0 items-center justify-end gap-1 text-right text-ink">
+          <span className={item.copy ? "min-w-0 break-words" : "min-w-0 truncate"}>{item.value}</span>
+          {item.copy && <IconButton icon="content_copy" label={`Copy ${item.label.toLowerCase()}`} className="size-8 shrink-0" iconSize={16} tooltipPlacement="left" onPress={() => copyToClipboard(item.label, item.copy!)} />}
+        </dd>
       </div>
     ))}
   </dl>
