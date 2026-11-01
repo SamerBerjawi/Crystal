@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { PieChart, PieSlice, PieCenter, type PieData } from '../src/components/charts';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 
 interface DonutChartProps {
   assets: number;
@@ -29,14 +29,14 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
             <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0" />
             <div className="text-sm">
               <p className="text-light-text-secondary dark:text-gray-300">Assets</p>
-              <p className="font-semibold text-light-text dark:text-white">{formatCurrency(assets, 'EUR')}</p>
+              <p className="font-semibold text-light-text dark:text-white">{formatCurrency(assets, getMainCurrency())}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0" />
             <div className="text-sm">
               <p className="text-light-text-secondary dark:text-gray-300">Liabilities</p>
-              <p className="font-semibold text-light-text dark:text-white">{formatCurrency(Math.abs(debt), 'EUR')}</p>
+              <p className="font-semibold text-light-text dark:text-white">{formatCurrency(Math.abs(debt), getMainCurrency())}</p>
             </div>
           </div>
         </div>
@@ -59,7 +59,7 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
                   {label}
                 </span>
                 <span className="text-lg sm:text-xl font-bold text-light-text dark:text-white tracking-tight">
-                  {formatCurrency(isHovered ? value : netWorth, 'EUR')}
+                  {formatCurrency(isHovered ? value : netWorth, getMainCurrency())}
                 </span>
               </div>
             )}

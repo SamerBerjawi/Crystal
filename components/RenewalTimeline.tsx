@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { parseLocalDate } from '../utils';
+import { parseLocalDate, getMainCurrency } from '../utils';
 import type { Renewal } from '../utils/subscriptionsModel';
 import { cn } from '../lib/utils';
 import { ShowMore } from './ui/Display';
@@ -45,7 +45,7 @@ const RenewalTimeline: React.FC<RenewalTimelineProps> = ({ items, today, isPhone
                 <button type="button" onClick={() => onOpen(item)} className="flex min-h-12 w-full cursor-pointer items-center gap-3 py-1 text-left">
                   <span className="type-caption w-12 shrink-0 text-muted">{shortDay(item.date)}</span>
                   <span className="type-body min-w-0 flex-1 truncate text-ink">{nameOf(item)}</span>
-                  <span className="type-figure-row shrink-0 text-ink"><Amount value={item.amount} currency="EUR" /></span>
+                  <span className="type-figure-row shrink-0 text-ink"><Amount value={item.amount} currency={getMainCurrency()} /></span>
                 </button>
               </li>
             ))}

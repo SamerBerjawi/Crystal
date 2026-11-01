@@ -7,7 +7,7 @@ import {
   XAxis,
   OHLCDataPoint,
 } from '../src/components/charts';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import { dayOf } from '../utils/portfolioHistory';
 import { PriceHistoryEntry, InvestmentTransaction, Currency } from '../types';
 import SegmentedControl from './ui/SegmentedControl';
@@ -41,7 +41,7 @@ const parseDay = (value: string): Date => {
   return new Date(y, (m || 1) - 1, d || 1);
 };
 
-const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'EUR', granularity = 'raw' }) => {
+const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = getMainCurrency(), granularity = 'raw' }) => {
   if (!point) return null;
 
   const date = point.date instanceof Date ? point.date : new Date(String(point.date));
@@ -143,7 +143,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
   costBasis,
   priceHistory = [],
   transactions = [],
-  currency = 'EUR',
+  currency = getMainCurrency(),
   className = '',
   initialGranularity = 'raw',
 }) => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { FinancialGoal } from '../types';
-import { parseLocalDate } from '../utils';
+import { parseLocalDate, getMainCurrency } from '../utils';
 import { goalCardView, planLine, type GoalCardView, type PlanLine } from '../utils/goalsModel';
 import { cn } from '../lib/utils';
 import { Button, IconButton } from './ui/Actions';
@@ -27,7 +27,7 @@ const monthsLeft = (date: string | undefined, today: Date) => {
 };
 
 const PlanText: React.FC<{ line: PlanLine }> = ({ line }) => {
-  const money = (value: number) => <Amount value={value} currency="EUR" />;
+  const money = (value: number) => <Amount value={value} currency={getMainCurrency()} />;
   switch (line.kind) {
     case 'done': return <>Goal reached.</>;
     case 'late': return <>The target date, {shortDate(line.date)}, has passed.</>;
@@ -72,7 +72,7 @@ const ItemRow: React.FC<{ item: FinancialGoal; today: Date; card: GoalCardProps 
           <span className={cn('type-body-strong truncate text-ink', view.done && 'line-through')}>{item.name}</span>
           <Badge tone={status.tone}>{status.label}</Badge>
         </span>
-        <span className="type-caption block text-muted"><Amount value={view.saved} currency="EUR" /> of <Amount value={view.target} currency="EUR" /></span>
+        <span className="type-caption block text-muted"><Amount value={view.saved} currency={getMainCurrency()} /> of <Amount value={view.target} currency={getMainCurrency()} /></span>
         <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-inset"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${view.pct}%` }} /></span>
       </button>
       <Menu title={item.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${item.name}`} tooltipPlacement="left" />} items={goalMenu(item, view, card)} />
@@ -104,8 +104,8 @@ const GoalCard: React.FC<GoalCardProps> = props => {
       <div className="flex items-center gap-4">
         <ProgressRing size={96} value={view.pct} tone={ringTone} label={`${Math.round(view.pct)}%`} caption="saved" />
         <dl className="min-w-0 flex-1 space-y-1.5">
-          <div className="flex justify-between gap-3"><dt className="type-body text-muted">Saved</dt><dd className="type-figure-row text-ink"><Amount value={view.saved} currency="EUR" /></dd></div>
-          <div className="flex justify-between gap-3"><dt className="type-body text-muted">Target</dt><dd className="type-figure-row text-ink"><Amount value={view.target} currency="EUR" /></dd></div>
+          <div className="flex justify-between gap-3"><dt className="type-body text-muted">Saved</dt><dd className="type-figure-row text-ink"><Amount value={view.saved} currency={getMainCurrency()} /></dd></div>
+          <div className="flex justify-between gap-3"><dt className="type-body text-muted">Target</dt><dd className="type-figure-row text-ink"><Amount value={view.target} currency={getMainCurrency()} /></dd></div>
           {months !== undefined && <div className="flex justify-between gap-3"><dt className="type-body text-muted">Months left</dt><dd className="type-figure-row text-ink">{months}</dd></div>}
         </dl>
       </div>

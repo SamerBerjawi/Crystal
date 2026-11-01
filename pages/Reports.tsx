@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Page } from '../types';
-import { toLocalISOString } from '../utils';
+import { toLocalISOString, getMainCurrency } from '../utils';
 import { automaticReports, buildReport, dailySpend, expensesIn, MAX_SAVED_VIEWS, NO_FILTERS, reportTiles, type GroupBy, type ReportFilters, type ReportId, type SavedReportView } from '../utils/reportsModel';
 import { warnIgnored } from '../utils/logging';
 import { useAccountSelector, usePreferencesContext, useTransactionSelector } from '../contexts/DomainProviders';
@@ -47,7 +47,7 @@ const LibraryCard: React.FC<LibraryCardProps> = ({ name, amount, trend, isActive
   <div className={cn('surface-card relative w-44 shrink-0 rounded-[var(--radius-lg)] p-3 transition-colors duration-[var(--duration-fast)]', isActive && 'border-primary')}>
     <button type="button" aria-pressed={isActive} onClick={onOpen} className="block w-full cursor-pointer text-left after:absolute after:inset-0">
       <span className="type-label block truncate pr-6 text-muted">{name}</span>
-      <span className="type-figure-row mt-0.5 block text-ink"><Amount value={amount} currency="EUR" /></span>
+      <span className="type-figure-row mt-0.5 block text-ink"><Amount value={amount} currency={getMainCurrency()} /></span>
     </button>
     <Sparkline data={trend} isPositive className="mt-2" width={150} height={28} />
     {onDelete && <span className="absolute right-1 top-1 z-10"><IconButton icon="close" label={`Delete ${name}`} tooltipPlacement="left" onPress={onDelete} /></span>}
@@ -129,7 +129,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
   };
 
   const stats: PageStat[] = [
-    { label: 'Total spend', icon: 'credit_card', value: report.totalSpend, format: 'money', currency: 'EUR', ...(report.changePct === null ? {} : { badge: `${report.changePct >= 0 ? '+' : '−'}${Math.abs(report.changePct).toFixed(1)}%`, badgeTone: report.changePct > 0 ? 'tomato' as const : 'pine' as const }) },
+    { label: 'Total spend', icon: 'credit_card', value: report.totalSpend, format: 'money', currency: getMainCurrency(), ...(report.changePct === null ? {} : { badge: `${report.changePct >= 0 ? '+' : '−'}${Math.abs(report.changePct).toFixed(1)}%`, badgeTone: report.changePct > 0 ? 'tomato' as const : 'pine' as const }) },
     { label: 'Savings rate', icon: 'savings', value: report.savingsRate, format: 'percent' },
     { label: 'Transactions', icon: 'receipt', value: report.count, format: 'number' },
   ];

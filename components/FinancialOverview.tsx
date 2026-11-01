@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import { Currency } from '../types';
 import { LINE_MOTION } from '../src/components/charts/animation';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
@@ -25,7 +25,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
     expenseChange,
     incomeSparkline = [],
     expenseSparkline = [],
-    currency = 'EUR' 
+    currency = getMainCurrency() 
 }) => {
     const netCashFlow = income - expenses;
     const savingsRate = income > 0 ? (netCashFlow / income) * 100 : 0;

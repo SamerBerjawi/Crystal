@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { PieChart, PieSlice, PieCenter, type PieData } from '../src/components/charts';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 
 interface ChartDataItem {
   name: string;
@@ -43,7 +43,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
                   {label}
                 </span>
                 <span className="text-xl font-black text-light-text dark:text-white tracking-tight">
-                  {formatCurrency(isHovered ? value : totalValue, 'EUR')}
+                  {formatCurrency(isHovered ? value : totalValue, getMainCurrency())}
                 </span>
               </div>
             )}

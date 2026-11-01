@@ -26,7 +26,7 @@ export interface BudgetRowProps {
   status?: BudgetStatus;
   /** Where even spending would be today, 0 to 100. */
   pacePct?: number;
-  currency: 'EUR';
+  currency: string;
   onPress: () => void;
 }
 

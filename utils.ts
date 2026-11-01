@@ -1,5 +1,6 @@
 
 
+import { currencyDigits, currencySymbol } from './utils/currencies';
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides, WeekendAdjustment, RecurrenceFrequency } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
@@ -91,25 +92,21 @@ export function sanitizeString(str: string): string {
     return escapeHtml(str);
 }
 
-const symbolMap: { [key in Currency]: string } = {
-    'USD': '$',
-    'EUR': '€',
-    'GBP': '£',
-    'BTC': 'BTC',
-    'RON': 'lei'
-};
-
 export function formatCurrency(amount: number, currency: Currency, options?: { showPlusSign?: boolean, compact?: boolean }): string {
-    if (currency === 'BTC') {
+    // Handle both "EUR" and "EUR (€)" formats
+    const cleanCurrency = normalizeCurrency(currency);
+    const digits = currencyDigits(cleanCurrency);
+
+    if (cleanCurrency === 'BTC') {
         return `${amount.toLocaleString('en-US', {
             minimumFractionDigits: 2,
-            maximumFractionDigits: 8,
+            maximumFractionDigits: digits,
         })} BTC`;
     }
 
     const formatter = new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: options?.compact ? 0 : 2,
-        maximumFractionDigits: options?.compact ? 1 : 2,
+        minimumFractionDigits: options?.compact ? 0 : digits,
+        maximumFractionDigits: options?.compact ? Math.min(digits, 1) : digits,
         notation: options?.compact ? 'compact' : 'standard',
         compactDisplay: 'short'
     });
@@ -121,11 +118,8 @@ export function formatCurrency(amount: number, currency: Currency, options?: { s
         sign = '+';
     }
 
-    // Handle both "EUR" and "EUR (€)" formats
-    const cleanCurrency = normalizeCurrency(currency);
-    const symbol = symbolMap[cleanCurrency] || cleanCurrency;
-
-    return `${sign}${symbol}${formatter.format(Math.abs(amount))}`;
+    const symbol = currencySymbol(cleanCurrency);
+    return `${sign}${symbol}${/[A-Za-z]$/.test(symbol) ? ' ' : ''}${formatter.format(Math.abs(amount))}`;
 }
 
 export const normalizeCurrency = (currency?: string | null): Currency => {
@@ -134,31 +128,10 @@ export const normalizeCurrency = (currency?: string | null): Currency => {
     return (clean as Currency) || 'EUR';
 };
 
-export const currencySign = (currency?: string | null): string => {
-    if (!currency) return '€';
-    const parenMatch = currency.match(/\((.*?)\)/);
-    if (parenMatch && parenMatch[1]) {
-        const inside = parenMatch[1].trim();
-        if (['€', '$', '£', '¥', '₹', '₿', '₣', 'lei', 'C$', 'A$'].includes(inside)) {
-            return inside;
-        }
-    }
-    const clean = normalizeCurrency(currency);
-    const map: Record<string, string> = {
-        EUR: '€',
-        USD: '$',
-        GBP: '£',
-        BTC: '₿',
-        RON: 'lei',
-        CHF: '₣',
-        JPY: '¥',
-        CAD: 'C$',
-        AUD: 'A$',
-    };
-    return map[clean] || clean;
-};
+export const currencySign = (currency?: string | null): string => currencySymbol(normalizeCurrency(currency));
 
-export const CONVERSION_RATES: { [key in Currency]?: number } = {
+/** Value in EUR of one unit. EUR stays the pivot of the table, whatever your main currency is. */
+export const CONVERSION_RATES: { [key: string]: number } = {
     'USD': 0.93, 'GBP': 1.18, 'BTC': 65000, 'EUR': 1, 'RON': 0.20
 };
 
@@ -168,13 +141,18 @@ export const updateConversionRates = (rates: Record<string, number>) => {
     dynamicRates = { ...dynamicRates, ...rates };
 };
 
-// A currency without a rate is converted 1:1 so totals still render, but that is a guess: say so once per currency.
-const rateFor = (activeRates: Record<string, number>, currency: string): number => {
+let mainCurrency: Currency = 'EUR';
+
+/** The currency totals appear in. App keeps this in step with preferences. */
+export const setMainCurrency = (currency?: string | null) => { mainCurrency = normalizeCurrency(currency); };
+export const getMainCurrency = (): Currency => mainCurrency;
+
+const isUsableRate = (rate: unknown): rate is number => typeof rate === 'number' && Number.isFinite(rate) && rate > 0;
+
+const rateFor = (activeRates: Record<string, number>, currency: string): number | null => {
     const clean = normalizeCurrency(currency);
-    const rate = activeRates[clean] ?? activeRates[currency];
-    if (typeof rate === 'number' && Number.isFinite(rate) && rate > 0) return rate;
-    if (clean !== 'EUR') warnIgnored(`exchange rate for ${clean} (treated as 1:1)`, new Error('missing rate'));
-    return 1;
+    const rate = [activeRates[clean], activeRates[currency], dynamicRates[clean]].find(isUsableRate);
+    return rate ?? null;
 };
 
 /**
@@ -186,24 +164,36 @@ export const resolveRates = (preferenceRates?: Record<string, number>): Record<s
     ...(preferenceRates || {}),
 });
 
-export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number => {
-    const activeRates = rates || dynamicRates;
-    return safeMultiply(balance, rateFor(activeRates, normalizeCurrency(currency)));
-}
-
+/**
+ * An amount in another currency. With no rate for either side it's 0, so the amount stays out of totals rather than
+ * counting 1:1 (D-109). The banner from `missingRates` tells you.
+ */
 export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
     const cleanFrom = normalizeCurrency(from);
     const cleanTo = normalizeCurrency(to);
     if (cleanFrom === cleanTo) return amount;
 
-    // Convert from 'from' to EUR
-    const amountInEur = safeMultiply(amount, rateFor(activeRates, cleanFrom));
-
-    // Convert from EUR to 'to'
+    const rateFrom = rateFor(activeRates, cleanFrom);
     const rateTo = rateFor(activeRates, cleanTo);
-    return safeDivide(amountInEur, rateTo);
+    if (rateFrom === null || rateTo === null) return 0;
+    return safeDivide(safeMultiply(amount, rateFrom), rateTo);
 }
+
+export const convertToMain = (amount: number, currency: Currency, rates?: Record<string, number>): number =>
+    convertCurrency(amount, currency, mainCurrency, rates);
+
+/** Only for what's defined in EUR, such as challenge thresholds. Everything shown uses convertToMain. */
+export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number =>
+    convertCurrency(balance, currency, 'EUR', rates);
+
+/** Currencies in use that can't be converted to the main one. */
+export const missingRates = (currencies: (string | null | undefined)[], rates?: Record<string, number>): string[] => {
+    const activeRates = rates || dynamicRates;
+    const inUse = new Set(currencies.filter(Boolean).map(currency => normalizeCurrency(currency)));
+    inUse.delete(mainCurrency);
+    return [...inUse].filter(code => rateFor(activeRates, code) === null).sort();
+};
 
 export const getPreferredTimeZone = (fallback?: string): string => {
     // Always prefer the device's local timezone to avoid date shift confusion
@@ -610,7 +600,7 @@ export function classifyAccountBalanceEur(
     nativeBalance: number,
     rates?: Record<string, number>
 ): { asset: number; debt: number } {
-    const eur = convertToEur(nativeBalance, account.currency, rates);
+    const eur = convertToMain(nativeBalance, account.currency, rates);
     if (DEBT_TYPES.includes(account.type)) return { asset: 0, debt: debtFromBalance(account, eur) };
     if (ASSET_TYPES.includes(account.type)) return { asset: eur, debt: 0 };
     return { asset: 0, debt: 0 };
@@ -1468,7 +1458,7 @@ export function generateBalanceForecast(
     let runningTotalBalance = 0;
 
     accounts.forEach(acc => {
-        const balanceEur = safeRound(convertToEur(acc.balance, acc.currency), 2);
+        const balanceEur = safeRound(convertToMain(acc.balance, acc.currency), 2);
         currentBalances[acc.id] = balanceEur;
         runningTotalBalance = safeRound(runningTotalBalance + balanceEur, 2);
     });
@@ -1515,7 +1505,7 @@ export function generateBalanceForecast(
 
         if (eventsForDay.length > 0) {
             for (const event of eventsForDay) {
-                const amountInEur = safeRound(convertToEur(event.amount, event.currency), 2);
+                const amountInEur = safeRound(convertToMain(event.amount, event.currency), 2);
                 const isSkipped = (event.originalItem as any)?.isSkipped;
 
                 if (!isSkipped) {

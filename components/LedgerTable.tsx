@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import type { Category, DisplayTransaction, Tag } from '../types';
-import { convertToEur } from '../utils';
+import { convertToMain, getMainCurrency } from '../utils';
 import { getCategoryDetails } from '../utils/categories';
 import SwipeableRow from './SwipeableRow';
 import Icon from './ui/Icon';
@@ -89,7 +89,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
 
   const money = (tx: DisplayTransaction) => {
     const { amount, currency } = amountOf(tx);
-    return <Amount value={convertToEur(amount, currency)} currency="EUR" tone={tx.isTransfer ? 'plain' : 'flow'} />;
+    return <Amount value={convertToMain(amount, currency)} currency={getMainCurrency()} tone={tx.isTransfer ? 'plain' : 'flow'} />;
   };
 
   const marks = (tx: DisplayTransaction) => (
@@ -111,7 +111,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
     return (
       <div className="space-y-3">
         {days.map(({ header, rows }) => (
-          <DayGroup key={header.id} label={header.formattedDate} total={<Amount value={header.totalEur} currency="EUR" tone="flow" />}>
+          <DayGroup key={header.id} label={header.formattedDate} total={<Amount value={header.totalEur} currency={getMainCurrency()} tone="flow" />}>
             <ul className="divide-y divide-line">
               {rows.map(tx => {
                 const isSelected = selectedIds.has(tx.id);
@@ -188,7 +188,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                 <tr key={item.id} className="bg-inset">
                   <td className="h-9 border-t border-line pl-3"><Checkbox aria-label={`Select all from ${item.formattedDate}`} isSelected={isAll} isIndeterminate={isSome} onChange={() => onToggleGroup(item.groupTxIds)}>{null}</Checkbox></td>
                   <th scope="rowgroup" colSpan={5} className="type-label border-t border-line px-3 text-left text-muted">{item.formattedDate}, {item.count}</th>
-                  <td className="type-figure-row border-t border-line px-3 text-right text-ink"><Amount value={item.totalEur} currency="EUR" tone="flow" /></td>
+                  <td className="type-figure-row border-t border-line px-3 text-right text-ink"><Amount value={item.totalEur} currency={getMainCurrency()} tone="flow" /></td>
                   <td className="border-t border-line" />
                 </tr>
               );
@@ -233,7 +233,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                 </td>
                 <td className="type-figure-row whitespace-nowrap border-t border-line px-3 text-right text-ink">
                   {money(tx)}
-                  {!!tx.spareChangeAmount && !isCompact && <span className="type-caption block text-muted">Round-up <Amount value={convertToEur(Math.abs(tx.spareChangeAmount), tx.currency)} currency="EUR" /></span>}
+                  {!!tx.spareChangeAmount && !isCompact && <span className="type-caption block text-muted">Round-up <Amount value={convertToMain(Math.abs(tx.spareChangeAmount), tx.currency)} currency={getMainCurrency()} /></span>}
                 </td>
                 <td className="border-t border-line pr-1 text-right">
                   <Menu title={tx.description} trigger={<IconButton icon="more_horiz" label={`Actions for ${tx.description}`} data-row-menu tooltipPlacement="left" className={isCompact ? 'size-8' : undefined} />} items={menuFor(tx)} />

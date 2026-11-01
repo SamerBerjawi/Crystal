@@ -1,3 +1,4 @@
+import { getMainCurrency } from '../utils';
 import React from 'react';
 import type { HoldingSummary } from '../types';
 import { cn } from '../lib/utils';
@@ -51,7 +52,7 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, isPhone, onOpen }) 
             <button type="button" onClick={() => onOpen(holding)} className="flex min-h-14 min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 py-1.5 text-left">
               <Identity holding={holding} />
               <span className="shrink-0 text-right">
-                <span className="type-figure-row block text-ink"><Amount value={holding.currentValue} currency="EUR" /></span>
+                <span className="type-figure-row block text-ink"><Amount value={holding.currentValue} currency={getMainCurrency()} /></span>
                 <GainCell holding={holding} />
               </span>
             </button>
@@ -88,7 +89,7 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, isPhone, onOpen }) 
                 {holding.priceUnavailable && <span className="block"><Badge tone="attention">Last trade</Badge></span>}
               </td>
               <td className="px-3 py-2"><Sparkline data={trend} isPositive={trend.length < 2 || trend[trend.length - 1].value >= trend[0].value} /></td>
-              <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={holding.currentValue} currency="EUR" /></td>
+              <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={holding.currentValue} currency={getMainCurrency()} /></td>
               <td className="px-3 py-2 text-right"><GainCell holding={holding} /></td>
               <td className="py-2 text-right"><Menu title={holding.symbol} trigger={<IconButton icon="more_horiz" label={`Actions for ${holding.symbol}`} tooltipPlacement="left" />} items={menu} /></td>
             </tr>

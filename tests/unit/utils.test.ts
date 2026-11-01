@@ -37,10 +37,11 @@ test('upsertEntity / removeEntityById', () => {
   assert.deepEqual(removeEntityById(list, 'a'), []);
 });
 
-test('convertToEur falls back to 1:1 for a currency with no usable rate instead of NaN/0', async () => {
-    const { convertToEur } = await import('../../utils');
-    assert.equal(convertToEur(100, 'USD' as any, { EUR: 1 }), 100);
-    assert.equal(convertToEur(100, 'USD' as any, { USD: Number.NaN, EUR: 1 }), 100);
+test('convertToEur leaves out a currency with no usable rate, and a bad rate falls back to a known one', async () => {
+    const { convertToEur, CONVERSION_RATES } = await import('../../utils');
+    assert.equal(convertToEur(100, 'XOF' as any, { EUR: 1 }), 0);
+    assert.equal(convertToEur(100, 'XOF' as any, { XOF: Number.NaN, EUR: 1 }), 0);
+    assert.equal(convertToEur(100, 'USD' as any, { USD: Number.NaN, EUR: 1 }), 100 * CONVERSION_RATES.USD);
     assert.equal(convertToEur(100, 'USD' as any, { USD: 0.5, EUR: 1 }), 50);
 });
 
@@ -71,7 +72,7 @@ test('currencySign extracts and formats clean currency symbols', () => {
   assert.equal(currencySign('USD'), '$');
   assert.equal(currencySign('GBP (£)'), '£');
   assert.equal(currencySign('GBP'), '£');
-  assert.equal(currencySign('CHF (CHF)'), '₣');
+  assert.equal(currencySign('CHF (CHF)'), 'CHF');
   assert.equal(currencySign('RON (lei)'), 'lei');
   assert.equal(currencySign('BTC'), '₿');
   assert.equal(currencySign(''), '€');

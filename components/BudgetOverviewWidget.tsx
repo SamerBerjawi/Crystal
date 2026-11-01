@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Budget, Transaction, Category, Duration, Account } from '../types';
-import { getDateRange, convertToEur, parseLocalDate } from '../utils';
+import { getDateRange, convertToMain, parseLocalDate, getMainCurrency } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
 import BudgetProgressBar from './BudgetProgressBar';
 
@@ -38,7 +38,7 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
         for (const tx of relevantTransactions) {
             const parentCategory = findParentCategory(tx.category, expenseCategories);
             if (parentCategory) {
-                spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
+                spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToMain(tx.amount, tx.currency));
             }
         }
         return { spendingByCategory: spending };
@@ -47,7 +47,8 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
     const budgetData = useMemo(() => {
         return budgets.map(budget => {
             const spent = spendingByCategory[budget.categoryName] || 0;
-            const progress = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
+            const limit = convertToMain(budget.amount, budget.currency);
+            const progress = limit > 0 ? (spent / limit) * 100 : 0;
 
             return {
                 ...budget,
@@ -71,8 +72,8 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
                 <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer group p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-all duration-200">
                     <BudgetProgressBar
                         spent={budget.spent}
-                        budgeted={budget.amount}
-                        currency="EUR"
+                        budgeted={convertToMain(budget.amount, budget.currency)}
+                        currency={getMainCurrency()}
                         categoryName={budget.categoryName}
                         variant="compact"
                         showLabels={true}

@@ -1,6 +1,6 @@
 import type { Account, Budget, Category, FinancialGoal, InvestmentTransaction, LoanPaymentOverrides, Membership, Prediction, RecurringTransaction, BillPayment, Transaction, UserStats } from '../types';
 import { LIQUID_ACCOUNT_TYPES, DEBT_TYPES } from '../constants';
-import { calculateAccountTotals, convertToEur, formatCurrency, generateAmortizationSchedule, parseLocalDate, toLocalISOString } from '../utils';
+import { calculateAccountTotals, convertCurrency, convertToEur, formatCurrency, getMainCurrency, generateAmortizationSchedule, parseLocalDate, toLocalISOString } from '../utils';
 
 const eurOf = (amount: number, currency: Transaction['currency']) => convertToEur(amount, currency);
 const clamp = (value: number, max: number) => Math.min(max, Math.max(0, value));
@@ -38,8 +38,9 @@ export const challengeMetrics = (accounts: Account[], transactions: Transaction[
   });
   const savingsRate = income > 0 ? (income - expense) / income : 0;
 
+  const limitOf = (budget: Budget) => eurOf(budget.amount, budget.currency);
   const measured = budgets.filter(budget => budget.amount > 0);
-  const budgetVariance = measured.length > 0 ? measured.reduce((sum, budget) => sum + Math.abs(budget.amount - (spendingByCategory[budget.categoryName] || 0)) / budget.amount, 0) / measured.length : 1;
+  const budgetVariance = measured.length > 0 ? measured.reduce((sum, budget) => sum + Math.abs(limitOf(budget) - (spendingByCategory[budget.categoryName] || 0)) / limitOf(budget), 0) / measured.length : 1;
 
   const threeMonthsAgo = new Date(now);
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -67,7 +68,7 @@ export const healthScore = (metrics: ChallengeMetrics) => {
   const factors = [
     { id: 'savings', label: 'Savings rate', score: clamp(metrics.savingsRate * 150, 30), max: 30, value: `${(metrics.savingsRate * 100).toFixed(1)}%`, icon: 'savings' },
     { id: 'liquidity', label: 'Cash runway', score: clamp(metrics.liquidityRatio * 10, 30), max: 30, value: `${metrics.liquidityRatio.toFixed(1)} months`, icon: 'schedule' },
-    { id: 'debt', label: 'Debt', score: clamp(metrics.totalDebt === 0 ? 20 : 20 - Math.abs(metrics.totalDebt) / 1000, 20), max: 20, value: formatCurrency(metrics.totalDebt, 'EUR'), icon: 'credit_card' },
+    { id: 'debt', label: 'Debt', score: clamp(metrics.totalDebt === 0 ? 20 : 20 - Math.abs(metrics.totalDebt) / 1000, 20), max: 20, value: formatCurrency(convertCurrency(metrics.totalDebt, 'EUR', getMainCurrency()), getMainCurrency()), icon: 'credit_card' },
     { id: 'mix', label: 'Asset mix', score: clamp(metrics.accountTypes * 5, 20), max: 20, value: `${metrics.accountTypes} account types`, icon: 'pie_chart' },
   ];
   const score = clamp(factors.reduce((sum, factor) => sum + factor.score, 0), 100);
@@ -137,9 +138,10 @@ export const debtsAndGoals = (accounts: Account[], transactions: Transaction[], 
 export const budgetMastery = (budgets: Budget[], spending: Record<string, number>) =>
   budgets.map(budget => {
     const spent = spending[budget.categoryName] || 0;
-    const ratio = budget.amount > 0 ? spent / budget.amount : 0;
+    const limit = eurOf(budget.amount, budget.currency);
+    const ratio = limit > 0 ? spent / limit : 0;
     const [level, title] = budget.amount <= 0 ? [0, 'No limit set'] : ratio > 1 ? [0, 'Over budget'] : ratio > 0.9 ? [1, 'Novice'] : ratio > 0.75 ? [2, 'Adept'] : ratio > 0.5 ? [3, 'Expert'] : [4, 'Master'];
-    return { categoryName: budget.categoryName, amount: budget.amount, spent, ratio, level: level as number, title: title as string };
+    return { categoryName: budget.categoryName, amount: limit, spent, ratio, level: level as number, title: title as string };
   }).sort((a, b) => b.level - a.level);
 
 export const BADGE_GROUPS = ['Getting set up', 'Wealth', 'Habits', 'Planning', 'Predictions'] as const;

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Budget, Category } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import { Button } from './ui/Actions';
 import { AmountInput } from './ui/Fields';
 import { Dialog } from './ui/Overlays';
@@ -44,7 +44,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
       toast.error('Enter an amount');
       return;
     }
-    onSave({ id: budgetToEdit?.id, categoryName, amount: cap, period: 'monthly', currency: 'EUR' });
+    onSave({ id: budgetToEdit?.id, categoryName, amount: cap, period: 'monthly', currency: getMainCurrency() });
     onClose();
   };
 
@@ -68,10 +68,10 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
         <Combobox label="Category" options={options} value={categoryName || null} onChange={id => setCategoryName(id ?? '')} placeholder="Search categories" />
         <AmountInput
           label="Monthly budget"
-          currency="EUR"
+          currency={getMainCurrency()}
           value={amount}
           onChange={setAmount}
-          help={isValid ? `About ${formatCurrency(cap / DAYS_IN_MONTH, 'EUR')} a day, or ${formatCurrency(cap / WEEKS_IN_MONTH, 'EUR')} a week.` : undefined}
+          help={isValid ? `About ${formatCurrency(cap / DAYS_IN_MONTH, getMainCurrency())} a day, or ${formatCurrency(cap / WEEKS_IN_MONTH, getMainCurrency())} a week.` : undefined}
         />
       </form>
     </Dialog>

@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip } from '@/src/components/charts/sankey';
 import { Transaction, Category } from '../types';
-import { convertToEur, formatCurrency } from '../utils';
+import { convertToMain, formatCurrency, getMainCurrency } from '../utils';
 import SegmentedControl from './ui/SegmentedControl';
 
 interface CashflowSankeyProps {
@@ -64,7 +64,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
 
     transactions.forEach(tx => {
       if (tx.transferId) return;
-      const amount = Math.abs(convertToEur(tx.amount, tx.currency));
+      const amount = Math.abs(convertToMain(tx.amount, tx.currency));
       if (amount < 0.01) return;
 
       const isIncome = tx.type === 'income';
@@ -202,7 +202,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
             lineCap={4}
             labelOrientation="horizontal"
             getNodeColor={getNodeColor}
-            formatValue={(val) => formatCurrency(val, 'EUR')}
+            formatValue={(val) => formatCurrency(val, getMainCurrency())}
           />
           <SankeyTooltip />
         </SankeyChart>

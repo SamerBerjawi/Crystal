@@ -21,8 +21,8 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 8 | Reports | Reports, Invoices, Challenges | Done, committed on `feat/redesign-reports` |
 | 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Done, committed on `feat/redesign-settings`, PR open |
 | 10 | Rules | Rebuild (`D-009`), with tests first | Done, merged |
-| 11 | PIN lock | Idle lock, server-side design (`D-013`) | Done, committed on `feat/redesign-pin-lock` |
-| 12 | Any currency | Support across the app (`S-010`) | Not started |
+| 11 | PIN lock | Idle lock, server-side design (`D-013`) | Done, merged |
+| 12 | Any currency | Support across the app (`S-010`) | Done, committed on `feat/redesign-any-currency` |
 | 13 | Clean-up | Remove bridge, `@base-ui/react`, `DESIGN.md` | Not started |
 
 Phase 10 (final QA) follows module 13.
@@ -459,3 +459,20 @@ Not tested:
 Known limit: API responses use `private, no-cache` so `/api/data` can answer 304, which means a browser may keep a copy in its disk cache. Crystal won't serve it while locked, because revalidation gets 423, but someone reading the browser's files could. Changing to `no-store` closes this and loses the 304 saving.
 
 In dev builds only, a session that ends falls back to the dev cache. Production has no dev cache.
+
+## Module 12 log
+
+- `utils/currencies.ts` holds the ISO list, symbols, decimals and names. `Currency` is now a string.
+- `utils.ts`: `convertToMain`, `getMainCurrency`, `setMainCurrency` and `missingRates`. A missing rate gives 0, not 1:1. `convertToEur` stays for what is defined in EUR. A partial rate table now falls back to known rates.
+- About 70 EUR conversions and over 100 hard-coded `'EUR'` values and € signs moved to the main currency. Kept as EUR on purpose: holdings and warrants (`D-095`), rows saved with no currency, and challenge scoring (`D-110`).
+- Budget totals in Budgeting, the Overview widget and Challenges now convert each budget from its own currency.
+- `ExchangeRates` in Preferences, a banner across the app, and `src/services/exchangeRates.ts`. nginx's report-only CSP allows Frankfurter.
+
+Tested in the app with USD, GBP, JPY and XOF accounts at 1440×900, 768×1024 and 375×812, with no overflow: live ECB rates loaded, EUR to USD and JPY checked against the rates, no double conversion, no decimals in JPY, searching currencies by name, the banner, a manual rate clearing it, and each main page in USD.
+
+Not tested:
+- Twelve Data rates with a real key alongside ECB.
+- A three-decimal currency in the app (KWD has unit tests).
+- The account form's currency picker, onboarding and CSV import with new currencies.
+- Bank sync in a currency Crystal hadn't listed before.
+- Old screens not rebuilt yet, such as `MerchantDetailModal` and `AccountOverviewModal`, at every size.

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseLocalDate, getMainCurrency } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
 import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
@@ -118,7 +118,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
                                     Projected Net Daily Delta
                                 </span>
                                 <p className={`text-3xl font-black tabular-nums tracking-tight ${dayTotal >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                    {formatCurrency(dayTotal, 'EUR', { showPlusSign: true })}
+                                    {formatCurrency(dayTotal, getMainCurrency(), { showPlusSign: true })}
                                 </p>
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-black/5 dark:bg-white/5 mt-3 text-light-text-secondary dark:text-dark-text-secondary">
                                     <Icon name="event_upcoming" className="text-sm" />
@@ -164,7 +164,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
 
                                             <div className="text-right shrink-0">
                                                 <p className={`font-black text-sm tabular-nums ${item.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                                    {formatCurrency(item.amount, 'EUR', { showPlusSign: true })}
+                                                    {formatCurrency(item.amount, getMainCurrency(), { showPlusSign: true })}
                                                 </p>
                                                 <span className="text-2xs font-bold text-primary-700 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     Configure &rarr;

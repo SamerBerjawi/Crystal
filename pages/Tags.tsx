@@ -1,3 +1,4 @@
+import { getMainCurrency } from '../utils';
 import React, { useMemo, useState } from 'react';
 import { Page, Tag, Transaction } from '../types';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
@@ -82,7 +83,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                   <span className="type-caption block text-muted">{tag.count} {tag.count === 1 ? 'transaction' : 'transactions'}</span>
                 </span>
                 <Sparkline data={tag.history} isPositive={tag.netAmount >= 0} className="hidden md:block" />
-                <Amount value={tag.netAmount} currency="EUR" className="type-figure-row shrink-0 text-ink" />
+                <Amount value={tag.netAmount} currency={getMainCurrency()} className="type-figure-row shrink-0 text-ink" />
               </button>
               <Menu
                 title={tag.name}

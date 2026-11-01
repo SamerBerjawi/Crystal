@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { CategorySpending } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
 
 interface OutflowsChartProps {
@@ -82,7 +82,7 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
                     {percent.toFixed(1)}%
                   </span>
                   <span className="font-mono font-bold text-primary">
-                    {formatCurrency(item.value, 'EUR')}
+                    {formatCurrency(item.value, getMainCurrency())}
                   </span>
                 </div>
               </div>

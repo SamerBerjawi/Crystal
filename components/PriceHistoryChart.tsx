@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { PriceHistoryEntry } from '../types';
-import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
+import { formatCurrency, parseLocalDate, calculateTrendLine, getMainCurrency } from '../utils';
 import { LineChart, Line, Grid, XAxis, YAxis, ChartTooltip } from '../src/components/charts';
 
 interface PriceHistoryChartProps {
@@ -38,10 +38,10 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
       >
         <Grid horizontal stroke="rgba(255, 255, 255, 0.08)" />
         <XAxis />
-        <YAxis tickFormatter={(value) => formatCurrency(value, 'EUR').replace(/[^0-9.,]/g, '')} />
+        <YAxis tickFormatter={(value) => formatCurrency(value, getMainCurrency()).replace(/[^0-9.,]/g, '')} />
         <Line dataKey="price" stroke="#8B5CF6" strokeWidth={2.5} fadeEdges />
         <Line dataKey="trend" stroke="#6366F1" strokeWidth={2} strokeDasharray="4,4" />
-        <ChartTooltip valueFormatter={(val) => formatCurrency(val, 'EUR')} />
+        <ChartTooltip valueFormatter={(val) => formatCurrency(val, getMainCurrency())} />
       </LineChart>
     </div>
   );

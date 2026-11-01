@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Account, Category, AccountType, Currency, User, AppPreferences, FinancialGoal, RecurringTransaction } from '../types';
 import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
 import Card from './Card';
-import { toLocalISOString } from '../utils';
+import { toLocalISOString, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { toast } from 'sonner';
@@ -47,7 +47,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<AccountType>('Checking');
   const [balance, setBalance] = useState('');
-  const [accountCurrency, setAccountCurrency] = useState<Currency>('EUR');
+  const [accountCurrency, setAccountCurrency] = useState<Currency>(getMainCurrency());
 
   // Step 4 state
   const [goalName, setGoalName] = useState('');
@@ -106,7 +106,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
             date: goalDate,
             type: 'one-time',
             transactionType: 'expense', // Assume goals are for spending/saving up
-            currency: 'EUR',
+            currency: getMainCurrency(),
             paymentAccountId: paymentAccountId || undefined,
          };
          saveFinancialGoal(newGoal);

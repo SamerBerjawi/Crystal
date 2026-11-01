@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { animate } from 'motion/react';
 import type { Currency } from '../../types';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, getMainCurrency } from '../../utils';
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
 
@@ -88,7 +88,7 @@ export const Amount: React.FC<AmountProps> = ({ value, currency, tone = 'plain',
 };
 
 /** A headline figure that counts up. Money follows privacy mode, and screen readers get the final value. */
-export const CountUp: React.FC<{ value: number; format?: 'money' | 'number' | 'percent'; currency?: Currency; delay?: number }> = ({ value, format = 'number', currency = 'EUR', delay }) => {
+export const CountUp: React.FC<{ value: number; format?: 'money' | 'number' | 'percent'; currency?: Currency; delay?: number }> = ({ value, format = 'number', currency = getMainCurrency(), delay }) => {
   const isPrivate = useContext(PrivacyContext);
   const hidden = isPrivate && format === 'money';
   const shown = useCountUp(value, !hidden, delay);

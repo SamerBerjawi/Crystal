@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, getMainCurrency, currencySign } from '../utils';
 import { addDays, iso } from '../utils/scheduleModel';
 import type { Bubble, BubbleLane, ForecastDay } from '../utils/forecastModel';
 import { cn } from '../lib/utils';
@@ -17,7 +17,10 @@ const MAX_RADIUS = 13;
 const HIT_RADIUS = 16;
 
 const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-const compact = (value: number) => (Math.abs(value) >= 1000 ? `€${Math.round(value / 100) / 10}k` : `€${Math.round(value)}`);
+const compact = (value: number) => {
+  const sign = currencySign(getMainCurrency());
+  return Math.abs(value) >= 1000 ? `${sign}${Math.round(value / 100) / 10}k` : `${sign}${Math.round(value)}`;
+};
 
 export interface ChartMarker { date: string; label: string }
 export interface ChartLine { id: string; name: string; values: number[]; colour: string }
@@ -143,7 +146,7 @@ const ForecastHorizonChart: React.FC<ForecastHorizonChartProps> = ({ days, bubbl
   return (
     <div ref={wrapper} className="relative w-full select-none" style={{ height }}>
       {width > 0 && (
-        <svg width={width} height={height} className="block" role="img" aria-label={`Balance forecast. ${lowest ? `Lowest point ${formatCurrency(lowest.value, 'EUR')} on ${shortDay(lowest.date)}.` : ''} The list has the same figures.`}>
+        <svg width={width} height={height} className="block" role="img" aria-label={`Balance forecast. ${lowest ? `Lowest point ${formatCurrency(lowest.value, getMainCurrency())} on ${shortDay(lowest.date)}.` : ''} The list has the same figures.`}>
           <defs>
             <linearGradient id="horizon-fill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0" stopColor="var(--primary)" stopOpacity=".22" />
@@ -218,7 +221,7 @@ const ForecastHorizonChart: React.FC<ForecastHorizonChartProps> = ({ days, bubbl
                 const x = scale.x(indexOf.get(shownDate) ?? 0);
                 const y = laneY(bubble.lane, position);
                 const fill = bubble.lane === 'in' ? 'var(--money-in)' : bubble.lane === 'out' ? 'var(--ink)' : 'var(--chart-1)';
-                const name = `${bubble.label}, ${bubble.lane === 'in' ? 'in' : 'out'} ${formatCurrency(bubble.amount, 'EUR')}, ${shortDay(bubble.date)}${bubble.isMovable ? '. Use left and right arrows then Enter to move it' : ''}`;
+                const name = `${bubble.label}, ${bubble.lane === 'in' ? 'in' : 'out'} ${formatCurrency(bubble.amount, getMainCurrency())}, ${shortDay(bubble.date)}${bubble.isMovable ? '. Use left and right arrows then Enter to move it' : ''}`;
                 return (
                   <g
                     key={bubble.key}
@@ -281,9 +284,9 @@ const ForecastHorizonChart: React.FC<ForecastHorizonChartProps> = ({ days, bubbl
           >
             <p className="type-caption text-muted">{drag ? 'Move to ' : ''}{shortDay(anchorDate)}</p>
             {active ? (
-              <p className="type-label text-ink">{active.label}, {formatCurrency(active.amount, 'EUR')}</p>
+              <p className="type-label text-ink">{active.label}, {formatCurrency(active.amount, getMainCurrency())}</p>
             ) : (
-              <p className="type-label text-ink">{formatCurrency(hoverDay!.total, 'EUR')}</p>
+              <p className="type-label text-ink">{formatCurrency(hoverDay!.total, getMainCurrency())}</p>
             )}
           </div>
         );

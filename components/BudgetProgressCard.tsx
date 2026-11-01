@@ -1,4 +1,5 @@
 
+import { getMainCurrency, currencySign } from '../utils';
 import React from 'react';
 import { Category } from '../types';
 import Card from './Card';
@@ -48,7 +49,7 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
           <BudgetProgressBar
             spent={spent}
             budgeted={budgeted}
-            currency="EUR"
+            currency={getMainCurrency()}
             categoryName={category.name}
             categoryColor={category.color}
             showLabels={true}
@@ -60,7 +61,7 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
           <div className="text-center glass-subwell p-4 rounded-xl border border-slate-200/60 dark:border-white/5 transition-colors">
             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-2 leading-none">Unscheduled Spending</p>
             <div className="flex items-center justify-center gap-1">
-                <span className="text-2xl font-black font-mono tracking-tight text-light-text dark:text-dark-text privacy-blur leading-none">€{spent.toLocaleString()}</span>
+                <span className="text-2xl font-black font-mono tracking-tight text-light-text dark:text-dark-text privacy-blur leading-none">{currencySign(getMainCurrency())}{spent.toLocaleString()}</span>
             </div>
             <button 
                 onClick={onEdit}

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { parseLocalDate } from '../utils';
+import { parseLocalDate, getMainCurrency } from '../utils';
 import { addDays, iso, type CalendarDay, type Occurrence } from '../utils/scheduleModel';
 import { cn } from '../lib/utils';
 import { Button, IconButton } from './ui/Actions';
@@ -127,7 +127,7 @@ export const weekOf = (date: string, days: CalendarDay[]) => {
 
 export const FlowTotal: React.FC<{ day: CalendarDay }> = ({ day }) => (
   <p className="type-caption text-muted">
-    {day.in > 0 && <>In <Amount value={day.in} currency="EUR" /> </>}
-    {day.out > 0 && <>Out <Amount value={day.out} currency="EUR" /></>}
+    {day.in > 0 && <>In <Amount value={day.in} currency={getMainCurrency()} /> </>}
+    {day.out > 0 && <>Out <Amount value={day.out} currency={getMainCurrency()} /></>}
   </p>
 );

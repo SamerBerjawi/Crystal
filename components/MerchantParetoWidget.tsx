@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Transaction } from '../types';
-import { convertToEur, formatCurrency } from '../utils';
+import { convertToMain, formatCurrency, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
 import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 
@@ -16,7 +16,7 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
     transactions.forEach(tx => {
       // Filter for discretionary expenses (ignore transfers and likely fixed costs like Rent/Mortgage)
       if (tx.type === 'expense' && !tx.transferId && tx.merchant) {
-        const amount = Math.abs(convertToEur(tx.amount, tx.currency));
+        const amount = Math.abs(convertToMain(tx.amount, tx.currency));
         const merchant = tx.merchant.trim();
         merchantTotals.set(merchant, (merchantTotals.get(merchant) || 0) + amount);
         totalDiscretionary += amount;
@@ -64,7 +64,7 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
           />
           <BarYAxis />
           <ChartTooltip
-            valueFormatter={(val: number) => formatCurrency(val, 'EUR')}
+            valueFormatter={(val: number) => formatCurrency(val, getMainCurrency())}
           />
         </BarChart>
       </div>

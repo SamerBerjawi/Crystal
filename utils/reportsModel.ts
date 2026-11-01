@@ -1,5 +1,6 @@
+import { getMainCurrency } from '../utils';
 import type { Budget, Transaction } from '../types';
-import { convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { convertToMain, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 
 export type GroupBy = 'merchant' | 'category';
 
@@ -36,7 +37,7 @@ export const addDays = (date: string, days: number) => {
 export const daysBetween = (startDate: string, endDate: string) =>
   Math.max(1, Math.round((parseLocalDate(endDate).getTime() - parseLocalDate(startDate).getTime()) / 86400000) + 1);
 
-const amountOf = (tx: Transaction) => Math.abs(convertToEur(tx.amount, tx.currency));
+const amountOf = (tx: Transaction) => Math.abs(convertToMain(tx.amount, tx.currency));
 const merchantOf = (tx: Transaction, fallback = 'Unknown merchant') => tx.merchant?.trim() || tx.description || fallback;
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 
@@ -160,7 +161,7 @@ export const budgetAgainstActual = (rows: Transaction[], budgets: Budget[], star
   const actual = categoryTotals(rows);
   const months = monthsInPeriod(startDate, endDate);
   return budgets.map(budget => {
-    const budgetEur = Math.abs(convertToEur(budget.amount, budget.currency)) * months;
+    const budgetEur = Math.abs(convertToMain(budget.amount, budget.currency)) * months;
     const actualEur = actual.get(budget.categoryName) || 0;
     return { categoryName: budget.categoryName, budgetEur, actualEur, varianceEur: budgetEur - actualEur };
   }).sort((a, b) => a.varianceEur - b.varianceEur);
@@ -251,7 +252,7 @@ export const buildReport = (transactions: Transaction[], budgets: Budget[], filt
 
 export type Report = ReturnType<typeof buildReport>;
 
-const eur = (value: number) => formatCurrency(value, 'EUR');
+const eur = (value: number) => formatCurrency(value, getMainCurrency());
 const percent = (value: number) => `${value.toFixed(1)}%`;
 
 /** Rule-based observations (`RPT-09`). */

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Page, MerchantRule, Category } from '../types';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
-import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
+import { fuzzySearch, convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { generateSmartRuleSuggestions, SmartRuleSuggestion, convertSuggestionToTransactionRule } from '../utils/ruleSuggestions';
 import MerchantDetailModal from '../components/MerchantDetailModal';
 import MerchantOverviewModal from '../components/MerchantOverviewModal';
@@ -227,7 +227,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       if (!key) return;
       const mapKey = `merchant:${key}`;
       
-      const val = convertToEur(tx.amount, tx.currency);
+      const val = convertToMain(tx.amount, tx.currency);
       const existing = map.get(mapKey);
 
       if (existing) {
@@ -263,7 +263,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         if (!key) return;
         const mapKey = `institution:${key}`;
 
-        const val = convertToEur(acc.balance, acc.currency);
+        const val = convertToMain(acc.balance, acc.currency);
         const existing = map.get(mapKey);
 
         if (existing) {
@@ -486,7 +486,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                   <span className="type-body-strong block truncate text-ink">{entity.name}</span>
                   <span className="type-caption block truncate text-muted">{entity.type === 'Institution' ? 'Institution' : `${entity.count} ${entity.count === 1 ? 'transaction' : 'transactions'}`}{entity.rule?.isHidden ? ', hidden' : ''}</span>
                 </span>
-                <span className="type-figure-row shrink-0 text-ink"><Amount value={entity.totalValue} currency="EUR" /></span>
+                <span className="type-figure-row shrink-0 text-ink"><Amount value={entity.totalValue} currency={getMainCurrency()} /></span>
               </button>
             </li>
           ))}
@@ -517,9 +517,9 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           <Button variant="secondary" icon="edit" onPress={() => { setEditingEntity(selected); setIsDetailModalOpen(true); }}>Edit</Button>
         </header>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
-          <div><dt className="type-caption text-muted">{selected.type === 'Institution' ? 'Balance' : 'Total'}</dt><dd className="type-figure-row text-ink"><Amount value={selected.totalValue} currency="EUR" /></dd></div>
+          <div><dt className="type-caption text-muted">{selected.type === 'Institution' ? 'Balance' : 'Total'}</dt><dd className="type-figure-row text-ink"><Amount value={selected.totalValue} currency={getMainCurrency()} /></dd></div>
           <div><dt className="type-caption text-muted">{selected.type === 'Institution' ? 'Accounts' : 'Transactions'}</dt><dd className="type-figure-row text-ink">{selected.count}</dd></div>
-          <div><dt className="type-caption text-muted">Average</dt><dd className="type-figure-row text-ink"><Amount value={selected.totalValue / Math.max(1, selected.count)} currency="EUR" /></dd></div>
+          <div><dt className="type-caption text-muted">Average</dt><dd className="type-figure-row text-ink"><Amount value={selected.totalValue / Math.max(1, selected.count)} currency={getMainCurrency()} /></dd></div>
           <div><dt className="type-caption text-muted">Last activity</dt><dd className="type-figure-row text-ink">{selected.lastActivity ? parseLocalDate(selected.lastActivity).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</dd></div>
         </dl>
       </div>

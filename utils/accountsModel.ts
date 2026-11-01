@@ -1,3 +1,4 @@
+import { getMainCurrency } from '../utils';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from '../constants';
 import { Account, Currency, LoanPaymentOverrides, Transaction } from '../types';
 import {
@@ -7,7 +8,7 @@ import {
   classifyAccountBalanceEur,
   debtFromBalance,
   convertCurrency,
-  convertToEur,
+  convertToMain,
   generateAmortizationSchedule,
   parseLocalDate,
   resolveAccountBalance,
@@ -258,7 +259,7 @@ export const computePortfolio90dTrends = (
       dailyAssets[idx] = safeAdd(dailyAssets[idx], asset);
       dailyLiabilities[idx] = safeAdd(dailyLiabilities[idx], debt);
       if (isLiquid) {
-        dailyLiquid[idx] = safeAdd(dailyLiquid[idx], convertToEur(pt.value, acc.currency, rates));
+        dailyLiquid[idx] = safeAdd(dailyLiquid[idx], convertToMain(pt.value, acc.currency, rates));
       }
     });
   });
@@ -323,8 +324,8 @@ export const computeCashSegmentNetFlow = (
     })
     .reduce((sum, t) => {
       const eurAmount = options.conversionRates
-        ? convertCurrency(t.amount, t.currency, 'EUR', options.conversionRates)
-        : convertToEur(t.amount, t.currency);
+        ? convertCurrency(t.amount, t.currency, getMainCurrency(), options.conversionRates)
+        : convertToMain(t.amount, t.currency);
       return safeAdd(sum, eurAmount);
     }, 0);
 };
@@ -483,7 +484,7 @@ export const computeAccountsHeroModel = (
   accounts: Account[],
   transactions: Transaction[],
   loanPaymentOverrides: LoanPaymentOverrides = {},
-  preferredCurrency: Currency = 'EUR',
+  preferredCurrency: Currency = getMainCurrency(),
   options: AccountsModelOptions = {}
 ): AccountsHeroModel => {
   const visible = getVisibleAccountsForAccountsPage(accounts);
@@ -512,10 +513,10 @@ export const computeAccountsHeroModel = (
       resolveAccountBalance(a, txsByAccount.get(a.id) || [], loanPaymentOverrides, balanceOptions)
     );
   }
-  const balanceEur = (a: Account) => convertToEur(todayBalance.get(a.id) ?? 0, a.currency, rates);
+  const balanceEur = (a: Account) => convertToMain(todayBalance.get(a.id) ?? 0, a.currency, rates);
 
   const toPref = (eurVal: number) =>
-    safeRound(convertCurrency(eurVal, 'EUR', preferredCurrency, rates), 2);
+    safeRound(convertCurrency(eurVal, getMainCurrency(), preferredCurrency, rates), 2);
 
   const totalAssets = toPref(assetsEur);
   const totalLiabilities = toPref(debtEur);
@@ -548,7 +549,7 @@ export const computeAccountsHeroModel = (
       return t.amount < 0 && d >= cutoff30d && d <= todayEnd;
     })
     .reduce(
-      (sum, t) => safeAdd(sum, Math.abs(convertCurrency(t.amount, t.currency, 'EUR', rates))),
+      (sum, t) => safeAdd(sum, Math.abs(convertCurrency(t.amount, t.currency, getMainCurrency(), rates))),
       0
     );
   const liquidRunwayMonths =
@@ -723,7 +724,7 @@ export const computeAccountsHeroModel = (
     } else if (
       acc.type === 'Savings' &&
       // Threshold in EUR, so 1,000 RON and 1,000 BTC are not treated alike.
-      convertToEur(todayBalance.get(acc.id) ?? 0, acc.currency, rates) > 1000 &&
+      convertToMain(todayBalance.get(acc.id) ?? 0, acc.currency, rates) > 1000 &&
       !(acc.apy && acc.apy > 0)
     ) {
       attentionItems.push({
@@ -1110,21 +1111,21 @@ export const filterAndSortAccounts = (
       const balA = convertCurrency(
         Math.abs(displayBalancesById[a.id] ?? a.balance),
         a.currency,
-        'EUR',
+        getMainCurrency(),
         options.conversionRates
       );
       const balB = convertCurrency(
         Math.abs(displayBalancesById[b.id] ?? b.balance),
         b.currency,
-        'EUR',
+        getMainCurrency(),
         options.conversionRates
       );
       return balB - balA;
     }
     if (sortBy === 'change90d') {
       // Trends are in each account's own currency; compare them in EUR.
-      const trA = convertCurrency(options.sparklinesById?.[a.id]?.trend ?? 0, a.currency, 'EUR', options.conversionRates);
-      const trB = convertCurrency(options.sparklinesById?.[b.id]?.trend ?? 0, b.currency, 'EUR', options.conversionRates);
+      const trA = convertCurrency(options.sparklinesById?.[a.id]?.trend ?? 0, a.currency, getMainCurrency(), options.conversionRates);
+      const trB = convertCurrency(options.sparklinesById?.[b.id]?.trend ?? 0, b.currency, getMainCurrency(), options.conversionRates);
       return trB - trA;
     }
     if (sortBy === 'apy_apr') {
@@ -1155,7 +1156,7 @@ export const filterAndSortAccounts = (
 export const accountsToCSV = (
   accounts: Account[],
   displayBalancesById: Record<string, number>,
-  preferredCurrency: Currency = 'EUR',
+  preferredCurrency: Currency = getMainCurrency(),
   options: AccountsModelOptions = {}
 ): string => {
   const rows = accounts.map((acc) => {

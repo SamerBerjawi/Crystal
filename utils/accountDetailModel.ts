@@ -1,3 +1,4 @@
+import { getMainCurrency } from '../utils';
 import {
   Account,
   BillPayment,
@@ -1409,7 +1410,7 @@ export function computeOperatingAccountMetrics(
     options.recurringTransactionOverrides || []
   );
   const lowestBalanceForecast = safeRound(
-    convertCurrency(lowestPoint.value, 'EUR', account.currency, effectiveRates),
+    convertCurrency(lowestPoint.value, getMainCurrency(), account.currency, effectiveRates),
     2
   );
 

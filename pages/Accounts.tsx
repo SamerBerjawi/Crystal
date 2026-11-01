@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AccountForm from '../components/AccountForm';
-import { calculateAccountTotals, convertCurrency, convertToEur, formatCurrency } from '../utils';
+import { calculateAccountTotals, convertCurrency, convertToMain, formatCurrency, getMainCurrency } from '../utils';
 import {
   accountHasCard,
   accountsInTab,
@@ -86,7 +86,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const tabAccounts = useMemo(() => accountsInTab(openAccounts, activeTab), [openAccounts, activeTab]);
   const closedAccounts = useMemo(() => visibleAccounts.filter(acc => acc.status === 'closed'), [visibleAccounts]);
 
-  const toDisplay = (eur: number) => convertCurrency(eur, 'EUR', preferredCurrency, conversionRates);
+  const toDisplay = (eur: number) => convertCurrency(eur, getMainCurrency(), preferredCurrency, conversionRates);
 
   const stats = useMemo<PageStat[]>(() => {
     const countable = tabAccounts.filter(acc => acc.includeInAnalytics ?? true);
@@ -210,7 +210,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const sortedPots = useMemo(() => {
     const list = [...tabAccounts];
     if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy === 'balance') return list.sort((a, b) => convertToEur(b.balance, b.currency) - convertToEur(a.balance, a.currency));
+    if (sortBy === 'balance') return list.sort((a, b) => convertToMain(b.balance, b.currency) - convertToMain(a.balance, a.currency));
     return list.sort((a, b) => accountOrder.indexOf(a.id) - accountOrder.indexOf(b.id));
   }, [tabAccounts, sortBy, accountOrder]);
 

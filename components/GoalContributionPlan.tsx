@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ContributionPlanStep } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
 
 interface GoalContributionPlanProps {
@@ -65,8 +65,8 @@ const GoalContributionPlan: React.FC<GoalContributionPlanProps> = ({ plan, isLoa
                     </div>
                     <div className="text-left sm:text-right font-bold text-base">
                         {step.accountName === 'Unfunded Shortfall' ? 
-                            <span className="text-red-500">{formatCurrency(step.amount, 'EUR')}</span> :
-                            formatCurrency(step.amount, 'EUR')
+                            <span className="text-red-500">{formatCurrency(step.amount, getMainCurrency())}</span> :
+                            formatCurrency(step.amount, getMainCurrency())
                         }
                     </div>
                     {step.notes && <div className="sm:col-span-3 text-xs text-yellow-700 dark:text-yellow-200 pt-1">{step.notes}</div>}

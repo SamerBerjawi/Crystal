@@ -12,7 +12,7 @@ import {
   LineSeriesTerminalMarker,
   type ChartMarker,
 } from '../src/components/charts';
-import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
+import { formatCurrency, parseLocalDate, calculateTrendLine, getMainCurrency, currencySign } from '../utils';
 import { FinancialGoal } from '../types';
 import Icon from './ui/Icon';
 
@@ -41,9 +41,10 @@ interface NetWorthChartProps {
 }
 
 const yAxisTickFormatter = (value: number) => {
-  if (Math.abs(value) >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1000) return `€${(value / 1000).toFixed(0)}K`;
-  return `€${value}`;
+  const sign = currencySign(getMainCurrency());
+  if (Math.abs(value) >= 1000000) return `${sign}${(value / 1000000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1000) return `${sign}${(value / 1000).toFixed(0)}K`;
+  return `${sign}${value}`;
 };
 
 const CustomTooltipContent: React.FC<{ markers: ChartMarker[] }> = ({ markers }) => {
@@ -148,7 +149,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
           items.push({
             date: gDate,
             title: goal.name,
-            description: `Target: ${formatCurrency(goal.amount, 'EUR')}`,
+            description: `Target: ${formatCurrency(goal.amount, getMainCurrency())}`,
             color: '#F59E0B',
           });
         }
@@ -235,14 +236,14 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
               {
                 color: strokeColor,
                 label,
-                value: formatCurrency(val, 'EUR'),
+                value: formatCurrency(val, getMainCurrency()),
               },
             ];
             if (typeof point.trend === 'number') {
               rowsList.push({
                 color: '#8B5CF6',
                 label: 'Trend Line',
-                value: formatCurrency(point.trend, 'EUR'),
+                value: formatCurrency(point.trend, getMainCurrency()),
               });
             }
             return rowsList;

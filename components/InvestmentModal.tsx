@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import type { Account, Currency, HoldingSummary, InvestmentSubType, InvestmentTransaction, PaymentTerm, Transaction, Warrant } from '../types';
 import { CURRENCY_OPTIONS } from '../constants';
-import { formatCurrency, toLocalISOString } from '../utils';
+import { formatCurrency, toLocalISOString, getMainCurrency } from '../utils';
 import { usePreferencesContext } from '../contexts/DomainProviders';
 import { useDebounce } from '../hooks/useDebounce';
 import { fetchSymbolMetadata } from '../src/services/twelveDataService';
@@ -184,7 +184,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
       return;
     }
     if (taxPayments.length > 0 && Math.abs(taxLeft) >= 0.01) {
-      toast.error(`Tax instalments are ${formatCurrency(Math.abs(taxLeft), 'EUR')} ${taxLeft > 0 ? 'short' : 'over'}`);
+      toast.error(`Tax instalments are ${formatCurrency(Math.abs(taxLeft), draft.currency)} ${taxLeft > 0 ? 'short' : 'over'}`);
       return;
     }
     save({
@@ -208,7 +208,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
         footer={close => (
           <div className="flex items-center justify-between gap-3">
             <span className="type-caption min-w-0 text-muted">
-              {draft.mode === 'trade' ? (total > 0 ? `Total ${formatCurrency(total, draft.currency)}` : '') : grantTotal > 0 ? `Total ${formatCurrency(grantTotal, 'EUR')}` : ''}
+              {draft.mode === 'trade' ? (total > 0 ? `Total ${formatCurrency(total, draft.currency)}` : '') : grantTotal > 0 ? `Total ${formatCurrency(grantTotal, draft.currency)}` : ''}
             </span>
             <div className="flex shrink-0 gap-2">
               <Button variant="ghost" onPress={close}>Cancel</Button>
@@ -255,14 +255,14 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
               <TextInput label="Name" value={draft.grantName} onChange={grantName => update({ grantName })} />
               <div className="grid grid-cols-2 gap-3">
                 <TextInput label="Quantity" inputMode="decimal" value={draft.grantQuantity} onChange={grantQuantity => update({ grantQuantity })} />
-                <AmountInput label="Grant price" currency="EUR" value={draft.grantPrice} onChange={grantPrice => update({ grantPrice })} />
+                <AmountInput label="Grant price" currency={getMainCurrency()} value={draft.grantPrice} onChange={grantPrice => update({ grantPrice })} />
               </div>
               <DateInput label="Grant date" value={draft.grantDate} onChange={grantDate => update({ grantDate })} />
               <div>
                 <p className="type-label mb-1.5 text-ink">Tax</p>
                 <SegmentedControl className="w-full" items={TAX_TYPES} activeId={draft.taxType} onChange={taxType => update({ taxType: taxType as 'amount' | 'percentage' })} />
               </div>
-              <TextInput label={draft.taxType === 'percentage' ? 'Tax rate (%)' : 'Tax amount'} inputMode="decimal" value={draft.taxValue} onChange={taxValue => update({ taxValue })} help={`Tax comes to ${formatCurrency(taxAmount, 'EUR')}.`} />
+              <TextInput label={draft.taxType === 'percentage' ? 'Tax rate (%)' : 'Tax amount'} inputMode="decimal" value={draft.taxValue} onChange={taxValue => update({ taxValue })} help={`Tax comes to ${formatCurrency(taxAmount, draft.currency)}.`} />
               <section aria-label="Tax instalments" className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-4">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="type-label text-ink">Instalments</h3>
@@ -275,13 +275,13 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
                       <IconButton icon="delete" label={`Remove ${payment.label}`} onPress={() => setTaxPayments(items => items.filter(item => item.id !== payment.id))} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <AmountInput label="Amount" currency="EUR" value={String(payment.amount)} onChange={value => updatePayment(payment.id, { amount: parseFloat(value) || 0 })} />
+                      <AmountInput label="Amount" currency={getMainCurrency()} value={String(payment.amount)} onChange={value => updatePayment(payment.id, { amount: parseFloat(value) || 0 })} />
                       <DateInput label="Due" value={payment.dueDate} onChange={dueDate => updatePayment(payment.id, { dueDate })} />
                     </div>
                     <Switch isSelected={payment.status === 'paid'} onChange={isPaid => updatePayment(payment.id, { status: isPaid ? 'paid' : 'pending' })}>Paid</Switch>
                   </div>
                 ))}
-                {taxPayments.length > 0 && <p className="type-caption text-muted">{Math.abs(taxLeft) < 0.01 ? 'Instalments match the tax.' : `${formatCurrency(Math.abs(taxLeft), 'EUR')} ${taxLeft > 0 ? 'still to schedule' : 'too much scheduled'}.`}</p>}
+                {taxPayments.length > 0 && <p className="type-caption text-muted">{Math.abs(taxLeft) < 0.01 ? 'Instalments match the tax.' : `${formatCurrency(Math.abs(taxLeft), draft.currency)} ${taxLeft > 0 ? 'still to schedule' : 'too much scheduled'}.`}</p>}
               </section>
             </>
           )}

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { RuleExecutionLog, RuleRunBackup, Transaction, TransactionRule } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getMainCurrency } from '../utils';
 import { applyRules } from '../utils/rules';
 import { describeChange, previewChanges, RuleChange } from '../utils/rulesModel';
 import { Button } from './ui/Actions';
@@ -188,7 +188,7 @@ const History: React.FC<Pick<RulesAdvancedProps, 'runs' | 'logs' | 'onUndo' | 'o
                   <span className="type-body min-w-0 truncate text-ink">{log.txDescription || 'Transaction'}</span>
                   <span className="flex items-center gap-2">
                     {log.isReverted && <Badge tone="neutral">Undone</Badge>}
-                    <span className="type-caption text-muted">{formatCurrency(log.txAmount, 'EUR')}</span>
+                    <span className="type-caption text-muted">{formatCurrency(log.txAmount, getMainCurrency())}</span>
                   </span>
                 </div>
                 <p className="type-caption text-muted">{log.ruleName} · {new Date(log.timestamp).toLocaleDateString()}</p>

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Account, FinancialGoal } from '../types';
-import { parseLocalDate } from '../utils';
+import { parseLocalDate, getMainCurrency } from '../utils';
 import { goalCategoryOf } from '../utils/forecastModel';
 import { goalCardView, isGoalDone } from '../utils/goalsModel';
 import { cn } from '../lib/utils';
@@ -117,8 +117,8 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, o
                         </button>
                       </div>
                     </td>
-                    <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={view.target} currency="EUR" /></td>
-                    <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={view.saved} currency="EUR" /></td>
+                    <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={view.target} currency={getMainCurrency()} /></td>
+                    <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={view.saved} currency={getMainCurrency()} /></td>
                     <td className="px-3 py-2">
                       <span className="type-caption text-ink">{Math.round(view.pct)}%</span>
                       <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-inset"><div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${view.pct}%` }} /></div>

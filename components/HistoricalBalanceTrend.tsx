@@ -10,8 +10,7 @@ import {
   generateBalanceForecast,
   generateSyntheticLoanPayments,
   generateSyntheticCreditCardPayments,
-  generateSyntheticPropertyTransactions,
-} from '../utils';
+  generateSyntheticPropertyTransactions, getMainCurrency } from '../utils';
 import { computeAccountDisplayBalance } from '../utils/accountsModel';
 import { resolveRealTodayBalance } from '../utils/accountDetailModel';
 import { useScheduleContext, useGoalsContext } from '../contexts/FinancialDataContext';
@@ -163,7 +162,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
           // BUG-07 Fix: generateBalanceForecast outputs EUR values; convert delta into account.currency
           const predictedChangeNative = convertCurrency(
             predictedChangeEur,
-            'EUR',
+            getMainCurrency(),
             account.currency,
             conversionRates
           );

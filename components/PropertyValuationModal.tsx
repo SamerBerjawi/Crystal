@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Account, PriceHistoryEntry } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { formatCurrency, toLocalISOString, parseLocalDate } from '../utils';
+import { formatCurrency, toLocalISOString, parseLocalDate, currencySign } from '../utils';
 import Icon from './ui/Icon';
 import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
@@ -135,7 +135,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({
                   </label>
                   <div className="relative group">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400 group-focus-within:text-orange-500 transition-colors">
-                      {account.currency === 'EUR' ? '€' : account.currency === 'USD' ? '$' : account.currency}
+                      {currencySign(account.currency)}
                     </span>
                     <input
                       id="new-value"

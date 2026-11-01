@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Account, AccountType, Transaction } from '../types';
 import AccountCard from './AccountCard';
 import SwipeableRow from './SwipeableRow';
-import { convertToEur } from '../utils';
+import { convertToMain, getMainCurrency } from '../utils';
 import { DEBT_TYPES } from '../constants';
 import Icon from './ui/Icon';
 import { IconButton } from './ui/Actions';
@@ -68,7 +68,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
       });
     }
     if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name));
-    return list.sort((a, b) => convertToEur(b.balance, b.currency) - convertToEur(a.balance, a.currency));
+    return list.sort((a, b) => convertToMain(b.balance, b.currency) - convertToMain(a.balance, a.currency));
   }, [accounts, sortBy, accountOrder]);
 
   const groupedAccounts = useMemo(() => sortedAccounts.reduce((groups, account) => {
@@ -132,7 +132,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
         const isDebt = DEBT_TYPES.includes(groupName as AccountType);
         const total = group
           .filter(account => account.includeInAnalytics ?? true)
-          .reduce((sum, account) => sum + convertToEur(account.balance, account.currency) * (isDebt ? -Math.sign(account.balance || 1) : 1), 0);
+          .reduce((sum, account) => sum + convertToMain(account.balance, account.currency) * (isDebt ? -Math.sign(account.balance || 1) : 1), 0);
 
         return (
           <div key={groupName} className="space-y-3">
@@ -146,7 +146,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                 <Icon name="expand_more" size={16} className={cn('shrink-0 text-muted transition-transform duration-[var(--duration-base)]', !expandedGroups[groupName] && '-rotate-90')} />
                 <h3 className="type-label truncate text-muted">{groupName}</h3>
               </span>
-              <span className="type-figure-row text-ink"><Amount value={isDebt ? -Math.abs(total) : total} currency="EUR" /></span>
+              <span className="type-figure-row text-ink"><Amount value={isDebt ? -Math.abs(total) : total} currency={getMainCurrency()} /></span>
             </button>
 
             {expandedGroups[groupName] && (

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { DisplayTransaction } from '../types';
-import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
+import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency, currencySign } from '../utils';
 
 const HEIGHT = 220;
 const PAD = { top: 12, right: 12, bottom: 24, left: 52 };
@@ -35,7 +35,7 @@ const TransactionScatter: React.FC<{ transactions: DisplayTransaction[]; onOpen:
     if (list.length === 0) return { points: [], ticks: [], months: [], hasIncome: false };
 
     const times = list.map(tx => parseLocalDate(tx.date).getTime());
-    const amounts = list.map(tx => Math.max(1, Math.abs(convertToEur(tx.amount, tx.currency))));
+    const amounts = list.map(tx => Math.max(1, Math.abs(convertToMain(tx.amount, tx.currency))));
     const start = Math.min(...times);
     const span = Math.max(Math.max(...times) - start, 86_400_000);
     const top = Math.log10(Math.max(10, ...amounts) * 1.2);
@@ -79,7 +79,7 @@ const TransactionScatter: React.FC<{ transactions: DisplayTransaction[]; onOpen:
           {ticks.map(({ tick, y }) => (
             <g key={tick}>
               <line x1={PAD.left} x2={width - PAD.right} y1={y} y2={y} stroke="var(--line)" />
-              <text x={PAD.left - 8} y={y + 4} textAnchor="end" fontSize={12} fontWeight={600} fill="var(--muted)">€{tick >= 1000 ? `${tick / 1000}k` : tick}</text>
+              <text x={PAD.left - 8} y={y + 4} textAnchor="end" fontSize={12} fontWeight={600} fill="var(--muted)">{currencySign(getMainCurrency())}{tick >= 1000 ? `${tick / 1000}k` : tick}</text>
             </g>
           ))}
           {months.map(([name, x]) => <text key={name} x={x} y={HEIGHT - 6} fontSize={12} fontWeight={600} fill="var(--muted)">{name}</text>)}
@@ -96,7 +96,7 @@ const TransactionScatter: React.FC<{ transactions: DisplayTransaction[]; onOpen:
             style={{ left: Math.min(width - 110, Math.max(110, hovered.x)), top: hovered.y - 10 }}
           >
             <p className="type-caption truncate text-ink">{hovered.tx.merchant || hovered.tx.description}</p>
-            <p className="type-caption text-muted privacy-blur">{formatCurrency(hovered.amount, 'EUR')}, {parseLocalDate(hovered.tx.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
+            <p className="type-caption text-muted privacy-blur">{formatCurrency(hovered.amount, getMainCurrency())}, {parseLocalDate(hovered.tx.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
           </div>
         )}
       </div>

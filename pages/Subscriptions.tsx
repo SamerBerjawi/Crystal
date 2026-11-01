@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Membership, RecurringTransaction } from '../types';
-import { convertToEur, parseLocalDate } from '../utils';
+import { convertToMain, parseLocalDate, getMainCurrency } from '../utils';
 import MembershipModal from '../components/MembershipModal';
 import LoyaltyCard from '../components/LoyaltyCard';
 import PageHeader, { type PageStat } from '../components/PageHeader';
@@ -26,7 +26,7 @@ import {
 type Tab = 'active' | 'stopped' | 'wallet';
 type SeriesDraft = Omit<RecurringTransaction, 'id'> & { id?: string };
 
-const convert = (amount: number, currency: Parameters<typeof convertToEur>[1]) => convertToEur(amount, currency);
+const convert = (amount: number, currency: Parameters<typeof convertToMain>[1]) => convertToMain(amount, currency);
 const FREQUENCY_LABEL: Record<string, string> = { daily: 'Daily', weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', yearly: 'Yearly' };
 const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -177,7 +177,7 @@ const Subscriptions: React.FC = () => {
             <section aria-label="Saved by pausing" className="surface-card flex flex-wrap items-baseline justify-between gap-2 rounded-[var(--radius-xl)] p-5">
               <div>
                 <h2 className="type-label text-muted">Saved by pausing</h2>
-                <p className="type-figure-lg text-ink"><Amount value={saved} currency="EUR" /> <span className="type-caption text-muted">a month</span></p>
+                <p className="type-figure-lg text-ink"><Amount value={saved} currency={getMainCurrency()} /> <span className="type-caption text-muted">a month</span></p>
               </div>
               <p className="type-caption max-w-sm text-muted">Paused services leave your totals and forecast. Crystal doesn't cancel anything with the provider.</p>
             </section>

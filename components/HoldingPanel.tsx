@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Account, HoldingSummary, InvestmentTransaction, PriceHistoryEntry, Warrant } from '../types';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { CANDLE_MIN_POINTS, formatHoldingType } from '../utils/investments';
 import { ValueChart } from './AccountFrame';
 import InvestmentCandlestickChart from './InvestmentCandlestickChart';
@@ -61,21 +61,21 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
       }
     >
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <div><dt className="type-label text-muted">Value</dt><dd className="type-figure-lg text-ink"><Amount value={holding.currentValue} currency="EUR" /></dd></div>
+        <div><dt className="type-label text-muted">Value</dt><dd className="type-figure-lg text-ink"><Amount value={holding.currentValue} currency={getMainCurrency()} /></dd></div>
         <div>
           <dt className="type-label text-muted">Return</dt>
           <dd className="type-figure-lg text-ink">
-            {gain === null ? <span className="type-body text-muted">No price yet</span> : <><Amount value={gain} currency="EUR" tone="flow" />{gainPct !== null && <span className="type-caption text-muted"> {gainPct >= 0 ? '+' : '−'}{Math.abs(gainPct).toFixed(1)}%</span>}</>}
+            {gain === null ? <span className="type-body text-muted">No price yet</span> : <><Amount value={gain} currency={getMainCurrency()} tone="flow" />{gainPct !== null && <span className="type-caption text-muted"> {gainPct >= 0 ? '+' : '−'}{Math.abs(gainPct).toFixed(1)}%</span>}</>}
           </dd>
         </div>
-        <div><dt className="type-label text-muted">Average cost</dt><dd className="type-figure-row text-ink"><Amount value={averageCost} currency="EUR" /></dd></div>
+        <div><dt className="type-label text-muted">Average cost</dt><dd className="type-figure-row text-ink"><Amount value={averageCost} currency={getMainCurrency()} /></dd></div>
         <div>
           <dt className="type-label text-muted">Market price</dt>
           <dd className="type-figure-row text-ink"><Amount value={holding.currentPrice} currency={currency} /></dd>
           {lastLogged && <dd className="type-caption text-muted">Logged {fullDate(lastLogged.date)}</dd>}
         </div>
         <div><dt className="type-label text-muted">Units</dt><dd className="type-figure-row text-ink">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}</dd></div>
-        <div><dt className="type-label text-muted">Cost</dt><dd className="type-figure-row text-ink"><Amount value={holding.totalCost} currency="EUR" /></dd></div>
+        <div><dt className="type-label text-muted">Cost</dt><dd className="type-figure-row text-ink"><Amount value={holding.totalCost} currency={getMainCurrency()} /></dd></div>
       </dl>
 
       <section aria-label="Price" className="mt-5 border-t border-line pt-4">

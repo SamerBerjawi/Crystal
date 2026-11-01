@@ -4,7 +4,7 @@ import { Account, AccountType, Category, Currency, Transaction } from '../types'
 import { ALL_ACCOUNT_TYPES, CURRENCIES } from '../constants';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../lib/utils';
-import { flattenCategories, safeRound, toLocalISOString } from '../utils';
+import { flattenCategories, safeRound, toLocalISOString, getMainCurrency } from '../utils';
 import {
   calculateMatchScore,
   detectAmountFormat,
@@ -214,20 +214,20 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                 } else {
                     if (accountSource === 'single' && selectedSingleAccountId) {
                         const account = existingAccounts.find(a => a.id === selectedSingleAccountId);
-                        newRow.currency = account?.currency || 'EUR';
+                        newRow.currency = account?.currency || getMainCurrency();
                     } else if (accountSource === 'column' && columnMap.account) {
                         const accountName = row[columnMap.account];
                         const existingAccount = existingAccounts.find(a => a.name.toLowerCase() === accountName?.toLowerCase());
-                        newRow.currency = existingAccount ? existingAccount.currency : 'EUR';
+                        newRow.currency = existingAccount ? existingAccount.currency : getMainCurrency();
                     } else {
-                         newRow.currency = 'EUR';
+                         newRow.currency = getMainCurrency();
                     }
                 }
 
             } else { // Account import logic
                 newRow.name = row[columnMap.name];
                 newRow.type = row[columnMap.type];
-                newRow.currency = row[columnMap.currency] || 'EUR';
+                newRow.currency = row[columnMap.currency] || getMainCurrency();
                 
                 const balanceVal = row[columnMap.balance];
                 if (columnMap.balance && balanceVal !== undefined && !isNaN(parseAmount(balanceVal))) {
@@ -351,7 +351,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                     // Attempt to guess currency from rows that use this account
                     // This is a simple guess, taking the first currency found
                     const sampleRow = cleanedData.find(row => row.account === csvName);
-                    const accCurrency = sampleRow?.currency || 'EUR';
+                    const accCurrency = sampleRow?.currency || getMainCurrency();
                     
                     newAccountsToCreate.push({
                         id: newId,

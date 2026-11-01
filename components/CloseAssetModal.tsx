@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Account, AssetClosureDetails } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
-import { formatCurrency, toLocalISOString } from '../utils';
+import { formatCurrency, toLocalISOString, currencySign } from '../utils';
 import Icon from './ui/Icon';
 import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
@@ -147,7 +147,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
                     {closureType === 'Sold' ? 'Realized Selling Price' : 'Closing Valuation'} <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative group">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">€</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">{currencySign(account.currency)}</span>
                     <input
                       id="closure-value"
                       type="number"

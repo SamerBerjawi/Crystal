@@ -2,7 +2,7 @@ import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, laz
 import { Page, User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
 import PageHeader from '../components/PageHeader';
 import { liveSeries } from '../utils/scheduleModel';
-import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound } from '../utils';
+import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToMain, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound, getMainCurrency } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -279,7 +279,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     const monthPrefix = toLocalISOString(new Date()).slice(0, 7);
     return transactions.reduce((flow, tx) => {
       if (tx.transferId || !tx.date.startsWith(monthPrefix)) return flow;
-      const eur = convertToEur(tx.amount, tx.currency);
+      const eur = convertToMain(tx.amount, tx.currency);
       if (tx.type === 'income') flow.income += eur;
       else flow.spending += Math.abs(eur);
       return flow;
@@ -596,7 +596,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         return; // Skip transactions not in selected accounts for calculation.
       }
 
-      const convertedAmount = convertToEur(tx.amount, tx.currency);
+      const convertedAmount = convertToMain(tx.amount, tx.currency);
 
       if (tx.transferId) {
         if (processedTransferIds.has(tx.transferId)) return;
@@ -640,7 +640,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     () =>
       filteredTransactions.map(tx => ({
         ...tx,
-        convertedAmount: convertToEur(tx.amount, tx.currency),
+        convertedAmount: convertToMain(tx.amount, tx.currency),
         parsedDate: parseLocalDate(tx.date),
       })),
     [filteredTransactions]
@@ -669,7 +669,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     txsInPrevPeriod.forEach(tx => {
       if (!analyticsSelectedAccountIds.includes(tx.accountId)) return;
 
-      const convertedAmount = convertToEur(tx.amount, tx.currency);
+      const convertedAmount = convertToMain(tx.amount, tx.currency);
 
       if (tx.transferId) {
         if (processedTransferIds.has(tx.transferId)) return;
@@ -874,7 +874,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       if (style) {
         group.color = colorClassToHex[style.color] || '#A0AEC0';
       }
-      group.value += convertToEur(account.balance, account.currency);
+      group.value += convertToMain(account.balance, account.currency);
       acc[account.type] = group;
       return acc;
     }, {} as Record<string, { value: number, color: string }>);
@@ -993,8 +993,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
     const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
       const signedAmount = tx.type === 'expense'
-        ? -Math.abs(convertToEur(tx.amount, tx.currency))
-        : Math.abs(convertToEur(tx.amount, tx.currency));
+        ? -Math.abs(convertToMain(tx.amount, tx.currency))
+        : Math.abs(convertToMain(tx.amount, tx.currency));
 
       return sum + signedAmount;
     }, 0);
@@ -1012,8 +1012,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     for (const tx of transactionsInPeriod) {
       const dateStr = formatDateKey(parseLocalDate(tx.date));
       const signedAmount = tx.type === 'expense'
-        ? -Math.abs(convertToEur(tx.amount, tx.currency))
-        : Math.abs(convertToEur(tx.amount, tx.currency));
+        ? -Math.abs(convertToMain(tx.amount, tx.currency))
+        : Math.abs(convertToMain(tx.amount, tx.currency));
 
       dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedAmount);
     }
@@ -1139,14 +1139,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const { liquidityRatio, savingsRate } = useMemo(() => {
     const openAccounts = analyticsAccounts.filter(acc => acc.status !== 'closed');
     const liquidCash = openAccounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
-      .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+      .reduce((sum, acc) => sum + convertToMain(acc.balance, acc.currency), 0);
 
     const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     const expenseTxs = analyticsTransactions.filter(t => {
       const d = parseLocalDate(t.date);
       return d >= threeMonthsAgo && t.type === 'expense' && !t.transferId;
     });
-    const totalSpend = expenseTxs.reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+    const totalSpend = expenseTxs.reduce((sum, tx) => sum + Math.abs(convertToMain(tx.amount, tx.currency)), 0);
     const avgMonthlySpend = totalSpend / 3;
 
     const liquidityRatio = avgMonthlySpend > 0 ? (liquidCash / avgMonthlySpend) : 0;
@@ -1159,7 +1159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       return d >= start && d <= end && !t.transferId;
     });
     periodTxs.forEach(tx => {
-      const val = convertToEur(tx.amount, tx.currency);
+      const val = convertToMain(tx.amount, tx.currency);
       if (tx.type === 'income') totalIncomePeriod += val;
       else totalExpensePeriod += Math.abs(val);
     });
@@ -1170,7 +1170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
   }, [analyticsAccounts, analyticsTransactions, duration]);
 
-  const eurToDisplay = useCallback((eur: number) => convertCurrency(eur, 'EUR', preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
+  const eurToDisplay = useCallback((eur: number) => convertCurrency(eur, getMainCurrency(), preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
   const toPreferred = useCallback((amount: number, from: Currency) => convertCurrency(amount, from, preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
 
   const setCushion = useCallback((amount: number) => {
@@ -1214,7 +1214,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         expenseChange,
         incomeSparkline,
         expenseSparkline,
-        currency: 'EUR'
+        currency: getMainCurrency()
       }
     },
     {
@@ -1380,7 +1380,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     const yesterday = toLocalISOString(day);
     return safeRound(analyticsTransactions
       .filter(tx => tx.date === yesterday && tx.type === 'income' && !tx.transferId && analyticsSelectedAccountIds.includes(tx.accountId))
-      .reduce((sum, tx) => sum + convertToEur(tx.amount, tx.currency), 0), 2);
+      .reduce((sum, tx) => sum + convertToMain(tx.amount, tx.currency), 0), 2);
   }, [analyticsTransactions, analyticsSelectedAccountIds]);
 
   const openReview = useCallback(() => {
