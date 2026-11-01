@@ -1105,7 +1105,7 @@ img {
 .dark {
   color-scheme: dark;
   --canvas: #14130F;
-  --mesh-a: rgba(200, 67, 31, .27);
+  --mesh-a: rgba(216, 106, 32, .14);
   --mesh-b: rgba(47, 92, 80, .48);
   --mesh-c: rgba(242, 201, 76, .1);
   --solid: #1E1C17;
