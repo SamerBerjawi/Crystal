@@ -14,10 +14,9 @@ import { Amount } from '../components/ui/Money';
 import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 import { nextDates } from '../utils/scheduleModel';
 import {
   cancelService, detectSubscriptions, expiringCards, pauseService, renewals, resumeService, savedByPausing, seriesFromDetected, serviceStatus, serviceTotals, services,
@@ -41,7 +40,8 @@ const Subscriptions: React.FC = () => {
 
   const today = useMemo(() => new Date(), []);
   const [tab, setTab] = useState<Tab>('active');
-  const [ignored, setIgnored] = useLocalStorage<string[]>('ignored-subscriptions', []);
+  const { preferences, setPreferences } = usePreferencesContext();
+  const ignored = useMemo(() => preferences.ignoredSubscriptions ?? [], [preferences.ignoredSubscriptions]);
   const [editing, setEditing] = useState<SeriesDraft | null>(null);
   const [isFormOpen, setFormOpen] = useState(false);
   const [isCardFormOpen, setCardFormOpen] = useState(false);
@@ -135,7 +135,7 @@ const Subscriptions: React.FC = () => {
                     </div>
                     <span className="type-figure-row shrink-0 text-ink"><Amount value={candidate.amount} currency={candidate.currency} /></span>
                     <div className="flex shrink-0 gap-1">
-                      <Button variant="ghost" size="sm" onPress={() => setIgnored(prev => [...prev, candidate.key])}>Ignore</Button>
+                      <Button variant="ghost" size="sm" onPress={() => setPreferences(prev => ({ ...prev, ignoredSubscriptions: [...(prev.ignoredSubscriptions ?? []), candidate.key] }))}>Ignore</Button>
                       <Button variant="secondary" size="sm" onPress={() => track(candidate)}>Track</Button>
                     </div>
                   </li>

@@ -93,7 +93,7 @@ export const HUBS: Hub[] = [
       { label: 'Data', page: 'Data Management' },
       { label: 'Help', page: 'Documentation' },
     ],
-    otherPages: ['Settings', 'EnableBankingCallback'],
+    otherPages: ['EnableBankingCallback'],
   },
 ];
 

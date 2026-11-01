@@ -1,81 +1,64 @@
-import React, { useState } from 'react';
-import Modal from './Modal';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from './ui/Actions';
+import { TextInput } from './ui/Fields';
+import { Dialog } from './ui/Overlays';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // FIX: Update prop type to handle async function from useAuth hook.
   onChangePassword: (current: string, newPass: string) => Promise<boolean>;
 }
+
+const MIN_LENGTH = 8;
+const MAX_BYTES = 72;
 
 const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClose, onChangePassword }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [isSaving, setSaving] = useState(false);
 
-  // FIX: Make handleSubmit async to await the result of onChangePassword.
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (isOpen) return;
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     setError('');
-    setSuccess('');
+  }, [isOpen]);
 
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match.');
-      return;
-    }
-    if (newPassword.length < 8) {
-        setError('Password must be at least 8 characters long.');
-        return;
-    }
-    if (new TextEncoder().encode(newPassword).length > 72) {
-        setError('Password must be at most 72 bytes long.');
-        return;
-    }
-
-    const wasSuccessful = await onChangePassword(currentPassword, newPassword);
-
-    if (wasSuccessful) {
-      setSuccess('Password updated successfully!');
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } else {
-      setError('Your current password was incorrect.');
-    }
+  const submit = async () => {
+    setError('');
+    if (newPassword !== confirmPassword) return setError('The new passwords don’t match.');
+    if (newPassword.length < MIN_LENGTH) return setError(`Use at least ${MIN_LENGTH} characters.`);
+    if (new TextEncoder().encode(newPassword).length > MAX_BYTES) return setError(`Use at most ${MAX_BYTES} bytes.`);
+    setSaving(true);
+    const changed = await onChangePassword(currentPassword, newPassword);
+    setSaving(false);
+    if (!changed) return setError('Your current password is wrong.');
+    toast.success('Password changed');
+    onClose();
   };
 
-  const labelStyle = "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5";
-
-  if (!isOpen) return null;
-
   return (
-    <Modal onClose={onClose} title="Change Password">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="currentPassword" className={labelStyle}>Current Password</label>
-          <input id="currentPassword" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} required autoComplete="current-password" />
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Change password"
+      footer={close => (
+        <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
+          <Button variant="ghost" onPress={close}>Cancel</Button>
+          <Button isBusy={isSaving} isDisabled={!currentPassword || !newPassword || !confirmPassword} onPress={submit}>Change password</Button>
         </div>
-        <div>
-          <label htmlFor="newPassword" className={labelStyle}>New Password</label>
-          <input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} required autoComplete="new-password" />
-        </div>
-        <div>
-          <label htmlFor="confirmPassword" className={labelStyle}>Confirm New Password</label>
-          <input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} required autoComplete="new-password" />
-        </div>
-        
-        {error && <p className="text-xs font-semibold text-rose-500">{error}</p>}
-        {success && <p className="text-xs font-semibold text-emerald-500">{success}</p>}
-
-        <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-          <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
-          <button type="submit" className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95`}>Update Password</button>
-        </div>
-      </form>
-    </Modal>
+      )}
+    >
+      <div className="space-y-4">
+        <TextInput label="Current password" type="password" autoComplete="current-password" autoFocus value={currentPassword} onChange={setCurrentPassword} />
+        <TextInput label="New password" type="password" autoComplete="new-password" help={`At least ${MIN_LENGTH} characters.`} value={newPassword} onChange={setNewPassword} />
+        <TextInput label="Confirm new password" type="password" autoComplete="new-password" error={error || undefined} value={confirmPassword} onChange={setConfirmPassword} />
+      </div>
+    </Dialog>
   );
 };
 

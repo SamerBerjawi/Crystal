@@ -19,31 +19,16 @@ export interface BillNotificationItem {
 export interface UseBillNotificationsProps {
   recurringTransactions: RecurringTransaction[];
   billsAndPayments: BillPayment[];
+  dismissedIds: string[];
+  onDismiss?: (ids: string[]) => void;
 }
 
 export function useBillNotifications({
   recurringTransactions = [],
   billsAndPayments = [],
+  dismissedIds,
+  onDismiss,
 }: UseBillNotificationsProps) {
-  const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const saved = localStorage.getItem('crystal_dismissed_bill_notifications');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem('crystal_dismissed_bill_notifications', JSON.stringify(dismissedIds));
-    } catch (e) {
-      console.warn('Failed to save dismissed notification IDs', e);
-    }
-  }, [dismissedIds]);
-
   const upcomingBillNotifications = useMemo(() => {
     const todayStr = toLocalISOString(new Date());
     const today = parseLocalDate(todayStr);
@@ -136,12 +121,12 @@ export function useBillNotifications({
   }, [recurringTransactions, billsAndPayments, dismissedIds]);
 
   const dismissNotification = (id: string) => {
-    setDismissedIds((prev) => [...prev, id]);
+    onDismiss?.([id]);
   };
 
   const clearAllNotifications = () => {
     const allIds = upcomingBillNotifications.map((item) => item.id);
-    setDismissedIds((prev) => [...prev, ...allIds]);
+    onDismiss?.(allIds);
   };
 
   return {

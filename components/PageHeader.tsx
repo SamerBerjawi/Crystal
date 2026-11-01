@@ -107,7 +107,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, stats =
         </dl>
       )}
       {actions && (
-        <Wrapper index={stats.length} className="flex flex-wrap items-center gap-2 md:ml-auto md:justify-end">
+        <Wrapper index={stats.length} className="flex w-full flex-wrap items-center gap-2 md:ml-auto md:w-auto md:justify-end">
           {actions}
         </Wrapper>
       )}

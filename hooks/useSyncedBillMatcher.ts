@@ -194,23 +194,10 @@ export const useSyncedBillMatcher = (
   saveTransaction: (transactionsToSave: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void,
   saveRecurringTransaction: (recurringToSave: RecurringTransaction) => void,
   saveBillPayment: (billToSave: BillPayment) => void,
-  config: MatcherConfig = DEFAULT_MATCHER_CONFIG
+  config: MatcherConfig = DEFAULT_MATCHER_CONFIG,
+  ignoredMatchIds: string[] = [],
+  saveIgnoredIds: (ids: string[]) => void = () => undefined
 ) => {
-  const [ignoredMatchIds, setIgnoredMatchIds] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('synced_bill_ignored_matches');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const saveIgnoredIds = (ids: string[]) => {
-    setIgnoredMatchIds(ids);
-    try {
-      localStorage.setItem('synced_bill_ignored_matches', JSON.stringify(ids));
-    } catch (error) { warnIgnored('remembering ignored bill matches', error); }
-  };
 
   const suggestions = useMemo(() => {
     const results: SyncedBillMatchSuggestion[] = [];

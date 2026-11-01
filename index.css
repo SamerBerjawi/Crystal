@@ -987,6 +987,7 @@ img {
  * Later rules override the older values above, which go in module 13.
  * ------------------------------------------------------------------ */
 :root {
+  color-scheme: light;
   --canvas: #EBE8E1;
   --mesh-a: rgba(242, 211, 189, .95);
   --mesh-b: rgba(207, 223, 205, .95);
@@ -1092,6 +1093,7 @@ img {
 }
 
 .dark {
+  color-scheme: dark;
   --canvas: #14130F;
   --mesh-a: rgba(200, 67, 31, .27);
   --mesh-b: rgba(47, 92, 80, .48);

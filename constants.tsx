@@ -190,7 +190,6 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Integrations', icon: 'zap' },
   { name: 'Data Management', icon: 'download' },
   { name: 'Documentation', icon: 'BookOpen01' },
-  { name: 'Settings', icon: 'sliders' },
 ];
 
 export const ITEM_COLORS: Record<string, string> = {
@@ -206,7 +205,6 @@ export const ITEM_COLORS: Record<string, string> = {
   'Subscriptions': 'rose',
   'Quotes & Invoices': 'violet',
   'Tasks': 'lime',
-  'Settings': 'neutral',
   'Categories': 'amber',
   'Tags': 'pink',
   'Merchants': 'neutral',

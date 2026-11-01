@@ -41,7 +41,6 @@ const pageRegistry = {
   Forecasting: { path: '/forecasting', loader: () => import('./pages/Forecasting') },
   Goals: { path: '/goals', loader: () => import('./pages/Goals') },
   Challenges: { path: '/challenges', loader: () => import('./pages/Challenges') },
-  Settings: { path: '/settings', loader: () => import('./pages/Settings') },
   'Schedule & Bills': { path: '/schedule', loader: () => import('./pages/Schedule') },
   Tasks: { path: '/tasks', loader: () => import('./pages/Tasks') },
   Categories: { path: '/categories', loader: () => import('./pages/Categories') },
@@ -69,7 +68,6 @@ const Budgeting = lazyWithRetry(pageRegistry.Budget.loader);
 const Forecasting = lazyWithRetry(pageRegistry.Forecasting.loader);
 const GoalsPage = lazyWithRetry(pageRegistry.Goals.loader);
 const ChallengesPage = lazyWithRetry(pageRegistry.Challenges.loader);
-const SettingsPage = lazyWithRetry(pageRegistry.Settings.loader);
 const SchedulePage = lazyWithRetry(pageRegistry['Schedule & Bills'].loader);
 const CategoriesPage = lazyWithRetry(pageRegistry.Categories.loader);
 const TagsPage = lazyWithRetry(pageRegistry.Tags.loader);
@@ -103,6 +101,7 @@ import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
+import { moveLocalChoices } from './utils/syncedChoices';
 import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
 const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
@@ -193,6 +192,11 @@ const parseRoute = (pathname: string): RouteInfo => {
 
   if (holdingMatch?.[1]) {
     return { page: 'HoldingDetail', matched: true, holdingSymbol: decodeURIComponent(holdingMatch[1]) };
+  }
+
+  // The Settings tile page is gone (D-045). Its old address opens the hub's first tab.
+  if (normalizedPath === '/settings') {
+    return { page: 'Personal Info', matched: true, accountId: null };
   }
 
   const matchedPage = (Object.entries(routePathMap) as [Page, string][])
@@ -827,6 +831,15 @@ const App: React.FC = () => {
   }, [setAccountOrder, setTaskOrder]);
 
   // FX Rates Auto-update
+  // Choices that used to stay in this browser move to preferences once, as a normal change so they get saved (S-002).
+  const hasMovedLocalChoices = useRef(false);
+  useEffect(() => {
+    if (!isDataLoaded || hasMovedLocalChoices.current) return;
+    hasMovedLocalChoices.current = true;
+    const moved = moveLocalChoices(preferences, window.localStorage);
+    if (moved.hasChanged) setPreferences(moved.preferences);
+  }, [isDataLoaded, preferences]);
+
   useEffect(() => {
     if (!preferences.twelveDataApiKey || !isDataLoaded) return;
 
@@ -2753,7 +2766,7 @@ const App: React.FC = () => {
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
     if (activeConnections.length === 0) {
-      toast.info('No connected banks to sync yet', { description: 'Add a bank under Settings → Integrations.' });
+      toast.info('No connected banks to sync yet', { description: 'Add a bank under Settings → Connections.' });
       return;
     }
 
@@ -2870,6 +2883,7 @@ const App: React.FC = () => {
   const viewingHolding = useMemo(() => holdingsOverview.holdings.find(h => h.symbol === viewingHoldingSymbol), [holdingsOverview, viewingHoldingSymbol]);
   const cashAccounts = useMemo(() => accounts.filter(a => a.type === 'Checking' || a.type === 'Savings'), [accounts]);
 
+  const dismissedBillNotifications = useMemo(() => preferences.dismissedBillNotifications ?? [], [preferences.dismissedBillNotifications]);
   const {
     upcomingBillNotifications,
     notificationCount,
@@ -2877,7 +2891,9 @@ const App: React.FC = () => {
     clearAllNotifications
   } = useBillNotifications({
     recurringTransactions,
-    billsAndPayments
+    billsAndPayments,
+    dismissedIds: dismissedBillNotifications,
+    onDismiss: ids => setPreferences(prev => ({ ...prev, dismissedBillNotifications: [...(prev.dismissedBillNotifications ?? []), ...ids] })),
   });
 
   const handleNotificationProcessItem = useCallback((item: RecurringTransaction | BillPayment) => {
@@ -2936,7 +2952,6 @@ const App: React.FC = () => {
       case 'Forecasting': return <Forecasting />;
       case 'Goals': return <GoalsPage />;
       case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
-      case 'Settings': return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills': return <SchedulePage />;
       case 'Categories': return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags': return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
@@ -3022,7 +3037,7 @@ const App: React.FC = () => {
 
   return (
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
-      <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
+      <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod} preferences={preferences} setPreferences={setPreferences}>
         <PrivacyContext.Provider value={isPrivacyMode}>
         <ReviewProvider>
         <Toaster

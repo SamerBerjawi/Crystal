@@ -58,7 +58,7 @@ export const useKeyboardShortcuts = ({
             return;
           case 's':
             e.preventDefault();
-            onNavigate('Settings');
+            onNavigate('Personal Info');
             return;
           default:
             break;

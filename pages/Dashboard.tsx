@@ -147,6 +147,8 @@ const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statement
   );
 };
 
+const EMPTY_IDS: string[] = [];
+
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBanks, isSyncingBanks, setCurrentPage, onOpenAccount }) => {
   const { confirm, ConfirmDialog } = useConfirm();
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
@@ -1360,7 +1362,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const dedupedBillSuggestions = useMemo(() => (selectedAccountIds.length === 0 ? review.billMatches : review.billMatches.filter(s => selectedAccountIds.includes(s.transaction.accountId))), [review.billMatches, selectedAccountIds]);
 
   const totalPendingMatchesCount = dedupedTransferSuggestions.length + dedupedBillSuggestions.length;
-  const { notificationCount: billsDue } = useBillNotifications({ recurringTransactions, billsAndPayments });
+  const { notificationCount: billsDue } = useBillNotifications({ recurringTransactions, billsAndPayments, dismissedIds: usePreferencesSelector(p => p.dismissedBillNotifications) ?? EMPTY_IDS });
 
   const toCategorise = useMemo(
     () => analyticsTransactions.filter(tx => isUncategorised(tx) && analyticsSelectedAccountIds.includes(tx.accountId)).length,

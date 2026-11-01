@@ -1,316 +1,39 @@
-
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Page } from '../types';
-import Card from '../components/Card';
+import SettingsGroup from '../components/SettingsGroup';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
-import Icon from '../components/ui/Icon';
+import { TextInput } from '../components/ui/Fields';
+import { EmptyState } from '../components/ui/States';
+import { HELP_SECTIONS, searchHelp } from '../utils/helpContent';
 
 interface DocumentationProps {
   setCurrentPage: (page: Page) => void;
 }
 
-interface Section {
-    id: string;
-    title: string;
-    icon: string;
-    iconColor: string;
-    content: React.ReactNode;
-}
-
-const sections: Section[] = [
-    {
-        id: 'getting-started',
-        title: 'System Initialization',
-        icon: 'terminal',
-        iconColor: 'text-blue-500',
-        content: (
-            <div className="space-y-6">
-                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
-                    Crystal operates as a high-fidelity financial telemetry system. Initialization allows you to establish a secure data perimeter and define your primary currency standards.
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                    <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                            <Icon name="lock" className="text-xl" />
-                        </div>
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">Security Protocol</h4>
-                        <p className="text-sm font-normal leading-relaxed text-light-text dark:text-dark-text">Establish a baseline using <strong>Demo Mode</strong> to simulate ledger operations, or register a persistent cloud node for live data tracking.</p>
-                    </div>
-                    <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                            <Icon name="database" className="text-xl" />
-                        </div>
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">Local Persistence</h4>
-                        <p className="text-sm font-normal leading-relaxed text-light-text dark:text-dark-text">By default, all telemetry resides within your browser's encrypted sandbox. No data leaves your secure perimeter unless explicitly synchronized.</p>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'dashboard',
-        title: 'Command Center',
-        icon: 'line_chart_up',
-        iconColor: 'text-purple-500',
-        content: (
-            <div className="space-y-6">
-                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
-                    The Dashboard serves as your multi-dimensional Command Center. It provides real-time visualization of your financial state through a modular, widget-based architecture.
-                </p>
-                <div className="space-y-4">
-                    {[
-                        { title: 'Dynamic Layouts', desc: 'Engage "Interface Modification Mode" to reorganize, resize, and prioritize data widgets based on your current operational needs.' },
-                        { title: 'Global Time-Slicing', desc: 'Sync all visual nodes to specific temporal windows. From "Last 24h" to "Full Fiscal Year" snapshots.' },
-                        { title: 'Heatmap Telemetry', desc: 'Visualize spending density through geographic and categorical heatmaps for instant pattern recognition.' }
-                    ].map((item, i) => (
-                        <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                            <div className="w-8 h-8 rounded-lg bg-purple-500 text-white flex items-center justify-center font-semibold text-xs shrink-0">0{i+1}</div>
-                            <div>
-                                <h4 className="text-sm font-semibold tracking-tight text-light-text dark:text-dark-text mb-1">{item.title}</h4>
-                                <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{item.desc}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'taxonomy',
-        title: 'Taxonomy & Semantics',
-        icon: 'folder',
-        iconColor: 'text-orange-500',
-        content: (
-            <div className="space-y-6">
-                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
-                    Organize your data using two distinct logical layers: Hierarchical Categories (Taxonomy) and Flat Labels (Semantics).
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-3">
-                        <h4 className="text-sm font-semibold tracking-tight text-primary-600 dark:text-primary-400">Taxonomy (Categories)</h4>
-                        <p className="text-xs font-normal leading-relaxed text-light-text-secondary dark:text-dark-text-secondary">Strict parent-child relationships. Use for primary structure like "Housing &gt; Rent" or "Transportation &gt; Fuel".</p>
-                    </div>
-                    <div className="space-y-3">
-                        <h4 className="text-sm font-semibold tracking-tight text-orange-700 dark:text-orange-400">Semantics (Tags)</h4>
-                        <p className="text-xs font-normal leading-relaxed text-light-text-secondary dark:text-dark-text-secondary">Multi-dimensional overlays. Apply #vacation, #business, or #trip-2024 to cluster data across different taxonomic branches.</p>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'merchants',
-        title: 'Merchant Intelligence',
-        icon: 'building',
-        iconColor: 'text-indigo-500',
-        content: (
-            <div className="space-y-6">
-                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
-                    Crystal identifies and profiles transaction entities automatically. It builds a history of interaction with specific merchants to provide better categorization and recurring payment detection.
-                </p>
-                <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl">
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {[
-                            { icon: 'tag', text: 'Auto-Category Mapping' },
-                            { icon: 'clock', text: 'Temporal Distribution Analysis' },
-                            { icon: 'zap', text: 'Recurring Pattern Signal' },
-                            { icon: 'sliders', text: 'Custom Aggregation Rules' }
-                        ].map((item, i) => (
-                            <li key={i} className="flex items-center gap-3 text-xs font-medium text-light-text dark:text-dark-text">
-                                <Icon name={item.icon} className="text-lg opacity-60" />
-                                {item.text}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'data-management',
-        title: 'Data Sovereignty',
-        icon: 'sliders',
-        iconColor: 'text-emerald-500',
-        content: (
-            <div className="space-y-6">
-                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
-                    Total control over your data nodes. Crystal provides granular tools for exporting and restoring your financial history.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">Granular Export</h4>
-                        <p className="text-sm font-normal leading-relaxed text-light-text dark:text-dark-text">Extract specific vectors: Accounts, Transactions, Budgets, or Schema patterns. Available in high-density JSON or interoperable CSV formats.</p>
-                    </div>
-                    <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">Merge Restorations</h4>
-                        <p className="text-sm font-normal leading-relaxed text-light-text dark:text-dark-text">Import data without data loss. Use the "Merge" protocol to combine external backup nodes with your current state, resolving conflicts through ID matching.</p>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'action-board',
-        title: 'Action Board (Tasks)',
-        icon: 'check_circle',
-        iconColor: 'text-blue-600',
-        content: (
-            <div className="space-y-6">
-                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
-                    The Action Board is a telemetric task management system designed to track operational chores, follow-ups, and systemic obligations.
-                </p>
-                <div className="space-y-4">
-                    {[
-                        { title: 'Status Matrix', desc: 'Manage workflow through Kanban-style columns: To Do, In Progress, and Done. Use Manual Sequence mode for precise prioritization.' },
-                        { title: 'Temporal Density', desc: 'Visualize task distribution across the temporal horizon using the density heatmap. Identify bottleneck windows before they impact system stability.' },
-                        { title: 'Priority Signals', desc: 'Assign "High", "Medium", or "Low" priority signals to ensure critical latency items are addressed first.' }
-                    ].map((item, i) => (
-                        <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-semibold text-xs shrink-0">0{i+1}</div>
-                            <div>
-                                <h4 className="text-sm font-semibold tracking-tight text-light-text dark:text-dark-text mb-1">{item.title}</h4>
-                                <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{item.desc}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )
-    }
-];
-
 const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
-    const [activeSection, setActiveSection] = useState(sections[0].id);
-    const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const [search, setSearch] = useState('');
+  const sections = useMemo(() => searchHelp(HELP_SECTIONS, search), [search]);
 
-    // Scroll Spy Logic
-    useEffect(() => {
-        const handleScroll = () => {
-            const scrollPosition = window.scrollY + 150; // Offset for header
-
-            for (const section of sections) {
-                const element = sectionRefs.current[section.id];
-                if (element) {
-                    const offsetTop = element.offsetTop;
-                    const offsetHeight = element.offsetHeight;
-
-                    if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
-                        setActiveSection(section.id);
-                        break;
-                    }
-                }
-            }
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    const scrollToSection = (id: string) => {
-        const element = sectionRefs.current[id];
-        if (element) {
-            const yOffset = -100; // Header height offset
-            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-            window.scrollTo({ top: y, behavior: 'smooth' });
-        }
-    };
-
-    const handleBackToTop = () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    return (
-        <div className="w-full animate-fade-in-up pb-24 px-4">
-             {/* Navigation & Header */}
-             <SettingsSubpageHeader
-               markerIcon="BookOpen01"
-               markerLabel="Operational Manual"
-               title="Documentation"
-               subtitle="Detailed technical guidance on operating the Crystal system. From taxonomy definition to advanced data synchronization."
-               setCurrentPage={setCurrentPage}
-               className="pt-4 mb-8"
-             />
-
-            <div className="flex flex-col lg:flex-row gap-16">
-                {/* Sticky Navigation Sidebar */}
-                <aside className="hidden lg:block w-72 flex-shrink-0">
-                    <div className="sticky top-24 space-y-2 p-2 glass-section rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-card">
-                        <p className="px-4 py-4 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-                            Manual Index
-                        </p>
-                        {sections.map(section => (
-                            <button
-                                key={section.id}
-                                onClick={() => scrollToSection(section.id)}
-                                className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center gap-4 ${
-                                    activeSection === section.id
-                                        ? 'glass-tile text-primary-500 shadow-card -translate-y-0.5'
-                                        : 'text-light-text-secondary opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5'
-                                }`}
-                            >
-                                <Icon name={section.icon} className={`text-xl transition-all ${activeSection === section.id ? 'scale-110' : 'opacity-40 scale-90'}`} />
-                                <span className="text-xs font-semibold tracking-wide">{section.title}</span>
-                            </button>
-                        ))}
-                    </div>
-                </aside>
-
-                {/* Mobile Navigation */}
-                <div className="lg:hidden overflow-x-auto pb-4 -mx-4 px-4 flex gap-4 snap-x no-scrollbar">
-                     {sections.map(section => (
-                        <button
-                            key={section.id}
-                            onClick={() => scrollToSection(section.id)}
-                            className={`flex-shrink-0 px-6 py-3 rounded-2xl text-xs font-semibold tracking-wide whitespace-nowrap transition-all ${
-                                activeSection === section.id
-                                    ? 'bg-primary-500 text-white shadow-xl shadow-primary-500/20'
-                                    : 'bg-black/5 dark:bg-white/5 text-light-text-secondary'
-                            }`}
-                        >
-                            {section.title}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Main Content */}
-                <div className="flex-1 space-y-24">
-                    {sections.map(section => (
-                        <section 
-                            key={section.id} 
-                            id={section.id} 
-                            ref={(el) => { sectionRefs.current[section.id] = el; }}
-                            className="scroll-mt-24 group"
-                        >
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-6">
-                                    <Icon name={section.icon} className={`text-4xl group-hover:scale-110 transition-transform ${section.iconColor}`} />
-                                    <div>
-                                        <h2 className="text-xl md:text-2xl font-semibold tracking-tight leading-snug text-light-text dark:text-dark-text">{section.title}</h2>
-                                        <div className="h-1 w-12 bg-primary-500 mt-2 rounded-full transform origin-left group-hover:scale-x-150 transition-transform"></div>
-                                    </div>
-                                </div>
-                                <div className="text-light-text dark:text-dark-text leading-relaxed">
-                                    {section.content}
-                                </div>
-                            </div>
-                        </section>
-                    ))}
-
-                    <div className="flex justify-center pt-8">
-                        <button 
-                            onClick={handleBackToTop}
-                            className="group flex items-center gap-4 px-10 py-5 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-xs font-semibold uppercase tracking-wider shadow-sm"
-                        >
-                            <Icon name="arrow_upward" className="group-hover:-translate-y-1 transition-transform" />
-                            Scroll to Origin
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+  return (
+    <div className="space-y-6">
+      <SettingsSubpageHeader title="Help" setCurrentPage={setCurrentPage} />
+      <TextInput label="Search help" className="max-w-xl" value={search} onChange={setSearch} />
+      {sections.length > 0 ? sections.map(section => (
+        <SettingsGroup key={section.id} id={section.id} title={section.title}>
+          <dl className="space-y-3">
+            {section.points.map(point => (
+              <div key={point.title}>
+                <dt className="type-body-strong text-ink">{point.title}</dt>
+                <dd className="type-body mt-0.5 text-muted">{point.text}</dd>
+              </div>
+            ))}
+          </dl>
+        </SettingsGroup>
+      )) : (
+        <EmptyState icon="search" title="Nothing found" description="Try another word." />
+      )}
+    </div>
+  );
 };
 
 export default Documentation;

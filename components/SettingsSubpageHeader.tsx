@@ -1,7 +1,7 @@
 import React from 'react';
 import { Page } from '../types';
 import PageHeader, { type PageStat } from './PageHeader';
-import Icon from './ui/Icon';
+import SettingSearch from './SettingSearch';
 
 interface SettingsSubpageHeaderProps {
   title: string;
@@ -15,50 +15,20 @@ interface SettingsSubpageHeaderProps {
   className?: string;
 }
 
-const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({
-  title,
-  subtitle,
-  stats,
-  markerIcon,
-  markerLabel,
-  accentColor = 'primary',
-  actions,
-  setCurrentPage,
-  className = '',
-}) => {
-  return (
-    <div className={`space-y-4 mb-6 ${className}`}>
-      {/* Top Breadcrumb & Back Navigation */}
-      {setCurrentPage && (
-        <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary pt-1">
-          <button
-            type="button"
-            onClick={() => setCurrentPage('Settings')}
-            className="group flex items-center gap-1.5 min-h-[28px] font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <div className="w-5 h-5 rounded-md bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-              <Icon name="arrow_back" className="text-sm leading-none" />
-            </div>
-            <span>Settings</span>
-          </button>
-          <span className="opacity-30 font-bold">/</span>
-          <span className="font-semibold text-light-text dark:text-dark-text opacity-90">{title}</span>
-        </div>
-      )}
-
-      {/* Main Page Header */}
-      <PageHeader
-        title={title}
-        subtitle={subtitle}
-        stats={stats}
-        markerIcon={markerIcon}
-        markerLabel={markerLabel}
-        accentColor={accentColor}
-        actions={actions}
-        className="!mb-0 !pb-2"
-      />
-    </div>
-  );
-};
+/** The header of every Settings page. "Find a setting" stands in for the old tile page (D-045). */
+const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({ title, subtitle, stats, actions, setCurrentPage, className = '' }) => (
+  <PageHeader
+    title={title}
+    subtitle={subtitle}
+    stats={stats}
+    className={className}
+    actions={(actions || setCurrentPage) && (
+      <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
+        {setCurrentPage && <SettingSearch setCurrentPage={setCurrentPage} />}
+        {actions}
+      </div>
+    )}
+  />
+);
 
 export default SettingsSubpageHeader;
