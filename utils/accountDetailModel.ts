@@ -1178,7 +1178,7 @@ export type AccountArchetypeId =
   | 'physical_asset';
 
 /**
- * Maps any Account to one of the 5 Unified Detail Archetypes in `/accounts-new/:id`.
+ * Maps any Account to one of the 5 Unified Detail Archetypes.
  */
 export function resolveAccountArchetype(account: Account): AccountArchetypeId {
   if (account.type === 'Savings') return 'yield_pot';

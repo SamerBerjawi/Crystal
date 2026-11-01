@@ -3,7 +3,7 @@ import { parseAmount as parseTypedAmount } from './parseAmount';
 import { safeAdd } from '../utils';
 
 /*
- * Budget logic for BudgetNew (UI_UX_DESIGN_REFERENCE.md §5.1, D13). Pure and strict-typed, so it is unit tested
+ * Budget logic. Pure and strict-typed, so it is unit tested
  * (tests/unit/budgetModel.test.ts). Amounts are converted by an injected `convert` so this file needs no rates.
  */
 

@@ -1,7 +1,7 @@
 import type { Account, Currency, MerchantLocation, MerchantRule, RecurrenceFrequency, RecurringTransaction, Transaction, WeekendAdjustment } from '../types';
 
 /**
- * Pure logic for TransactionsNew (UI_UX_DESIGN_REFERENCE.md §5.0, D13): display rows, filters, day groups,
+ * Pure logic for transactions: display rows, filters, day groups,
  * period totals, CSV and turning a form draft into the transactions to save. Unit tested in
  * tests/unit/transactionsModel.test.ts. Amounts follow the stored convention: expenses negative, income
  * positive; a transfer is an expense leg and an income leg sharing a `transferId`.

@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { getAccountBrandfetchUrl } from '../../utils/brandfetch';
-import { accountTypeIcon } from '../../components/new/EntityIcon';
 import type { Account } from '../../types';
 
 test('getAccountBrandfetchUrl returns null when brandfetchClientId is not configured', () => {
@@ -98,18 +97,4 @@ test('getAccountBrandfetchUrl respects merchantLogoOverrides', () => {
   const urlDomain = getAccountBrandfetchUrl(acc as Account, 'client_xyz', domainOverrides);
   assert.ok(urlDomain);
   assert.match(urlDomain!, /cdn\.brandfetch\.io\/custombank\.de/);
-});
-
-test('accountTypeIcon resolves appropriate archetype icons', () => {
-  assert.equal(accountTypeIcon({ type: 'Checking' }), 'bank');
-  assert.equal(accountTypeIcon({ type: 'Savings' }), 'piggy');
-  assert.equal(accountTypeIcon({ type: 'Credit Card' }), 'card');
-  assert.equal(accountTypeIcon({ type: 'Loan' }), 'invoice');
-  assert.equal(accountTypeIcon({ type: 'Lending' }), 'transactions');
-  assert.equal(accountTypeIcon({ type: 'Property' }), 'home');
-  assert.equal(accountTypeIcon({ type: 'Vehicle' }), 'pin');
-  assert.equal(accountTypeIcon({ type: 'Investment', subType: 'Spare Change' }), 'piggy');
-  assert.equal(accountTypeIcon({ type: 'Investment', subType: 'Pension Fund' }), 'investments');
-  assert.equal(accountTypeIcon({ type: 'Other Liabilities' }), 'warning');
-  assert.equal(accountTypeIcon({ type: 'Other Assets' }), 'wallet');
 });

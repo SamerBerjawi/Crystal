@@ -15,7 +15,9 @@
     "utils/enableBankingStorage.ts",
     "utils/brandfetch.ts",
     "utils/investments.ts",
-    "utils/newRoutes.ts",
-    "utils/transactionsModel.ts"
+    "utils/transactionsModel.ts",
+    "utils/scheduleModel.ts",
+    "utils/forecastModel.ts",
+    "utils/goalsModel.ts"
   ]
 }

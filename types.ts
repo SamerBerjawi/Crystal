@@ -284,6 +284,8 @@ export interface Transaction {
   currency: Currency;
   transferId?: string;
   recurringSourceId?: string;
+  /** The occurrence of `recurringSourceId` this transaction paid (its original date). */
+  recurringOccurrenceDate?: string;
   importId?: string;
   sureId?: string;
   principalAmount?: number;
@@ -438,6 +440,8 @@ export interface FinancialGoal {
   parentId?: string;
   isBucket?: boolean;
   paymentAccountId?: string;
+  /** Savings goals: the account the money goes into. Contributions are a transfer from `paymentAccountId`. */
+  destinationAccountId?: string;
   // One-time
   date?: string;
   // Recurring

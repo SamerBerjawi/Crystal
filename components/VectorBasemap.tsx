@@ -7,7 +7,7 @@ import { BASEMAP_ATTRIBUTION, loadBasemapStyle } from '../utils/mapStyle';
 
 /**
  * Basemap for the classic Leaflet maps: OSMF vector tiles with VersaTiles' cartography, drawn by MapLibre through
- * the Leaflet bridge. Same style as the New UI maps (utils/mapStyle.ts). Replaces the CARTO raster tiles.
+ * the Leaflet bridge. Style from utils/mapStyle.ts. Replaces the CARTO raster tiles.
  */
 export const VectorBasemap = ({ dark }: { dark: boolean }) => {
   const map = useMap();

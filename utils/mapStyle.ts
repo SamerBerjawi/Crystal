@@ -1,5 +1,5 @@
 /**
- * The app's basemap (UI_UX_DESIGN_REFERENCE.md §17, R11): OpenStreetMap Foundation vector tiles (the Shortbread
+ * The app's basemap: OpenStreetMap Foundation vector tiles (the Shortbread
  * schema) drawn client-side by MapLibre with VersaTiles' cartography, the same combination Home Assistant 2026.10
  * uses. Light is the `colorful` theme; dark is `colorful-dark` (the old `eclipse` palette). No API key, and no
  * CARTO. Neutral on purpose: the New maps and the classic ones both build their style here.
