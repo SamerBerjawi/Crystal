@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { filingFor, setFiling } from '../utils/rules';
 import type { Suggestion } from '../hooks/useTransactionMatcher';
 import type { SyncedBillMatchSuggestion } from '../hooks/useSyncedBillMatcher';
 import type { Account, Transaction } from '../types';
@@ -104,9 +105,9 @@ const ReviewQueue: React.FC = () => {
 
   const suggestions = useMemo(() => {
     if (active?.kind !== 'categorise') return [];
-    const rule = preferences.merchantRules?.[normalizeMerchantKey(active.tx.merchant) ?? ''];
-    return suggestCategories(active.tx, transactions, rule?.category);
-  }, [active, transactions, preferences.merchantRules]);
+    const filing = filingFor(active.tx.merchant, preferences.transactionRules);
+    return suggestCategories(active.tx, transactions, filing?.actions.find(action => action.field === 'category')?.value);
+  }, [active, transactions, preferences.transactionRules]);
 
   const accountOf = (tx: Transaction) => accounts.find(account => account.id === tx.accountId);
   const categories = active?.kind === 'categorise' && active.tx.type === 'income' ? incomeCategories : expenseCategories;
@@ -122,7 +123,8 @@ const ReviewQueue: React.FC = () => {
     saveTransaction([{ ...active.tx, category: picked }], [], { skipRules: true });
     const key = normalizeMerchantKey(active.tx.merchant);
     if (alwaysFile && key) {
-      setPreferences(prev => ({ ...prev, merchantRules: { ...(prev.merchantRules || {}), [key]: { ...(prev.merchantRules?.[key] || {}), category: picked } } }));
+      const description = filingFor(active.tx.merchant, preferences.transactionRules)?.actions.find(action => action.field === 'description')?.value;
+      setPreferences(prev => ({ ...prev, transactionRules: setFiling(prev.transactionRules ?? [], key, active.tx.merchant ?? key, { category: picked, description }) }));
     }
   };
 

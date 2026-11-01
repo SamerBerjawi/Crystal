@@ -19,8 +19,8 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Done, committed on `feat/redesign-planning` |
 | 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Done, committed on `feat/redesign-investments` |
 | 8 | Reports | Reports, Invoices, Challenges | Done, committed on `feat/redesign-reports` |
-| 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Done, committed on `feat/redesign-settings` |
-| 10 | Rules | Rebuild (`D-009`), with tests first | Not started |
+| 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Done, committed on `feat/redesign-settings`, PR open |
+| 10 | Rules | Rebuild (`D-009`), with tests first | Done, committed on `feat/redesign-rules` |
 | 11 | PIN lock | Idle lock, server-side design (`D-013`) | Not started |
 | 12 | Any currency | Support across the app (`S-010`) | Not started |
 | 13 | Clean-up | Remove bridge, `@base-ui/react`, `DESIGN.md` | Not started |
@@ -417,3 +417,25 @@ Not tested:
 - Drag to reorder categories by hand. The move logic has unit tests.
 - Move up and Move down in the running app. The logic has unit tests.
 - Downloaded export files. The contents have unit tests.
+
+## Module 10 log
+
+Modules 0 to 8 merged into `main` on 2026-11-01 through PRs #291 to #300.
+
+- Engine: `utils/rules.ts` has one way to run rules, `applyRules`, used by saving, bank sync, the form and previews. The core logic now has tests.
+- Migration: `utils/rulesMigration.ts` runs on every load and does nothing once done, so an older backup restored later moves across too. Loads don't save by themselves, so the moved data reaches the server with the next change.
+- Model: `utils/rulesModel.ts` holds sentences, previews, runs, undo, ordering, drafts and suggestions.
+- Page: `pages/Rules.tsx`, `RuleBuilder`, `RuleRow` and `RulesAdvanced` replace the 3,420-line page. `RegexCategorizationModal` is removed.
+- Merchants and the Review queue read and write always file rules. Merchants has a link to Rules in place of the regex dialog.
+
+Tested in the app at 1440×900, 768×1024 and 375×812, with no overflow: migrating old-format data, adding a suggestion, builder validation, a template, live match count, Move down, preview, apply, undo, try a transaction, phone builder steps, editing an always file from Merchants.
+
+Not tested:
+- Migration against real saved data on a real server.
+- A rule firing on a live bank sync. A bank record with an id has a unit test.
+- Drag to reorder by hand. The move logic has unit tests.
+- Always file from the Review queue in the app.
+- Autofill in the running transaction form with the new rules. It has unit tests.
+- A very large rule list or ledger, because match counts run on every change.
+
+`undoRulesMigration` is tested but has no button. Loading migrates again unless the older code is restored, so it's a recovery tool.
