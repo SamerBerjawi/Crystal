@@ -1,9 +1,11 @@
 import type { MouseEventHandler, ReactNode } from "react";
-import { X as CloseX } from "@phosphor-icons/react";
 import { Dot } from "@/components/foundations/dot-icon";
 import { cx } from "@/lib/utils/cx";
 import type { BadgeColors, BadgeTypeToColorMap, BadgeTypes, FlagTypes, IconComponentType, Sizes } from "./badge-types";
 import { badgeTypes } from "./badge-types";
+import { createIcon } from "@/components/ui/Icon";
+
+const CloseX = createIcon("X");
 
 export const filledColors: Record<BadgeColors, { root: string; addon: string; addonButton: string }> = {
     gray: {

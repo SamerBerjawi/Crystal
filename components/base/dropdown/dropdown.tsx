@@ -1,5 +1,4 @@
 import { type FC, type RefAttributes, useCallback } from "react";
-import { Check, CaretRight as ChevronRight, DotsThreeVertical as DotsVertical } from "@phosphor-icons/react";
 import type {
     ButtonProps as AriaButtonProps,
     MenuItemProps as AriaMenuItemProps,
@@ -23,6 +22,11 @@ import { Avatar } from "../avatar/avatar";
 import { CheckboxBase } from "../checkbox/checkbox";
 import { RadioButtonBase } from "../radio-buttons/radio-buttons";
 import { ToggleBase } from "../toggle/toggle";
+import { createIcon } from "@/components/ui/Icon";
+
+const Check = createIcon("Check");
+const ChevronRight = createIcon("CaretRight");
+const DotsVertical = createIcon("DotsThreeVertical");
 
 interface DropdownItemProps extends AriaMenuItemProps {
     /** The label of the item to be displayed. */

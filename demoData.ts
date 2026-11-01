@@ -8,7 +8,7 @@ export const defaultPreferences: FinancialData['preferences'] = {
     defaultPeriod: 'MTD',
     defaultAccountOrder: 'name',
     country: 'Belgium',
-    appFont: 'plus-jakarta-sans',
+    appFont: 'manrope',
     defaultForecastPeriod: '1Y',
     brandfetchClientId: '',
     twelveDataApiKey: '',

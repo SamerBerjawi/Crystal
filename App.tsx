@@ -816,7 +816,7 @@ const App: React.FC = () => {
 
   // Dynamic Font Synchronization
   useEffect(() => {
-    const activeFont = preferences.appFont || 'plus-jakarta';
+    const activeFont = preferences.appFont || 'manrope';
     applyAppFont(activeFont);
     try {
       localStorage.setItem('crystal_font', activeFont);

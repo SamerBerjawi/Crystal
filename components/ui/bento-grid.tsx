@@ -1,9 +1,11 @@
 import { type ComponentPropsWithoutRef, type ReactNode } from "react"
-import { ArrowRight as ArrowRightIcon } from "@phosphor-icons/react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import AppIcon from "@/components/ui/Icon"
+import { createIcon } from "@/components/ui/Icon";
+
+const ArrowRightIcon = createIcon("ArrowRight");
 
 export interface BentoGridProps extends ComponentPropsWithoutRef<"div"> {
   children: ReactNode

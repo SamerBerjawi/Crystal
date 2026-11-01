@@ -4,7 +4,6 @@ import './index.css';
 import App from './App';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
-import { IconContext } from '@phosphor-icons/react';
 import RootErrorBoundary from './components/RootErrorBoundary';
 import { forgetLegacyCartoKey } from './utils/mapStyle';
 
@@ -36,11 +35,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <IconContext.Provider value={{ weight: 'duotone', mirrored: false }}>
-        <RootErrorBoundary>
-          <App />
-        </RootErrorBoundary>
-      </IconContext.Provider>
+      <RootErrorBoundary>
+        <App />
+      </RootErrorBoundary>
     </QueryClientProvider>
   </React.StrictMode>
 );

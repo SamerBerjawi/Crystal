@@ -1,6 +1,5 @@
 import type { ComponentPropsWithRef, HTMLAttributes, ReactNode, Ref, TdHTMLAttributes, ThHTMLAttributes } from "react";
 import { createContext, isValidElement, useContext } from "react";
-import { ArrowDown, CaretUpDown as ChevronSelectorVertical, Copy as Copy01, PencilSimple as Edit01, Question as HelpCircle, Trash as Trash01 } from "@phosphor-icons/react";
 import type {
     CellProps as AriaCellProps,
     ColumnProps as AriaColumnProps,
@@ -24,6 +23,14 @@ import { Checkbox } from "@/components/base/checkbox/checkbox";
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { Tooltip, TooltipTrigger } from "@/components/base/tooltip/tooltip";
 import { cx } from "@/lib/utils/cx";
+import { createIcon } from "@/components/ui/Icon";
+
+const ArrowDown = createIcon("ArrowDown");
+const ChevronSelectorVertical = createIcon("CaretUpDown");
+const Copy01 = createIcon("Copy");
+const Edit01 = createIcon("PencilSimple");
+const HelpCircle = createIcon("Question");
+const Trash01 = createIcon("Trash");
 
 export const TableRowActionsDropdown = () => (
     <Dropdown.Root>
