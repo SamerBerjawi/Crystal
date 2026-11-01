@@ -269,10 +269,10 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
           <caption className="sr-only">Transactions</caption>
           <colgroup>
             <col className="w-10" />
-            <col className="w-[340px]" />
-            <col className="w-[220px] max-lg:hidden" />
+            <col className="w-[300px]" />
+            <col className="w-[250px] max-lg:hidden" />
             <col className="w-[200px]" />
-            <col className="w-[130px] max-xl:hidden" />
+            <col className="w-[200px] max-xl:hidden" />
             <col className="w-[90px] max-xl:hidden" />
             <col />
             <col className="w-12" />
@@ -280,10 +280,10 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
           <thead className="sticky top-0 z-[var(--z-sticky)] bg-inset">
             <tr>
               <th scope="col" className="w-10 pl-3"><span className="sr-only">Select</span></th>
-              <SortHeader id="description" label="Transaction" sort={sort} onSort={onSort} filter={columnFilters?.description} className="w-[340px] max-w-[340px]" />
-              <SortHeader id="account" label="Account" sort={sort} onSort={onSort} filter={columnFilters?.account} className="w-[220px] max-w-[220px] max-lg:hidden" />
+              <SortHeader id="description" label="Transaction" sort={sort} onSort={onSort} filter={columnFilters?.description} className="w-[300px] max-w-[300px]" />
+              <SortHeader id="account" label="Account" sort={sort} onSort={onSort} filter={columnFilters?.account} className="w-[250px] max-w-[250px] max-lg:hidden" />
               <SortHeader id="category" label="Category" sort={sort} onSort={onSort} filter={columnFilters?.category} className="w-[200px] max-w-[200px]" />
-              <SortHeader id="location" label="Location" sort={sort} onSort={onSort} filter={columnFilters?.location} className="w-[130px] max-w-[130px] max-xl:hidden" />
+              <SortHeader id="location" label="Location" sort={sort} onSort={onSort} filter={columnFilters?.location} className="w-[200px] max-w-[200px] max-xl:hidden" />
               <th scope="col" className="type-label h-10 px-3 text-left text-muted w-[90px] max-w-[90px] max-xl:hidden">
                 <div className="flex items-center justify-between gap-1">
                   <span>Tags</span>
@@ -350,8 +350,8 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                   <td className={cn('w-10 border-t border-line pl-3', rowHeight)}>
                     <Checkbox aria-label={`Select ${tx.description}`} isSelected={isSelected} onChange={() => onToggle(tx.id)}>{null}</Checkbox>
                   </td>
-                  <td className="w-[340px] max-w-[340px] border-t border-line px-3 overflow-hidden">
-                    <div className={cn('flex min-w-0 max-w-[340px] items-center gap-2.5', tx.parentTransactionId && 'pl-6')}>
+                  <td className="w-[300px] max-w-[300px] border-t border-line px-3 overflow-hidden">
+                    <div className={cn('flex min-w-0 max-w-[300px] items-center gap-2.5', tx.parentTransactionId && 'pl-6')}>
                       {(tx.isSplitParent || tx.isCombinedParent) && <IconButton icon={tx.isExpanded ? 'expand_more' : 'chevron_right'} label={tx.isExpanded ? 'Hide parts' : 'Show parts'} onPress={() => onExpand(tx.id)} className="size-8 shrink-0" iconSize={16} />}
                       {!isCompact && <Logo tx={tx} url={logoOf(tx)} icon={look.icon} />}
                       <button type="button" onClick={() => onOpen(tx)} className="min-w-0 flex-1 cursor-pointer text-left overflow-hidden">
@@ -369,7 +369,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                       </button>
                     </div>
                   </td>
-                  <td className="w-[220px] max-w-[220px] border-t border-line px-3 max-lg:hidden overflow-hidden">
+                  <td className="w-[250px] max-w-[250px] border-t border-line px-3 max-lg:hidden overflow-hidden">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <AccountLogoTile url={account.logoUrl} isTransfer={tx.isTransfer} label={account.name} />
                       <div className="min-w-0 flex-1">
@@ -402,7 +402,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                       </button>
                     )}
                   </td>
-                  <td className="type-body truncate w-[130px] max-w-[130px] border-t border-line px-3 text-muted max-xl:hidden">{location ?? '—'}</td>
+                  <td className="type-body truncate w-[200px] max-w-[200px] border-t border-line px-3 text-muted max-xl:hidden">{location ?? '—'}</td>
                   <td className="w-[90px] max-w-[90px] border-t border-line px-3 max-xl:hidden overflow-hidden">
                     {firstTag ? (
                       <span className="type-caption inline-flex max-w-full min-w-0 items-center gap-1.5 text-ink">
