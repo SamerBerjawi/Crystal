@@ -3,7 +3,7 @@ import type { Account, MerchantLocation, MerchantRule, Transaction, TransactionR
 import { fuzzySearch, safeRound, toLocalISOString } from '../utils';
 import { normalizeMerchantKey } from './brandfetch';
 import { parseLocationString } from './locationDetector';
-import { applyTransactionRulesToFields } from './rules';
+import { applyRules, ordinaryRules } from './rules';
 
 export type TxType = 'expense' | 'income' | 'transfer';
 export type TxDraftSave = Omit<Transaction, 'id'> & { id?: string };
@@ -226,7 +226,7 @@ export interface AutofillForce {
   location?: boolean;
 }
 
-/** Fills category, description and location from the merchant, else from your rules (AUT-01 to AUT-08). Your own edits stay. */
+/** Fills category, description and location from the merchant, then what's left from your rules (AUT-01 to AUT-08, D-105). Your own edits stay. */
 export const autofill = (form: TxForm, ctx: Pick<TxFormContext, 'merchantRules' | 'transactionRules'>, force: AutofillForce = {}): Partial<TxForm> => {
   const { merchant, description, category, amount, type, address } = form;
   const patch: Partial<TxForm> = {};
@@ -244,13 +244,12 @@ export const autofill = (form: TxForm, ctx: Pick<TxFormContext, 'merchantRules' 
       const branch = branches.find(item => item.isPrimary) || branches[0];
       if (branch) Object.assign(patch, locationFromBranch(branch));
     }
-    if (rule.category || rule.defaultDescription || rule.address || rule.locations?.length) return patch;
   }
 
-  const result = applyTransactionRulesToFields({ description, merchant, category, amount: parseFloat(amount) || 0, type }, ctx.merchantRules, ctx.transactionRules);
-  if (result.category && (force.category || !form.categoryEdited || !category)) patch.category = result.category;
+  const result = applyRules({ description, merchant, category, amount: parseFloat(amount) || 0, type }, ordinaryRules(ctx.transactionRules));
+  if (result.category && !rule?.category && (force.category || !form.categoryEdited || !category)) patch.category = result.category;
   if (result.merchant && result.merchant !== merchant) patch.merchant = result.merchant;
-  if (result.description && (force.description || !form.descriptionEdited || !description.trim())) {
+  if (result.description && !rule?.defaultDescription && (force.description || !form.descriptionEdited || !description.trim())) {
     patch.description = result.description;
     patch.descriptionEdited = false;
   }

@@ -102,6 +102,7 @@ import { useAuth } from './hooks/useAuth';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
 import { moveLocalChoices } from './utils/syncedChoices';
+import { migrateRules } from './utils/rulesMigration';
 import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
 const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
@@ -770,10 +771,10 @@ const App: React.FC = () => {
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data ?? emptyFinancialData;
-    const loadedPrefs = {
+    const loadedPrefs = migrateRules({
       ...defaultPreferences,
       ...(dataToLoad.preferences || {}),
-    };
+    }, dataToLoad.transactions || [], new Date().toISOString());
     lastUpdatedAtRef.current = dataToLoad.lastUpdatedAt ?? null;
 
     // Whatever ends up on screen after this load is, by definition, what the server has: it becomes the

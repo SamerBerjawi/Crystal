@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { withFiling } from '../utils/rules';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import type { Account, Category, MerchantLocation, Tag, Transaction, User } from '../types';
@@ -114,8 +115,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const isEditing = !!transactionToEdit;
   const { setPreferences } = usePreferencesContext();
   const tagsContext = useTagsContext();
-  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
-  const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
+  const savedMerchantRules = usePreferencesSelector(p => p.merchantRules);
+  const savedTransactionRules = usePreferencesSelector(p => p.transactionRules);
+  const transactionRules = useMemo(() => savedTransactionRules ?? [], [savedTransactionRules]);
+  const merchantRules = useMemo(() => withFiling(savedMerchantRules, transactionRules), [savedMerchantRules, transactionRules]);
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
   const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const ruleContext = { merchantRules, transactionRules };

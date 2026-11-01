@@ -547,8 +547,8 @@ export interface RegexCategorizationRule {
   description?: string;
 }
 
-export type RuleFieldCondition = 'description' | 'merchant' | 'amount' | 'type' | 'category';
-export type RuleOperator = 'contains' | 'equals' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with';
+export type RuleFieldCondition = 'description' | 'merchant' | 'amount' | 'type' | 'category' | 'text';
+export type RuleOperator = 'contains' | 'equals' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with' | 'matches' | 'is_merchant';
 export type RuleFieldAction = 'merchant' | 'description' | 'category';
 
 export interface TransactionRuleCondition {
@@ -570,6 +570,8 @@ export interface TransactionRule {
   actions: TransactionRuleAction[];
   priority?: number; // Order/priority of evaluation (higher numbers executed first)
   conditionLogic?: 'AND' | 'OR'; // Defaults to 'AND' for backward compatibility
+  /** "Always file": one merchant's category and description. These run before other rules (D-105). */
+  kind?: 'always';
 }
 
 export interface RuleExecutionLog {
@@ -679,8 +681,11 @@ export interface AppPreferences {
   /** Savings sprints the user started; synced across devices. */
   activeSprints?: { id: string; startDate: string }[];
   showBalanceAdjustments?: boolean;
+  /** Moved into transactionRules. Only old data has this (D-105). */
   regexCategorizationRules?: RegexCategorizationRule[];
   transactionRules?: TransactionRule[];
+  rulesVersion?: number;
+  rulesMigrationBackup?: import('./utils/rulesMigration').RulesMigrationBackup;
   lastRuleRunBackup?: RuleRunBackup;
   ruleExecutionHistory?: RuleRunBackup[];
   ruleExecutionLogs?: RuleExecutionLog[];

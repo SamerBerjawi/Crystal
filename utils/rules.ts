@@ -1,21 +1,17 @@
-import { TransactionRule, TransactionRuleCondition, MerchantRule, RegexCategorizationRule } from '../types';
+import { MerchantRule, RuleFieldAction, TransactionRule, TransactionRuleCondition } from '../types';
 import { normalizeMerchantKey } from './brandfetch';
 
-export function evaluateRuleCondition(
-  tx: { description?: string; merchant?: string; amount?: number; type?: string; category?: string },
-  condition: TransactionRuleCondition
-): boolean {
-  let valToMatch = '';
+interface RuleTarget {
+  description?: string;
+  merchant?: string;
+  amount?: number;
+  type?: string;
+  category?: string;
+  notes?: string;
+}
 
-  if (condition.field === 'description') {
-    valToMatch = tx.description || '';
-  } else if (condition.field === 'merchant') {
-    valToMatch = tx.merchant || '';
-  } else if (condition.field === 'type') {
-    valToMatch = tx.type || '';
-  } else if (condition.field === 'category') {
-    valToMatch = tx.category || '';
-  } else if (condition.field === 'amount') {
+export function evaluateRuleCondition(tx: RuleTarget, condition: TransactionRuleCondition): boolean {
+  if (condition.field === 'amount') {
     const txAmount = Math.abs(tx.amount || 0);
     const condAmount = parseFloat(condition.value);
     if (isNaN(txAmount) || isNaN(condAmount)) return false;
@@ -25,8 +21,20 @@ export function evaluateRuleCondition(
     return false;
   }
 
+  if (condition.operator === 'is_merchant') return normalizeMerchantKey(tx.merchant) === condition.value;
+
+  const text = condition.field === 'text' ? [tx.merchant, tx.description, tx.notes].filter(Boolean).join(' ').trim() : tx[condition.field] || '';
+
+  if (condition.operator === 'matches') {
+    try {
+      return new RegExp(condition.value, 'i').test(text);
+    } catch {
+      return false;
+    }
+  }
+
   const searchVal = (condition.value || '').toLowerCase();
-  const targetVal = valToMatch.toLowerCase();
+  const targetVal = text.toLowerCase();
 
   switch (condition.operator) {
     case 'contains':
@@ -42,97 +50,108 @@ export function evaluateRuleCondition(
   }
 }
 
-export function applyTransactionRulesToFields(
-  tx: { description: string; merchant: string; category: string; amount: number; type: string },
-  merchantRules: Record<string, MerchantRule>,
-  transactionRules: TransactionRule[]
-): { description: string; merchant: string; category: string; appliedRuleId?: string; isFromMerchantRule?: boolean } {
-  // 1. Merchant rule - if merchant already exists and has category or defaultDescription configured, it takes absolute precedence!
-  const merchantKey = normalizeMerchantKey(tx.merchant);
-  if (merchantKey) {
-    const mRule = merchantRules[merchantKey];
-    if (mRule && (mRule.category || mRule.defaultDescription)) {
-      return {
-        merchant: tx.merchant,
-        category: mRule.category || tx.category,
-        description: mRule.defaultDescription || tx.description,
-        isFromMerchantRule: true
-      };
-    }
-  }
+export const ruleMatches = (tx: RuleTarget, rule: TransactionRule): boolean => {
+  if (rule.conditions.length === 0) return false;
+  const results = rule.conditions.map(condition => evaluateRuleCondition(tx, condition));
+  return rule.conditionLogic === 'OR' ? results.some(Boolean) : results.every(Boolean);
+};
 
-  // 2. Rule engine (IF-WHEN-THEN rules)
-  const activeRules = (transactionRules || [])
-    .filter(r => r.isActive)
-    .slice()
-    .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+export const isAlwaysFile = (rule: TransactionRule) => rule.kind === 'always';
 
-  for (const rule of activeRules) {
-    if (rule.conditions.length === 0) continue;
+/** Highest priority first. */
+export const ordinaryRules = (rules: TransactionRule[] = []): TransactionRule[] =>
+  rules.filter(rule => !isAlwaysFile(rule)).sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 
-    // Evaluate using AND (default) or OR logic depending on rule.conditionLogic
-    const logic = rule.conditionLogic ?? 'AND';
-    const conditionResults = rule.conditions.map(cond => evaluateRuleCondition(tx, cond));
-    const allMatch = logic === 'OR'
-      ? conditionResults.some(Boolean)
-      : conditionResults.every(Boolean);
-
-    if (allMatch) {
-      let nextMerchant = tx.merchant;
-      let nextDescription = tx.description;
-      let nextCategory = tx.category;
-
-      rule.actions.forEach(act => {
-        if (act.field === 'merchant') nextMerchant = act.value;
-        else if (act.field === 'description') nextDescription = act.value;
-        else if (act.field === 'category') nextCategory = act.value;
-      });
-
-      return {
-        merchant: nextMerchant,
-        description: nextDescription,
-        category: nextCategory,
-        appliedRuleId: rule.id
-      };
-    }
-  }
-
-  return {
-    merchant: tx.merchant,
-    description: tx.description,
-    category: tx.category
-  };
-}
-
-interface SavedRules {
-  merchantRules?: Record<string, MerchantRule>;
-  transactionRules?: TransactionRule[];
-  regexCategorizationRules?: RegexCategorizationRule[];
+export interface RuleResult {
+  description: string;
+  merchant: string;
+  category: string;
+  /** The rule that ran after any always file. */
+  appliedRuleId?: string;
+  filingRuleId?: string;
 }
 
 /**
- * Runs merchant, transaction and regex rules on a new record, including one that arrives from a bank with its own id.
- * A merchant's own category wins, so regex rules only fill in where the merchant has none (DEF-07).
+ * The one way rules run (D-105). A merchant's always file sets what it sets. The first rule that matches and still
+ * has something to set then fills the rest, so an always file never silently stops a rule.
  */
-export function applySavedRules<T extends { description?: string; merchant?: string; category?: string; amount?: number; type?: string; notes?: string }>(tx: T, rules: SavedRules): T {
-  const result = applyTransactionRulesToFields(
-    { description: tx.description || '', merchant: tx.merchant || '', category: tx.category || '', amount: Number(tx.amount) || 0, type: tx.type || 'expense' },
-    rules.merchantRules || {},
-    rules.transactionRules || []
-  );
-  const next = { ...tx, merchant: result.merchant, description: result.description, category: result.category };
-  if (result.isFromMerchantRule) return next;
+export function applyRules(tx: { description: string; merchant: string; category: string; amount: number; type: string; notes?: string }, rules: TransactionRule[] = []): RuleResult {
+  const result: RuleResult = { merchant: tx.merchant, description: tx.description, category: tx.category };
+  const locked = new Set<RuleFieldAction>();
+  const setField = (field: RuleFieldAction, value: string) => { result[field] = value; };
 
-  const text = [next.merchant, next.description, tx.notes || ''].join(' ').trim();
-  for (const rule of (rules.regexCategorizationRules || []).filter(item => item.isActive)) {
-    try {
-      if (new RegExp(rule.pattern, 'i').test(text)) return { ...next, category: rule.category };
-    } catch (error) {
-      console.error('Invalid regex pattern:', rule.pattern, error);
-    }
+  const filing = rules.find(rule => isAlwaysFile(rule) && rule.isActive && ruleMatches(tx, rule));
+  if (filing) {
+    filing.actions.forEach(action => { setField(action.field, action.value); locked.add(action.field); });
+    result.filingRuleId = filing.id;
   }
-  return next;
+
+  for (const rule of ordinaryRules(rules).filter(item => item.isActive)) {
+    const open = rule.actions.filter(action => !locked.has(action.field));
+    if (open.length === 0 || !ruleMatches(tx, rule)) continue;
+    open.forEach(action => setField(action.field, action.value));
+    result.appliedRuleId = rule.id;
+    break;
+  }
+  return result;
 }
+
+/** Runs saved rules on a new record, including one that arrives from a bank with its own id. */
+export function applySavedRules<T extends RuleTarget>(tx: T, rules: { transactionRules?: TransactionRule[] }): T {
+  const result = applyRules(
+    { description: tx.description || '', merchant: tx.merchant || '', category: tx.category || '', amount: Number(tx.amount) || 0, type: tx.type || 'expense', notes: tx.notes },
+    rules.transactionRules,
+  );
+  return { ...tx, merchant: result.merchant, description: result.description, category: result.category };
+}
+
+export interface Filing {
+  category?: string;
+  description?: string;
+}
+
+const alwaysFileId = (key: string) => `always-${key}`;
+
+export const alwaysFileRule = (key: string, name: string, { category, description }: Filing, isActive = true): TransactionRule => ({
+  id: alwaysFileId(key),
+  name,
+  kind: 'always',
+  isActive,
+  conditions: [{ field: 'merchant', operator: 'is_merchant', value: key }],
+  actions: [
+    ...(category ? [{ field: 'category' as const, value: category }] : []),
+    ...(description ? [{ field: 'description' as const, value: description }] : []),
+  ],
+});
+
+const merchantKeyOf = (rule: TransactionRule) => rule.conditions[0]?.value;
+
+export const filingFor = (merchant: string | undefined, rules: TransactionRule[] = []): TransactionRule | undefined => {
+  const key = normalizeMerchantKey(merchant);
+  return key ? rules.find(rule => isAlwaysFile(rule) && merchantKeyOf(rule) === key) : undefined;
+};
+
+/** Adds, edits or, with nothing to file, removes a merchant's always file. */
+export const setFiling = (rules: TransactionRule[], key: string, name: string, filing: Filing): TransactionRule[] => {
+  const existing = rules.find(rule => isAlwaysFile(rule) && merchantKeyOf(rule) === key);
+  const others = rules.filter(rule => rule !== existing);
+  if (!filing.category && !filing.description) return others;
+  return [...others, alwaysFileRule(key, existing?.name ?? name, filing, existing?.isActive ?? true)];
+};
+
+/** Merchant screens still show category and description, so they read them from always file rules. */
+export const withFiling = (merchantRules: Record<string, MerchantRule> = {}, rules: TransactionRule[] = []): Record<string, MerchantRule> => {
+  const merged = { ...merchantRules };
+  rules.filter(rule => isAlwaysFile(rule) && rule.isActive).forEach(rule => {
+    const key = merchantKeyOf(rule);
+    merged[key] = {
+      ...merged[key],
+      category: rule.actions.find(action => action.field === 'category')?.value,
+      defaultDescription: rule.actions.find(action => action.field === 'description')?.value,
+    };
+  });
+  return merged;
+};
 
 /** What rounds an outflow up to the next whole unit. Whole amounts have nothing to round. */
 export const spareChangeFor = (amount: number): number => {

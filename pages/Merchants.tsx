@@ -1,6 +1,7 @@
 
+import { setFiling, withFiling } from '../utils/rules';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Page, MerchantRule, Category, RegexCategorizationRule } from '../types';
+import { Page, MerchantRule, Category } from '../types';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
@@ -9,7 +10,6 @@ import MerchantDetailModal from '../components/MerchantDetailModal';
 import MerchantOverviewModal from '../components/MerchantOverviewModal';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
-import RegexCategorizationModal from '../components/RegexCategorizationModal';
 import Icon from '../components/ui/Icon';
 import PageHeader from '../components/PageHeader';
 import { Button, IconButton } from '../components/ui/Actions';
@@ -134,58 +134,12 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const [overviewEntity, setOverviewEntity] = useState<EntityItem | null>(null);
   const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
   
-  // Advanced regex state & background task progress state
-  const [isRegexModalOpen, setIsRegexModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0, currentName: '' });
 
-  const regexRules = useMemo(() => preferences.regexCategorizationRules || [], [preferences.regexCategorizationRules]);
-
-  const handleSaveRegexRules = (updatedRules: RegexCategorizationRule[]) => {
-      setPreferences(prev => ({
-          ...prev,
-          regexCategorizationRules: updatedRules
-      }));
-  };
-
-  const handleApplyHistoricalRules = () => {
-      const activeRules = regexRules.filter(r => r.isActive);
-      if (activeRules.length === 0) {
-          toast.error("No active regex rules are currently deployed.");
-          return;
-      }
-      
-      const updatedTransactions: any[] = [];
-      transactions.forEach(tx => {
-          const textToMatch = [tx.merchant || '', tx.description || '', tx.notes || ''].join(' ').trim();
-          for (const rule of activeRules) {
-              try {
-                  const regex = new RegExp(rule.pattern, 'i');
-                  if (regex.test(textToMatch) && tx.category !== rule.category) {
-                      updatedTransactions.push({
-                          ...tx,
-                          category: rule.category
-                      });
-                      break; // stop at first matching pattern
-                  }
-              } catch (e) {
-                  // Skip invalid regex
-              }
-          }
-      });
-      
-      if (updatedTransactions.length === 0) {
-          toast.success("No transactions need re-routing; all values conform to active patterns.");
-          return;
-      }
-      
-      saveTransaction(updatedTransactions);
-      toast.success(`Analysis Complete! Reclassified ${updatedTransactions.length} historical records successfully.`);
-  };
-
   const smartSuggestions = useMemo(() => {
-    return generateSmartRuleSuggestions(transactions, preferences.transactionRules || [], preferences.merchantRules || {});
-  }, [transactions, preferences.transactionRules, preferences.merchantRules]);
+    return generateSmartRuleSuggestions(transactions, preferences.transactionRules || []);
+  }, [transactions, preferences.transactionRules]);
 
   const handleDeploySmartSuggestion = (suggestion: SmartRuleSuggestion) => {
     const newRule = convertSuggestionToTransactionRule(suggestion);
@@ -227,8 +181,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       };
     });
 
-    return migratedRules;
-  }, [merchantRules, hiddenMerchants]);
+    return withFiling(migratedRules, preferences.transactionRules);
+  }, [merchantRules, hiddenMerchants, preferences.transactionRules]);
 
   useEffect(() => {
     if (!hiddenMerchants.length) return;
@@ -371,13 +325,13 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       });
   }, [entities, searchTerm, sortBy, showHidden]);
 
-  const handleSaveRule = (key: string, rule: MerchantRule) => {
+  // Category and description are an always file rule. Everything else stays on the merchant (D-105).
+  const handleSaveRule = (key: string, { category, defaultDescription, ...rule }: MerchantRule) => {
+      const name = entities.find(entity => entity.logoKey === key)?.name ?? key;
       setPreferences(prev => ({
           ...prev,
-          merchantRules: {
-              ...prev.merchantRules,
-              [key]: rule
-          }
+          merchantRules: { ...prev.merchantRules, [key]: rule },
+          transactionRules: setFiling(prev.transactionRules ?? [], key, name, { category, description: defaultDescription }),
       }));
   };
 
@@ -632,19 +586,6 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           onEdit={() => { setIsOverviewModalOpen(false); setEditingEntity(overviewEntity); setIsDetailModalOpen(true); }}
         />
       )}
-      {isRegexModalOpen && (
-        <RegexCategorizationModal
-          isOpen={isRegexModalOpen}
-          onClose={() => setIsRegexModalOpen(false)}
-          rules={regexRules}
-          onSaveRules={handleSaveRegexRules}
-          incomeCategories={incomeCategories}
-          expenseCategories={expenseCategories}
-          transactions={transactions}
-          onApplyHistoricalRules={handleApplyHistoricalRules}
-        />
-      )}
-
       {!(isPhone && selected) && (
         <PageHeader
           title="Merchants"
@@ -655,7 +596,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           ]}
           actions={
             <>
-              <Button variant="secondary" icon="bolt" onPress={() => setIsRegexModalOpen(true)}>Auto-categorise{regexRules.length ? `, ${regexRules.length}` : ''}</Button>
+              <Button variant="secondary" icon="bolt" onPress={() => setCurrentPage('Rules')}>Rules</Button>
               <Button variant="secondary" icon="magic_wand" isBusy={isRefreshing} onPress={handleRefreshLogos}>Find logos</Button>
             </>
           }
