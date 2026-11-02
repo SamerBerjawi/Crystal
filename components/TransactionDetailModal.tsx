@@ -262,7 +262,7 @@ const FactSection: React.FC<{
         const logoQuery = nameOf(tx);
   const logoUrl = useMemo(() => {
     if (!logoQuery.trim()) return null;
-        return getMerchantLogoUrl(logoQuery, brandfetchClientId, logoOverrides, {fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
+        return getMerchantLogoUrl(logoQuery, brandfetchClientId, logoOverrides, {fallback: 'lettermark', type: 'icon', width: 128, height: 128, allowDomainGuess: true });
   }, [logoQuery, brandfetchClientId, logoOverrides]);
         const logo = logoUrl !== failedLogo ? logoUrl : null;
 

@@ -5,6 +5,7 @@ import { computeAccount90dSparkline, computeAccountDisplayBalance, latestTransac
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { AccountLogo } from './AccountCard';
+import { MerchantLogo } from './EntityIcon';
 import { IconButton } from './ui/Actions';
 import { Row, Sparkline } from './ui/Display';
 import { Menu, type MenuAction } from './ui/Menu';
@@ -17,6 +18,7 @@ export const LatestList: React.FC<{ transactions: Transaction[]; onOpen: () => v
     {transactions.map(tx => (
       <li key={tx.id}>
         <Row
+          leading={<MerchantLogo merchant={tx.merchant} description={tx.description} isTransfer={Boolean(tx.transferId || tx.category === 'Transfer')} size={36} />}
           title={tx.merchant || tx.description}
           context={`${tx.category || 'Uncategorised'}, ${shortDate(tx.date)}`}
           trailing={<Amount value={tx.amount} currency={tx.currency} tone="flow" />}

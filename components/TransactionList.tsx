@@ -97,9 +97,18 @@ const TransactionList: React.FC<TransactionListProps> = ({
           ? 'rgba(59, 130, 246, 0.4)' 
           : (tx.type === 'income' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)');
 
-        const merchantKey = normalizeMerchantKey(tx.merchant);
-        const merchantLogoUrl = merchantKey ? getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 80, height: 80 }) : null;
-        const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
+        const merchantName = isTransfer ? '' : (tx.merchant?.trim() || tx.description?.trim() || '');
+        const merchantKey = normalizeMerchantKey(merchantName);
+        const merchantLogoUrl = merchantKey
+          ? getMerchantLogoUrl(merchantName, brandfetchClientId, effectiveMerchantLogoOverrides, {
+              fallback: 'lettermark',
+              type: 'icon',
+              width: 80,
+              height: 80,
+              allowDomainGuess: true,
+            })
+          : null;
+        const merchantInitial = merchantName ? merchantName.charAt(0).toUpperCase() : '?';
 
         const formattedDate = formatDate(tx.date);
         const spareAmountEur = tx.spareChangeAmount ? formatCurrency(convertToMain(Math.abs(tx.spareChangeAmount), tx.currency), getMainCurrency()) : null;

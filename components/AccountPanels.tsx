@@ -21,6 +21,7 @@ import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataCo
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import AccountFrame, { AccountTransactions, DetailList, LinkedGoals, MetricRow, MonthlyBars, Panel, ProgressBar, ValueChart, type FrameAction } from './AccountFrame';
 import { CAR_MAKE_DOMAINS, LicensePlate } from './LicensePlate';
+import { MerchantLogo } from './EntityIcon';
 import MortgageAmortizationChart from './MortgageAmortizationChart';
 import PaymentPlanTable from './PaymentPlanTable';
 import VehicleMileageChart from './VehicleMileageChart';
@@ -119,7 +120,7 @@ const GeneralPanel: React.FC<AccountPanelProps> = props => {
                   {metrics.upcomingPayments.length > 0 ? (
                     <ul className="divide-y divide-line">
                       {metrics.upcomingPayments.map((payment, index) => (
-                        <li key={index}><Row title={payment.description} context={`${day(payment.date)}, ${payment.isRecurring ? 'recurring' : 'one-time'}`} trailing={<Amount value={-payment.amount} currency={account.currency} />} /></li>
+                        <li key={index}><Row leading={<MerchantLogo description={payment.description} isTransfer={payment.description.toLowerCase().includes('transfer')} size={36} />} title={payment.description} context={`${day(payment.date)}, ${payment.isRecurring ? 'recurring' : 'one-time'}`} trailing={<Amount value={-payment.amount} currency={account.currency} />} /></li>
                       ))}
                     </ul>
                   ) : <p className="type-body text-muted">Nothing due. Nice.</p>}

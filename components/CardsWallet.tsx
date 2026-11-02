@@ -15,6 +15,7 @@ import { Badge, DayGroup, Row } from './ui/Display';
 import { Menu, type MenuAction } from './ui/Menu';
 import { Amount } from './ui/Money';
 import { EmptyState } from './ui/States';
+import { MerchantLogo } from './EntityIcon';
 import { cn } from '../lib/utils';
 
 const CardMoney: React.FC<{ account: Account }> = ({ account }) => (
@@ -220,10 +221,13 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
             {merchants.length > 0 && (
               <div className="mt-4 border-t border-line pt-3">
                 <h3 className="type-label mb-1 text-muted">Where it went this month</h3>
-                <ul>
+                <ul className="divide-y divide-line">
                   {merchants.map(item => (
-                    <li key={item.name} className="type-body flex min-h-9 items-center justify-between gap-3 text-ink">
-                      <span className="min-w-0 truncate">{item.name}</span>
+                    <li key={item.name} className="type-body flex min-h-10 items-center justify-between gap-3 text-ink py-1.5 first:pt-0 last:pb-0">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <MerchantLogo merchant={item.name} size={28} />
+                        <span className="min-w-0 truncate">{item.name}</span>
+                      </div>
                       <span className="type-figure-row shrink-0"><Amount value={convertToMain(item.amount, selected.currency)} currency={getMainCurrency()} /></span>
                     </li>
                   ))}
@@ -239,7 +243,13 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
                 <ul className="divide-y divide-line">
                   {items.map(tx => (
                     <li key={tx.id}>
-                      <Row title={tx.merchant || tx.description} context={`${tx.category || 'Uncategorised'}, ${shortDate(tx.date)}`} trailing={<Amount value={tx.amount} currency={tx.currency} tone="flow" />} onPress={() => onOpen(selected.id)} />
+                      <Row
+                        leading={<MerchantLogo merchant={tx.merchant} description={tx.description} isTransfer={Boolean(tx.transferId || tx.category === 'Transfer')} size={36} />}
+                        title={tx.merchant || tx.description}
+                        context={`${tx.category || 'Uncategorised'}, ${shortDate(tx.date)}`}
+                        trailing={<Amount value={tx.amount} currency={tx.currency} tone="flow" />}
+                        onPress={() => onOpen(selected.id)}
+                      />
                     </li>
                   ))}
                 </ul>

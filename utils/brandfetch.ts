@@ -75,7 +75,7 @@ export const getMerchantLogoUrl = (
   merchant: string | undefined,
   clientId: string | undefined,
   overrides?: Record<string, string>,
-  options?: { width?: number; height?: number; type?: LogoType; fallback?: LogoFallback; refreshTimestamp?: number },
+  options?: { width?: number; height?: number; type?: LogoType; fallback?: LogoFallback; refreshTimestamp?: number; allowDomainGuess?: boolean },
 ): string | null => {
   const normalizedKey = normalizeMerchantKey(merchant);
   if (normalizedKey) {
@@ -86,7 +86,13 @@ export const getMerchantLogoUrl = (
   }
 
   if (!clientId) return null;
-  const identifier = buildMerchantIdentifier(merchant, overrides);
+  let identifier = buildMerchantIdentifier(merchant, overrides);
+  if (!identifier && options?.allowDomainGuess && normalizedKey) {
+    const firstWord = normalizedKey.split(/[\s*|/]/)[0].replace(/[^a-z0-9]/g, '');
+    if (firstWord.length >= 2) {
+      identifier = `${firstWord}.com`;
+    }
+  }
   if (!identifier) return null;
 
   const width = options?.width ?? 80;

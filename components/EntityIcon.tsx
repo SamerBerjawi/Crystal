@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { cn } from '../lib/utils';
 import Icon from './ui/Icon';
 import { useIsDark } from '../hooks/useIsDark';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getMerchantLogoUrl } from '../utils/brandfetch';
 
 /**
  * Adapts hex colors for optimal contrast in dark and light modes.
@@ -136,6 +138,57 @@ export const EntityGlyph: React.FC<{
     >
       {letter}
     </span>
+  );
+};
+
+/**
+ * A merchant logo on a rounded tile for transaction lists.
+ * Shows the Brandfetch / override logo if available, or a clean lettermark fallback.
+ * Transfers show an exchange / transfer icon.
+ */
+export const MerchantLogo: React.FC<{
+  merchant?: string | null;
+  description?: string | null;
+  name?: string | null;
+  isTransfer?: boolean;
+  size?: number;
+  className?: string;
+}> = ({ merchant, description, name, isTransfer, size = 36, className }) => {
+  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+  const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantName = name?.trim() || merchant?.trim() || description?.trim() || 'Transaction';
+
+  const logoUrl = useMemo(() => {
+    if (isTransfer) return null;
+    return getMerchantLogoUrl(merchantName, brandfetchClientId, logoOverrides, {
+      fallback: 'lettermark',
+      type: 'icon',
+      width: Math.max(size * 2, 80),
+      height: Math.max(size * 2, 80),
+      allowDomainGuess: true,
+    });
+  }, [merchantName, isTransfer, brandfetchClientId, logoOverrides, size]);
+
+  if (isTransfer) {
+    return (
+      <span
+        style={{ width: size, height: size }}
+        className={cn('flex shrink-0 items-center justify-center rounded-full bg-cyan-950/60 dark:bg-[#0c313a] text-cyan-400 border border-cyan-800/30', className)}
+        aria-hidden="true"
+      >
+        <Icon name="swap_horiz" size={Math.round(size * 0.5)} />
+      </span>
+    );
+  }
+
+  return (
+    <LogoTile
+      url={logoUrl}
+      label={merchantName}
+      size={size}
+      rounded="lg"
+      className={className}
+    />
   );
 };
 
