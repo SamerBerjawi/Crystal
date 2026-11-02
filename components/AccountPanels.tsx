@@ -18,7 +18,7 @@ import {
 } from '../utils/accountDetailModel';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl } from '../utils/brandfetch';
 import AccountFrame, { AccountTransactions, DetailList, LinkedGoals, MetricRow, MonthlyBars, Panel, ProgressBar, ValueChart, type FrameAction } from './AccountFrame';
 import { CAR_MAKE_DOMAINS, LicensePlate } from './LicensePlate';
 import { MerchantLogo } from './EntityIcon';
@@ -692,7 +692,11 @@ const VehiclePanel: React.FC<AccountPanelProps> = props => {
   const isClosed = account.status === 'closed';
   const isLeased = account.ownership === 'Leased';
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-  const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, { logo?: string }>;
+  const logoOverrides = useMemo(() => {
+    return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
+  }, [merchantLogoOverrides, merchantRules]);
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
 
   const { outstandingLoanBalance, sortedMileageLogs, currentMileage, leaseStats } = useMemo(

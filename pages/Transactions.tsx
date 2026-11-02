@@ -13,7 +13,7 @@ import CombineTransactionsModal from '../components/CombineTransactionsModal';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useDebounce } from '../hooks/useDebounce';
-import { getAccountBrandfetchUrl, getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 import { Button as AriaButton } from 'react-aria-components';
 import Icon from '../components/ui/Icon';
@@ -222,15 +222,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const accountMapByName = useMemo(() => accounts.reduce((map, acc) => { map[acc.name] = acc; return map; }, {} as Record<string, Account>), [accounts]);
 
   const effectiveMerchantLogoOverrides = useMemo(() => {
-    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
-      if (rule?.logo) acc[merchantKey] = rule.logo;
-      return acc;
-    }, {} as Record<string, string>);
-
-    return {
-      ...merchantLogoOverrides,
-      ...ruleLogoOverrides,
-    };
+    return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
   }, [merchantLogoOverrides, merchantRules]);
 
 

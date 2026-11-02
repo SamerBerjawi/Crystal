@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Transaction, Account, Tag, Category } from '../types';
 import { formatCurrency, parseLocalDate, convertToMain, getMainCurrency } from '../utils';
-import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { getCategoryDetails } from '../utils/categories';
 import { formatTransactionLocation } from '../utils/locationFormat';
 import { resolveTransferInfo } from '../utils/transferDetails';
@@ -143,7 +143,11 @@ const FactSection: React.FC<{
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const allTransactions = useTransactionSelector(all => all);
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-  const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || { });
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, { logo?: string }>;
+  const logoOverrides = useMemo(() => {
+    return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
+  }, [merchantLogoOverrides, merchantRules]);
   const [failedLogo, setFailedLogo] = useState<string | null>(null);
   const [catPickerOpen, setCatPickerOpen] = useState(false);
   const [catSearch, setCatSearch] = useState('');

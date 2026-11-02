@@ -3,7 +3,7 @@ import { cn } from '../lib/utils';
 import Icon from './ui/Icon';
 import { useIsDark } from '../hooks/useIsDark';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl } from '../utils/brandfetch';
 
 /**
  * Adapts hex colors for optimal contrast in dark and light modes.
@@ -155,7 +155,13 @@ export const MerchantLogo: React.FC<{
   className?: string;
 }> = ({ merchant, description, name, isTransfer, size = 36, className }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-  const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, { logo?: string }>;
+
+  const effectiveOverrides = useMemo(() => {
+    return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
+  }, [merchantLogoOverrides, merchantRules]);
+
   const rawName = (merchant && merchant.toLowerCase() !== 'internal transfer' ? merchant : '')
     || (name && name.toLowerCase() !== 'internal transfer' ? name : '')
     || merchant
@@ -165,14 +171,14 @@ export const MerchantLogo: React.FC<{
   const merchantName = rawName.replace(/^Transfer\s+(to|from)\s+/i, '').trim();
 
   const logoUrl = useMemo(() => {
-    return getMerchantLogoUrl(merchantName, brandfetchClientId, logoOverrides, {
+    return getMerchantLogoUrl(merchantName, brandfetchClientId, effectiveOverrides, {
       fallback: 'lettermark',
       type: 'icon',
       width: Math.max(size * 2, 80),
       height: Math.max(size * 2, 80),
       allowDomainGuess: true,
     });
-  }, [merchantName, brandfetchClientId, logoOverrides, size]);
+  }, [merchantName, brandfetchClientId, effectiveOverrides, size]);
 
   return (
     <LogoTile

@@ -3,7 +3,7 @@ import { Category, DisplayTransaction, MerchantRule, Tag } from '../types';
 import { formatCurrency, convertToMain, parseLocalDate, formatDate as formatSharedDate, getMainCurrency } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { useTagsContext } from '../contexts/FinancialDataContext';
 import Icon from './ui/Icon';
 import { FormattedAmount } from './ui/Money';
@@ -48,15 +48,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
   const [logoLoadErrors, setLogoLoadErrors] = useState<Set<string>>(() => new Set());
 
   const effectiveMerchantLogoOverrides = useMemo(() => {
-    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
-      if (rule?.logo) acc[merchantKey] = rule.logo;
-      return acc;
-    }, {} as Record<string, string>);
-
-    return {
-      ...merchantLogoOverrides,
-      ...ruleLogoOverrides,
-    };
+    return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
   }, [merchantLogoOverrides, merchantRules]);
 
   const handleLogoError = useCallback((logoUrl: string) => {

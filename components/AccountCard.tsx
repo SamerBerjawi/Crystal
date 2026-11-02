@@ -5,7 +5,7 @@ import { computeAccount90dSparkline, computeAccountDisplayBalance } from '../uti
 import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { getCardNetworkLogoUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getCardNetworkLogoUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import Icon from './ui/Icon';
 import { IconButton } from './ui/Actions';
 import { Sparkline } from './ui/Display';
@@ -35,12 +35,16 @@ const accountContext = (account: Account) => {
 
 export const AccountLogo: React.FC<{ account: Account; size?: number }> = ({ account, size = 40 }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-  const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, { logo?: string }>;
+  const logoOverrides = useMemo(() => {
+    return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
+  }, [merchantLogoOverrides, merchantRules]);
   const [hasFailed, setFailed] = useState(false);
 
   const logoUrl = useMemo(() => {
     const query = account.financialInstitution || (account as any).institutionName || (account as any).institutionId || (account as any).bankName || account.name;
-    const url = query ? getMerchantLogoUrl(query, brandfetchClientId, logoOverrides, { type: 'icon', fallback: 'lettermark', width: 96, height: 96 }) : null;
+    const url = query ? getMerchantLogoUrl(query, brandfetchClientId, logoOverrides, { type: 'icon', fallback: 'lettermark', width: 96, height: 96, allowDomainGuess: true }) : null;
     if (url) return url;
     return account.type === 'Credit Card' && account.cardNetwork ? getCardNetworkLogoUrl(account.cardNetwork, brandfetchClientId) : null;
   }, [account, brandfetchClientId, logoOverrides]);

@@ -4,14 +4,60 @@ export type LogoFallback = 'brandfetch' | 'transparent' | 'lettermark' | '404';
 
 export const normalizeMerchantKey = (merchant?: string | null) => merchant?.trim().toLowerCase() || null;
 
+export const findMerchantOverride = (
+  merchant: string | undefined | null,
+  overrides?: Record<string, string>,
+): string | undefined => {
+  const key = normalizeMerchantKey(merchant);
+  if (!key || !overrides) return undefined;
+  if (overrides[key]) return overrides[key];
+
+  // Try first word: e.g. "carrefour express" -> "carrefour"
+  const firstWord = key.split(/[\s*|/]/)[0]?.replace(/[^a-z0-9]/g, '');
+  if (firstWord && firstWord.length >= 2 && overrides[firstWord]) {
+    return overrides[firstWord];
+  }
+
+  // Check if any rule key is contained within the merchant key
+  for (const [ruleKey, val] of Object.entries(overrides)) {
+    if (ruleKey.length >= 3 && key.includes(ruleKey)) {
+      return val;
+    }
+  }
+
+  return undefined;
+};
+
+export const buildEffectiveMerchantLogoOverrides = (
+  merchantLogoOverrides?: Record<string, string> | null,
+  merchantRules?: Record<string, { logo?: string }> | null,
+): Record<string, string> => {
+  const result: Record<string, string> = {};
+  if (merchantLogoOverrides) {
+    for (const [k, v] of Object.entries(merchantLogoOverrides)) {
+      const norm = normalizeMerchantKey(k);
+      if (norm && v) result[norm] = v;
+    }
+  }
+  if (merchantRules) {
+    for (const [k, rule] of Object.entries(merchantRules)) {
+      const norm = normalizeMerchantKey(k);
+      if (norm && rule?.logo) {
+        result[norm] = rule.logo;
+      }
+    }
+  }
+  return result;
+};
+
 export const buildMerchantIdentifier = (
   merchant?: string,
   overrides?: Record<string, string>,
 ): string | null => {
   const normalizedKey = normalizeMerchantKey(merchant);
 
-  // 1. Check for manual override first (User defined mapping in Settings > Merchants)
-  const override = normalizedKey ? overrides?.[normalizedKey] : undefined;
+  // 1. Check for manual override first (User defined mapping in Settings > Merchants or Merchant profile)
+  const override = findMerchantOverride(merchant, overrides);
 
   if (override !== undefined) {
     const trimmed = override.trim().toLowerCase();
@@ -78,15 +124,26 @@ export const getMerchantLogoUrl = (
   options?: { width?: number; height?: number; type?: LogoType; fallback?: LogoFallback; refreshTimestamp?: number; allowDomainGuess?: boolean },
 ): string | null => {
   const normalizedKey = normalizeMerchantKey(merchant);
-  if (normalizedKey) {
-    const override = overrides?.[normalizedKey];
-    if (override && (override.startsWith('data:image/') || override.startsWith('http://') || override.startsWith('https://'))) {
+  if (normalizedKey && overrides) {
+    const override = findMerchantOverride(merchant, overrides);
+    if (override && (override.startsWith('data:') || override.startsWith('http://') || override.startsWith('https://'))) {
       return override;
     }
   }
 
   if (!clientId) return null;
   let identifier = buildMerchantIdentifier(merchant, overrides);
+  if (!identifier && overrides) {
+    const matchedOverride = findMerchantOverride(merchant, overrides);
+    if (matchedOverride) {
+      const trimmed = matchedOverride.trim().toLowerCase();
+      if (trimmed.includes('.') && trimmed.length > 3) {
+        identifier = trimmed.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+      } else if (options?.allowDomainGuess && trimmed.length >= 2) {
+        identifier = `${trimmed.replace(/[^a-z0-9]/g, '')}.com`;
+      }
+    }
+  }
   if (!identifier && options?.allowDomainGuess && normalizedKey) {
     const firstWord = normalizedKey.split(/[\s*|/]/)[0].replace(/[^a-z0-9]/g, '');
     if (firstWord.length >= 2) {
