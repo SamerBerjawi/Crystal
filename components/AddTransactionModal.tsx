@@ -307,7 +307,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         {selectedTags.slice(0, 3).map(tag => (
           <span
             key={tag.id}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-surface-elevated border border-line"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-inset border border-line"
             style={{ color: tag.color || 'var(--ink)' }}
           >
             <Icon name={tag.icon || 'tag'} size={12} style={{ color: tag.color }} className="shrink-0" />
@@ -319,6 +319,17 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       </span>
     );
   }, [selectedTags, form.notes]);
+
+  const merchantLogo = useMemo(() => {
+    const name = form.merchant.trim();
+    if (!name) return null;
+    return getMerchantLogoUrl(name, brandfetchClientId, logoOverrides, {
+      fallback: 'lettermark',
+      type: 'icon',
+      width: 64,
+      height: 64,
+    });
+  }, [form.merchant, brandfetchClientId, logoOverrides]);
 
   return (
     <SidePanel
@@ -358,26 +369,58 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
         <div className="relative">
           <label htmlFor="tx-merchant" className="type-label mb-1.5 block text-ink">Merchant</label>
-          <input
-            id="tx-merchant"
-            role="combobox"
-            aria-expanded={isMerchantOpen && merchantMatches.length > 0}
-            aria-controls="tx-merchant-list"
-            aria-autocomplete="list"
-            aria-activedescendant={activeIndex >= 0 ? `tx-merchant-${activeIndex}` : undefined}
-            autoComplete="off"
-            value={form.merchant}
-            placeholder={form.type === 'transfer' ? 'Internal Transfer' : 'Shop, company or person'}
-            onChange={e => {
-              const { value } = e.target;
-              setMerchantOpen(true);
-              setForm(prev => (value.length >= 2 ? applyAutofill({ ...prev, merchant: value }) : { ...prev, merchant: value }));
-            }}
-            onFocus={() => { setMerchantOpen(true); setActiveIndex(-1); }}
-            onBlur={() => setMerchantOpen(false)}
-            onKeyDown={onMerchantKey}
-            className={cn(controlStyles, 'h-11 px-3 text-[.9375rem] font-medium max-md:h-12 max-md:text-base')}
-          />
+          <div className="relative flex items-center">
+            <span className="pointer-events-none absolute left-3 z-10 flex size-6 shrink-0 items-center justify-center">
+              {form.merchant.trim() ? (
+                <LogoTile
+                  url={merchantLogo}
+                  label={form.merchant}
+                  size={24}
+                  rounded="md"
+                  fallbackIcon={form.type === 'transfer' ? 'swap_horiz' : 'storefront'}
+                />
+              ) : (
+                <Icon
+                  name={form.type === 'transfer' ? 'swap_horiz' : 'storefront'}
+                  size={18}
+                  className="text-muted"
+                />
+              )}
+            </span>
+            <input
+              id="tx-merchant"
+              role="combobox"
+              aria-expanded={isMerchantOpen && merchantMatches.length > 0}
+              aria-controls="tx-merchant-list"
+              aria-autocomplete="list"
+              aria-activedescendant={activeIndex >= 0 ? `tx-merchant-${activeIndex}` : undefined}
+              autoComplete="off"
+              value={form.merchant}
+              placeholder={form.type === 'transfer' ? 'Internal Transfer' : 'Shop, company or person'}
+              onChange={e => {
+                const { value } = e.target;
+                setMerchantOpen(true);
+                setForm(prev => (value.length >= 2 ? applyAutofill({ ...prev, merchant: value }) : { ...prev, merchant: value }));
+              }}
+              onFocus={() => { setMerchantOpen(true); setActiveIndex(-1); }}
+              onBlur={() => setMerchantOpen(false)}
+              onKeyDown={onMerchantKey}
+              className={cn(controlStyles, 'h-11 pl-11 pr-9 text-[.9375rem] font-medium max-md:h-12 max-md:text-base')}
+            />
+            {form.merchant.trim() && (
+              <button
+                type="button"
+                aria-label="Clear merchant"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  setForm(prev => ({ ...prev, merchant: '', merchantEdited: true }));
+                }}
+                className="absolute right-3 flex size-5 cursor-pointer items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
+              >
+                <Icon name="close" size={14} />
+              </button>
+            )}
+          </div>
           {isMerchantOpen && merchantMatches.length > 0 && (
             <ul id="tx-merchant-list" role="listbox" aria-label="Merchants" className="absolute inset-x-0 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-[var(--radius-lg)] border border-line bg-solid p-1.5 shadow-sm">
               {merchantMatches.map((item, index) => {
@@ -392,7 +435,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                       onMouseEnter={() => setActiveIndex(index)}
                       className={cn('flex min-h-10 w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-left pointer-coarse:min-h-12', index === activeIndex && 'bg-inset')}
                     >
-                      <LogoTile url={logo} label={item.name} size={24} fallbackIcon="wallet" />
+                      <LogoTile url={logo} label={item.name} size={24} fallbackIcon="storefront" />
                       <span className="type-body min-w-0 flex-1 truncate text-ink">{item.name}</span>
                       {item.category && <span className="type-caption shrink-0 text-muted">{item.category}</span>}
                     </button>
