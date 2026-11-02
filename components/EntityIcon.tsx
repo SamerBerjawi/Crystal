@@ -156,10 +156,15 @@ export const MerchantLogo: React.FC<{
 }> = ({ merchant, description, name, isTransfer, size = 36, className }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const merchantName = name?.trim() || merchant?.trim() || description?.trim() || 'Transaction';
+  const rawName = (merchant && merchant.toLowerCase() !== 'internal transfer' ? merchant : '')
+    || (name && name.toLowerCase() !== 'internal transfer' ? name : '')
+    || merchant
+    || description
+    || name
+    || 'Transaction';
+  const merchantName = rawName.replace(/^Transfer\s+(to|from)\s+/i, '').trim();
 
   const logoUrl = useMemo(() => {
-    if (isTransfer) return null;
     return getMerchantLogoUrl(merchantName, brandfetchClientId, logoOverrides, {
       fallback: 'lettermark',
       type: 'icon',
@@ -167,19 +172,7 @@ export const MerchantLogo: React.FC<{
       height: Math.max(size * 2, 80),
       allowDomainGuess: true,
     });
-  }, [merchantName, isTransfer, brandfetchClientId, logoOverrides, size]);
-
-  if (isTransfer) {
-    return (
-      <span
-        style={{ width: size, height: size }}
-        className={cn('flex shrink-0 items-center justify-center rounded-full bg-cyan-950/60 dark:bg-[#0c313a] text-cyan-400 border border-cyan-800/30', className)}
-        aria-hidden="true"
-      >
-        <Icon name="swap_horiz" size={Math.round(size * 0.5)} />
-      </span>
-    );
-  }
+  }, [merchantName, brandfetchClientId, logoOverrides, size]);
 
   return (
     <LogoTile
@@ -187,6 +180,7 @@ export const MerchantLogo: React.FC<{
       label={merchantName}
       size={size}
       rounded="lg"
+      fallbackIcon={isTransfer ? 'swap_horiz' : undefined}
       className={className}
     />
   );

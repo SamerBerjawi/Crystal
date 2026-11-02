@@ -237,9 +237,16 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const merchantLogoUrls = useMemo(() => {
     return transactions.reduce((acc, tx) => {
-      const key = normalizeMerchantKey(tx.merchant);
+      const rawName = (tx.merchant && tx.merchant.toLowerCase() !== 'internal transfer' ? tx.merchant : '')
+        || (tx as DisplayTransaction).toAccountName
+        || (tx as DisplayTransaction).fromAccountName
+        || tx.merchant
+        || tx.description
+        || '';
+      const cleanName = rawName.replace(/^Transfer\s+(to|from)\s+/i, '').trim();
+      const key = normalizeMerchantKey(cleanName);
       if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
+      const url = getMerchantLogoUrl(cleanName, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96, allowDomainGuess: true });
       if (url) acc[key] = url;
       return acc;
     }, {} as Record<string, string>);
@@ -1422,16 +1429,29 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   };
 
   const logoOf = (tx: DisplayTransaction) => {
+    const rawName = (tx.merchant && tx.merchant.toLowerCase() !== 'internal transfer' ? tx.merchant : '')
+      || tx.toAccountName
+      || tx.fromAccountName
+      || tx.merchant
+      || tx.description
+      || '';
+    const cleanName = rawName.replace(/^Transfer\s+(to|from)\s+/i, '').trim();
+    const key = normalizeMerchantKey(cleanName);
+    if (key && merchantLogoUrls[key]) return merchantLogoUrls[key];
+    if (key) {
+      const directUrl = getMerchantLogoUrl(cleanName, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96, allowDomainGuess: true });
+      if (directUrl) return directUrl;
+    }
     if (tx.isTransfer) {
-      if (user?.profilePictureUrl) return user.profilePictureUrl;
       const fromAcc = tx.fromAccountName ? accountMapByName[tx.fromAccountName] : undefined;
-      const logoUrl = fromAcc?.imageUrl
-        || (fromAcc ? getAccountBrandfetchUrl(fromAcc, brandfetchClientId, effectiveMerchantLogoOverrides) : null)
-        || (fromAcc?.financialInstitution ? getMerchantLogoUrl(fromAcc.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
+      const toAcc = tx.toAccountName ? accountMapByName[tx.toAccountName] : undefined;
+      const targetAcc = tx.type === 'expense' ? (toAcc || fromAcc) : (fromAcc || toAcc);
+      const logoUrl = targetAcc?.imageUrl
+        || (targetAcc ? getAccountBrandfetchUrl(targetAcc, brandfetchClientId, effectiveMerchantLogoOverrides) : null)
+        || (targetAcc?.financialInstitution ? getMerchantLogoUrl(targetAcc.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { allowDomainGuess: true }) : null);
       if (logoUrl) return logoUrl;
     }
-    const key = normalizeMerchantKey(tx.merchant);
-    return key ? merchantLogoUrls[key] ?? null : null;
+    return null;
   };
 
   const topCategories = useMemo(() => {

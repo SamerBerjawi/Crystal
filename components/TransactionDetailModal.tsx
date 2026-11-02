@@ -259,20 +259,26 @@ const FactSection: React.FC<{
       .filter(group => group.items.length > 0);
   }, [groupedCategories, catSearch]);
 
-        const logoQuery = nameOf(tx);
-  const logoUrl = useMemo(() => {
-    if (!logoQuery.trim()) return null;
-        return getMerchantLogoUrl(logoQuery, brandfetchClientId, logoOverrides, {fallback: 'lettermark', type: 'icon', width: 128, height: 128, allowDomainGuess: true });
-  }, [logoQuery, brandfetchClientId, logoOverrides]);
-        const logo = logoUrl !== failedLogo ? logoUrl : null;
-
   const accountOf = (id?: string) => accounts.find(account => account.id === id);
   const from = legs.find(leg => leg.type === 'expense');
   const to = legs.find(leg => leg.type === 'income');
-        const isTransfer = Boolean(tx.transferId);
-        const hasBothSides = Boolean(from && to);
-        const headline = isTransfer ? from || tx : tx;
-        const mainAccount = accountOf(headline.accountId);
+  const isTransfer = Boolean(tx.transferId);
+  const hasBothSides = Boolean(from && to);
+  const headline = isTransfer ? from || tx : tx;
+  const mainAccount = accountOf(headline.accountId);
+
+  const rawQuery = (tx.merchant && tx.merchant.toLowerCase() !== 'internal transfer' ? tx.merchant : '')
+    || (to ? accountOf(to.accountId)?.name : undefined)
+    || (from ? accountOf(from.accountId)?.name : undefined)
+    || tx.merchant
+    || tx.description
+    || '';
+  const logoQuery = rawQuery.replace(/^Transfer\s+(to|from)\s+/i, '').trim() || nameOf(tx);
+  const logoUrl = useMemo(() => {
+    if (!logoQuery.trim()) return null;
+    return getMerchantLogoUrl(logoQuery, brandfetchClientId, logoOverrides, {fallback: 'lettermark', type: 'icon', width: 128, height: 128, allowDomainGuess: true });
+  }, [logoQuery, brandfetchClientId, logoOverrides]);
+  const logo = logoUrl !== failedLogo ? logoUrl : null;
 
         const place = placeName(tx);
   const locMeta = useMemo(() => formatTransactionLocation(tx), [tx]);

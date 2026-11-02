@@ -97,7 +97,13 @@ const TransactionList: React.FC<TransactionListProps> = ({
           ? 'rgba(59, 130, 246, 0.4)' 
           : (tx.type === 'income' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)');
 
-        const merchantName = isTransfer ? '' : (tx.merchant?.trim() || tx.description?.trim() || '');
+        const rawMerchant = (tx.merchant && tx.merchant.toLowerCase() !== 'internal transfer' ? tx.merchant : '')
+          || (tx as DisplayTransaction).toAccountName
+          || (tx as DisplayTransaction).fromAccountName
+          || tx.merchant
+          || tx.description
+          || '';
+        const merchantName = rawMerchant.replace(/^Transfer\s+(to|from)\s+/i, '').trim();
         const merchantKey = normalizeMerchantKey(merchantName);
         const merchantLogoUrl = merchantKey
           ? getMerchantLogoUrl(merchantName, brandfetchClientId, effectiveMerchantLogoOverrides, {

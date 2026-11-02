@@ -64,6 +64,14 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string 
   const initial = nameForInitial ? nameForInitial.charAt(0).toUpperCase() : null;
   const hasImage = Boolean(url && !hasFailed);
 
+  if (hasImage) {
+    return (
+      <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-white shadow-xs">
+        <img src={url!} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
+      </span>
+    );
+  }
+
   if (tx.isTransfer) {
     return (
       <span
@@ -79,14 +87,10 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string 
     <span
       className={cn(
         'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px]',
-        hasImage
-          ? 'bg-white shadow-xs'
-          : 'bg-black/5 text-ink dark:bg-white/10 font-bold border border-line/40'
+        'bg-black/5 text-ink dark:bg-white/10 font-bold border border-line/40'
       )}
     >
-      {hasImage ? (
-        <img src={url!} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
-      ) : initial ? (
+      {initial ? (
         <span className="type-label font-bold text-ink">{initial}</span>
       ) : (
         <Icon name={icon} size={18} className="text-muted" />
