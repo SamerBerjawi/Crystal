@@ -173,26 +173,28 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
               <h2 className="type-section-title truncate text-ink">{selected.name}</h2>
               <p className="type-caption text-muted">{accountCardKind(selected)}{selected.last4 ? ` card, •• ${selected.last4}` : ' card'}</p>
             </div>
-            <Badge tone={selected.status === 'closed' ? 'neutral' : 'positive'}>{selected.status === 'closed' ? 'Closed' : 'Active'}</Badge>
-            {onReorder && cards.length > 1 && (
-              <div className="flex items-center gap-1">
-                <IconButton
-                  icon="arrow_back"
-                  label="Move card left"
-                  tooltipPlacement="top"
-                  isDisabled={selectedIndex <= 0}
-                  onPress={() => onReorder(selected.id, cards[selectedIndex - 1].id)}
-                />
-                <IconButton
-                  icon="arrow_forward"
-                  label="Move card right"
-                  tooltipPlacement="top"
-                  isDisabled={selectedIndex >= cards.length - 1}
-                  onPress={() => onReorder(selected.id, cards[selectedIndex + 1].id)}
-                />
-              </div>
-            )}
-            <Menu title={selected.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${selected.name}`} tooltipPlacement="left" />} items={cardMenuItems} />
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Badge tone={selected.status === 'closed' ? 'neutral' : 'positive'}>{selected.status === 'closed' ? 'Closed' : 'Active'}</Badge>
+              {onReorder && cards.length > 1 && (
+                <div className="flex items-center gap-1">
+                  <IconButton
+                    icon="arrow_back"
+                    label="Move card left"
+                    tooltipPlacement="top"
+                    isDisabled={selectedIndex <= 0}
+                    onPress={() => onReorder(selected.id, cards[selectedIndex - 1].id)}
+                  />
+                  <IconButton
+                    icon="arrow_forward"
+                    label="Move card right"
+                    tooltipPlacement="top"
+                    isDisabled={selectedIndex >= cards.length - 1}
+                    onPress={() => onReorder(selected.id, cards[selectedIndex + 1].id)}
+                  />
+                </div>
+              )}
+              <Menu title={selected.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${selected.name}`} tooltipPlacement="left" />} items={cardMenuItems} />
+            </div>
           </header>
           <BankCard account={selected} size="large" />
           <DetailList items={[
