@@ -177,6 +177,7 @@ export const Combobox: React.FC<FieldProps & {
   const { contains } = useFilter({ sensitivity: 'base' });
   const [query, setQuery] = useState('');
   const [isOpen, setOpen] = useState(false);
+  const isSelectingRef = useRef(false);
   const selected = options.find(option => option.id === value);
   const name = typeof label === 'string' ? label : placeholder;
 
@@ -191,10 +192,34 @@ export const Combobox: React.FC<FieldProps & {
     [contains, options, query],
   );
   const canCreate = !!onCreate && !!query.trim() && !options.some(option => option.label.toLowerCase() === query.trim().toLowerCase());
+
   const pick = (key: Key | null) => {
-    if (key === '__create') onCreate?.(query.trim());
-    else onChange(key === null ? null : String(key));
+    if (key === null) return;
+    isSelectingRef.current = true;
+    if (key === '__create') {
+      onCreate?.(query.trim());
+    } else {
+      onChange(String(key));
+    }
+    setQuery('');
     setOpen(false);
+    setTimeout(() => {
+      isSelectingRef.current = false;
+    }, 150);
+  };
+
+  const handleInputChange = (text: string) => {
+    if (isSelectingRef.current) return;
+    setQuery(text);
+    if (!isOpen) setOpen(true);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (isSelectingRef.current && open) return;
+    setOpen(open);
+    if (!open) {
+      setQuery('');
+    }
   };
 
   const createRow = canCreate && (
@@ -217,7 +242,7 @@ export const Combobox: React.FC<FieldProps & {
             </AriaButton>
           </FieldShell>
         </AriaSelect>
-        <BottomSheet isOpen={isOpen} onClose={() => setOpen(false)} title={name} height="full">
+        <BottomSheet isOpen={isOpen} onClose={() => { setOpen(false); setQuery(''); }} title={name} height="full">
           <input
             autoFocus
             type="search"
@@ -249,10 +274,9 @@ export const Combobox: React.FC<FieldProps & {
     <ComboBox
       selectedKey={value}
       onSelectionChange={pick}
-      inputValue={isOpen ? query : selected?.label ?? ''}
-      onInputChange={text => { setQuery(text); setOpen(true); }}
-      onOpenChange={open => { setOpen(open); if (open) setQuery(''); }}
-      menuTrigger="focus"
+      onInputChange={handleInputChange}
+      onOpenChange={handleOpenChange}
+      menuTrigger="input"
       allowsEmptyCollection
       isDisabled={isDisabled}
       isInvalid={!!error}
@@ -266,7 +290,7 @@ export const Combobox: React.FC<FieldProps & {
             </span>
           )}
           <Input
-            onClick={() => setOpen(true)}
+            onFocus={e => e.target.select()}
             placeholder={placeholder}
             className={cn(
               controlStyles,
@@ -283,7 +307,7 @@ export const Combobox: React.FC<FieldProps & {
         </div>
       </FieldShell>
       <AriaPopover offset={6} className={cn(popoverStyles, 'w-(--trigger-width)')}>
-        <ListBox className={listStyles} renderEmptyState={empty}>
+        <ListBox className={listStyles} onAction={pick} renderEmptyState={empty}>
           {createRow}
           {renderOptions(visible)}
         </ListBox>
