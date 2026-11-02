@@ -45,7 +45,26 @@ interface AddTransactionModalProps {
   initialDetails?: TxInitial;
 }
 
-const TYPE_ITEMS = [{ id: 'expense', label: 'Expense' }, { id: 'income', label: 'Income' }, { id: 'transfer', label: 'Transfer' }];
+const TYPE_ITEMS = [
+  {
+    id: 'expense',
+    label: 'Expense',
+    icon: 'arrow_downward',
+    activeClassName: 'bg-red-500 dark:bg-red-600 text-white shadow-xs',
+  },
+  {
+    id: 'income',
+    label: 'Income',
+    icon: 'arrow_upward',
+    activeClassName: 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs',
+  },
+  {
+    id: 'transfer',
+    label: 'Transfer',
+    icon: 'swap_horiz',
+    activeClassName: 'bg-blue-600 dark:bg-blue-500 text-white shadow-xs',
+  },
+];
 
 /** A closed section with a one-line summary of what's in it. */
 const Expander: React.FC<{ title: string; summary?: string; children: React.ReactNode }> = ({ title, summary, children }) => {
@@ -434,7 +453,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
           </Expander>
 
           {spare && (
-            <Expander title="Round-up" summary={form.roundUpOn && roundUp > 0 ? `${formatCurrency(roundUp, currency)} to ${spare.name}` : 'Off'}>
+            <Expander
+              title="Round-up"
+              summary={
+                form.roundUpOn
+                  ? (roundUp > 0 ? `${formatCurrency(roundUp, currency)} to ${spare.name}` : `To ${spare.name}`)
+                  : 'Off'
+              }
+            >
               <Switch isSelected={form.roundUpOn} onChange={roundUpOn => update({ roundUpOn })}>Round up to {spare.name}</Switch>
               {form.roundUpOn && (
                 <div className="grid grid-cols-2 gap-3">

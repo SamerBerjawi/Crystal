@@ -11,6 +11,8 @@ export interface SegmentedControlItem {
   icon?: string;
   count?: number;
   badge?: number | string | null;
+  activeClassName?: string;
+  className?: string;
 }
 
 export interface SegmentedControlProps {
@@ -178,8 +180,8 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
                 'transition-colors duration-[var(--duration-fast)] cursor-pointer select-none',
                 isScrollable ? 'flex-none' : 'flex-1 justify-center',
                 isActive
-                  ? 'bg-solid text-ink'
-                  : 'text-muted hover:text-ink'
+                  ? item.activeClassName ?? 'bg-solid text-ink'
+                  : item.className ?? 'text-muted hover:text-ink'
               )}
             >
 

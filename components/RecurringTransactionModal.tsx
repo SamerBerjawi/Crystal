@@ -26,7 +26,26 @@ export interface RecurringTransactionModalProps {
 }
 
 const KINDS = [{ id: 'recurring', label: 'Recurring' }, { id: 'bill', label: 'One-time' }];
-const RECURRING_TYPES = [{ id: 'expense', label: 'Payment' }, { id: 'income', label: 'Income' }, { id: 'transfer', label: 'Transfer' }];
+const RECURRING_TYPES = [
+  {
+    id: 'expense',
+    label: 'Payment',
+    icon: 'arrow_downward',
+    activeClassName: 'bg-red-500 dark:bg-red-600 text-white shadow-xs',
+  },
+  {
+    id: 'income',
+    label: 'Income',
+    icon: 'arrow_upward',
+    activeClassName: 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs',
+  },
+  {
+    id: 'transfer',
+    label: 'Transfer',
+    icon: 'swap_horiz',
+    activeClassName: 'bg-blue-600 dark:bg-blue-500 text-white shadow-xs',
+  },
+];
 const BILL_TYPES = RECURRING_TYPES.slice(0, 2);
 const NONE = 'none';
 
