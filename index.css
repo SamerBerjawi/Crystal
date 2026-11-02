@@ -1436,6 +1436,7 @@ body::before {
     background: var(--surface);
     border: 1px solid var(--rim);
     box-shadow: var(--card-shadow);
+    border-radius: var(--radius-xl);
   }
 }
 

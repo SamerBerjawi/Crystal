@@ -67,7 +67,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
       </div>
 
       {visible.length > 0 ? (
-        <ul className="surface-card min-w-0 divide-y divide-line px-4 py-1">
+        <ul className="surface-card min-w-0 divide-y divide-line rounded-[var(--radius-xl)] px-4 py-1">
           {visible.map(tag => (
             <li key={tag.id} className="flex min-h-16 items-center gap-2">
               <button

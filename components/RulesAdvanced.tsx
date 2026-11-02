@@ -23,7 +23,7 @@ interface RulesAdvancedProps {
 const PAGE = 25;
 
 const Section: React.FC<{ title: string; description?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, description, actions, children }) => (
-  <section className="surface-card min-w-0 p-5">
+  <section className="surface-card min-w-0 rounded-[var(--radius-xl)] p-5">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-1 basis-56">
         <h2 className="type-card-title text-ink">{title}</h2>

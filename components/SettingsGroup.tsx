@@ -18,7 +18,7 @@ const SettingsGroup: React.FC<SettingsGroupProps> = ({ id, title, description, i
       <h2 className="type-card-title text-ink">{title}</h2>
       {description && <p className="type-body mt-1 text-muted">{description}</p>}
     </div>
-    <div className={cn('min-w-0', !isPlain && 'surface-card p-5')}>{children}</div>
+    <div className={cn('min-w-0', !isPlain && 'rounded-[var(--radius-xl)] surface-card p-5')}>{children}</div>
   </section>
 );
 

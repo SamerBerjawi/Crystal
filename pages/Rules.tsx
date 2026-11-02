@@ -34,7 +34,7 @@ const RuleGroup: React.FC<{ title: string; description: string; children: React.
   <section className="min-w-0">
     <h2 className="type-card-title text-ink">{title}</h2>
     <p className="type-body mb-2 mt-1 text-muted">{description}</p>
-    <ul className="surface-card min-w-0 divide-y divide-line px-4">{children}</ul>
+    <ul className="surface-card min-w-0 divide-y divide-line rounded-[var(--radius-xl)] px-4">{children}</ul>
   </section>
 );
 
@@ -211,7 +211,7 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
               <p className="type-body mb-2 mt-1 text-muted">Patterns in your transactions.</p>
               <ul className="space-y-2">
                 {suggestions.slice(0, visibleSuggestions).map(suggestion => (
-                  <li key={suggestion.id} className="surface-card min-w-0 p-4">
+                  <li key={suggestion.id} className="surface-card min-w-0 rounded-[var(--radius-xl)] p-4">
                     <RuleSentence rule={suggestion.rule} />
                     <p className="type-caption mt-1 text-muted">{suggestion.reason}</p>
                     <div className="mt-3 flex gap-2">

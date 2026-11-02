@@ -35,7 +35,7 @@ const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, acc
   ].filter(Boolean);
 
   return (
-    <article className="surface-card min-w-0 p-5">
+    <article className="surface-card min-w-0 rounded-[var(--radius-xl)] p-5">
       <header className="flex flex-wrap items-center gap-3">
         <BrandMark name={name} />
         <div className="min-w-0 flex-1 basis-40">

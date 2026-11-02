@@ -96,7 +96,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
       </div>
 
       {visible.length > 0 ? (
-        <ul className="surface-card min-w-0 divide-y divide-line px-4 py-1">
+        <ul className="surface-card min-w-0 divide-y divide-line rounded-[var(--radius-xl)] px-4 py-1">
           {visible.map(category => (
             <CategoryItem
               key={category.id}
