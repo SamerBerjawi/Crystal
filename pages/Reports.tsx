@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Page } from '../types';
 import { toLocalISOString, getMainCurrency } from '../utils';
+import { sortAccountsByType } from '../utils/accountsModel';
+import { categoryPickerOptions } from '../utils/categoryTree';
 import { automaticReports, buildReport, dailySpend, expensesIn, MAX_SAVED_VIEWS, NO_FILTERS, reportTiles, type GroupBy, type ReportFilters, type ReportId, type SavedReportView } from '../utils/reportsModel';
 import { warnIgnored } from '../utils/logging';
 import { useAccountSelector, usePreferencesContext, useTransactionSelector } from '../contexts/DomainProviders';
@@ -228,8 +230,28 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
             <DateInput label="From" value={filters.startDate} onChange={startDate => update({ startDate })} />
             <DateInput label="To" value={filters.endDate} onChange={endDate => update({ endDate })} />
           </div>
-          <Select label="Account" options={[{ id: 'all', label: 'All accounts' }, ...accounts.map(account => ({ id: account.id, label: account.name }))]} value={filters.accountId} onChange={accountId => update({ accountId })} />
-          <Select label="Category" options={[{ id: 'all', label: 'All categories' }, ...[...expenseCategories, ...incomeCategories].map(category => ({ id: category.name, label: category.name }))]} value={filters.category} onChange={category => update({ category })} />
+          <Select
+            label="Account"
+            options={[
+              { id: 'all', label: 'All accounts' },
+              ...sortAccountsByType(accounts).map(account => ({
+                id: account.id,
+                label: account.name,
+                group: account.status === 'closed' ? 'Closed' : account.type,
+              })),
+            ]}
+            value={filters.accountId}
+            onChange={accountId => update({ accountId })}
+          />
+          <Select
+            label="Category"
+            options={[
+              { id: 'all', label: 'All categories' },
+              ...categoryPickerOptions(expenseCategories, incomeCategories),
+            ]}
+            value={filters.category}
+            onChange={category => update({ category })}
+          />
           <TextInput label="Merchant" value={filters.merchant} onChange={merchant => update({ merchant })} />
         </div>
       </SidePanel>

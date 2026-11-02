@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { BillPayment, FinancialGoal, RecurringTransaction, ScheduledItem } from '../types';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
 import { convertToMain, formatCurrency, parseLocalDate, round2, getMainCurrency } from '../utils';
+import { sortAccountsByType } from '../utils/accountsModel';
 import EditRecurrenceModal from '../components/EditRecurrenceModal';
 import ForecastDayPanel from '../components/ForecastDayPanel';
 import ForecastHorizonChart, { type ChartLine } from '../components/ForecastHorizonChart';
@@ -231,7 +232,12 @@ const Forecasting: React.FC = () => {
         <MultiSelect
           className="w-64 max-sm:w-full"
           label="Accounts"
-          options={accounts.filter(account => account.status !== 'closed').map(account => ({ id: account.id, label: account.name, description: account.type }))}
+          options={sortAccountsByType(accounts.filter(account => account.status !== 'closed')).map(account => ({
+            id: account.id,
+            label: account.name,
+            description: account.type,
+            group: account.type,
+          }))}
           value={selectedAccountIds}
           onChange={setSelectedAccountIds}
           placeholder="Choose accounts"

@@ -167,9 +167,19 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     { merchant: form.merchant, description: form.description, type: form.type } as Transaction, transactions, activeRule?.category
   )), [form.type, form.merchant, form.description, transactions, activeRule?.category]);
 
-  const accountOptions = (exclude?: string, selected?: string): PickerOption[] => accounts
-    .filter(item => item.id !== exclude && (item.status !== 'closed' || item.id === selected))
-    .map(item => {
+  const ACCOUNT_TYPE_ORDER = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets', 'Lending', 'Credit Card', 'Loan', 'Other Liabilities'];
+  const rank = (type: string) => {
+    const i = ACCOUNT_TYPE_ORDER.indexOf(type);
+    return i === -1 ? ACCOUNT_TYPE_ORDER.length : i;
+  };
+
+  const accountOptions = (exclude?: string, selected?: string): PickerOption[] => {
+    const filtered = accounts.filter(item => item.id !== exclude && (item.status !== 'closed' || item.id === selected));
+    const open = filtered.filter(a => a.status !== 'closed').sort((a, b) => rank(a.type) - rank(b.type));
+    const closed = filtered.filter(a => a.status === 'closed');
+    const sorted = [...open, ...closed];
+
+    return sorted.map(item => {
       const logoUrl = item.imageUrl
         || getAccountBrandfetchUrl(item, brandfetchClientId, logoOverrides)
         || (item.financialInstitution ? getMerchantLogoUrl(item.financialInstitution, brandfetchClientId, logoOverrides) : null);
@@ -177,9 +187,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         id: item.id,
         label: item.name,
         description: `${item.financialInstitution || item.type}, ${formatCurrency(item.balance, item.currency)}`,
+        group: item.status === 'closed' ? 'Closed' : item.type,
         visual: <LogoTile url={logoUrl} label={item.name} size={24} fallbackIcon="account_balance" />,
       };
     });
+  };
 
   const setType = (type: string) => update({ type: type as TxType, ...accountsForType(form, type as TxType), ...(isEditing ? {} : { category: initialCategory || (type === 'transfer' ? 'Transfer' : ''), categoryEdited: !!initialCategory }) });
 

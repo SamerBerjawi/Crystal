@@ -5,6 +5,7 @@ import type { Account, AccountType, Warrant } from '../types';
 import { ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CARD_NETWORKS, CURRENCIES, FREQUENCIES, FUEL_TYPES, INVESTMENT_SUB_TYPES, OTHER_ASSET_SUB_TYPES, OTHER_LIABILITY_SUB_TYPES, PROPERTY_TYPES, VEHICLE_OWNERSHIP_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
 import { buildAccount, defaultIcon, draftFromAccount, emptyDraft, reconcileLoan, type AccountDraft, type SwitchField, type TextField } from '../utils/accountForm';
+import { sortAccountsByType } from '../utils/accountsModel';
 import IconPicker from './IconPicker';
 import Icon from './ui/Icon';
 import { Button, IconButton } from './ui/Actions';
@@ -70,7 +71,12 @@ const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants =
 
   const accountOptions = (list: Account[], empty: string, selected: string): PickerOption[] => [
     { id: NONE, label: empty },
-    ...list.filter(item => item.status !== 'closed' || item.id === selected).map(item => ({ id: item.id, label: item.name, description: item.type })),
+    ...sortAccountsByType(list.filter(item => item.status !== 'closed' || item.id === selected)).map(item => ({
+      id: item.id,
+      label: item.name,
+      description: item.type,
+      group: item.status === 'closed' ? 'Closed' : item.type,
+    })),
   ];
   const debitAccounts = useMemo(() => accounts.filter(item => item.type === 'Checking' || item.type === 'Savings'), [accounts]);
   const loanAccounts = useMemo(() => accounts.filter(item => item.type === 'Loan'), [accounts]);

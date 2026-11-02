@@ -3,6 +3,7 @@ import { Transaction, Account, Category, Tag } from '../types';
 import { toLocalISOString } from '../utils';
 import { applyBulkEdit, BulkField, BulkValues } from '../utils/bulkEdit';
 import { categoryPickerOptions } from '../utils/categoryTree';
+import { sortAccountsByType } from '../utils/accountsModel';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import Icon from './ui/Icon';
@@ -55,7 +56,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({ o
   const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
 
   const categoryOptions = useMemo(() => categoryPickerOptions(expenseCategories, incomeCategories), [expenseCategories, incomeCategories]);
-  const accountOptions = useMemo(() => accounts.map(account => {
+  const accountOptions = useMemo(() => sortAccountsByType(accounts).map(account => {
     const logoUrl = account.imageUrl
       || getAccountBrandfetchUrl(account, brandfetchClientId, logoOverrides)
       || (account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, logoOverrides) : null);
@@ -63,6 +64,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({ o
       id: account.id,
       label: account.name,
       description: account.financialInstitution || account.type,
+      group: account.status === 'closed' ? 'Closed' : account.type,
       visual: <LogoTile url={logoUrl} label={account.name} size={24} fallbackIcon="account_balance" />,
     };
   }), [accounts, brandfetchClientId, logoOverrides]);

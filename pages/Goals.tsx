@@ -4,6 +4,7 @@ import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordi
 import { CSS } from '@dnd-kit/utilities';
 import type { FinancialGoal } from '../types';
 import { convertToMain, getMainCurrency } from '../utils';
+import { sortAccountsByType } from '../utils/accountsModel';
 import GoalCard from '../components/GoalCard';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import GoalTable from '../components/GoalTable';
@@ -77,7 +78,14 @@ const Goals: React.FC = () => {
 
   const accountOptions = useMemo<PickerOption[]>(() => {
     const used = new Set(financialGoals.map(goal => goal.paymentAccountId).filter(Boolean));
-    return [{ id: ALL, label: 'All accounts' }, ...accounts.filter(account => used.has(account.id)).map(account => ({ id: account.id, label: account.name }))];
+    return [
+      { id: ALL, label: 'All accounts' },
+      ...sortAccountsByType(accounts.filter(account => used.has(account.id))).map(account => ({
+        id: account.id,
+        label: account.name,
+        group: account.status === 'closed' ? 'Closed' : account.type,
+      })),
+    ];
   }, [accounts, financialGoals]);
 
   const isIncluded = (goal: FinancialGoal) => !goal.disabled && activeGoalIds.includes(goal.id);

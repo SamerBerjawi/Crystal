@@ -3,6 +3,7 @@ import type { Category } from '../types';
 import { Checkbox } from './ui/Fields';
 import { Combobox } from './ui/Pickers';
 import Icon from './ui/Icon';
+import { EntityGlyph } from './EntityIcon';
 import { getCategoryDetails } from '../utils/categories';
 import { cn } from '../lib/utils';
 
@@ -19,30 +20,17 @@ const flatten = (categories: Category[]) => categories.flatMap(category => [
   {
     id: category.name,
     label: category.name,
-    visual: (
-      <span
-        className="flex size-5 shrink-0 items-center justify-center rounded-md"
-        style={{ backgroundColor: `${category.color || 'var(--muted)'}22`, color: category.color || 'var(--muted)' }}
-      >
-        <Icon name={category.icon || 'category'} size={12} />
-      </span>
-    ),
+    group: category.name,
+    level: 0,
+    visual: <EntityGlyph icon={category.icon} label={category.name} color={category.color} size={16} />,
   },
   ...category.subCategories.map(sub => ({
     id: sub.name,
     label: sub.name,
     description: category.name,
-    visual: (
-      <span
-        className="flex size-5 shrink-0 items-center justify-center rounded-md"
-        style={{
-          backgroundColor: `${sub.color || category.color || 'var(--muted)'}22`,
-          color: sub.color || category.color || 'var(--muted)',
-        }}
-      >
-        <Icon name={sub.icon || category.icon || 'category'} size={12} />
-      </span>
-    ),
+    group: category.name,
+    level: 1,
+    visual: <EntityGlyph icon={sub.icon || category.icon} label={sub.name} color={sub.color || category.color} size={16} />,
   })),
 ]);
 

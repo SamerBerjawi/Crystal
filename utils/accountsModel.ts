@@ -1,6 +1,6 @@
 import { getMainCurrency } from '../utils';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from '../constants';
-import { Account, Currency, LoanPaymentOverrides, Transaction } from '../types';
+import { Account, AccountType, Currency, LoanPaymentOverrides, Transaction } from '../types';
 import {
   arrayToCSV,
   calculateAccountTotals,
@@ -27,6 +27,33 @@ export interface AccountsModelOptions {
   /** Bank consent per linked account id, for the "consent expires soon" attention rule. */
   bankConsentExpiry?: Map<string, string | undefined>;
 }
+
+export const ACCOUNT_TYPE_ORDER: AccountType[] = [
+  'Checking',
+  'Savings',
+  'Investment',
+  'Property',
+  'Vehicle',
+  'Other Assets',
+  'Lending',
+  'Credit Card',
+  'Loan',
+  'Other Liabilities',
+];
+
+export const rankAccountType = (type: string) => {
+  const i = ACCOUNT_TYPE_ORDER.indexOf(type as AccountType);
+  return i === -1 ? ACCOUNT_TYPE_ORDER.length : i;
+};
+
+export const sortAccountsByType = (accounts: Account[]): Account[] => {
+  const open = accounts.filter(a => a.status !== 'closed').sort((a, b) => {
+    const diff = rankAccountType(a.type) - rankAccountType(b.type);
+    return diff !== 0 ? diff : a.name.localeCompare(b.name);
+  });
+  const closed = accounts.filter(a => a.status === 'closed').sort((a, b) => a.name.localeCompare(b.name));
+  return [...open, ...closed];
+};
 
 /** Accounts counted as liquid cash: checking, savings, cards (signed) and physical cash. */
 export const isLiquidAccount = (a: Account): boolean =>

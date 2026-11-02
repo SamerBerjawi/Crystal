@@ -3,10 +3,12 @@ import {
   Button as AriaButton,
   ComboBox,
   Dialog as AriaDialog,
+  Header,
   Input,
   ListBox,
   ListBoxItem,
   Popover as AriaPopover,
+  Section,
   Select as AriaSelect,
   SelectValue,
   useFilter,
@@ -26,6 +28,8 @@ export interface PickerOption {
   description?: string;
   icon?: string;
   visual?: React.ReactNode;
+  group?: string;
+  level?: number;
 }
 
 const optionRow =
@@ -34,7 +38,12 @@ const optionRow =
 const triggerRow = cn(controlStyles, 'flex h-11 cursor-pointer items-center justify-between gap-2 px-3 text-left text-[.9375rem] font-medium max-md:h-12 max-md:text-base');
 
 const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, multi }) => (
-  <ListBoxItem id={option.id} textValue={option.label} className={optionRow}>
+  <ListBoxItem
+    id={option.id}
+    textValue={option.label}
+    style={option.level ? { paddingLeft: 10 + option.level * 16 } : undefined}
+    className={optionRow}
+  >
     {({ isSelected }) => (
       <>
         {multi && (
@@ -58,6 +67,31 @@ const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, m
 );
 
 const listStyles = 'max-h-[calc(40px*12+12px)] overflow-y-auto p-1.5 outline-none';
+
+function renderOptions(options: PickerOption[], multi?: boolean) {
+  const hasGroups = options.some(o => !!o.group);
+  if (!hasGroups) {
+    return options.map(option => <Option key={option.id} option={option} multi={multi} />);
+  }
+
+  const groups = new Map<string, PickerOption[]>();
+  options.forEach(o => {
+    const key = o.group || '';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(o);
+  });
+
+  return Array.from(groups.entries()).map(([group, items]) => (
+    <Section key={group || '__ungrouped'}>
+      {group ? (
+        <Header className="sticky top-0 z-10 bg-solid/95 backdrop-blur-sm px-2.5 pt-2.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none">
+          {group}
+        </Header>
+      ) : null}
+      {items.map(option => <Option key={option.id} option={option} multi={multi} />)}
+    </Section>
+  ));
+}
 
 /** Picks one value from a short list. A bottom sheet on phones. */
 export const Select: React.FC<FieldProps & {
@@ -93,7 +127,7 @@ export const Select: React.FC<FieldProps & {
             onAction={id => { onChange(String(id)); setOpen(false); }}
             className="outline-none"
           >
-            {options.map(option => <Option key={option.id} option={option} />)}
+            {renderOptions(options)}
           </ListBox>
         </BottomSheet>
       </div>
@@ -119,7 +153,7 @@ export const Select: React.FC<FieldProps & {
       </FieldShell>
       <AriaPopover offset={6} className={cn(popoverStyles, 'w-(--trigger-width)')}>
         <ListBox className={listStyles}>
-          {options.map(option => <Option key={option.id} option={option} />)}
+          {renderOptions(options)}
         </ListBox>
       </AriaPopover>
     </AriaSelect>
@@ -143,7 +177,16 @@ export const Combobox: React.FC<FieldProps & {
   const selected = options.find(option => option.id === value);
   const name = typeof label === 'string' ? label : placeholder;
 
-  const visible = useMemo(() => options.filter(option => contains(option.label, query)), [contains, options, query]);
+  const visible = useMemo(
+    () =>
+      options.filter(
+        option =>
+          contains(option.label, query) ||
+          (option.description && contains(option.description, query)) ||
+          (option.group && contains(option.group, query)),
+      ),
+    [contains, options, query],
+  );
   const canCreate = !!onCreate && !!query.trim() && !options.some(option => option.label.toLowerCase() === query.trim().toLowerCase());
   const pick = (key: Key | null) => {
     if (key === '__create') onCreate?.(query.trim());
@@ -189,7 +232,7 @@ export const Combobox: React.FC<FieldProps & {
             className="outline-none"
           >
             {createRow}
-            {visible.map(option => <Option key={option.id} option={option} />)}
+            {renderOptions(visible)}
           </ListBox>
         </BottomSheet>
       </div>
@@ -220,7 +263,7 @@ export const Combobox: React.FC<FieldProps & {
       <AriaPopover offset={6} className={cn(popoverStyles, 'w-(--trigger-width)')}>
         <ListBox className={listStyles} renderEmptyState={empty}>
           {createRow}
-          {visible.map(option => <Option key={option.id} option={option} />)}
+          {renderOptions(visible)}
         </ListBox>
       </AriaPopover>
     </ComboBox>
@@ -256,7 +299,7 @@ export const MultiSelect: React.FC<FieldProps & {
       onSelectionChange={toggle}
       className={isPhone ? 'outline-none' : listStyles}
     >
-      {options.map(option => <Option key={option.id} option={option} multi />)}
+      {renderOptions(options, true)}
     </ListBox>
   );
 
