@@ -99,15 +99,6 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
             <span className="type-caption block truncate px-1 text-muted"><CardMoney account={card} /></span>
           </Radio>
         ))}
-        <button
-          type="button"
-          onClick={onAddCard}
-          className="flex w-[200px] shrink-0 snap-start cursor-pointer flex-col justify-center gap-1 rounded-[var(--radius-lg)] border border-dashed border-line-strong p-4 text-left text-ink hover:bg-inset md:w-auto"
-        >
-          <Icon name="add" size={24} className="text-muted" />
-          <span className="type-body-strong">Add a card</span>
-          <span className="type-caption text-muted">Add an account with a card.</span>
-        </button>
       </RadioGroup>
 
       <div className="grid items-start gap-4 lg:grid-cols-12">
