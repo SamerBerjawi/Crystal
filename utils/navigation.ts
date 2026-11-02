@@ -53,10 +53,10 @@ export const HUBS: Hub[] = [
     id: 'planning',
     label: 'Planning',
     icon: 'nav_planning',
-    home: 'Budget',
+    home: 'Forecasting',
     tabs: [
-      { label: 'Budget', page: 'Budget' },
       { label: 'Forecast', page: 'Forecasting' },
+      { label: 'Budget', page: 'Budget' },
       { label: 'Goals', page: 'Goals' },
       { label: 'Calendar', page: 'Schedule & Bills' },
       { label: 'Subscriptions', page: 'Subscriptions' },
