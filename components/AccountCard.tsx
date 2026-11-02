@@ -44,7 +44,7 @@ export const AccountLogo: React.FC<{ account: Account; size?: number }> = ({ acc
 
   const logoUrl = useMemo(() => {
     const query = account.financialInstitution || (account as any).institutionName || (account as any).institutionId || (account as any).bankName || account.name;
-    const url = query ? getMerchantLogoUrl(query, brandfetchClientId, logoOverrides, { type: 'icon', fallback: 'lettermark', width: 96, height: 96, allowDomainGuess: true }) : null;
+    const url = query ? getMerchantLogoUrl(query, brandfetchClientId, logoOverrides, { type: 'icon', fallback: 'lettermark', width: 96, height: 96 }) : null;
     if (url) return url;
     return account.type === 'Credit Card' && account.cardNetwork ? getCardNetworkLogoUrl(account.cardNetwork, brandfetchClientId) : null;
   }, [account, brandfetchClientId, logoOverrides]);

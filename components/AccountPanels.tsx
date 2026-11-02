@@ -120,7 +120,7 @@ const GeneralPanel: React.FC<AccountPanelProps> = props => {
                   {metrics.upcomingPayments.length > 0 ? (
                     <ul className="divide-y divide-line">
                       {metrics.upcomingPayments.map((payment, index) => (
-                        <li key={index}><Row leading={<MerchantLogo description={payment.description} isTransfer={payment.description.toLowerCase().includes('transfer')} size={36} />} title={payment.description} context={`${day(payment.date)}, ${payment.isRecurring ? 'recurring' : 'one-time'}`} trailing={<Amount value={-payment.amount} currency={account.currency} />} /></li>
+                        <li key={index}><Row leading={<MerchantLogo description={payment.description} isTransfer={payment.description.toLowerCase().includes('transfer')} size={36} account={account} />} title={payment.description} context={`${day(payment.date)}, ${payment.isRecurring ? 'recurring' : 'one-time'}`} trailing={<Amount value={-payment.amount} currency={account.currency} />} /></li>
                       ))}
                     </ul>
                   ) : <p className="type-body text-muted">Nothing due. Nice.</p>}

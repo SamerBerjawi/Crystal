@@ -121,7 +121,7 @@ export const getMerchantLogoUrl = (
   merchant: string | undefined,
   clientId: string | undefined,
   overrides?: Record<string, string>,
-  options?: { width?: number; height?: number; type?: LogoType; fallback?: LogoFallback; refreshTimestamp?: number; allowDomainGuess?: boolean },
+  options?: { width?: number; height?: number; type?: LogoType; fallback?: LogoFallback; refreshTimestamp?: number },
 ): string | null => {
   const normalizedKey = normalizeMerchantKey(merchant);
   if (normalizedKey && overrides) {
@@ -139,15 +139,7 @@ export const getMerchantLogoUrl = (
       const trimmed = matchedOverride.trim().toLowerCase();
       if (trimmed.includes('.') && trimmed.length > 3) {
         identifier = trimmed.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
-      } else if (options?.allowDomainGuess && trimmed.length >= 2) {
-        identifier = `${trimmed.replace(/[^a-z0-9]/g, '')}.com`;
       }
-    }
-  }
-  if (!identifier && options?.allowDomainGuess && normalizedKey) {
-    const firstWord = normalizedKey.split(/[\s*|/]/)[0].replace(/[^a-z0-9]/g, '');
-    if (firstWord.length >= 2) {
-      identifier = `${firstWord}.com`;
     }
   }
   if (!identifier) return null;

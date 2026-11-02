@@ -227,7 +227,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
                   {merchants.map(item => (
                     <li key={item.name} className="type-body flex min-h-10 items-center justify-between gap-3 text-ink py-1.5 first:pt-0 last:pb-0">
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <MerchantLogo merchant={item.name} size={28} />
+                        <MerchantLogo merchant={item.name} size={28} account={selected} />
                         <span className="min-w-0 truncate">{item.name}</span>
                       </div>
                       <span className="type-figure-row shrink-0"><Amount value={convertToMain(item.amount, selected.currency)} currency={getMainCurrency()} /></span>
@@ -246,7 +246,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
                   {items.map(tx => (
                     <li key={tx.id}>
                       <Row
-                        leading={<MerchantLogo merchant={tx.merchant} description={tx.description} isTransfer={Boolean(tx.transferId || tx.category === 'Transfer')} size={36} />}
+                        leading={<MerchantLogo merchant={tx.merchant} description={tx.description} isTransfer={Boolean(tx.transferId || tx.category === 'Transfer')} size={36} account={selected} />}
                         title={tx.merchant || tx.description}
                         context={`${tx.category || 'Uncategorised'}, ${shortDate(tx.date)}`}
                         trailing={<Amount value={tx.amount} currency={tx.currency} tone="flow" />}

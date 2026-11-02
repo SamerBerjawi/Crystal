@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { Button as AriaButton } from 'react-aria-components';
 import { ContextMenu } from '@base-ui/react/context-menu';
-import type { Category, DisplayTransaction, Tag } from '../types';
+import type { Account, Category, DisplayTransaction, Tag } from '../types';
 import { convertToMain, getMainCurrency } from '../utils';
 import { getCategoryDetails } from '../utils/categories';
 import { adaptColorForTheme } from './EntityIcon';
+import { accountIcon } from './AccountCard';
 import { useIsDark } from '../hooks/useIsDark';
 import SwipeableRow from './SwipeableRow';
 import Icon from './ui/Icon';
@@ -45,7 +46,7 @@ interface LedgerTableProps {
   onExpand: (id: string) => void;
   onStartSelecting: (id: string) => void;
   amountOf: (tx: DisplayTransaction) => { amount: number; currency: DisplayTransaction['currency'] };
-  accountOf: (tx: DisplayTransaction) => { name: string; detail?: string; logoUrl?: string | null; isTransfer?: boolean };
+  accountOf: (tx: DisplayTransaction) => { name: string; detail?: string; logoUrl?: string | null; isTransfer?: boolean; account?: Account };
   locationOf: (tx: DisplayTransaction) => string | null;
   logoOf: (tx: DisplayTransaction) => string | null;
   menuFor: (tx: DisplayTransaction) => MenuAction[];
@@ -58,10 +59,8 @@ interface LedgerTableProps {
 
 const LONG_PRESS_MS = 450;
 
-const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string }> = ({ tx, url, icon }) => {
+const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string; account?: Account }> = ({ tx, url, icon, account }) => {
   const [hasFailed, setFailed] = useState(false);
-  const nameForInitial = tx.merchant?.trim() || tx.description?.trim();
-  const initial = nameForInitial ? nameForInitial.charAt(0).toUpperCase() : null;
   const hasImage = Boolean(url && !hasFailed);
 
   if (hasImage) {
@@ -83,6 +82,8 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string 
     );
   }
 
+  const fallbackIcon = account ? accountIcon(account) : icon;
+
   return (
     <span
       className={cn(
@@ -90,11 +91,7 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string 
         'bg-black/5 text-ink dark:bg-white/10 font-bold border border-line/40'
       )}
     >
-      {initial ? (
-        <span className="type-label font-bold text-ink">{initial}</span>
-      ) : (
-        <Icon name={icon} size={18} className="text-muted" />
-      )}
+      <Icon name={fallbackIcon} size={18} className="text-muted" />
     </span>
   );
 };
@@ -282,7 +279,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                       >
                         {isSelecting
                           ? <span className={cn('ml-1 flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04] text-on-pill', isSelected && 'border-pill bg-pill')}>{isSelected && <Icon name="check" size={14} weight="bold" />}</span>
-                          : <Logo tx={tx} url={logoOf(tx)} icon={details(tx).icon} />}
+                          : <Logo tx={tx} url={logoOf(tx)} icon={details(tx).icon} account={accountOf(tx).account} />}
                         <span className="min-w-0 flex-1">
                           <span className="type-body-strong block truncate text-ink">{tx.merchant || tx.description}</span>
                           <span className="type-caption flex items-center gap-1.5 truncate text-muted">
@@ -430,7 +427,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                   <td className="w-[300px] max-w-[300px] border-t border-line px-3 overflow-hidden">
                     <div className={cn('flex min-w-0 max-w-[300px] items-center gap-2.5', tx.parentTransactionId && 'pl-6')}>
                       {(tx.isSplitParent || tx.isCombinedParent) && <IconButton icon={tx.isExpanded ? 'expand_more' : 'chevron_right'} label={tx.isExpanded ? 'Hide parts' : 'Show parts'} onPress={() => onExpand(tx.id)} className="size-8 shrink-0" iconSize={16} />}
-                      {!isCompact && <Logo tx={tx} url={logoOf(tx)} icon={look.icon} />}
+                      {!isCompact && <Logo tx={tx} url={logoOf(tx)} icon={look.icon} account={account.account} />}
                       <button type="button" onClick={() => onOpen(tx)} className="min-w-0 flex-1 cursor-pointer text-left overflow-hidden">
                         <span className="flex min-w-0 items-center gap-1.5">
                           <span className="type-body-strong truncate text-ink">{tx.description}</span>

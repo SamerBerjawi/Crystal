@@ -8,6 +8,7 @@ import { resolveTransferInfo } from '../utils/transferDetails';
 import { useCategoryContext, useBudgetsContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector, useTransactionSelector } from '../contexts/DomainProviders';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { accountIcon } from './AccountCard';
 import PlaceMap from './PlaceMap';
 import { HoldButton } from './ui/Actions';
 import { Badge, Row, ShowMore } from './ui/Display';
@@ -280,7 +281,7 @@ const FactSection: React.FC<{
   const logoQuery = rawQuery.replace(/^Transfer\s+(to|from)\s+/i, '').trim() || nameOf(tx);
   const logoUrl = useMemo(() => {
     if (!logoQuery.trim()) return null;
-    return getMerchantLogoUrl(logoQuery, brandfetchClientId, logoOverrides, {fallback: 'lettermark', type: 'icon', width: 128, height: 128, allowDomainGuess: true });
+    return getMerchantLogoUrl(logoQuery, brandfetchClientId, logoOverrides, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
   }, [logoQuery, brandfetchClientId, logoOverrides]);
   const logo = logoUrl !== failedLogo ? logoUrl : null;
 
@@ -395,6 +396,10 @@ const FactSection: React.FC<{
                 ) : isTransfer ? (
                   <span className="flex size-full items-center justify-center bg-sky-500/15 text-sky-600 dark:text-sky-400">
                     <Icon name="swap_horiz" size={28} />
+                  </span>
+                ) : mainAccount ? (
+                  <span className="flex size-full items-center justify-center bg-black/5 dark:bg-white/10 text-muted">
+                    <Icon name={accountIcon(mainAccount)} size={28} />
                   </span>
                 ) : (
                   <span className="text-xl font-bold text-ink">{initial}</span>

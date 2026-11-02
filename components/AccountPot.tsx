@@ -15,12 +15,12 @@ import { cn } from '../lib/utils';
 
 export const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
-export const LatestList: React.FC<{ transactions: Transaction[]; onOpen: () => void }> = ({ transactions, onOpen }) => (
+export const LatestList: React.FC<{ transactions: Transaction[]; account?: Account; onOpen: () => void }> = ({ transactions, account, onOpen }) => (
   <ul className="divide-y divide-line">
     {transactions.map(tx => (
       <li key={tx.id}>
         <Row
-          leading={<MerchantLogo merchant={tx.merchant} description={tx.description} isTransfer={Boolean(tx.transferId || tx.category === 'Transfer')} size={36} />}
+          leading={<MerchantLogo merchant={tx.merchant} description={tx.description} isTransfer={Boolean(tx.transferId || tx.category === 'Transfer')} size={36} account={account} />}
           title={tx.merchant || tx.description}
           context={`${tx.category || 'Uncategorised'}, ${shortDate(tx.date)}`}
           trailing={<Amount value={tx.amount} currency={tx.currency} tone="flow" />}
@@ -133,7 +133,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
       {latest.length > 0 && (
         <div className="border-t border-line pt-3">
           <h3 className="type-label text-muted">Latest</h3>
-          <LatestList transactions={latest} onOpen={onOpen} />
+          <LatestList transactions={latest} account={account} onOpen={onOpen} />
         </div>
       )}
     </section>

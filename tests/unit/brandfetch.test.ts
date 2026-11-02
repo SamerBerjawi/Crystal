@@ -46,3 +46,9 @@ test('getMerchantLogoUrl follows logo configured in merchantRules/overrides acro
   assert.ok(domainUrl);
   assert.match(domainUrl!, /cdn\.brandfetch\.io\/delhaize\.be/);
 });
+
+test('getMerchantLogoUrl does not assume a logo or domain when unconfigured in merchants', () => {
+  assert.equal(getMerchantLogoUrl('Carrefour Express', 'client123', undefined), null);
+  assert.equal(getMerchantLogoUrl('Random Merchant', 'client123', {}), null);
+  assert.equal(getMerchantLogoUrl('Bakery Shop', 'client123', { othermerchant: 'other.com' }), null);
+});

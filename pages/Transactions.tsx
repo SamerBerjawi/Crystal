@@ -238,7 +238,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       const cleanName = rawName.replace(/^Transfer\s+(to|from)\s+/i, '').trim();
       const key = normalizeMerchantKey(cleanName);
       if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(cleanName, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96, allowDomainGuess: true });
+      const url = getMerchantLogoUrl(cleanName, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
       if (url) acc[key] = url;
       return acc;
     }, {} as Record<string, string>);
@@ -1302,6 +1302,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         detail: tx.transferLabel ? tx.transferLabel : fromAcc?.type ? `Transfer • ${fromAcc.type}` : 'Transfer',
         logoUrl: logoUrl ?? null,
         isTransfer: true,
+        account: fromAcc || toAcc,
       };
     }
 
@@ -1315,6 +1316,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       detail: account ? (account.last4 ? `•••• ${account.last4}` : account.type) : undefined,
       logoUrl: logoUrl ?? null,
       isTransfer: false,
+      account,
     };
   }, [accountMap, accountMapByName, brandfetchClientId, effectiveMerchantLogoOverrides]);
 
@@ -1431,7 +1433,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const key = normalizeMerchantKey(cleanName);
     if (key && merchantLogoUrls[key]) return merchantLogoUrls[key];
     if (key) {
-      const directUrl = getMerchantLogoUrl(cleanName, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96, allowDomainGuess: true });
+      const directUrl = getMerchantLogoUrl(cleanName, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
       if (directUrl) return directUrl;
     }
     if (tx.isTransfer) {
@@ -1440,7 +1442,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       const targetAcc = tx.type === 'expense' ? (toAcc || fromAcc) : (fromAcc || toAcc);
       const logoUrl = targetAcc?.imageUrl
         || (targetAcc ? getAccountBrandfetchUrl(targetAcc, brandfetchClientId, effectiveMerchantLogoOverrides) : null)
-        || (targetAcc?.financialInstitution ? getMerchantLogoUrl(targetAcc.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { allowDomainGuess: true }) : null);
+        || (targetAcc?.financialInstitution ? getMerchantLogoUrl(targetAcc.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
       if (logoUrl) return logoUrl;
     }
     return null;

@@ -2,9 +2,11 @@ import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react'
 import { Category, DisplayTransaction, MerchantRule, Tag } from '../types';
 import { formatCurrency, convertToMain, parseLocalDate, formatDate as formatSharedDate, getMainCurrency } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
-import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { useTagsContext } from '../contexts/FinancialDataContext';
+import { Account } from '../types';
+import { accountIcon } from './AccountCard';
 import Icon from './ui/Icon';
 import { FormattedAmount } from './ui/Money';
 
@@ -42,10 +44,19 @@ const TransactionList: React.FC<TransactionListProps> = ({
   className = ""
 }) => {
   const { tags } = useTagsContext();
+  const { accounts } = useAccountsContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
   const [logoLoadErrors, setLogoLoadErrors] = useState<Set<string>>(() => new Set());
+
+  const accountMap = useMemo(() => {
+    return accounts.reduce((acc, a) => {
+      acc[a.id] = a;
+      if (a.name) acc[a.name] = a;
+      return acc;
+    }, {} as Record<string, Account>);
+  }, [accounts]);
 
   const effectiveMerchantLogoOverrides = useMemo(() => {
     return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
@@ -82,7 +93,10 @@ const TransactionList: React.FC<TransactionListProps> = ({
           : formatCurrency(convertToMain(tx.amount, tx.currency), getMainCurrency());
         
         const catDetails = categoryDetailsMap.get(tx.category) || {};
-        const icon = (isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'SwitchHorizontal01' : (catDetails.icon || catDetails.parentIcon || 'Tag01');
+        const txAccount = (tx.accountId ? accountMap[tx.accountId] : null) || (tx.accountName ? accountMap[tx.accountName] : null);
+        const icon = (isTransfer && (!tx.category || tx.category === 'Transfer'))
+          ? 'SwitchHorizontal01'
+          : (txAccount ? accountIcon(txAccount) : (catDetails.icon || catDetails.parentIcon || 'Tag01'));
         const categoryColor = (isTransfer && (!tx.category || tx.category === 'Transfer')) ? '#64748B' : (catDetails.color || '#3B82F6');
         
         const accentColor = isTransfer 
@@ -103,7 +117,6 @@ const TransactionList: React.FC<TransactionListProps> = ({
               type: 'icon',
               width: 80,
               height: 80,
-              allowDomainGuess: true,
             })
           : null;
         const merchantInitial = merchantName ? merchantName.charAt(0).toUpperCase() : '?';
@@ -129,7 +142,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
         };
       });
     },
-    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides, maxItems, tags]
+    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides, maxItems, tags, accountMap]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);

@@ -4,6 +4,8 @@ import Icon from './ui/Icon';
 import { useIsDark } from '../hooks/useIsDark';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl } from '../utils/brandfetch';
+import { Account } from '../types';
+import { accountIcon } from './AccountCard';
 
 /**
  * Adapts hex colors for optimal contrast in dark and light modes.
@@ -143,7 +145,8 @@ export const EntityGlyph: React.FC<{
 
 /**
  * A merchant logo on a rounded tile for transaction lists.
- * Shows the Brandfetch / override logo if available, or a clean lettermark fallback.
+ * Shows the Brandfetch / override logo if available.
+ * If not configured in merchants, falls back to the account icon.
  * Transfers show an exchange / transfer icon.
  */
 export const MerchantLogo: React.FC<{
@@ -153,7 +156,9 @@ export const MerchantLogo: React.FC<{
   isTransfer?: boolean;
   size?: number;
   className?: string;
-}> = ({ merchant, description, name, isTransfer, size = 36, className }) => {
+  account?: Account | null;
+  fallbackIcon?: string;
+}> = ({ merchant, description, name, isTransfer, size = 36, className, account, fallbackIcon }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, { logo?: string }>;
@@ -176,9 +181,10 @@ export const MerchantLogo: React.FC<{
       type: 'icon',
       width: Math.max(size * 2, 80),
       height: Math.max(size * 2, 80),
-      allowDomainGuess: true,
     });
   }, [merchantName, brandfetchClientId, effectiveOverrides, size]);
+
+  const resolvedFallbackIcon = isTransfer ? 'swap_horiz' : (fallbackIcon || (account ? accountIcon(account) : 'wallet'));
 
   return (
     <LogoTile
@@ -186,7 +192,7 @@ export const MerchantLogo: React.FC<{
       label={merchantName}
       size={size}
       rounded="lg"
-      fallbackIcon={isTransfer ? 'swap_horiz' : undefined}
+      fallbackIcon={resolvedFallbackIcon}
       className={className}
     />
   );
