@@ -5,7 +5,7 @@ import { computeAccount90dSparkline, computeAccountDisplayBalance } from '../uti
 import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { buildEffectiveMerchantLogoOverrides, getCardNetworkLogoUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getCardNetworkLogoUrl, getMerchantLogoUrl, isCashAccount } from '../utils/brandfetch';
 import Icon from './ui/Icon';
 import { IconButton } from './ui/Actions';
 import { Sparkline } from './ui/Display';
@@ -14,6 +14,7 @@ import { Amount, Change } from './ui/Money';
 import { cn } from '../lib/utils';
 
 export const accountIcon = (account: Account) => {
+  if (isCashAccount(account)) return account.icon || 'wallet';
   let style = ACCOUNT_TYPE_STYLES[account.type];
   if (account.type === 'Investment' && account.subType) style = INVESTMENT_SUB_TYPE_STYLES[account.subType];
   else if (account.type === 'Other Assets' && account.otherSubType) style = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType] || style;
@@ -43,6 +44,7 @@ export const AccountLogo: React.FC<{ account: Account; size?: number }> = ({ acc
   const [hasFailed, setFailed] = useState(false);
 
   const logoUrl = useMemo(() => {
+    if (isCashAccount(account)) return null;
     const query = account.financialInstitution || (account as any).institutionName || (account as any).institutionId || (account as any).bankName || account.name;
     const url = query ? getMerchantLogoUrl(query, brandfetchClientId, logoOverrides, { type: 'icon', fallback: 'lettermark', width: 96, height: 96 }) : null;
     if (url) return url;

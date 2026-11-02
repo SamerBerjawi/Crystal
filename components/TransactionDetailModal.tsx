@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Transaction, Account, Tag, Category } from '../types';
 import { formatCurrency, parseLocalDate, convertToMain, getMainCurrency } from '../utils';
-import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl, isCashAccount } from '../utils/brandfetch';
 import { getCategoryDetails } from '../utils/categories';
 import { formatTransactionLocation } from '../utils/locationFormat';
 import { resolveTransferInfo } from '../utils/transferDetails';
@@ -70,7 +70,7 @@ const AccountLogoTile: React.FC<{
 }> = ({ account, brandfetchClientId, overrides }) => {
   const [failed, setFailed] = useState(false);
   const logoUrl = useMemo(() => {
-    if (!account) return null;
+    if (!account || isCashAccount(account)) return null;
     return (
       account.imageUrl ||
       getAccountBrandfetchUrl(account, brandfetchClientId, overrides) ||

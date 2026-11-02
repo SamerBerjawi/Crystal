@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getAccountBrandfetchUrl } from '../../utils/brandfetch';
+import { getAccountBrandfetchUrl, isCashAccount } from '../../utils/brandfetch';
 import type { Account } from '../../types';
 
 test('getAccountBrandfetchUrl returns null when brandfetchClientId is not configured', () => {
@@ -97,4 +97,24 @@ test('getAccountBrandfetchUrl respects merchantLogoOverrides', () => {
   const urlDomain = getAccountBrandfetchUrl(acc as Account, 'client_xyz', domainOverrides);
   assert.ok(urlDomain);
   assert.match(urlDomain!, /cdn\.brandfetch\.io\/custombank\.de/);
+});
+
+test('isCashAccount identifies cash accounts', () => {
+  assert.equal(isCashAccount({ type: 'Other Assets', otherSubType: 'Cash' }), true);
+  assert.equal(isCashAccount({ name: 'Cash' }), true);
+  assert.equal(isCashAccount({ name: 'Cash Wallet' }), true);
+  assert.equal(isCashAccount({ name: 'Physical Cash' }), true);
+  assert.equal(isCashAccount({ financialInstitution: 'Cash' }), true);
+  assert.equal(isCashAccount({ name: 'Main Checking', type: 'Checking' }), false);
+});
+
+test('getAccountBrandfetchUrl returns null for Cash accounts even if overrides exist', () => {
+  const cashAcc: Partial<Account> = {
+    id: 'cash-1',
+    name: 'Cash',
+    type: 'Other Assets',
+    otherSubType: 'Cash',
+  };
+  const overrides = { cash: 'https://images.example.com/cash.png' };
+  assert.equal(getAccountBrandfetchUrl(cashAcc as Account, 'client_xyz', overrides), null);
 });

@@ -192,18 +192,43 @@ export const getCardNetworkLogoUrl = (
   return `https://cdn.brandfetch.io/${domain}?${params.toString()}`;
 };
 
+export const isCashAccount = (account?: {
+  type?: string | null;
+  otherSubType?: string | null;
+  subType?: string | null;
+  name?: string | null;
+  financialInstitution?: string | null;
+} | null): boolean => {
+  if (!account) return false;
+  const otherSub = account.otherSubType?.trim().toLowerCase();
+  if (otherSub === 'cash') return true;
+  const sub = account.subType?.trim().toLowerCase();
+  if (sub === 'cash') return true;
+  const type = account.type?.trim().toLowerCase();
+  if (type === 'cash') return true;
+  const name = account.name?.trim().toLowerCase();
+  if (name && (name === 'cash' || name.startsWith('cash ') || name.endsWith(' cash') || name === 'physical cash' || name === 'cash wallet')) return true;
+  const inst = account.financialInstitution?.trim().toLowerCase();
+  if (inst && (inst === 'cash' || inst === 'cash wallet' || inst === 'physical cash')) return true;
+  return false;
+};
+
 export const getAccountBrandfetchUrl = (
   account: {
     financialInstitution?: string | null;
     name?: string | null;
     cardNetwork?: string | null;
     type?: string | null;
+    otherSubType?: string | null;
+    subType?: string | null;
     website?: string | null;
   },
   clientId?: string | null,
   overrides?: Record<string, string>,
   options?: { width?: number; height?: number }
 ): string | null => {
+  if (isCashAccount(account)) return null;
+
   const trimmedClient = clientId?.trim();
   if (!trimmedClient) return null;
 

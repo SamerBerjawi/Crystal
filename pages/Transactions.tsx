@@ -13,7 +13,8 @@ import CombineTransactionsModal from '../components/CombineTransactionsModal';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useDebounce } from '../hooks/useDebounce';
-import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl, isCashAccount, normalizeMerchantKey } from '../utils/brandfetch';
+import { accountIcon } from '../components/AccountCard';
 import PageHeader from '../components/PageHeader';
 import { Button as AriaButton } from 'react-aria-components';
 import Icon from '../components/ui/Icon';
@@ -1307,9 +1308,10 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     }
 
     const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
-    const logoUrl = account?.imageUrl
+    const isCash = isCashAccount(account);
+    const logoUrl = !isCash ? (account?.imageUrl
       || (account ? getAccountBrandfetchUrl(account, brandfetchClientId, effectiveMerchantLogoOverrides) : null)
-      || (account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
+      || (account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null)) : null;
 
     return {
       name: account?.name || tx.accountName || 'Unknown',
@@ -1471,15 +1473,16 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const closed = accounts.filter(a => a.status === 'closed');
 
     const mapAccount = (a: Account, group: string): FilterOption => {
-      const logoUrl = a.imageUrl
+      const isCash = isCashAccount(a);
+      const logoUrl = !isCash ? (a.imageUrl
         || getAccountBrandfetchUrl(a, brandfetchClientId, effectiveMerchantLogoOverrides)
-        || (a.financialInstitution ? getMerchantLogoUrl(a.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
+        || (a.financialInstitution ? getMerchantLogoUrl(a.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null)) : null;
       return {
         id: a.id,
         label: a.name,
         hint: a.last4 ? `•••• ${a.last4}` : a.type,
         group,
-        visual: <LogoTile url={logoUrl} label={a.name} size={26} fallbackIcon="account_balance" />,
+        visual: <LogoTile url={logoUrl} label={a.name} size={26} fallbackIcon={accountIcon(a)} />,
       };
     };
 
