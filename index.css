@@ -1005,10 +1005,10 @@ img {
   --solid: #FFFDF8;
   --surface: rgba(255, 255, 255, .46);
   --inset: rgba(27, 24, 19, .05);
-  --line: rgba(27, 24, 19, .11);
+  --line: rgba(27, 24, 19, .08);
   --rim: rgba(255, 255, 255, .78);
   --card-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 24px 48px -30px rgba(70, 50, 30, .28);
-  --line-strong: #7E7769;
+  --line-strong: rgba(27, 24, 19, .14);
   --ink: #1B1813;
   --muted: #5E584E;
   --glass: rgba(255, 253, 248, .72);
@@ -1104,17 +1104,17 @@ img {
 
 .dark {
   color-scheme: dark;
-  --canvas: #14130F;
-  --mesh-a: rgba(200, 67, 31, .27);
-  --mesh-b: rgba(47, 92, 80, .48);
-  --mesh-c: rgba(242, 201, 76, .1);
+  --canvas: #100F0C;
+  --mesh-a: rgba(216, 106, 32, .05);
+  --mesh-b: rgba(47, 92, 80, .14);
+  --mesh-c: rgba(242, 201, 76, .03);
   --solid: #1E1C17;
   --surface: rgba(255, 255, 255, .05);
   --inset: rgba(255, 255, 255, .06);
-  --line: rgba(255, 255, 255, .1);
+  --line: rgba(255, 255, 255, .08);
   --rim: rgba(255, 255, 255, .07);
   --card-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 24px 48px -30px rgba(0, 0, 0, .7);
-  --line-strong: #8E8879;
+  --line-strong: rgba(255, 255, 255, .12);
   --ink: #F4F1EA;
   --muted: #B3AD9F;
   --glass: rgba(30, 28, 23, .72);
@@ -1382,8 +1382,8 @@ img {
   @media (max-width: 767px) { font-size: 1.625rem; line-height: 2rem; }
 }
 @utility type-sentence {
-  font-size: 1.5rem; line-height: 2.125rem; font-weight: 600;
-  @media (max-width: 767px) { font-size: 1.375rem; line-height: 1.875rem; }
+  font-size: 1.25rem; line-height: 2rem; font-weight: 600;
+  @media (max-width: 767px) { font-size: 1.125rem; line-height: 1.75rem; }
 }
 @utility type-figure-lg {
   font-size: 1.75rem; line-height: 2.125rem; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums;
@@ -1465,9 +1465,55 @@ body::before {
   }
 }
 
-:focus-visible {
+/* Focus ring for keyboard-navigated interactive controls (D-058 / WCAG 2.2 AA) */
+:where(
+  button,
+  a[href],
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"]
+):focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* Never show focus outlines on modals, dialogs, sheets, popovers, or elements explicitly marked outline-none */
+:is(
+  dialog,
+  [role="dialog"],
+  [tabindex="-1"],
+  .outline-none,
+  .crystal-dialog,
+  .crystal-sheet,
+  .crystal-side,
+  .crystal-pop,
+  .crystal-scrim,
+  .react-aria-Modal,
+  .react-aria-ModalOverlay,
+  .react-aria-Dialog
+):focus,
+:is(
+  dialog,
+  [role="dialog"],
+  [tabindex="-1"],
+  .outline-none,
+  .crystal-dialog,
+  .crystal-sheet,
+  .crystal-side,
+  .crystal-pop,
+  .crystal-scrim,
+  .react-aria-Modal,
+  .react-aria-ModalOverlay,
+  .react-aria-Dialog
+):focus-visible {
+  outline: none !important;
 }
 
 /* Overlay motion. React Aria waits for these animations before unmounting. */
@@ -1520,3 +1566,14 @@ html[data-selection-bar] { --toast-bottom: 88px; --toast-phone-bottom: calc(164p
 .crystal-stagger-grid > div > :nth-child(3) { animation-delay: calc(var(--stagger) * 3); }
 .crystal-stagger-grid > div > :nth-child(4) { animation-delay: calc(var(--stagger) * 4); }
 .crystal-stagger-grid > div > :nth-child(n+5) { animation-delay: calc(var(--stagger) * 5); }
+
+/* Net worth hero & pine widgets: keep currency symbol in white (var(--on-pine)) and decimals in high-contrast grey */
+.net-worth-hero .amount-symbol,
+.bg-pine .amount-symbol {
+  color: var(--on-pine) !important;
+}
+
+.net-worth-hero .amount-fraction,
+.bg-pine .amount-fraction {
+  color: rgba(251, 248, 242, 0.68) !important;
+}

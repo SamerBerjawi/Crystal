@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Account, AccountType, AppPreferences, Category, FinancialGoal, RecurringTransaction, User } from '../types';
 import { ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES } from '../constants';
 import { currencySign, normalizeCurrency, toLocalISOString } from '../utils';
+import { sortAccountsByType } from '../utils/accountsModel';
 import { categoryPickerOptions } from '../utils/categoryTree';
 import { currencyOptions, currencyPreference } from '../utils/currencies';
 import { parseAmountInput } from '../utils/scheduleModel';
@@ -78,8 +79,14 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, user
   const currencyList = useMemo(currencyOptions, []);
   const typeOptions = useMemo(() => ALL_ACCOUNT_TYPES.map(type => ({ id: type, label: type })), []);
   const accountOptions = useMemo(() => {
-    const options = accounts.map(account => ({ id: account.id, label: account.name }));
-    return accountName && !accounts.some(account => account.id === ids.account) ? [...options, { id: ids.account, label: accountName }] : options;
+    const options = sortAccountsByType(accounts).map(account => ({
+      id: account.id,
+      label: account.name,
+      group: account.status === 'closed' ? 'Closed' : account.type,
+    }));
+    return accountName && !accounts.some(account => account.id === ids.account)
+      ? [...options, { id: ids.account, label: accountName, group: 'New' }]
+      : options;
   }, [accounts, accountName, ids.account]);
   const categoryOptions = useMemo(
     () => categoryPickerOptions(rtType === 'expense' ? expenseCategories : [], rtType === 'income' ? incomeCategories : []),

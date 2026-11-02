@@ -14,8 +14,8 @@ import { EmptyState } from './States';
 import { cn } from '../../lib/utils';
 
 /** The signature sentence: three facts at most, each linked to where you can act. */
-export const WrittenSummary: React.FC<{ facts: SummaryFact[]; onFact: (id: SummaryTarget) => void; isPrivate?: boolean }> = ({ facts, onFact, isPrivate }) => (
-  <p className="type-sentence max-w-[64ch] text-ink">
+export const WrittenSummary: React.FC<{ facts: SummaryFact[]; onFact: (id: SummaryTarget) => void; isPrivate?: boolean; className?: string }> = ({ facts, onFact, isPrivate, className }) => (
+  <p className={cn('type-sentence max-w-[64ch] text-ink', className)}>
     {facts.length === 0 && 'Nothing needs you today. Nice.'}
     {facts.map((fact, index) => (
       <React.Fragment key={fact.id}>
@@ -50,7 +50,7 @@ export const NetWorthHero: React.FC<{
   const shades = ['opacity-100', 'opacity-60', 'opacity-30'];
 
   return (
-    <section aria-label="Net worth" className="flex h-full flex-col justify-between gap-6 rounded-[var(--radius-xl)] bg-pine p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]">
+    <section aria-label="Net worth" className="net-worth-hero flex h-full flex-col justify-between gap-6 rounded-[var(--radius-xl)] bg-pine p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]">
       <div>
         <button type="button" onClick={onOpen} className="type-label inline-flex cursor-pointer items-center gap-1">
           Net worth

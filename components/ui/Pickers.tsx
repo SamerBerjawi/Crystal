@@ -3,10 +3,12 @@ import {
   Button as AriaButton,
   ComboBox,
   Dialog as AriaDialog,
+  Header,
   Input,
   ListBox,
   ListBoxItem,
   Popover as AriaPopover,
+  Section,
   Select as AriaSelect,
   SelectValue,
   useFilter,
@@ -25,6 +27,9 @@ export interface PickerOption {
   label: string;
   description?: string;
   icon?: string;
+  visual?: React.ReactNode;
+  group?: string;
+  level?: number;
 }
 
 const optionRow =
@@ -33,15 +38,24 @@ const optionRow =
 const triggerRow = cn(controlStyles, 'flex h-11 cursor-pointer items-center justify-between gap-2 px-3 text-left text-[.9375rem] font-medium max-md:h-12 max-md:text-base');
 
 const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, multi }) => (
-  <ListBoxItem id={option.id} textValue={option.label} className={optionRow}>
+  <ListBoxItem
+    id={option.id}
+    textValue={option.label}
+    style={option.level ? { paddingLeft: 10 + option.level * 16 } : undefined}
+    className={optionRow}
+  >
     {({ isSelected }) => (
       <>
         {multi && (
-          <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface text-on-pill', isSelected && 'border-pill bg-pill')}>
-            {isSelected && <Icon name="check" size={16} weight="bold" />}
+          <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04] text-on-pill', isSelected && 'border-pill bg-pill')}>
+            {isSelected && <Icon name="check" size={13} className="stroke-[2.5]" />}
           </span>
         )}
-        {option.icon && <Icon name={option.icon} size={20} className="shrink-0 text-muted" />}
+        {option.visual ? (
+          <span className="shrink-0">{option.visual}</span>
+        ) : option.icon ? (
+          <Icon name={option.icon} size={20} className="shrink-0 text-muted" />
+        ) : null}
         <span className="min-w-0 flex-1 py-1.5">
           <span className="type-body block truncate">{option.label}</span>
           {option.description && <span className="type-caption block truncate text-muted">{option.description}</span>}
@@ -53,6 +67,31 @@ const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, m
 );
 
 const listStyles = 'max-h-[calc(40px*12+12px)] overflow-y-auto p-1.5 outline-none';
+
+function renderOptions(options: PickerOption[], multi?: boolean) {
+  const hasGroups = options.some(o => !!o.group);
+  if (!hasGroups) {
+    return options.map(option => <Option key={option.id} option={option} multi={multi} />);
+  }
+
+  const groups = new Map<string, PickerOption[]>();
+  options.forEach(o => {
+    const key = o.group || '';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(o);
+  });
+
+  return Array.from(groups.entries()).map(([group, items]) => (
+    <Section key={group || '__ungrouped'}>
+      {group ? (
+        <Header className="sticky top-0 z-10 bg-solid/95 backdrop-blur-sm px-2.5 pt-2.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none">
+          {group}
+        </Header>
+      ) : null}
+      {items.map(option => <Option key={option.id} option={option} multi={multi} />)}
+    </Section>
+  ));
+}
 
 /** Picks one value from a short list. A bottom sheet on phones. */
 export const Select: React.FC<FieldProps & {
@@ -88,12 +127,14 @@ export const Select: React.FC<FieldProps & {
             onAction={id => { onChange(String(id)); setOpen(false); }}
             className="outline-none"
           >
-            {options.map(option => <Option key={option.id} option={option} />)}
+            {renderOptions(options)}
           </ListBox>
         </BottomSheet>
       </div>
     );
   }
+
+  const selected = options.find(option => option.id === value);
 
   return (
     <AriaSelect
@@ -105,8 +146,9 @@ export const Select: React.FC<FieldProps & {
       className={className}
     >
       <FieldShell label={label} help={help} error={error} autofill={autofill}>
-        <AriaButton className={triggerRow}>
-          <SelectValue className="min-w-0 truncate data-[placeholder]:text-muted">
+        <AriaButton className={cn(triggerRow, 'gap-2.5')}>
+          {selected?.visual && <span className="shrink-0">{selected.visual}</span>}
+          <SelectValue className="min-w-0 flex-1 truncate data-[placeholder]:text-muted">
             {({ selectedText, defaultChildren }) => selectedText ?? defaultChildren}
           </SelectValue>
           <Icon name="expand_more" size={20} className="shrink-0 text-muted" />
@@ -114,7 +156,7 @@ export const Select: React.FC<FieldProps & {
       </FieldShell>
       <AriaPopover offset={6} className={cn(popoverStyles, 'w-(--trigger-width)')}>
         <ListBox className={listStyles}>
-          {options.map(option => <Option key={option.id} option={option} />)}
+          {renderOptions(options)}
         </ListBox>
       </AriaPopover>
     </AriaSelect>
@@ -135,15 +177,49 @@ export const Combobox: React.FC<FieldProps & {
   const { contains } = useFilter({ sensitivity: 'base' });
   const [query, setQuery] = useState('');
   const [isOpen, setOpen] = useState(false);
+  const isSelectingRef = useRef(false);
   const selected = options.find(option => option.id === value);
   const name = typeof label === 'string' ? label : placeholder;
 
-  const visible = useMemo(() => options.filter(option => contains(option.label, query)), [contains, options, query]);
+  const visible = useMemo(
+    () =>
+      options.filter(
+        option =>
+          contains(option.label, query) ||
+          (option.description && contains(option.description, query)) ||
+          (option.group && contains(option.group, query)),
+      ),
+    [contains, options, query],
+  );
   const canCreate = !!onCreate && !!query.trim() && !options.some(option => option.label.toLowerCase() === query.trim().toLowerCase());
+
   const pick = (key: Key | null) => {
-    if (key === '__create') onCreate?.(query.trim());
-    else onChange(key === null ? null : String(key));
+    if (key === null) return;
+    isSelectingRef.current = true;
+    if (key === '__create') {
+      onCreate?.(query.trim());
+    } else {
+      onChange(String(key));
+    }
+    setQuery('');
     setOpen(false);
+    setTimeout(() => {
+      isSelectingRef.current = false;
+    }, 150);
+  };
+
+  const handleInputChange = (text: string) => {
+    if (isSelectingRef.current) return;
+    setQuery(text);
+    if (!isOpen) setOpen(true);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (isSelectingRef.current && open) return;
+    setOpen(open);
+    if (!open) {
+      setQuery('');
+    }
   };
 
   const createRow = canCreate && (
@@ -159,13 +235,14 @@ export const Combobox: React.FC<FieldProps & {
       <div className={className}>
         <AriaSelect isOpen={false} isDisabled={isDisabled} isInvalid={!!error} onOpenChange={setOpen}>
           <FieldShell label={label} help={help} error={error} autofill={autofill}>
-            <AriaButton className={triggerRow} onPress={() => setOpen(true)}>
-              <span className={cn('min-w-0 truncate', !selected && 'text-muted')}>{selected?.label ?? placeholder}</span>
+            <AriaButton className={cn(triggerRow, 'gap-2.5')} onPress={() => setOpen(true)}>
+              {selected?.visual && <span className="shrink-0">{selected.visual}</span>}
+              <span className={cn('min-w-0 flex-1 truncate', !selected && 'text-muted')}>{selected?.label ?? placeholder}</span>
               <Icon name="expand_more" size={20} className="shrink-0 text-muted" />
             </AriaButton>
           </FieldShell>
         </AriaSelect>
-        <BottomSheet isOpen={isOpen} onClose={() => setOpen(false)} title={name} height="full">
+        <BottomSheet isOpen={isOpen} onClose={() => { setOpen(false); setQuery(''); }} title={name} height="full">
           <input
             autoFocus
             type="search"
@@ -184,38 +261,55 @@ export const Combobox: React.FC<FieldProps & {
             className="outline-none"
           >
             {createRow}
-            {visible.map(option => <Option key={option.id} option={option} />)}
+            {renderOptions(visible)}
           </ListBox>
         </BottomSheet>
       </div>
     );
   }
 
+  const showVisual = Boolean(selected?.visual && !query);
+
   return (
     <ComboBox
       selectedKey={value}
       onSelectionChange={pick}
-      inputValue={isOpen ? query : selected?.label ?? ''}
-      onInputChange={text => { setQuery(text); setOpen(true); }}
-      onOpenChange={open => { setOpen(open); if (open) setQuery(''); }}
-      menuTrigger="focus"
+      onInputChange={handleInputChange}
+      onOpenChange={handleOpenChange}
+      menuTrigger="input"
       allowsEmptyCollection
       isDisabled={isDisabled}
       isInvalid={!!error}
       className={className}
     >
       <FieldShell label={label} help={help} error={error} autofill={autofill}>
-        <div className="relative">
-          <Input placeholder={placeholder} className={cn(controlStyles, 'h-11 pl-3 pr-10 text-[.9375rem] font-medium')} />
-          <AriaButton aria-label="Show options" className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted">
+        <div className="relative flex items-center">
+          {showVisual && (
+            <span className="pointer-events-none absolute left-3 z-1 flex size-6 shrink-0 items-center justify-center">
+              {selected?.visual}
+            </span>
+          )}
+          <Input
+            onFocus={e => e.target.select()}
+            placeholder={placeholder}
+            className={cn(
+              controlStyles,
+              'h-11 pr-10 text-[.9375rem] font-medium cursor-pointer',
+              showVisual ? 'pl-11' : 'pl-3'
+            )}
+          />
+          <AriaButton
+            aria-label="Show options"
+            className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted hover:text-ink transition-colors"
+          >
             <Icon name="expand_more" size={20} />
           </AriaButton>
         </div>
       </FieldShell>
       <AriaPopover offset={6} className={cn(popoverStyles, 'w-(--trigger-width)')}>
-        <ListBox className={listStyles} renderEmptyState={empty}>
+        <ListBox className={listStyles} onAction={pick} renderEmptyState={empty}>
           {createRow}
-          {visible.map(option => <Option key={option.id} option={option} />)}
+          {renderOptions(visible)}
         </ListBox>
       </AriaPopover>
     </ComboBox>
@@ -251,7 +345,7 @@ export const MultiSelect: React.FC<FieldProps & {
       onSelectionChange={toggle}
       className={isPhone ? 'outline-none' : listStyles}
     >
-      {options.map(option => <Option key={option.id} option={option} multi />)}
+      {renderOptions(options, true)}
     </ListBox>
   );
 

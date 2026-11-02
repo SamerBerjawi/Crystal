@@ -7,9 +7,10 @@ import { CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { useTagsContext } from '../contexts/FinancialDataContext';
 import type { AddressData } from '../hooks/useAddressSearch';
-import { formatCurrency } from '../utils';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { formatCurrency, currencySign } from '../utils';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { parseLocationString } from '../utils/locationDetector';
+import { formatTransactionLocation } from '../utils/locationFormat';
 import { suggestCategories } from '../utils/overviewSummary';
 import {
   NO_BRANCH_MERCHANTS, accountsForType, autofill, branchesFor, clearedLocation, editLoanPart, initialTxForm, loanAccountFor, locationFromBranch, matchMerchants, merchantSuggestions,
@@ -17,6 +18,7 @@ import {
 } from '../utils/transactionForm';
 import AddressAutocomplete from './AddressAutocomplete';
 import CategoryPicker from './CategoryPicker';
+import { LogoTile } from './EntityIcon';
 import Icon from './ui/Icon';
 import { Button, IconButton } from './ui/Actions';
 import { Badge } from './ui/Display';
@@ -24,6 +26,7 @@ import { AmountInput, DateInput, Radio, RadioGroup, Switch, Textarea, TextInput,
 import { SidePanel } from './ui/Overlays';
 import { Combobox, type PickerOption } from './ui/Pickers';
 import SegmentedControl from './ui/SegmentedControl';
+import { AmountPad } from './ui/AmountPad';
 import { cn } from '../lib/utils';
 
 interface AddTransactionModalProps {
@@ -43,17 +46,36 @@ interface AddTransactionModalProps {
   initialDetails?: TxInitial;
 }
 
-const TYPE_ITEMS = [{ id: 'expense', label: 'Expense' }, { id: 'income', label: 'Income' }, { id: 'transfer', label: 'Transfer' }];
+const TYPE_ITEMS = [
+  {
+    id: 'expense',
+    label: 'Expense',
+    icon: 'arrow_downward',
+    activeClassName: 'bg-red-500 dark:bg-red-600 text-white shadow-xs',
+  },
+  {
+    id: 'income',
+    label: 'Income',
+    icon: 'arrow_upward',
+    activeClassName: 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs',
+  },
+  {
+    id: 'transfer',
+    label: 'Transfer',
+    icon: 'swap_horiz',
+    activeClassName: 'bg-blue-600 dark:bg-blue-500 text-white shadow-xs',
+  },
+];
 
 /** A closed section with a one-line summary of what's in it. */
-const Expander: React.FC<{ title: string; summary?: string; children: React.ReactNode }> = ({ title, summary, children }) => {
+const Expander: React.FC<{ title: string; summary?: React.ReactNode; children: React.ReactNode }> = ({ title, summary, children }) => {
   const [isOpen, setOpen] = useState(false);
   return (
     <section className="border-t border-line">
       <button type="button" aria-expanded={isOpen} onClick={() => setOpen(open => !open)} className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 text-left">
         <span className="type-body-strong text-ink">{title}</span>
         <span className="flex min-w-0 items-center gap-1.5 text-muted">
-          {summary && <span className="type-caption truncate">{summary}</span>}
+          {summary && <span className="type-caption flex items-center gap-1.5 truncate">{summary}</span>}
           <Icon name="expand_more" size={20} className={cn('shrink-0 transition-transform duration-[var(--duration-base)]', isOpen && 'rotate-180')} />
         </span>
       </button>
@@ -84,7 +106,7 @@ const TagPicker: React.FC<{ tags: Tag[]; selected: string[]; onChange: (ids: str
             const isOn = selected.includes(tag.id);
             return (
               <button key={tag.id} type="button" aria-pressed={isOn} onClick={() => onChange(isOn ? selected.filter(id => id !== tag.id) : [...selected, tag.id])} className={cn('inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm font-bold text-ink pointer-coarse:h-11', isOn ? 'border-primary bg-primary-soft' : 'border-line-strong hover:bg-inset')}>
-                <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: tag.color }} />
+                <Icon name={tag.icon || 'tag'} size={14} style={{ color: tag.color }} className="shrink-0" />
                 {tag.name}
               </button>
             );
@@ -117,6 +139,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const tagsContext = useTagsContext();
   const savedMerchantRules = usePreferencesSelector(p => p.merchantRules);
   const savedTransactionRules = usePreferencesSelector(p => p.transactionRules);
+  const userDateFormat = usePreferencesSelector(p => p.dateFormat);
   const transactionRules = useMemo(() => savedTransactionRules ?? [], [savedTransactionRules]);
   const merchantRules = useMemo(() => withFiling(savedMerchantRules, transactionRules), [savedMerchantRules, transactionRules]);
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
@@ -165,9 +188,31 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     { merchant: form.merchant, description: form.description, type: form.type } as Transaction, transactions, activeRule?.category
   )), [form.type, form.merchant, form.description, transactions, activeRule?.category]);
 
-  const accountOptions = (exclude?: string, selected?: string): PickerOption[] => accounts
-    .filter(item => item.id !== exclude && (item.status !== 'closed' || item.id === selected))
-    .map(item => ({ id: item.id, label: item.name, description: `${item.financialInstitution || item.type}, ${formatCurrency(item.balance, item.currency)}` }));
+  const ACCOUNT_TYPE_ORDER = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets', 'Lending', 'Credit Card', 'Loan', 'Other Liabilities'];
+  const rank = (type: string) => {
+    const i = ACCOUNT_TYPE_ORDER.indexOf(type);
+    return i === -1 ? ACCOUNT_TYPE_ORDER.length : i;
+  };
+
+  const accountOptions = (exclude?: string, selected?: string): PickerOption[] => {
+    const filtered = accounts.filter(item => item.id !== exclude && (item.status !== 'closed' || item.id === selected));
+    const open = filtered.filter(a => a.status !== 'closed').sort((a, b) => rank(a.type) - rank(b.type));
+    const closed = filtered.filter(a => a.status === 'closed');
+    const sorted = [...open, ...closed];
+
+    return sorted.map(item => {
+      const logoUrl = item.imageUrl
+        || getAccountBrandfetchUrl(item, brandfetchClientId, logoOverrides)
+        || (item.financialInstitution ? getMerchantLogoUrl(item.financialInstitution, brandfetchClientId, logoOverrides) : null);
+      return {
+        id: item.id,
+        label: item.name,
+        description: `${item.financialInstitution || item.type}, ${formatCurrency(item.balance, item.currency)}`,
+        group: item.status === 'closed' ? 'Closed' : item.type,
+        visual: <LogoTile url={logoUrl} label={item.name} size={24} fallbackIcon="account_balance" />,
+      };
+    });
+  };
 
   const setType = (type: string) => update({ type: type as TxType, ...accountsForType(form, type as TxType), ...(isEditing ? {} : { category: initialCategory || (type === 'transfer' ? 'Transfer' : ''), categoryEdited: !!initialCategory }) });
 
@@ -223,8 +268,69 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     }
   };
 
-  const locationSummary = form.locationLabel || form.placeName || form.city || form.address;
-  const extrasSummary = [form.tagIds.length ? `${form.tagIds.length} ${form.tagIds.length === 1 ? 'tag' : 'tags'}` : '', form.notes ? 'Note' : ''].filter(Boolean).join(', ');
+  const locMeta = useMemo(
+    () =>
+      formatTransactionLocation({
+        city: form.city,
+        country: form.country,
+        address: form.address,
+        latitude: form.latitude,
+        longitude: form.longitude,
+      }),
+    [form.city, form.country, form.address, form.latitude, form.longitude]
+  );
+  const locationSummary = useMemo(() => {
+    const text = form.locationLabel || form.placeName || locMeta.city || form.address;
+    if (!text && !locMeta.hasLocation) return null;
+    return (
+      <span className="flex items-center gap-1.5 truncate">
+        {locMeta.flag ? (
+          <span className="text-[13px] leading-none shrink-0" aria-hidden>{locMeta.flag}</span>
+        ) : (
+          <Icon name="location_on" size={14} className="shrink-0 text-emerald-500" />
+        )}
+        <span className="truncate">{text}</span>
+      </span>
+    );
+  }, [form.locationLabel, form.placeName, form.address, locMeta]);
+
+  const allAvailableTags = tagsContext?.tags?.length ? tagsContext.tags : tags;
+  const selectedTags = useMemo(() => {
+    return form.tagIds
+      .map(id => allAvailableTags.find(t => t.id === id))
+      .filter((t): t is Tag => !!t);
+  }, [form.tagIds, allAvailableTags]);
+
+  const extrasSummary = useMemo(() => {
+    if (selectedTags.length === 0 && !form.notes) return null;
+    return (
+      <span className="flex items-center gap-1.5 truncate">
+        {selectedTags.slice(0, 3).map(tag => (
+          <span
+            key={tag.id}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-inset border border-line"
+            style={{ color: tag.color || 'var(--ink)' }}
+          >
+            <Icon name={tag.icon || 'tag'} size={12} style={{ color: tag.color }} className="shrink-0" />
+            <span className="truncate max-w-[80px]">{tag.name}</span>
+          </span>
+        ))}
+        {selectedTags.length > 3 && <span className="text-xs text-muted">+{selectedTags.length - 3}</span>}
+        {form.notes && <span className="text-xs text-muted">{selectedTags.length > 0 ? '· ' : ''}Note</span>}
+      </span>
+    );
+  }, [selectedTags, form.notes]);
+
+  const merchantLogo = useMemo(() => {
+    const name = form.merchant.trim();
+    if (!name) return null;
+    return getMerchantLogoUrl(name, brandfetchClientId, logoOverrides, {
+      fallback: 'lettermark',
+      type: 'icon',
+      width: 64,
+      height: 64,
+    });
+  }, [form.merchant, brandfetchClientId, logoOverrides]);
 
   return (
     <SidePanel
@@ -245,54 +351,77 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
         <SegmentedControl className="w-full" items={TYPE_ITEMS} activeId={form.type} onChange={setType} />
 
-        <label className="block rounded-[var(--radius-lg)] bg-inset p-4">
-          <span className="type-label flex items-center justify-between text-muted">
-            Amount
+        <div>
+          <div className="type-label mb-1.5 flex items-center justify-between text-muted">
+            <span>Amount</span>
             {loan && <Badge tone="neutral">Loan payment</Badge>}
-          </span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="type-section-title text-muted" aria-hidden="true">{currency}</span>
-            <input
-              autoFocus
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="0.00"
-              value={form.amount}
-              onChange={e => {
-                const value = e.target.value.replace(',', '.');
-                if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) update({ amount: value });
-              }}
-              onBlur={() => setForm(prev => {
-                const value = parseFloat(prev.amount);
-                return applyAutofill(!isNaN(value) && value > 0 ? { ...prev, amount: value.toFixed(2) } : prev);
-              })}
-              className="type-figure-hero w-full min-w-0 bg-transparent text-ink outline-none tabular-nums placeholder:text-muted"
-            />
-          </span>
-        </label>
+          </div>
+          <AmountPad
+            autoFocus
+            currency={currency}
+            value={form.amount}
+            onChange={amount => update({ amount })}
+            onBlur={() => setForm(prev => {
+              const value = parseFloat(prev.amount);
+              return applyAutofill(!isNaN(value) && value > 0 ? { ...prev, amount: value.toFixed(2) } : prev);
+            })}
+          />
+        </div>
 
         <div className="relative">
           <label htmlFor="tx-merchant" className="type-label mb-1.5 block text-ink">Merchant</label>
-          <input
-            id="tx-merchant"
-            role="combobox"
-            aria-expanded={isMerchantOpen && merchantMatches.length > 0}
-            aria-controls="tx-merchant-list"
-            aria-autocomplete="list"
-            aria-activedescendant={activeIndex >= 0 ? `tx-merchant-${activeIndex}` : undefined}
-            autoComplete="off"
-            value={form.merchant}
-            placeholder={form.type === 'transfer' ? 'Internal Transfer' : 'Shop, company or person'}
-            onChange={e => {
-              const { value } = e.target;
-              setMerchantOpen(true);
-              setForm(prev => (value.length >= 2 ? applyAutofill({ ...prev, merchant: value }) : { ...prev, merchant: value }));
-            }}
-            onFocus={() => { setMerchantOpen(true); setActiveIndex(-1); }}
-            onBlur={() => setMerchantOpen(false)}
-            onKeyDown={onMerchantKey}
-            className={cn(controlStyles, 'h-11 px-3 text-[.9375rem] font-medium max-md:h-12 max-md:text-base')}
-          />
+          <div className="relative flex items-center">
+            <span className="pointer-events-none absolute left-3 z-10 flex size-6 shrink-0 items-center justify-center">
+              {form.merchant.trim() ? (
+                <LogoTile
+                  url={merchantLogo}
+                  label={form.merchant}
+                  size={24}
+                  rounded="md"
+                  fallbackIcon={form.type === 'transfer' ? 'swap_horiz' : 'storefront'}
+                />
+              ) : (
+                <Icon
+                  name={form.type === 'transfer' ? 'swap_horiz' : 'storefront'}
+                  size={18}
+                  className="text-muted"
+                />
+              )}
+            </span>
+            <input
+              id="tx-merchant"
+              role="combobox"
+              aria-expanded={isMerchantOpen && merchantMatches.length > 0}
+              aria-controls="tx-merchant-list"
+              aria-autocomplete="list"
+              aria-activedescendant={activeIndex >= 0 ? `tx-merchant-${activeIndex}` : undefined}
+              autoComplete="off"
+              value={form.merchant}
+              placeholder={form.type === 'transfer' ? 'Internal Transfer' : 'Shop, company or person'}
+              onChange={e => {
+                const { value } = e.target;
+                setMerchantOpen(true);
+                setForm(prev => (value.length >= 2 ? applyAutofill({ ...prev, merchant: value }) : { ...prev, merchant: value }));
+              }}
+              onFocus={() => { setMerchantOpen(true); setActiveIndex(-1); }}
+              onBlur={() => setMerchantOpen(false)}
+              onKeyDown={onMerchantKey}
+              className={cn(controlStyles, 'h-11 pl-11 pr-9 text-[.9375rem] font-medium max-md:h-12 max-md:text-base')}
+            />
+            {form.merchant.trim() && (
+              <button
+                type="button"
+                aria-label="Clear merchant"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  setForm(prev => ({ ...prev, merchant: '', merchantEdited: true }));
+                }}
+                className="absolute right-3 flex size-5 cursor-pointer items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
+              >
+                <Icon name="close" size={14} />
+              </button>
+            )}
+          </div>
           {isMerchantOpen && merchantMatches.length > 0 && (
             <ul id="tx-merchant-list" role="listbox" aria-label="Merchants" className="absolute inset-x-0 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-[var(--radius-lg)] border border-line bg-solid p-1.5 shadow-sm">
               {merchantMatches.map((item, index) => {
@@ -307,7 +436,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                       onMouseEnter={() => setActiveIndex(index)}
                       className={cn('flex min-h-10 w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-left pointer-coarse:min-h-12', index === activeIndex && 'bg-inset')}
                     >
-                      {logo && <img src={logo} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} className="size-6 shrink-0 rounded-[var(--radius-sm)]" />}
+                      <LogoTile url={logo} label={item.name} size={24} fallbackIcon="storefront" />
                       <span className="type-body min-w-0 flex-1 truncate text-ink">{item.name}</span>
                       {item.category && <span className="type-caption shrink-0 text-muted">{item.category}</span>}
                     </button>
@@ -346,7 +475,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
           />
         )}
 
-        <DateInput label="Date" value={form.date} onChange={date => update({ date })} isRequired />
+        <DateInput label="Date" value={form.date} onChange={date => update({ date })} dateFormat={userDateFormat} isRequired />
 
         <CategoryPicker
           categories={categoryChoices}
@@ -419,7 +548,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
           </Expander>
 
           {spare && (
-            <Expander title="Round-up" summary={form.roundUpOn && roundUp > 0 ? `${formatCurrency(roundUp, currency)} to ${spare.name}` : 'Off'}>
+            <Expander
+              title="Round-up"
+              summary={
+                form.roundUpOn
+                  ? (roundUp > 0 ? `${formatCurrency(roundUp, currency)} to ${spare.name}` : `To ${spare.name}`)
+                  : 'Off'
+              }
+            >
               <Switch isSelected={form.roundUpOn} onChange={roundUpOn => update({ roundUpOn })}>Round up to {spare.name}</Switch>
               {form.roundUpOn && (
                 <div className="grid grid-cols-2 gap-3">

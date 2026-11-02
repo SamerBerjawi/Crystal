@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { Account, BillPayment, Category, RecurrenceFrequency, RecurringTransaction, WeekendAdjustment } from '../types';
 import { FREQUENCIES, LIQUID_ACCOUNT_TYPES, WEEKEND_ADJUSTMENTS } from '../constants';
 import { formatCurrency } from '../utils';
+import { sortAccountsByType } from '../utils/accountsModel';
 import { draftFromBill, draftFromSeries, emptySeriesDraft, planSeries, type SeriesDraft } from '../utils/scheduleModel';
 import { Button } from './ui/Actions';
 import { AmountInput, DateInput, TextInput } from './ui/Fields';
@@ -25,13 +26,39 @@ export interface RecurringTransactionModalProps {
 }
 
 const KINDS = [{ id: 'recurring', label: 'Recurring' }, { id: 'bill', label: 'One-time' }];
-const RECURRING_TYPES = [{ id: 'expense', label: 'Payment' }, { id: 'income', label: 'Income' }, { id: 'transfer', label: 'Transfer' }];
+const RECURRING_TYPES = [
+  {
+    id: 'expense',
+    label: 'Payment',
+    icon: 'arrow_downward',
+    activeClassName: 'bg-red-500 dark:bg-red-600 text-white shadow-xs',
+  },
+  {
+    id: 'income',
+    label: 'Income',
+    icon: 'arrow_upward',
+    activeClassName: 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs',
+  },
+  {
+    id: 'transfer',
+    label: 'Transfer',
+    icon: 'swap_horiz',
+    activeClassName: 'bg-blue-600 dark:bg-blue-500 text-white shadow-xs',
+  },
+];
 const BILL_TYPES = RECURRING_TYPES.slice(0, 2);
 const NONE = 'none';
 
 const categoryOptions = (categories: Category[]): PickerOption[] => categories.flatMap(parent => [
-  { id: parent.name, label: parent.name, icon: parent.icon },
-  ...parent.subCategories.map(sub => ({ id: sub.name, label: sub.name, description: parent.name })),
+  { id: parent.name, label: parent.name, icon: parent.icon, group: parent.name, level: 0 },
+  ...parent.subCategories.map(sub => ({
+    id: sub.name,
+    label: sub.name,
+    description: parent.name,
+    group: parent.name,
+    level: 1,
+    icon: sub.icon || parent.icon,
+  })),
 ]);
 
 const initialDraft = (props: RecurringTransactionModalProps): SeriesDraft => {
@@ -54,9 +81,15 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = prop
   const isTransfer = draft.type === 'transfer';
   const usesDay = draft.frequency === 'monthly' || draft.frequency === 'yearly';
 
-  const accountOptions = useMemo<PickerOption[]>(() => accounts
-    .filter(account => (isBill ? LIQUID_ACCOUNT_TYPES.includes(account.type) : account.status !== 'closed') || account.id === draft.accountId || account.id === draft.toAccountId)
-    .map(account => ({ id: account.id, label: account.name, description: formatCurrency(account.balance, account.currency) })), [accounts, isBill, draft.accountId, draft.toAccountId]);
+  const accountOptions = useMemo<PickerOption[]>(() => {
+    const filtered = accounts.filter(account => (isBill ? LIQUID_ACCOUNT_TYPES.includes(account.type) : account.status !== 'closed') || account.id === draft.accountId || account.id === draft.toAccountId);
+    return sortAccountsByType(filtered).map(account => ({
+      id: account.id,
+      label: account.name,
+      description: formatCurrency(account.balance, account.currency),
+      group: account.status === 'closed' ? 'Closed' : account.type,
+    }));
+  }, [accounts, isBill, draft.accountId, draft.toAccountId]);
 
   const categories = useMemo(() => categoryOptions(draft.type === 'income' ? incomeCategories : expenseCategories), [draft.type, incomeCategories, expenseCategories]);
 

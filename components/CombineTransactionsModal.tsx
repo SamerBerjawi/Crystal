@@ -3,12 +3,17 @@ import { toast } from 'sonner';
 import { Transaction, Category, Account } from '../types';
 import { parseLocalDate, safeRound } from '../utils';
 import { categoryPickerOptions } from '../utils/categoryTree';
+import { sortAccountsByType } from '../utils/accountsModel';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 import { Button } from './ui/Actions';
 import { Row } from './ui/Display';
 import { DateInput, TextInput } from './ui/Fields';
 import { Amount } from './ui/Money';
 import { SidePanel } from './ui/Overlays';
 import { Combobox } from './ui/Pickers';
+import { LogoTile } from './EntityIcon';
 
 interface CombineTransactionsModalProps {
   onClose: () => void;
@@ -38,8 +43,22 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({ onC
   const [date, setDate] = useState(newestDate);
   const [accountId, setAccountId] = useState(firstTx?.accountId || accounts[0]?.id || '');
 
+  const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
+  const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+
   const categoryOptions = useMemo(() => categoryPickerOptions(expenseCategories, incomeCategories), [expenseCategories, incomeCategories]);
-  const accountOptions = useMemo(() => accounts.map(account => ({ id: account.id, label: account.name })), [accounts]);
+  const accountOptions = useMemo(() => sortAccountsByType(accounts).map(account => {
+    const logoUrl = account.imageUrl
+      || getAccountBrandfetchUrl(account, brandfetchClientId, logoOverrides)
+      || (account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, logoOverrides) : null);
+    return {
+      id: account.id,
+      label: account.name,
+      description: account.financialInstitution || account.type,
+      group: account.status === 'closed' ? 'Closed' : account.type,
+      visual: <LogoTile url={logoUrl} label={account.name} size={24} fallbackIcon="account_balance" />,
+    };
+  }), [accounts, brandfetchClientId, logoOverrides]);
 
   const handleSave = () => {
     if (!description.trim()) {

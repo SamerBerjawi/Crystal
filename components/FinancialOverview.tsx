@@ -5,6 +5,7 @@ import { Currency } from '../types';
 import { LINE_MOTION } from '../src/components/charts/animation';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
 import Icon from './ui/Icon';
+import { Amount, FormattedAmount } from './ui/Money';
 
 interface FinancialOverviewProps {
     netWorth: number;
@@ -39,7 +40,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                 <div>
                     <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Net worth</span>
                     <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums privacy-blur mt-0.5">
-                        {formatCurrency(netWorth, currency as Currency)}
+                        <Amount value={netWorth} currency={currency as Currency} />
                     </h3>
                 </div>
 
@@ -61,7 +62,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                     <p className={`text-base sm:text-lg font-bold tracking-tight tabular-nums privacy-blur mt-1 ${
                         isPositiveNet ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
                     }`}>
-                        {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true, compact: true })}
+                        <FormattedAmount text={formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true, compact: true })} />
                     </p>
                     <div className="mt-2 flex items-center gap-1 text-2xs font-medium text-slate-500 dark:text-slate-400">
                         <Icon name={isPositiveNet ? 'trending_up' : 'trending_down'} className={`text-xs ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`} />
@@ -73,7 +74,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                 <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-all group/stat">
                     <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Revenue</span>
                     <p className="text-base sm:text-lg font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur mt-1">
-                        {formatCurrency(income, currency as Currency, { compact: true })}
+                        <FormattedAmount text={formatCurrency(income, currency as Currency, { compact: true })} />
                     </p>
                     <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
                         <ResponsiveContainer width="100%" height="100%">
@@ -88,7 +89,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                 <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-all group/stat">
                     <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Outflow</span>
                     <p className="text-base sm:text-lg font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur mt-1">
-                        {formatCurrency(expenses, currency as Currency, { compact: true })}
+                        <FormattedAmount text={formatCurrency(expenses, currency as Currency, { compact: true })} />
                     </p>
                     <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
                         <ResponsiveContainer width="100%" height="100%">

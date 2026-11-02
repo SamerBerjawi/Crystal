@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { forecastFromData, horizonTiles } from '../utils/forecastModel';
+import { sortAccountsByType } from '../utils/accountsModel';
 import { Page, User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
 import PageHeader from '../components/PageHeader';
 import { liveSeries } from '../utils/scheduleModel';
@@ -1355,6 +1356,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
             <WrittenSummary
               facts={summaryFacts}
               isPrivate={isPrivate}
+              className="!mt-1 md:!mt-2"
               onFact={fact => {
                 if (fact === 'bills') setCurrentPage('Schedule & Bills');
                 else if (fact === 'tasks') setCurrentPage('Tasks');
@@ -1405,7 +1407,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
                   }
                 >
                   <div className="flex flex-col gap-4">
-                    <MultiSelect label="Accounts" options={accounts.map(account => ({ id: account.id, label: account.name }))} value={selectedAccountIds} onChange={setSelectedAccountIds} />
+                    <MultiSelect
+                      label="Accounts"
+                      options={sortAccountsByType(accounts).map(account => ({
+                        id: account.id,
+                        label: account.name,
+                        group: account.status === 'closed' ? 'Closed' : account.type,
+                      }))}
+                      value={selectedAccountIds}
+                      onChange={setSelectedAccountIds}
+                    />
                     <Select label="Period" options={DURATION_OPTIONS.map(option => ({ id: option.value, label: option.label }))} value={duration} onChange={id => setDuration(id as Duration)} />
                     {chartOptions}
                   </div>

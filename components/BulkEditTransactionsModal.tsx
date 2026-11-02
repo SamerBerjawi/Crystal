@@ -3,11 +3,16 @@ import { Transaction, Account, Category, Tag } from '../types';
 import { toLocalISOString } from '../utils';
 import { applyBulkEdit, BulkField, BulkValues } from '../utils/bulkEdit';
 import { categoryPickerOptions } from '../utils/categoryTree';
+import { sortAccountsByType } from '../utils/accountsModel';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 import AddressAutocomplete from './AddressAutocomplete';
 import { Button } from './ui/Actions';
 import { Checkbox, DateInput, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
 import { Combobox, MultiSelect } from './ui/Pickers';
+import { LogoTile, EntityGlyph } from './EntityIcon';
 
 interface BulkEditTransactionsModalProps {
   onClose: () => void;
@@ -47,9 +52,28 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({ o
     return next;
   });
 
+  const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
+  const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+
   const categoryOptions = useMemo(() => categoryPickerOptions(expenseCategories, incomeCategories), [expenseCategories, incomeCategories]);
-  const accountOptions = useMemo(() => accounts.map(account => ({ id: account.id, label: account.name })), [accounts]);
-  const tagOptions = useMemo(() => tags.map(tag => ({ id: tag.id, label: tag.name })), [tags]);
+  const accountOptions = useMemo(() => sortAccountsByType(accounts).map(account => {
+    const logoUrl = account.imageUrl
+      || getAccountBrandfetchUrl(account, brandfetchClientId, logoOverrides)
+      || (account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, logoOverrides) : null);
+    return {
+      id: account.id,
+      label: account.name,
+      description: account.financialInstitution || account.type,
+      group: account.status === 'closed' ? 'Closed' : account.type,
+      visual: <LogoTile url={logoUrl} label={account.name} size={24} fallbackIcon="account_balance" />,
+    };
+  }), [accounts, brandfetchClientId, logoOverrides]);
+
+  const tagOptions = useMemo(() => tags.map(tag => ({
+    id: tag.id,
+    label: tag.name,
+    visual: <EntityGlyph icon={tag.icon} label={tag.name} color={tag.color} size={16} />,
+  })), [tags]);
 
   const count = transactionsToEdit.length;
   const isInvalid = chosen.size === 0 || (chosen.has('category') && !values.category) || (chosen.has('accountId') && !values.accountId);

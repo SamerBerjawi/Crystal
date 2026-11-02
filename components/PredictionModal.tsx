@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Account, Category, InvestmentTransaction, Prediction, PredictionType, Warrant } from '../types';
 import { toLocalISOString } from '../utils';
+import { sortAccountsByType } from '../utils/accountsModel';
 import { Button } from './ui/Actions';
 import { AmountInput, DateInput } from './ui/Fields';
 import { Dialog } from './ui/Overlays';
@@ -14,7 +15,16 @@ const TARGET_LABELS: Record<PredictionType, string> = { spending_cap: 'Category'
 const AMOUNT_LABELS: Record<PredictionType, string> = { spending_cap: 'Limit', net_worth_goal: 'Balance to reach', price_target: 'Price to reach' };
 
 const flatten = (categories: Category[], parent?: string): PickerOption[] =>
-  categories.flatMap(category => [{ id: category.name, label: category.name, description: parent }, ...flatten(category.subCategories ?? [], category.name)]);
+  categories.flatMap(category => [
+    {
+      id: category.name,
+      label: category.name,
+      description: parent,
+      group: parent || category.name,
+      level: parent ? 1 : 0,
+    },
+    ...flatten(category.subCategories ?? [], category.name),
+  ]);
 
 interface PredictionModalProps {
   onClose: () => void;
@@ -36,7 +46,17 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
 
   const options = useMemo((): PickerOption[] => {
     if (type === 'spending_cap') return flatten(expenseCategories);
-    if (type === 'net_worth_goal') return [{ id: ALL_NET_WORTH, label: 'Total net worth' }, ...accounts.map(account => ({ id: account.id, label: account.name, description: account.type }))];
+    if (type === 'net_worth_goal') {
+      return [
+        { id: ALL_NET_WORTH, label: 'Total net worth' },
+        ...sortAccountsByType(accounts).map(account => ({
+          id: account.id,
+          label: account.name,
+          description: account.type,
+          group: account.status === 'closed' ? 'Closed' : account.type,
+        })),
+      ];
+    }
     const symbols = new Set<string>([...investmentTransactions.map(trade => trade.symbol), ...warrants.map(grant => grant.isin), ...accounts.filter(account => account.type === 'Investment' && account.symbol).map(account => account.symbol!)]);
     return [...symbols].sort().map(symbol => ({ id: symbol, label: symbol }));
   }, [type, expenseCategories, accounts, investmentTransactions, warrants]);

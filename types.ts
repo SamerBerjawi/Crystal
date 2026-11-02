@@ -320,6 +320,10 @@ export interface DisplayTransaction extends Transaction {
   isTransfer?: boolean;
   fromAccountName?: string;
   toAccountName?: string;
+  fromAccountId?: string;
+  toAccountId?: string;
+  transferKind?: 'credit_card_settlement' | 'mortgage_payment' | 'loan_payment' | 'spare_change';
+  transferLabel?: string;
   originalId?: string; // To keep track of the real ID for editing transfers
   spareChangeAmount?: number;
   transferExpenseAmount?: number;

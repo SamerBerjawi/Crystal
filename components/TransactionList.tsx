@@ -6,6 +6,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { useTagsContext } from '../contexts/FinancialDataContext';
 import Icon from './ui/Icon';
+import { FormattedAmount } from './ui/Money';
 
 interface TransactionListProps {
   transactions: DisplayTransaction[];
@@ -83,7 +84,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
       const listToPrepare = maxItems ? transactions.slice(0, maxItems) : transactions;
       return listToPrepare.map((tx) => {
         const isTransfer = tx.isTransfer;
-        const description = isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.description;
+        const description = isTransfer ? (tx.transferLabel || tx.description || `${tx.fromAccountName} → ${tx.toAccountName}`) : tx.description;
         const amountDisplay = isTransfer
           ? formatCurrency(tx.amount, tx.currency)
           : formatCurrency(convertToMain(tx.amount, tx.currency), getMainCurrency());
@@ -316,12 +317,12 @@ const TransactionList: React.FC<TransactionListProps> = ({
                           : (tx.type === 'income' ? 'text-emerald-700 dark:text-emerald-400' : 'text-light-text dark:text-dark-text')
                       }`}
                     >
-                      {amountDisplay}
+                      <FormattedAmount text={amountDisplay} />
                     </p>
                     {spareAmountEur && (
                       <div className="flex items-center gap-0.5 mt-0.5">
                         <Icon name="coins_stacked" className="text-xs text-emerald-500" />
-                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 tracking-tight"><FormattedAmount text={spareAmountEur} /></span>
                       </div>
                     )}
                   </div>

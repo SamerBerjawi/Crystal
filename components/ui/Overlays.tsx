@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useState } from 'react';
 import {
+  Button as AriaButton,
   Dialog as AriaDialog,
   DialogTrigger,
   Heading,
@@ -7,6 +8,7 @@ import {
   ModalOverlay,
   Popover as AriaPopover,
 } from 'react-aria-components';
+import { Popover as BasePopover } from '@base-ui/react/popover';
 import { motion, useDragControls, type PanInfo } from 'motion/react';
 import Icon from './Icon';
 import { Button, IconButton } from './Actions';
@@ -29,16 +31,18 @@ const GROW_DISTANCE = 72;
 export interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   description?: React.ReactNode;
   height?: SheetHeight;
   footer?: React.ReactNode;
+  hideHeader?: boolean;
+  contentPadding?: boolean;
   children: React.ReactNode;
   className?: string;
 }
 
 /** Peek, half or full height. Drag to resize or close, or use Close, or tap the scrim. */
-export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, description, height = 'content', footer, children, className }) => {
+export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, description, height = 'content', footer, hideHeader, contentPadding, children, className }) => {
   const [current, setCurrent] = useState(height);
   const controls = useDragControls();
 
@@ -75,17 +79,19 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             >
               <span className="h-1 w-10 rounded-full bg-line-strong" />
             </div>
-            <header
-              onPointerDown={e => controls.start(e)}
-              className="flex shrink-0 touch-none items-center justify-between gap-3 px-5 pb-2"
-            >
-              <div className="min-w-0">
-                <Heading slot="title" className="type-section-title truncate text-ink">{title}</Heading>
-                {description && <p className="type-caption text-muted">{description}</p>}
-              </div>
-              <IconButton icon="close" label="Close" onPress={onClose} onPointerDown={e => e.stopPropagation()} />
-            </header>
-            <div className="scroll-touch min-h-0 flex-1 overflow-y-auto px-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))]">{children}</div>
+            {!hideHeader && (
+              <header
+                onPointerDown={e => controls.start(e)}
+                className="flex shrink-0 touch-none items-center justify-between gap-3 px-5 pb-2"
+              >
+                <div className="min-w-0">
+                  {title && <Heading slot="title" className="type-section-title truncate text-ink">{title}</Heading>}
+                  {description && <p className="type-caption text-muted">{description}</p>}
+                </div>
+                <IconButton icon="close" label="Close" onPress={onClose} onPointerDown={e => e.stopPropagation()} />
+              </header>
+            )}
+            <div className={cn("scroll-touch min-h-0 flex-1 overflow-y-auto", contentPadding !== false && "px-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))]")}>{children}</div>
             {footer && (
               <footer className="shrink-0 border-t border-line px-5 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3">{footer}</footer>
             )}
@@ -111,6 +117,8 @@ export interface ResponsiveOverlayProps {
   width?: 480 | 640;
   /** With unsaved changes, closing asks first (D-068). */
   isDirty?: boolean;
+  hideHeader?: boolean;
+  contentPadding?: boolean;
   children: React.ReactNode;
 }
 
@@ -121,7 +129,7 @@ const OVERLAY_SHAPE: Record<OverlayKind, string> = {
 };
 
 /** Writes each form once: a dialog or panel on larger screens, a bottom sheet on phones. */
-export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOpen, onClose, title, description, footer, width = 480, isDirty, children }) => {
+export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOpen, onClose, title, description, footer, width = 480, isDirty, hideHeader, contentPadding, children }) => {
   const isPhone = useIsMobile();
   const [isAsking, setAsking] = useState(false);
 
@@ -153,6 +161,8 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
           title={title}
           description={description}
           footer={footerContent}
+          hideHeader={hideHeader}
+          contentPadding={contentPadding}
           height={kind === 'dialog' ? 'content' : 'full'}
         >
           {children}
@@ -168,21 +178,23 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
         isOpen={isOpen}
         onOpenChange={open => { if (!open) requestClose(); }}
         isDismissable
-        className={cn('crystal-scrim fixed inset-0 z-[var(--z-overlay)] flex', kind === 'dialog' && 'items-center justify-center')}
+        className={cn('crystal-scrim fixed inset-0 z-[var(--z-overlay)] flex outline-none', kind === 'dialog' && 'items-center justify-center')}
       >
         <Modal
           className={cn('flex flex-col bg-solid shadow-lg outline-none', OVERLAY_SHAPE[kind])}
           style={kind === 'side' ? { maxWidth: width } : undefined}
         >
           <AriaDialog className="flex min-h-0 flex-1 flex-col outline-none">
-            <header className="flex shrink-0 items-start justify-between gap-4 px-6 pb-3 pt-5">
-              <div className={cn('min-w-0', kind === 'full' && 'mx-auto w-full max-w-[960px]')}>
-                <Heading slot="title" className="type-section-title text-ink">{title}</Heading>
-                {description && <div className="type-body mt-1 text-muted">{description}</div>}
-              </div>
-              <IconButton icon="close" label="Close" onPress={requestClose} />
-            </header>
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+            {!hideHeader && (
+              <header className="flex shrink-0 items-start justify-between gap-4 px-6 pb-3 pt-5">
+                <div className={cn('min-w-0', kind === 'full' && 'mx-auto w-full max-w-[960px]')}>
+                  {title && <Heading slot="title" className="type-section-title text-ink">{title}</Heading>}
+                  {description && <div className="type-body mt-1 text-muted">{description}</div>}
+                </div>
+                <IconButton icon="close" label="Close" onPress={requestClose} />
+              </header>
+            )}
+            <div className={cn("min-h-0 flex-1 overflow-y-auto", contentPadding !== false && "px-6 pb-6")}>
               <div className={cn(kind === 'full' && 'mx-auto max-w-[960px]')}>{children}</div>
             </div>
             {footerContent && (
@@ -254,34 +266,64 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onClose, o
 };
 
 export const popoverStyles =
-  'crystal-pop rounded-[var(--radius-lg)] border border-line bg-solid shadow-sm outline-none';
+  'crystal-pop z-popover rounded-[var(--radius-lg)] border border-line bg-solid shadow-sm outline-none';
 
 /** A small anchored picker or filter. A bottom sheet on phones. */
 export const Popover: React.FC<{
   trigger: React.ReactElement;
   title: string;
-  placement?: React.ComponentProps<typeof AriaPopover>['placement'];
+  placement?: string;
   children: React.ReactNode;
   className?: string;
 }> = ({ trigger, title, placement = 'bottom start', children, className }) => {
   const isPhone = useIsMobile();
   const [isOpen, setOpen] = useState(false);
-  const headingId = useId();
+
+  if (isPhone) {
+    const handleTrigger = (e: React.MouseEvent) => {
+      (trigger.props as { onClick?: (e: React.MouseEvent) => void })?.onClick?.(e);
+      (trigger.props as { onPress?: () => void })?.onPress?.();
+      setOpen(true);
+    };
+
+    return (
+      <>
+        {React.cloneElement(trigger, {
+          onClick: handleTrigger,
+          onPress: handleTrigger,
+        } as React.HTMLAttributes<HTMLElement> & { onPress?: () => void })}
+        <BottomSheet isOpen={isOpen} onClose={() => setOpen(false)} title={title}>
+          {children}
+        </BottomSheet>
+      </>
+    );
+  }
+
+  const p = placement || 'bottom start';
+  const side: 'top' | 'bottom' | 'left' | 'right' = p.startsWith('top')
+    ? 'top'
+    : p.startsWith('left')
+    ? 'left'
+    : p.startsWith('right')
+    ? 'right'
+    : 'bottom';
+  const align: 'start' | 'center' | 'end' = p.includes('end')
+    ? 'end'
+    : p.includes('start')
+    ? 'start'
+    : 'center';
 
   return (
-    <DialogTrigger isOpen={isOpen} onOpenChange={setOpen}>
-      {trigger}
-      {isPhone ? (
-        <BottomSheet isOpen={isOpen} onClose={() => setOpen(false)} title={title}>{children}</BottomSheet>
-      ) : (
-        <AriaPopover placement={placement} offset={8} className={cn(popoverStyles, 'p-3', className)}>
-          <AriaDialog aria-labelledby={headingId} className="outline-none">
-            <span id={headingId} className="sr-only">{title}</span>
+    <BasePopover.Root open={isOpen} onOpenChange={setOpen}>
+      <BasePopover.Trigger render={trigger} />
+      <BasePopover.Portal>
+        <BasePopover.Positioner side={side} align={align} sideOffset={8} className="pointer-events-auto z-popover">
+          <BasePopover.Popup className={cn(popoverStyles, 'p-3 max-h-[min(28rem,75vh)] overflow-y-auto', className)}>
             {children}
-          </AriaDialog>
-        </AriaPopover>
-      )}
-    </DialogTrigger>
+          </BasePopover.Popup>
+        </BasePopover.Positioner>
+      </BasePopover.Portal>
+    </BasePopover.Root>
   );
 };
 

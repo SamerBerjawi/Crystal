@@ -120,7 +120,7 @@ Computed against WCAG 2.2. All pass AA.
 |---|---|---|---|---|---|
 | `figure-hero` | 44/48 | 40/44 | 800 | -0.02em | Net Worth, main figure on a page |
 | `page-title` | 32/38 | 26/32 | 800 | -0.015em | Page titles |
-| `sentence` | 24/34 | 22/30 | 600 | 0 | The written summary |
+| `sentence` | 23/33 | 21/29 | 600 | 0 | The written summary |
 | `figure-lg` | 28/34 | 24/30 | 800 | -0.01em | Summary card figures |
 | `section-title` | 20/26 | 18/24 | 700 | 0 | Section headings |
 | `card-title` | 16/22 | 15/22 | 700 | 0 | Card titles |

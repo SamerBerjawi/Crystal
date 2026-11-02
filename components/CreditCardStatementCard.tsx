@@ -6,6 +6,7 @@ import { Currency } from '../types';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
 import Icon from './ui/Icon';
+import { Amount } from './ui/Money';
 
 interface StatementInfo {
     period: string;
@@ -93,7 +94,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                         <div className="flex justify-between items-baseline leading-tight">
                             <span className="text-xs text-slate-500 dark:text-slate-400">Balance</span>
                             <span className="text-sm sm:text-base font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur">
-                                {formatCurrency(data.balance, currency)}
+                                <Amount value={data.balance} currency={currency} />
                             </span>
                         </div>
                         <div className="flex justify-between items-baseline leading-tight">
@@ -116,7 +117,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                             )}
                         </div>
                         <span className="font-bold tabular-nums text-slate-900 dark:text-white shrink-0">
-                            {formatCurrency(Math.abs(previousStatementBalance), currency)}
+                            <Amount value={Math.abs(previousStatementBalance)} currency={currency} />
                         </span>
                      </div>
                 )}

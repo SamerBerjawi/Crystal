@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { Task, RecurringTransaction, BillPayment, FinancialGoal, RecurringTransactionOverride } from '../types';
 import { parseLocalDate, formatCurrency, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
+import { Amount } from './ui/Money';
 
 interface TodayWidgetProps {
     tasks: Task[];
@@ -191,7 +192,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                             <div key={`task-${item.data.id}`} className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 hover:bg-black/[0.04] dark:hover:bg-white/[0.05] hover:border-black/10 dark:hover:border-white/10 group transition-all">
                                 <button 
                                     onClick={() => handleTaskToggle(item.data)}
-                                    className="w-5 h-5 rounded-lg border border-slate-300 dark:border-white/20 shrink-0 flex items-center justify-center hover:border-primary-500 hover:bg-primary-500/10 transition-colors cursor-pointer"
+                                    className="w-5 h-5 rounded-lg border border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04] shrink-0 flex items-center justify-center hover:border-primary-500 hover:bg-primary-500/10 transition-colors cursor-pointer"
                                     aria-label="Mark task as complete"
                                 />
                                 <div className="flex-1 min-w-0">
@@ -228,9 +229,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
                                     <p className="text-xs font-bold text-slate-900 dark:text-white tabular-nums tracking-tight mt-0.5">
-                                        <span className="privacy-blur">
-                                            {formatCurrency(amount, currency)}
-                                        </span>
+                                        <Amount value={amount} currency={currency} />
                                     </p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">

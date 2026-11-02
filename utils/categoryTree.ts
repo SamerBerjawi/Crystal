@@ -1,13 +1,49 @@
+import React from 'react';
 import { Category } from '../types';
-import { flattenCategories } from '../utils';
+import { EntityGlyph } from '../components/EntityIcon';
 
-/** Every category once, for a picker. */
+/** Every category once, for a picker, grouped with hierarchy. */
 export const categoryPickerOptions = (expenseCategories: Category[], incomeCategories: Category[]) => {
   const seen = new Set<string>();
-  const withKind = (categories: Category[], description: string) => flattenCategories(categories)
-    .filter(category => !seen.has(category.name) && !!seen.add(category.name))
-    .map(category => ({ id: category.name, label: category.name, description }));
-  return [...withKind(expenseCategories, 'Expense'), ...withKind(incomeCategories, 'Income')];
+  const buildGroup = (categories: Category[], kind: string) => categories.flatMap(category => {
+    const items = [];
+    if (!seen.has(category.name)) {
+      seen.add(category.name);
+      items.push({
+        id: category.name,
+        label: category.name,
+        group: category.subCategories.length > 0 ? category.name : kind,
+        level: 0,
+        visual: React.createElement(EntityGlyph, {
+          icon: category.icon,
+          label: category.name,
+          color: category.color,
+          size: 16,
+        }),
+      });
+    }
+    (category.subCategories || []).forEach(sub => {
+      if (!seen.has(sub.name)) {
+        seen.add(sub.name);
+        items.push({
+          id: sub.name,
+          label: sub.name,
+          description: category.name,
+          group: category.name,
+          level: 1,
+          visual: React.createElement(EntityGlyph, {
+            icon: sub.icon || category.icon,
+            label: sub.name,
+            color: sub.color || category.color,
+            size: 16,
+          }),
+        });
+      }
+    });
+    return items;
+  });
+
+  return [...buildGroup(expenseCategories, 'Expenses'), ...buildGroup(incomeCategories, 'Income')];
 };
 
 export type DropPosition = 'top' | 'bottom' | 'middle';

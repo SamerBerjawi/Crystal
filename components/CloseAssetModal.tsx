@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Account, AssetClosureDetails } from '../types';
 import { currencySign, toLocalISOString } from '../utils';
+import { sortAccountsByType } from '../utils/accountsModel';
 import { parseAmountInput } from '../utils/scheduleModel';
 import { Button } from './ui/Actions';
 import { AmountInput, DateInput, Textarea } from './ui/Fields';
@@ -31,7 +32,11 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({ onClose, account, acc
 
   const isSold = closureType === 'Sold';
   const accountOptions = useMemo(
-    () => accounts.filter(item => item.type === 'Checking' || item.type === 'Savings').map(item => ({ id: item.id, label: item.name })),
+    () => sortAccountsByType(accounts.filter(item => item.type === 'Checking' || item.type === 'Savings')).map(item => ({
+      id: item.id,
+      label: item.name,
+      group: item.type,
+    })),
     [accounts]
   );
 

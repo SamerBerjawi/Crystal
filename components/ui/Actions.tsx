@@ -164,13 +164,15 @@ export interface HoldButtonProps {
   isDisabled?: boolean;
   block?: boolean;
   className?: string;
+  staticLabel?: boolean;
+  icon?: string;
 }
 
 /**
  * Press and hold to delete (D-065), adapted from KokonutUI's Hold Button (MIT). The fill drains if you let go early, and
  * a screen reader, which can only send a click, gets a plain confirmation instead. Keyboard users hold Space or Enter.
  */
-export const HoldButton: React.FC<HoldButtonProps> = ({ label, onConfirm, isDisabled, block, className }) => {
+export const HoldButton: React.FC<HoldButtonProps> = ({ label, onConfirm, isDisabled, block, className, staticLabel, icon = 'delete' }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const startedAt = useRef(0);
   const frame = useRef(0);
@@ -227,10 +229,14 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ label, onConfirm, isDisa
   }, [hint]);
 
   const isHoldKey = (e: React.KeyboardEvent) => e.key === ' ' || e.key === 'Enter';
-  const text = hint ? 'Keep holding' : `Hold to ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+  const text = hint
+    ? 'Keep holding'
+    : staticLabel || label.toLowerCase().startsWith('delete') || label === 'Delete'
+    ? label
+    : `Hold to ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
   const content = (
     <span className="flex h-full w-full items-center justify-center gap-2 px-5 whitespace-nowrap">
-      <Icon name="delete" size={20} />
+      <Icon name={icon} size={18} />
       {text}
     </span>
   );

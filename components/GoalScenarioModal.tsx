@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import type { Account, FinancialGoal, GoalCategory, RecurrenceFrequency } from '../types';
 import { FREQUENCIES } from '../constants';
 import { draftFromGoal, emptyGoalDraft, goalAccounts, planGoal, type GoalDraft } from '../utils/goalsModel';
+import { sortAccountsByType } from '../utils/accountsModel';
 import { Button } from './ui/Actions';
 import { AmountInput, DateInput, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
@@ -47,7 +48,12 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
 
   const accountOptions = useMemo<PickerOption[]>(() => [
     { id: NONE, label: 'No account' },
-    ...goalAccounts(accounts).map(account => ({ id: account.id, label: account.name, description: account.type })),
+    ...sortAccountsByType(goalAccounts(accounts)).map(account => ({
+      id: account.id,
+      label: account.name,
+      description: account.type,
+      group: account.type,
+    })),
   ], [accounts]);
 
   const parentOptions = useMemo<PickerOption[]>(() => [

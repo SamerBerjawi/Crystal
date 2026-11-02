@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Currency } from '../types';
 import { formatCurrency, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
+import { Amount } from './ui/Money';
 
 export interface BudgetProgressBarProps {
   spent: number;
@@ -125,9 +126,9 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
 
         {showValues && (
           <div className="flex justify-between text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
-            <span>{formatCurrency(spent, currency)} spent</span>
+            <span><Amount value={spent} currency={currency} /> spent</span>
             <span className={remaining < 0 ? 'text-rose-500 font-bold' : ''}>
-              {formatCurrency(budgeted, currency)} cap
+              <Amount value={budgeted} currency={currency} /> cap
             </span>
           </div>
         )}
@@ -160,7 +161,7 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
               {remaining >= 0 ? 'Remaining' : 'Exceeded By'}
             </span>
             <span className={`text-base font-bold tracking-tight privacy-blur leading-none ${remaining >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {formatCurrency(Math.abs(remaining), currency)}
+              <Amount value={Math.abs(remaining)} currency={currency} />
             </span>
           </div>
         </div>
@@ -207,13 +208,13 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
           <div className="px-2.5 py-1 rounded-lg glass-subwell">
             <span className="opacity-60">Spent: </span>
             <span className="font-mono font-black text-light-text dark:text-dark-text privacy-blur">
-              {formatCurrency(spent, currency)}
+              <Amount value={spent} currency={currency} />
             </span>
           </div>
           <div className="px-2.5 py-1 rounded-lg glass-subwell">
             <span className="opacity-60">Limit: </span>
             <span className="font-mono font-black text-primary-500 privacy-blur">
-              {formatCurrency(budgeted, currency)}
+              <Amount value={budgeted} currency={currency} />
             </span>
           </div>
           {onEdit && (
