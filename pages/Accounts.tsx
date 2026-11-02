@@ -285,7 +285,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       ) : tabAccounts.length === 0 ? (
         <EmptyState icon="wallet" title="Nothing here yet" description="Accounts of this kind appear here." actionLabel="Add account" onAction={() => setAddModalOpen(true)} />
       ) : showPots ? (
-        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sortedPots.map(account => (
             <AccountPot
               key={account.id}

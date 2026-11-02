@@ -33,3 +33,12 @@ export { Ring, type RingProps, type RingLineCap } from "./ring";
 export { RingCenter, type RingCenterProps } from "./ring-center";
 export { type RingData } from "./ring-context";
 export { toProperCase } from "./chart-formatters";
+export {
+  AreaSparkline,
+  LineSparkline,
+  BarSparkline,
+  useSparklineHover,
+  type AreaSparklineProps,
+  type LineSparklineProps,
+  type BarSparklineProps,
+} from "./sparkline";

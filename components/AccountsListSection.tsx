@@ -109,7 +109,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
   if (accounts.length === 0) return null;
 
   const layout = isPhone || viewStyle === 'minimal' ? 'row' : 'card';
-  const grid = layout === 'row' || layoutMode === 'stacked' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2';
+  const grid = layout === 'row' || layoutMode === 'stacked' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
 
   return (
     <section className="space-y-4">
