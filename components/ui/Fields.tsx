@@ -263,8 +263,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({ children, className, ...prop
   <AriaCheckbox {...props} className={cn(choiceRow, className)}>
     {({ isSelected, isIndeterminate }) => (
       <>
-        <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface text-on-pill transition-colors duration-[var(--duration-fast)]', (isSelected || isIndeterminate) && 'border-pill bg-pill', choiceFocus)}>
-          {isSelected && <Icon name="check" size={16} weight="bold" />}
+        <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04] text-on-pill transition-colors duration-[var(--duration-fast)]', (isSelected || isIndeterminate) && 'border-pill bg-pill', choiceFocus)}>
+          {isSelected && <Icon name="check" size={13} className="stroke-[2.5]" />}
           {isIndeterminate && !isSelected && <span className="h-0.5 w-2.5 rounded-full bg-on-pill" />}
         </span>
         <span className="type-body min-w-0 text-ink">{children}</span>

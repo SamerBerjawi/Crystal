@@ -251,7 +251,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                         className={cn('flex min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left', isSelected && 'bg-primary-soft')}
                       >
                         {isSelecting
-                          ? <span className={cn('ml-1 flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line-strong text-on-pill', isSelected && 'border-pill bg-pill')}>{isSelected && <Icon name="check" size={16} weight="bold" />}</span>
+                          ? <span className={cn('ml-1 flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04] text-on-pill', isSelected && 'border-pill bg-pill')}>{isSelected && <Icon name="check" size={14} weight="bold" />}</span>
                           : <Logo tx={tx} url={logoOf(tx)} icon={details(tx).icon} />}
                         <span className="min-w-0 flex-1">
                           <span className="type-body-strong block truncate text-ink">{tx.merchant || tx.description}</span>

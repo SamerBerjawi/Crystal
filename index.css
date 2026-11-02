@@ -1005,10 +1005,10 @@ img {
   --solid: #FFFDF8;
   --surface: rgba(255, 255, 255, .46);
   --inset: rgba(27, 24, 19, .05);
-  --line: rgba(27, 24, 19, .11);
+  --line: rgba(27, 24, 19, .08);
   --rim: rgba(255, 255, 255, .78);
   --card-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 24px 48px -30px rgba(70, 50, 30, .28);
-  --line-strong: #7E7769;
+  --line-strong: rgba(27, 24, 19, .14);
   --ink: #1B1813;
   --muted: #5E584E;
   --glass: rgba(255, 253, 248, .72);
@@ -1111,10 +1111,10 @@ img {
   --solid: #1E1C17;
   --surface: rgba(255, 255, 255, .05);
   --inset: rgba(255, 255, 255, .06);
-  --line: rgba(255, 255, 255, .1);
+  --line: rgba(255, 255, 255, .08);
   --rim: rgba(255, 255, 255, .07);
   --card-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 24px 48px -30px rgba(0, 0, 0, .7);
-  --line-strong: #8E8879;
+  --line-strong: rgba(255, 255, 255, .12);
   --ink: #F4F1EA;
   --muted: #B3AD9F;
   --glass: rgba(30, 28, 23, .72);

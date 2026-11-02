@@ -38,8 +38,8 @@ const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, m
     {({ isSelected }) => (
       <>
         {multi && (
-          <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line-strong bg-surface text-on-pill', isSelected && 'border-pill bg-pill')}>
-            {isSelected && <Icon name="check" size={16} weight="bold" />}
+          <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04] text-on-pill', isSelected && 'border-pill bg-pill')}>
+            {isSelected && <Icon name="check" size={13} className="stroke-[2.5]" />}
           </span>
         )}
         {option.visual ? (
