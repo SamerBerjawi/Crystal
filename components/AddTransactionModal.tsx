@@ -10,6 +10,7 @@ import type { AddressData } from '../hooks/useAddressSearch';
 import { formatCurrency, currencySign } from '../utils';
 import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { parseLocationString } from '../utils/locationDetector';
+import { formatTransactionLocation } from '../utils/locationFormat';
 import { suggestCategories } from '../utils/overviewSummary';
 import {
   NO_BRANCH_MERCHANTS, accountsForType, autofill, branchesFor, clearedLocation, editLoanPart, initialTxForm, loanAccountFor, locationFromBranch, matchMerchants, merchantSuggestions,
@@ -67,14 +68,14 @@ const TYPE_ITEMS = [
 ];
 
 /** A closed section with a one-line summary of what's in it. */
-const Expander: React.FC<{ title: string; summary?: string; children: React.ReactNode }> = ({ title, summary, children }) => {
+const Expander: React.FC<{ title: string; summary?: React.ReactNode; children: React.ReactNode }> = ({ title, summary, children }) => {
   const [isOpen, setOpen] = useState(false);
   return (
     <section className="border-t border-line">
       <button type="button" aria-expanded={isOpen} onClick={() => setOpen(open => !open)} className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 text-left">
         <span className="type-body-strong text-ink">{title}</span>
         <span className="flex min-w-0 items-center gap-1.5 text-muted">
-          {summary && <span className="type-caption truncate">{summary}</span>}
+          {summary && <span className="type-caption flex items-center gap-1.5 truncate">{summary}</span>}
           <Icon name="expand_more" size={20} className={cn('shrink-0 transition-transform duration-[var(--duration-base)]', isOpen && 'rotate-180')} />
         </span>
       </button>
@@ -266,8 +267,58 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     }
   };
 
-  const locationSummary = form.locationLabel || form.placeName || form.city || form.address;
-  const extrasSummary = [form.tagIds.length ? `${form.tagIds.length} ${form.tagIds.length === 1 ? 'tag' : 'tags'}` : '', form.notes ? 'Note' : ''].filter(Boolean).join(', ');
+  const locMeta = useMemo(
+    () =>
+      formatTransactionLocation({
+        city: form.city,
+        country: form.country,
+        address: form.address,
+        latitude: form.latitude,
+        longitude: form.longitude,
+      }),
+    [form.city, form.country, form.address, form.latitude, form.longitude]
+  );
+  const locationSummary = useMemo(() => {
+    const text = form.locationLabel || form.placeName || locMeta.city || form.address;
+    if (!text && !locMeta.hasLocation) return null;
+    return (
+      <span className="flex items-center gap-1.5 truncate">
+        {locMeta.flag ? (
+          <span className="text-[13px] leading-none shrink-0" aria-hidden>{locMeta.flag}</span>
+        ) : (
+          <Icon name="location_on" size={14} className="shrink-0 text-emerald-500" />
+        )}
+        <span className="truncate">{text}</span>
+      </span>
+    );
+  }, [form.locationLabel, form.placeName, form.address, locMeta]);
+
+  const allAvailableTags = tagsContext?.tags?.length ? tagsContext.tags : tags;
+  const selectedTags = useMemo(() => {
+    return form.tagIds
+      .map(id => allAvailableTags.find(t => t.id === id))
+      .filter((t): t is Tag => !!t);
+  }, [form.tagIds, allAvailableTags]);
+
+  const extrasSummary = useMemo(() => {
+    if (selectedTags.length === 0 && !form.notes) return null;
+    return (
+      <span className="flex items-center gap-1.5 truncate">
+        {selectedTags.slice(0, 3).map(tag => (
+          <span
+            key={tag.id}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-surface-elevated border border-line"
+            style={{ color: tag.color || 'var(--ink)' }}
+          >
+            <Icon name={tag.icon || 'tag'} size={12} style={{ color: tag.color }} className="shrink-0" />
+            <span className="truncate max-w-[80px]">{tag.name}</span>
+          </span>
+        ))}
+        {selectedTags.length > 3 && <span className="text-xs text-muted">+{selectedTags.length - 3}</span>}
+        {form.notes && <span className="text-xs text-muted">{selectedTags.length > 0 ? '· ' : ''}Note</span>}
+      </span>
+    );
+  }, [selectedTags, form.notes]);
 
   return (
     <SidePanel

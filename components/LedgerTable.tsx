@@ -64,6 +64,17 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string 
   const initial = nameForInitial ? nameForInitial.charAt(0).toUpperCase() : null;
   const hasImage = Boolean(url && !hasFailed);
 
+  if (tx.isTransfer) {
+    return (
+      <span
+        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cyan-950/60 dark:bg-[#0c313a] text-cyan-400 border border-cyan-800/30"
+        aria-hidden="true"
+      >
+        <Icon name="swap_horiz" size={18} />
+      </span>
+    );
+  }
+
   return (
     <span
       className={cn(
@@ -75,7 +86,7 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string 
     >
       {hasImage ? (
         <img src={url!} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
-      ) : initial && !tx.isTransfer ? (
+      ) : initial ? (
         <span className="type-label font-bold text-ink">{initial}</span>
       ) : (
         <Icon name={icon} size={18} className="text-muted" />
@@ -90,7 +101,7 @@ const AccountLogoTile: React.FC<{ url?: string | null; isTransfer?: boolean; lab
 
   if (isTransfer) {
     return (
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-blue-soft text-blue" aria-hidden="true">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-cyan-950/60 dark:bg-[#0c313a] text-cyan-400 border border-cyan-800/30" aria-hidden="true">
         <Icon name="swap_horiz" size={16} />
       </span>
     );
@@ -135,20 +146,21 @@ const SortHeader: React.FC<{
             title={filter.title}
             placement={align === 'right' ? 'bottom end' : 'bottom start'}
             trigger={
-              <AriaButton
+              <button
+                type="button"
                 aria-label={`Filter by ${label.toLowerCase()}${filter.count ? `, ${filter.count} active` : ''}`}
                 className={cn(
                   'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-surface-elevated hover:text-ink',
                   filter.count > 0 ? 'text-ink font-semibold' : 'text-muted/60 hover:text-muted'
                 )}
               >
-                <Icon name="filter" size={13} />
+                <Icon name="tune" size={13} />
                 {filter.count > 0 && (
                   <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-pill text-[9px] font-bold text-on-pill tabular-nums">
                     {filter.count}
                   </span>
                 )}
-              </AriaButton>
+              </button>
             }
           >
             {filter.content}
@@ -171,6 +183,20 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
   const [contextTx, setContextTx] = useState<DisplayTransaction | null>(null);
 
   const details = (tx: DisplayTransaction) => {
+    if (tx.isTransfer) {
+      if (tx.transferKind === 'credit_card_settlement') {
+        return { color: '#0284C7', icon: 'credit_card' };
+      }
+      if (tx.transferKind === 'mortgage_payment') {
+        return { color: '#8B5CF6', icon: 'home' };
+      }
+      if (tx.transferKind === 'loan_payment') {
+        return { color: '#F59E0B', icon: 'request_quote' };
+      }
+      if (tx.transferKind === 'spare_change') {
+        return { color: '#10B981', icon: 'piggy' };
+      }
+    }
     const category = getCategoryDetails(tx.category, categories);
     const isPlainTransfer = tx.isTransfer && (!tx.category || tx.category === 'Transfer');
     return {
@@ -257,7 +283,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           <span className="type-body-strong block truncate text-ink">{tx.merchant || tx.description}</span>
                           <span className="type-caption flex items-center gap-1.5 truncate text-muted">
                             <CategoryDot color={details(tx).color} />
-                            <span className="truncate">{tx.category || 'Uncategorised'}</span>
+                            <span className="truncate">{tx.isTransfer && tx.transferLabel ? tx.transferLabel : tx.category || 'Uncategorised'}</span>
                           </span>
                         </span>
                         <span className="type-figure-row shrink-0 text-ink">{money(tx)}</span>
@@ -279,6 +305,13 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
   const normalActions = contextActions.filter(a => !a.isDestructive);
   const dangerActions = contextActions.filter(a => a.isDestructive);
 
+  const allTxIds = items
+    .filter((item): item is Extract<LedgerItem, { isGroupHeader: false }> => !item.isGroupHeader)
+    .map(i => i.tx.id);
+  const allCount = allTxIds.filter(id => selectedIds.has(id)).length;
+  const isAllSelected = allTxIds.length > 0 && allCount === allTxIds.length;
+  const isSomeSelected = allCount > 0 && allCount < allTxIds.length;
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger render={<div className="overflow-x-auto rounded-[var(--radius-xl)] surface-card" />}>
@@ -296,8 +329,17 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
           </colgroup>
           <thead className="sticky top-0 z-[var(--z-sticky)] bg-inset">
             <tr>
-              <th scope="col" className="w-10 pl-3"><span className="sr-only">Select</span></th>
-              <SortHeader id="description" label="Transaction" sort={sort} onSort={onSort} filter={columnFilters?.description} className="w-[300px] max-w-[300px]" />
+              <th scope="col" className="w-10 pl-3">
+                <Checkbox
+                  aria-label="Select all shown"
+                  isSelected={isAllSelected}
+                  isIndeterminate={isSomeSelected}
+                  onChange={() => onToggleGroup(allTxIds)}
+                >
+                  {null}
+                </Checkbox>
+              </th>
+              <SortHeader id="description" label="Transaction details" sort={sort} onSort={onSort} filter={columnFilters?.description} className="w-[300px] max-w-[300px]" />
               <SortHeader id="account" label="Account" sort={sort} onSort={onSort} filter={columnFilters?.account} className="w-[250px] max-w-[250px] max-lg:hidden" />
               <SortHeader id="category" label="Category" sort={sort} onSort={onSort} filter={columnFilters?.category} className="w-[200px] max-w-[200px]" />
               <SortHeader id="location" label="Location" sort={sort} onSort={onSort} filter={columnFilters?.location} className="w-[200px] max-w-[200px] max-xl:hidden" />
@@ -309,20 +351,21 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                       title={columnFilters.tags.title}
                       placement="bottom start"
                       trigger={
-                        <AriaButton
+                        <button
+                          type="button"
                           aria-label={`Filter by tags${columnFilters.tags.count ? `, ${columnFilters.tags.count} active` : ''}`}
                           className={cn(
                             'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-surface-elevated hover:text-ink',
                             columnFilters.tags.count > 0 ? 'text-ink font-semibold' : 'text-muted/60 hover:text-muted'
                           )}
                         >
-                          <Icon name="filter" size={13} />
+                          <Icon name="tune" size={13} />
                           {columnFilters.tags.count > 0 && (
                             <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-pill text-[9px] font-bold text-on-pill tabular-nums">
                               {columnFilters.tags.count}
                             </span>
                           )}
-                        </AriaButton>
+                        </button>
                       }
                     >
                       {columnFilters.tags.content}
@@ -341,8 +384,22 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                 const isSome = !isAll && item.groupTxIds.some(id => selectedIds.has(id));
                 return (
                   <tr key={item.id} onContextMenu={e => e.stopPropagation()} className="bg-inset">
-                    <td className="h-9 border-t border-line pl-3"><Checkbox aria-label={`Select all from ${item.formattedDate}`} isSelected={isAll} isIndeterminate={isSome} onChange={() => onToggleGroup(item.groupTxIds)}>{null}</Checkbox></td>
-                    <th scope="rowgroup" colSpan={5} className="type-label border-t border-line px-3 text-left text-muted">{item.formattedDate}, {item.count}</th>
+                    <td className="h-9 border-t border-line pl-3">
+                      <Checkbox
+                        aria-label={`Select all from ${item.formattedDate}`}
+                        isSelected={isAll}
+                        isIndeterminate={isSome}
+                        onChange={() => onToggleGroup(item.groupTxIds)}
+                      >
+                        {null}
+                      </Checkbox>
+                    </td>
+                    <th scope="rowgroup" colSpan={5} className="border-t border-line px-3 text-left">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-ink">{item.formattedDate}</span>
+                        <span className="text-[13px] text-muted tabular-nums">{item.count} {item.count === 1 ? 'record' : 'records'}</span>
+                      </span>
+                    </th>
                     <td className="type-figure-row border-t border-line px-3 text-right text-ink"><Amount value={item.totalEur} currency={getMainCurrency()} tone="flow" /></td>
                     <td className="border-t border-line" />
                   </tr>
@@ -378,7 +435,9 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                         {!isCompact && (
                           <span className="type-caption block truncate text-muted">
                             {tx.isTransfer
-                              ? `${tx.fromAccountName || 'Unknown'} → ${tx.toAccountName || '?'}`
+                              ? (tx.transferLabel && tx.description.trim().toLowerCase() !== tx.transferLabel.trim().toLowerCase()
+                                  ? tx.transferLabel
+                                  : `${tx.fromAccountName || 'Unknown'} → ${tx.toAccountName || '?'}`)
                               : (tx.merchant || '')}
                           </span>
                         )}
@@ -396,9 +455,24 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                   </td>
                   <td className="w-[200px] max-w-[200px] border-t border-line px-3 overflow-hidden">
                     {tx.isTransfer ? (
-                      <span className="type-caption inline-flex items-center rounded-full bg-inset px-2.5 py-0.5 text-ink">
-                        Transfer
-                      </span>
+                      tx.transferLabel ? (
+                        <div className="flex max-w-full min-w-0 items-center gap-2 rounded-full text-ink">
+                          <span
+                            className="flex size-6 shrink-0 items-center justify-center rounded-md"
+                            style={{
+                              backgroundColor: `${adaptColorForTheme(look.color, isDark)}22`,
+                              color: adaptColorForTheme(look.color, isDark),
+                            }}
+                          >
+                            <Icon name={look.icon} size={14} />
+                          </span>
+                          <span className="truncate text-xs font-semibold">{tx.transferLabel}</span>
+                        </div>
+                      ) : (
+                        <span className="type-caption inline-flex items-center rounded-full bg-inset px-2.5 py-0.5 text-ink">
+                          Transfer
+                        </span>
+                      )
                     ) : isUncategorized ? (
                       <button
                         type="button"

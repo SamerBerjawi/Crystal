@@ -84,7 +84,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
       const listToPrepare = maxItems ? transactions.slice(0, maxItems) : transactions;
       return listToPrepare.map((tx) => {
         const isTransfer = tx.isTransfer;
-        const description = isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.description;
+        const description = isTransfer ? (tx.transferLabel || tx.description || `${tx.fromAccountName} → ${tx.toAccountName}`) : tx.description;
         const amountDisplay = isTransfer
           ? formatCurrency(tx.amount, tx.currency)
           : formatCurrency(convertToMain(tx.amount, tx.currency), getMainCurrency());

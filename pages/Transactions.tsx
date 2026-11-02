@@ -37,6 +37,7 @@ import { useUrlTab } from '../hooks/useUrlTab';
 import { cn } from '../lib/utils';
 import type { SortDescriptor } from 'react-aria-components';
 import { formatTransactionLocation } from '../utils/locationFormat';
+import { resolveTransferInfo } from '../utils/transferDetails';
 
 interface TransactionsProps {
   user?: User;
@@ -354,6 +355,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
         if (pair?.expense && pair?.income) {
           const spareChangeAmount = getSpareChangeForTx(pair.expense.id || pair.expense.transferId, pair.expense.accountId, pair.expense.date, pair.expense.description, true, pair.expense.amount);
+          const transferInfo = resolveTransferInfo(pair.expense, accounts, pair.income);
 
           result.push({
             ...pair.expense,
@@ -362,10 +364,15 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             amount: Math.abs(pair.expense.amount),
             isTransfer: true,
             type: 'expense',
+            fromAccountId: pair.expense.accountId,
+            toAccountId: pair.income.accountId,
             fromAccountName: accountMap[pair.expense.accountId]?.name,
             toAccountName: accountMap[pair.income.accountId]?.name,
+            transferKind: transferInfo?.kind,
+            transferLabel: transferInfo?.label,
+            merchant: pair.expense.merchant || pair.income.merchant,
             category: 'Transfer',
-            description: pair.expense.description || 'Account Transfer',
+            description: pair.expense.description || (transferInfo ? transferInfo.label : 'Account Transfer'),
             spareChangeAmount,
             transferExpenseAmount: Math.abs(pair.expense.amount),
             transferExpenseCurrency: pair.expense.currency,
@@ -374,7 +381,14 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           });
         } else {
           const spareChangeAmount = getSpareChangeForTx(tx.id, tx.accountId, tx.date, tx.description, false, tx.amount);
-          result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
+          const transferInfo = tx.transferId ? resolveTransferInfo(tx, accounts) : null;
+          result.push({
+            ...tx,
+            accountName: accountMap[tx.accountId]?.name,
+            spareChangeAmount,
+            transferKind: transferInfo?.kind,
+            transferLabel: transferInfo?.label,
+          });
         }
       } else {
         const spareChangeAmount = getSpareChangeForTx(tx.id, tx.accountId, tx.date, tx.description, false, tx.amount);
@@ -382,7 +396,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       }
     }
     return result;
-  }, [transactions, accountMap]);
+  }, [transactions, accountMap, accounts]);
 
   const indexedTransactions = useMemo(() => {
     return displayTransactions.map(tx => {
@@ -391,6 +405,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       const searchText = [
         tx.description,
         tx.category,
+        tx.transferLabel,
         tx.accountName,
         tx.fromAccountName,
         tx.toAccountName,
@@ -1285,7 +1300,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         || (fromAcc?.financialInstitution ? getMerchantLogoUrl(fromAcc.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
       return {
         name: `${fromName} → ${toName}`,
-        detail: fromAcc?.type ? `Transfer • ${fromAcc.type}` : 'Transfer',
+        detail: tx.transferLabel ? tx.transferLabel : fromAcc?.type ? `Transfer • ${fromAcc.type}` : 'Transfer',
         logoUrl: logoUrl ?? null,
         isTransfer: true,
       };
@@ -1838,6 +1853,38 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         tags={tags}
         onEdit={tx => { setIsOverviewModalOpen(false); setEditingTransaction(tx); setTransactionModalOpen(true); }}
         onDelete={ids => { setIsOverviewModalOpen(false); deleteTransactions(ids); }}
+        onDuplicate={tx => {
+          setIsOverviewModalOpen(false);
+          setDuplicateData({
+            initialTransaction: tx,
+            isOpen: true,
+            onClose: () => setDuplicateData(null),
+          });
+        }}
+        onMakeRecurring={tx => {
+          setIsOverviewModalOpen(false);
+          handleMakeRecurring(tx as unknown as DisplayTransaction);
+        }}
+        onSplit={tx => {
+          setIsOverviewModalOpen(false);
+          setTransactionToSplit(tx);
+          setIsSplitModalOpen(true);
+        }}
+        onRecategorize={(tx, cat) => {
+          saveTransaction([{ ...tx, category: cat }], []);
+        }}
+        onRemoveLocation={tx => {
+          saveTransaction([{
+            ...tx,
+            latitude: undefined,
+            longitude: undefined,
+            address: undefined,
+            placeName: undefined,
+            locationLabel: undefined,
+            city: undefined,
+            country: undefined,
+          }], []);
+        }}
       />
       {isRecurringModalOpen && saveRecurringTransaction && (
         <RecurringTransactionModal

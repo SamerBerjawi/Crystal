@@ -134,6 +134,8 @@ export const Select: React.FC<FieldProps & {
     );
   }
 
+  const selected = options.find(option => option.id === value);
+
   return (
     <AriaSelect
       value={value}
@@ -144,8 +146,9 @@ export const Select: React.FC<FieldProps & {
       className={className}
     >
       <FieldShell label={label} help={help} error={error} autofill={autofill}>
-        <AriaButton className={triggerRow}>
-          <SelectValue className="min-w-0 truncate data-[placeholder]:text-muted">
+        <AriaButton className={cn(triggerRow, 'gap-2.5')}>
+          {selected?.visual && <span className="shrink-0">{selected.visual}</span>}
+          <SelectValue className="min-w-0 flex-1 truncate data-[placeholder]:text-muted">
             {({ selectedText, defaultChildren }) => selectedText ?? defaultChildren}
           </SelectValue>
           <Icon name="expand_more" size={20} className="shrink-0 text-muted" />
@@ -207,8 +210,9 @@ export const Combobox: React.FC<FieldProps & {
       <div className={className}>
         <AriaSelect isOpen={false} isDisabled={isDisabled} isInvalid={!!error} onOpenChange={setOpen}>
           <FieldShell label={label} help={help} error={error} autofill={autofill}>
-            <AriaButton className={triggerRow} onPress={() => setOpen(true)}>
-              <span className={cn('min-w-0 truncate', !selected && 'text-muted')}>{selected?.label ?? placeholder}</span>
+            <AriaButton className={cn(triggerRow, 'gap-2.5')} onPress={() => setOpen(true)}>
+              {selected?.visual && <span className="shrink-0">{selected.visual}</span>}
+              <span className={cn('min-w-0 flex-1 truncate', !selected && 'text-muted')}>{selected?.label ?? placeholder}</span>
               <Icon name="expand_more" size={20} className="shrink-0 text-muted" />
             </AriaButton>
           </FieldShell>
@@ -239,6 +243,8 @@ export const Combobox: React.FC<FieldProps & {
     );
   }
 
+  const showVisual = Boolean(selected?.visual && !query);
+
   return (
     <ComboBox
       selectedKey={value}
@@ -253,9 +259,25 @@ export const Combobox: React.FC<FieldProps & {
       className={className}
     >
       <FieldShell label={label} help={help} error={error} autofill={autofill}>
-        <div className="relative">
-          <Input placeholder={placeholder} className={cn(controlStyles, 'h-11 pl-3 pr-10 text-[.9375rem] font-medium')} />
-          <AriaButton aria-label="Show options" className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted">
+        <div className="relative flex items-center">
+          {showVisual && (
+            <span className="pointer-events-none absolute left-3 z-1 flex size-6 shrink-0 items-center justify-center">
+              {selected?.visual}
+            </span>
+          )}
+          <Input
+            onClick={() => setOpen(true)}
+            placeholder={placeholder}
+            className={cn(
+              controlStyles,
+              'h-11 pr-10 text-[.9375rem] font-medium cursor-pointer',
+              showVisual ? 'pl-11' : 'pl-3'
+            )}
+          />
+          <AriaButton
+            aria-label="Show options"
+            className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted hover:text-ink transition-colors"
+          >
             <Icon name="expand_more" size={20} />
           </AriaButton>
         </div>

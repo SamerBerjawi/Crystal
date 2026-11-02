@@ -93,19 +93,26 @@ export function splitAmount(text: string): AmountParts {
 }
 
 /** Formats currency symbol in accent color (`text-primary`), digits in inherited color, and decimals in grey (`text-muted`). */
-export const FormattedAmount: React.FC<{ text: string }> = ({ text }) => {
+export const FormattedAmount: React.FC<{
+  text: string;
+  className?: string;
+  symbolClassName?: string;
+  fractionClassName?: string;
+}> = ({ text, className, symbolClassName, fractionClassName }) => {
   const { sign, symbol, integer, fraction, suffix } = splitAmount(text);
   const isBtcSuffix = suffix.trim() === 'BTC';
 
-  return (
+  const content = (
     <>
       {sign && <span>{sign}</span>}
-      {symbol && <span className="amount-symbol text-primary font-semibold">{symbol}</span>}
+      {symbol && <span className={cn('amount-symbol text-primary font-semibold', symbolClassName)}>{symbol}</span>}
       <span>{integer}</span>
-      {fraction && <span className="amount-fraction text-muted">{fraction}</span>}
-      {suffix && <span className={cn('amount-suffix', isBtcSuffix ? 'amount-symbol text-primary font-semibold' : 'amount-fraction text-muted')}>{suffix}</span>}
+      {fraction && <span className={cn('amount-fraction text-muted', fractionClassName)}>{fraction}</span>}
+      {suffix && <span className={cn('amount-suffix', isBtcSuffix ? cn('amount-symbol text-primary font-semibold', symbolClassName) : cn('amount-fraction text-muted', fractionClassName))}>{suffix}</span>}
     </>
   );
+
+  return className ? <span className={className}>{content}</span> : content;
 };
 
 export interface AmountProps {
