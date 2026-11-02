@@ -117,7 +117,7 @@ const AccountLogoTile: React.FC<{ url?: string | null; isTransfer?: boolean; lab
 
   return (
     <span className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset text-muted border border-line" aria-hidden="true">
-      {initial ? <span className="text-xs font-bold text-ink">{initial}</span> : <Icon name="account_balance" size={15} />}
+      {initial ? <span className="text-xs font-bold text-ink">{initial}</span> : <Icon name="account_balance" size={16} />}
     </span>
   );
 };
@@ -139,7 +139,7 @@ const SortHeader: React.FC<{
       <div className={cn('flex items-center gap-1', align === 'right' ? 'justify-end' : 'justify-between')}>
         <button type="button" onClick={() => onSort(id)} className={cn('type-label inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-muted hover:text-ink', align === 'right' && 'flex-row-reverse')}>
           {label}
-          {isSorted && <Icon name={sort.direction === 'ascending' ? 'arrow_upward' : 'arrow_downward'} size={15} />}
+          {isSorted && <Icon name={sort.direction === 'ascending' ? 'arrow_upward' : 'arrow_downward'} size={16} />}
         </button>
         {filter && (
           <Popover
@@ -154,7 +154,7 @@ const SortHeader: React.FC<{
                   filter.count > 0 ? 'text-ink font-semibold' : 'text-muted/60 hover:text-muted'
                 )}
               >
-                <Icon name="tune" size={13} />
+                <Icon name="tune" size={14} />
                 {filter.count > 0 && (
                   <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-pill text-[9px] font-bold text-on-pill tabular-nums">
                     {filter.count}
@@ -222,7 +222,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
             aria-label="Uncategorised"
             className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400"
           >
-            <Icon name="warning" size={12} />
+            <Icon name="warning" size={14} />
           </span>
         )}
         {tx.recurringSourceId && (
@@ -231,7 +231,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
             aria-label="Recurring"
             className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
           >
-            <Icon name="repeat" size={12} />
+            <Icon name="repeat" size={14} />
           </span>
         )}
         {tx.notes && <Icon name="notes" size={16} className="shrink-0 text-muted" aria-label="Has notes" />}
@@ -359,7 +359,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                             columnFilters.tags.count > 0 ? 'text-ink font-semibold' : 'text-muted/60 hover:text-muted'
                           )}
                         >
-                          <Icon name="tune" size={13} />
+                          <Icon name="tune" size={14} />
                           {columnFilters.tags.count > 0 && (
                             <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-pill text-[9px] font-bold text-on-pill tabular-nums">
                               {columnFilters.tags.count}
@@ -436,8 +436,8 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           <span className="type-caption block truncate text-muted">
                             {tx.isTransfer
                               ? (tx.transferLabel && tx.description.trim().toLowerCase() !== tx.transferLabel.trim().toLowerCase()
-                                  ? tx.transferLabel
-                                  : `${tx.fromAccountName || 'Unknown'} → ${tx.toAccountName || '?'}`)
+                                ? tx.transferLabel
+                                : `${tx.fromAccountName || 'Unknown'} → ${tx.toAccountName || '?'}`)
                               : (tx.merchant || '')}
                           </span>
                         )}
@@ -496,7 +496,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                   <td className="w-[90px] max-w-[90px] border-t border-line px-3 max-xl:hidden overflow-hidden">
                     {firstTag ? (
                       <span className="type-caption inline-flex max-w-full min-w-0 items-center gap-1.5 text-ink">
-                        <Icon name={firstTag.icon || 'tag'} size={13} style={{ color: adaptColorForTheme(firstTag.color, isDark) }} className="shrink-0" />
+                        <Icon name={firstTag.icon || 'tag'} size={14} style={{ color: adaptColorForTheme(firstTag.color, isDark) }} className="shrink-0" />
                         <span className="truncate">{firstTag.name}</span>
                         {(tx.tagIds?.length ?? 0) > 1 && <span className="text-muted shrink-0">+{tx.tagIds!.length - 1}</span>}
                       </span>
@@ -506,7 +506,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                     {money(tx)}
                     {!!tx.spareChangeAmount && !isCompact && (
                       <span title="Round-up set aside" className="type-caption flex items-center justify-end gap-1 text-emerald-600 dark:text-emerald-400">
-                        <Icon name="savings" size={13} className="shrink-0" aria-hidden="true" />
+                        <Icon name="savings" size={14} className="shrink-0" aria-hidden="true" />
                         <Amount value={convertToMain(Math.abs(tx.spareChangeAmount), tx.currency)} currency={getMainCurrency()} tone="plain" />
                       </span>
                     )}
