@@ -178,7 +178,7 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
         isOpen={isOpen}
         onOpenChange={open => { if (!open) requestClose(); }}
         isDismissable
-        className={cn('crystal-scrim fixed inset-0 z-[var(--z-overlay)] flex', kind === 'dialog' && 'items-center justify-center')}
+        className={cn('crystal-scrim fixed inset-0 z-[var(--z-overlay)] flex outline-none', kind === 'dialog' && 'items-center justify-center')}
       >
         <Modal
           className={cn('flex flex-col bg-solid shadow-lg outline-none', OVERLAY_SHAPE[kind])}

@@ -1465,9 +1465,49 @@ body::before {
   }
 }
 
-:focus-visible {
+/* Focus ring for keyboard-navigated interactive controls (D-058 / WCAG 2.2 AA) */
+:where(
+  button,
+  a[href],
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"]
+):focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* Never show focus outlines on modals, dialogs, sheets, popovers, or elements explicitly marked outline-none */
+:is(
+  dialog,
+  [role="dialog"],
+  [tabindex="-1"],
+  .outline-none,
+  .crystal-dialog,
+  .crystal-sheet,
+  .crystal-side,
+  .crystal-pop,
+  .crystal-scrim
+):focus,
+:is(
+  dialog,
+  [role="dialog"],
+  [tabindex="-1"],
+  .outline-none,
+  .crystal-dialog,
+  .crystal-sheet,
+  .crystal-side,
+  .crystal-pop,
+  .crystal-scrim
+):focus-visible {
+  outline: none !important;
 }
 
 /* Overlay motion. React Aria waits for these animations before unmounting. */
