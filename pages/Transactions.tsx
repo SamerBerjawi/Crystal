@@ -1573,19 +1573,24 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   }, [transactions, brandfetchClientId, effectiveMerchantLogoOverrides]);
 
   const locationFilterOptionsList: FilterOption[] = useMemo(() => {
-    const counts = new Map<string, number>();
+    const counts = new Map<string, { count: number; flag: string }>();
     transactions.forEach(t => {
       const loc = formatTransactionLocation(t, user);
       if (loc.hasLocation && loc.city) {
-        counts.set(loc.city, (counts.get(loc.city) ?? 0) + 1);
+        const existing = counts.get(loc.city);
+        counts.set(loc.city, {
+          count: (existing?.count ?? 0) + 1,
+          flag: existing?.flag || loc.flag || '',
+        });
       }
     });
     return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([city, count]) => ({
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([city, { count, flag }]) => ({
         id: city,
         label: city,
         hint: String(count),
+        visual: flag ? <span className="text-[17px] leading-none shrink-0 select-none" aria-hidden>{flag}</span> : undefined,
       }));
   }, [transactions, user]);
 
