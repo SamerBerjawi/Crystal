@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { heroClassFor } from '../utils/accountHero';
 import { Radio, RadioGroup } from 'react-aria-components';
 import { Account, Transaction } from '../types';
@@ -53,10 +56,40 @@ interface CardsWalletProps {
   onOpen: (id: string) => void;
   onSeeTransactions: (account: Account) => void;
   onAddCard: () => void;
+  onReorder?: (activeId: string, overId: string) => void;
 }
 
+const SortableCard: React.FC<{ card: Account }> = ({ card }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 30 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="w-[200px] shrink-0 snap-start touch-none md:w-auto"
+    >
+      <Radio
+        value={card.id}
+        className="block w-full cursor-grab active:cursor-grabbing rounded-[var(--radius-lg)] border-2 border-transparent p-1.5 outline-none transition-[border-color,background-color] data-[selected]:border-primary data-[hovered]:bg-inset data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus"
+      >
+        <BankCard account={card} />
+        <span className="type-body-strong mt-2 block truncate px-1 text-ink">{card.name}</span>
+        <span className="type-caption block truncate px-1 text-muted"><CardMoney account={card} /></span>
+      </Radio>
+    </div>
+  );
+};
+
 /** Every account with a card: a row to pick from, then the chosen card's details and activity. */
-const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactionsByAccount, selectedId, onSelect, menuFor, onOpen, onSeeTransactions, onAddCard }) => {
+const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactionsByAccount, selectedId, onSelect, menuFor, onOpen, onSeeTransactions, onAddCard, onReorder }) => {
   const selected = cards.find(card => card.id === selectedId) ?? cards[0];
 
   useEffect(() => {
@@ -71,6 +104,41 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
   }, [transactions]);
   const merchants = useMemo(() => topMerchantsThisMonth(transactions), [transactions]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    onReorder?.(String(active.id), String(over.id));
+  };
+
+  const selectedIndex = cards.findIndex(c => c.id === selected?.id);
+  const cardMenuItems = useMemo(() => {
+    if (!selected) return [];
+    const base = menuFor(selected);
+    if (!onReorder || cards.length <= 1) return base;
+    return [
+      ...base,
+      {
+        id: 'move-left',
+        label: 'Move card left',
+        icon: 'arrow_back',
+        isDisabled: selectedIndex <= 0,
+        startsGroup: true,
+        onAction: () => onReorder(selected.id, cards[selectedIndex - 1].id),
+      },
+      {
+        id: 'move-right',
+        label: 'Move card right',
+        icon: 'arrow_forward',
+        isDisabled: selectedIndex >= cards.length - 1,
+        onAction: () => onReorder(selected.id, cards[selectedIndex + 1].id),
+      },
+    ];
+  }, [menuFor, selected, onReorder, cards, selectedIndex]);
+
   if (!selected) {
     return <EmptyState icon="credit_card" title="No cards yet" description="Add a card to a checking account, or a credit card or meal voucher." actionLabel="Add account" onAction={onAddCard} />;
   }
@@ -81,25 +149,21 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
 
   return (
     <div className="space-y-4">
-      <RadioGroup
-        aria-label="Your cards"
-        orientation="horizontal"
-        value={selected.id}
-        onChange={onSelect}
-        className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-5"
-      >
-        {cards.map(card => (
-          <Radio
-            key={card.id}
-            value={card.id}
-            className="w-[200px] shrink-0 cursor-pointer snap-start rounded-[var(--radius-lg)] border-2 border-transparent p-1.5 outline-none data-[selected]:border-primary data-[hovered]:bg-inset data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus md:w-auto"
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={cards.map(c => c.id)} strategy={rectSortingStrategy}>
+          <RadioGroup
+            aria-label="Your cards"
+            orientation="horizontal"
+            value={selected.id}
+            onChange={onSelect}
+            className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-5"
           >
-            <BankCard account={card} />
-            <span className="type-body-strong mt-2 block truncate px-1 text-ink">{card.name}</span>
-            <span className="type-caption block truncate px-1 text-muted"><CardMoney account={card} /></span>
-          </Radio>
-        ))}
-      </RadioGroup>
+            {cards.map(card => (
+              <SortableCard key={card.id} card={card} />
+            ))}
+          </RadioGroup>
+        </SortableContext>
+      </DndContext>
 
       <div className="grid items-start gap-4 lg:grid-cols-12">
         <section aria-label={selected.name} className="min-w-0 space-y-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5 lg:col-span-5">
@@ -109,7 +173,25 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
               <p className="type-caption text-muted">{accountCardKind(selected)}{selected.last4 ? ` card, •• ${selected.last4}` : ' card'}</p>
             </div>
             <Badge tone={selected.status === 'closed' ? 'neutral' : 'positive'}>{selected.status === 'closed' ? 'Closed' : 'Active'}</Badge>
-            <Menu title={selected.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${selected.name}`} tooltipPlacement="left" />} items={menuFor(selected)} />
+            {onReorder && cards.length > 1 && (
+              <div className="flex items-center gap-1">
+                <IconButton
+                  icon="arrow_back"
+                  label="Move card left"
+                  tooltipPlacement="top"
+                  isDisabled={selectedIndex <= 0}
+                  onPress={() => onReorder(selected.id, cards[selectedIndex - 1].id)}
+                />
+                <IconButton
+                  icon="arrow_forward"
+                  label="Move card right"
+                  tooltipPlacement="top"
+                  isDisabled={selectedIndex >= cards.length - 1}
+                  onPress={() => onReorder(selected.id, cards[selectedIndex + 1].id)}
+                />
+              </div>
+            )}
+            <Menu title={selected.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${selected.name}`} tooltipPlacement="left" />} items={cardMenuItems} />
           </header>
           <BankCard account={selected} size="large" />
           <DetailList items={[

@@ -17,7 +17,7 @@ import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import PageHeader, { type PageStat } from '../components/PageHeader';
+import PageHeader, { type PageStat, type StatTone } from '../components/PageHeader';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Radio, RadioGroup } from '../components/ui/Fields';
 import { ConfirmDialog, Popover } from '../components/ui/Overlays';
@@ -88,20 +88,20 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const stats = useMemo<PageStat[]>(() => {
     const countable = tabAccounts.filter(acc => acc.includeInAnalytics ?? true);
     const totals = calculateAccountTotals(countable, analyticsTransactions, loanPaymentOverrides);
-    const money = (label: string, icon: string, eur: number): PageStat => ({ label, icon, value: toDisplay(eur), format: 'money', currency: preferredCurrency });
-    const count = (label: string, icon: string): PageStat => ({ label, icon, value: countable.length });
+    const money = (label: string, icon: string, eur: number, iconTone?: StatTone): PageStat => ({ label, icon, value: toDisplay(eur), format: 'money', currency: preferredCurrency, iconTone });
+    const count = (label: string, icon: string, value: number, iconTone?: StatTone): PageStat => ({ label, icon, value, iconTone });
 
     switch (activeTab) {
       case 'accounts':
-        return [money('Total balance', 'account_balance_wallet', totals.netWorth), money('Net this month', 'trending_up', computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates })), count('Accounts', 'account_balance')];
+        return [money('Total balance', 'account_balance_wallet', totals.netWorth), money('Net this month', 'trending_up', computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates })), count('Accounts', 'account_balance', tabAccounts.length)];
       case 'loans':
-        return [money('Still to pay', 'payments', Math.abs(totals.totalDebt)), count('Loans', 'account_balance')];
+        return [money('Still to pay', 'payments', Math.abs(totals.totalDebt)), count('Loans', 'account_balance', tabAccounts.length)];
       case 'assets':
-        return [money('Total value', 'home', totals.totalAssets), count('Assets', 'layers')];
+        return [money('Total value', 'home', totals.totalAssets), count('Assets', 'layers', tabAccounts.length)];
       default: {
         const credit = countable.filter(acc => acc.type === 'Credit Card');
         const owed = calculateAccountTotals(credit, analyticsTransactions, loanPaymentOverrides).totalDebt;
-        return [count('Cards', 'credit_card'), money('Owed on credit', 'payments', Math.abs(owed))];
+        return [count('Cards', 'credit_card', tabAccounts.length, 'teal'), money('Owed on credit', 'payments', Math.abs(owed), 'rose')];
       }
     }
   }, [tabAccounts, activeTab, analyticsTransactions, loanPaymentOverrides, transactions, conversionRates, preferredCurrency]);
@@ -195,6 +195,35 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     return list.sort((a, b) => accountOrder.indexOf(a.id) - accountOrder.indexOf(b.id));
   }, [tabAccounts, sortBy, accountOrder]);
 
+  const sortedCards = useMemo(() => {
+    const list = [...tabAccounts];
+    if (!accountOrder || accountOrder.length === 0) return list;
+    return list.sort((a, b) => {
+      const aIndex = accountOrder.indexOf(a.id);
+      const bIndex = accountOrder.indexOf(b.id);
+      if (aIndex === -1 && bIndex === -1) return 0;
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+  }, [tabAccounts, accountOrder]);
+
+  const handleReorderCards = (activeId: string, overId: string) => {
+    if (!setAccountOrder || activeId === overId) return;
+    const base = accountOrder && accountOrder.length > 0 ? [...accountOrder] : accounts.map(a => a.id);
+    accounts.forEach(a => {
+      if (!base.includes(a.id)) base.push(a.id);
+    });
+    const fromIndex = base.indexOf(activeId);
+    const targetIndex = base.indexOf(overId);
+    if (fromIndex === -1 || targetIndex === -1) return;
+    base.splice(fromIndex, 1);
+    const newTargetIndex = base.indexOf(overId);
+    const insertIndex = fromIndex > targetIndex ? newTargetIndex : newTargetIndex + 1;
+    base.splice(insertIndex, 0, activeId);
+    setAccountOrder(base);
+  };
+
   const viewOptions = (
     <div className="flex w-64 flex-col gap-4 max-md:w-full">
       <Select label="Sort by" options={[{ id: 'manual', label: 'Your order' }, { id: 'name', label: 'Name' }, { id: 'balance', label: 'Balance' }]} value={sortBy} onChange={id => setSortBy(id as typeof sortBy)} />
@@ -242,7 +271,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
       {activeTab === 'cards' ? (
         <CardsWallet
-          cards={tabAccounts}
+          cards={sortedCards}
           accounts={accounts}
           transactionsByAccount={transactionsByAccount}
           selectedId={selectedCardId}
@@ -251,6 +280,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           onOpen={handleAccountClick}
           onSeeTransactions={account => onNavigateToTransactions({ accountName: account.name })}
           onAddCard={() => setAddModalOpen(true)}
+          onReorder={handleReorderCards}
         />
       ) : tabAccounts.length === 0 ? (
         <EmptyState icon="wallet" title="Nothing here yet" description="Accounts of this kind appear here." actionLabel="Add account" onAction={() => setAddModalOpen(true)} />
