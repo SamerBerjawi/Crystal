@@ -17,6 +17,7 @@ import {
 } from '../utils/transactionForm';
 import AddressAutocomplete from './AddressAutocomplete';
 import CategoryPicker from './CategoryPicker';
+import { LogoTile } from './EntityIcon';
 import Icon from './ui/Icon';
 import { Button, IconButton } from './ui/Actions';
 import { Badge } from './ui/Display';
@@ -176,15 +177,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         id: item.id,
         label: item.name,
         description: `${item.financialInstitution || item.type}, ${formatCurrency(item.balance, item.currency)}`,
-        visual: (
-          <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white shadow-xs">
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className="size-full object-contain p-0.5" />
-            ) : (
-              <Icon name="account_balance" size={14} className="text-muted" />
-            )}
-          </span>
-        ),
+        visual: <LogoTile url={logoUrl} label={item.name} size={24} fallbackIcon="account_balance" />,
       };
     });
 
@@ -317,7 +310,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                       onMouseEnter={() => setActiveIndex(index)}
                       className={cn('flex min-h-10 w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-left pointer-coarse:min-h-12', index === activeIndex && 'bg-inset')}
                     >
-                      {logo && <img src={logo} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} className="size-6 shrink-0 rounded-[var(--radius-sm)]" />}
+                      <LogoTile url={logo} label={item.name} size={24} fallbackIcon="wallet" />
                       <span className="type-body min-w-0 flex-1 truncate text-ink">{item.name}</span>
                       {item.category && <span className="type-caption shrink-0 text-muted">{item.category}</span>}
                     </button>

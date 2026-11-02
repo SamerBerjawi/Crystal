@@ -28,6 +28,7 @@ import { EmptyState } from '../components/ui/States';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import LedgerTable, { type LedgerItem, type LedgerSort, type TableCellFilter } from '../components/LedgerTable';
 import { FilterList, type FilterOption, type QuickFilter } from '../components/FilterList';
+import { EntityGlyph, LogoTile } from '../components/EntityIcon';
 import ReviewQueue from '../components/ReviewQueue';
 import TransactionScatter from '../components/TransactionScatter';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -1406,6 +1407,14 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   };
 
   const logoOf = (tx: DisplayTransaction) => {
+    if (tx.isTransfer) {
+      if (user?.profilePictureUrl) return user.profilePictureUrl;
+      const fromAcc = tx.fromAccountName ? accountMapByName[tx.fromAccountName] : undefined;
+      const logoUrl = fromAcc?.imageUrl
+        || (fromAcc ? getAccountBrandfetchUrl(fromAcc, brandfetchClientId, effectiveMerchantLogoOverrides) : null)
+        || (fromAcc?.financialInstitution ? getMerchantLogoUrl(fromAcc.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null);
+      if (logoUrl) return logoUrl;
+    }
     const key = normalizeMerchantKey(tx.merchant);
     return key ? merchantLogoUrls[key] ?? null : null;
   };
@@ -1441,15 +1450,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         label: a.name,
         hint: a.last4 ? `•••• ${a.last4}` : a.type,
         group,
-        visual: (
-          <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded bg-white shadow-2xs">
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className="size-full object-contain p-0.5" />
-            ) : (
-              <Icon name="account_balance" size={12} className="text-muted" />
-            )}
-          </span>
-        ),
+        visual: <LogoTile url={logoUrl} label={a.name} size={26} fallbackIcon="account_balance" />,
       };
     };
 
@@ -1465,10 +1466,10 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const debt = ['Credit Card', 'Loan', 'Other Liabilities'];
     const liquid = ['Checking', 'Savings', 'Credit Card'];
     const presets: QuickFilter[] = [
-      { label: 'All Accounts', ids: ids(() => true) },
-      { label: 'Liquid Only', ids: ids(a => liquid.includes(a.type)) },
-      { label: 'All Assets', ids: ids(a => !debt.includes(a.type)) },
-      { label: 'All Liabilities', ids: ids(a => debt.includes(a.type)) },
+      { label: 'All accounts', ids: ids(() => true) },
+      { label: 'Liquid only', ids: ids(a => liquid.includes(a.type)) },
+      { label: 'All assets', ids: ids(a => !debt.includes(a.type)) },
+      { label: 'All liabilities', ids: ids(a => debt.includes(a.type)) },
       { label: 'Investments', ids: ids(a => a.type === 'Investment') },
     ];
     return presets.filter(p => p.ids.length > 0);
@@ -1496,14 +1497,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             color: c.color,
             group,
             level: 0,
-            visual: (
-              <span
-                className="flex size-5 shrink-0 items-center justify-center rounded-md"
-                style={{ backgroundColor: `${c.color || 'var(--muted)'}22`, color: c.color || 'var(--muted)' }}
-              >
-                <Icon name={c.icon || 'category'} size={12} />
-              </span>
-            ),
+            visual: <EntityGlyph icon={c.icon} label={c.name} color={c.color} size={18} />,
           });
         }
         (c.subCategories || []).forEach(sub => {
@@ -1517,17 +1511,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
               color: sub.color || c.color,
               group,
               level: 1,
-              visual: (
-                <span
-                  className="flex size-5 shrink-0 items-center justify-center rounded-md"
-                  style={{
-                    backgroundColor: `${sub.color || c.color || 'var(--muted)'}22`,
-                    color: sub.color || c.color || 'var(--muted)',
-                  }}
-                >
-                  <Icon name={sub.icon || c.icon || 'category'} size={12} />
-                </span>
-              ),
+              visual: <EntityGlyph icon={sub.icon || c.icon} label={sub.name} color={sub.color || c.color} size={18} />,
             });
           }
         });
@@ -1555,14 +1539,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         label: t.name,
         hint: count ? String(count) : undefined,
         color: t.color,
-        visual: (
-          <span
-            className="flex size-5 shrink-0 items-center justify-center rounded-md"
-            style={{ backgroundColor: `${t.color || 'var(--muted)'}22`, color: t.color || 'var(--muted)' }}
-          >
-            <Icon name={t.icon || 'tag'} size={12} />
-          </span>
-        ),
+        visual: <EntityGlyph icon={t.icon} label={t.name} color={t.color} size={18} />,
       };
     });
   }, [tags, transactions]);
@@ -1583,122 +1560,138 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       const logo = getMerchantLogoUrl(name, brandfetchClientId, effectiveMerchantLogoOverrides, {
         fallback: 'lettermark',
         type: 'icon',
-        width: 48,
-        height: 48,
+        width: 64,
+        height: 64,
       });
       return {
         id: name,
         label: name,
         hint: String(count),
-        visual: (
-          <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded bg-white shadow-2xs">
-            {logo ? (
-              <img src={logo} alt="" className="size-full object-contain p-0.5" />
-            ) : (
-              <Icon name="wallet" size={12} className="text-muted" />
-            )}
-          </span>
-        ),
+        visual: <LogoTile url={logo} label={name} size={26} fallbackIcon="wallet" />,
       };
     });
   }, [transactions, brandfetchClientId, effectiveMerchantLogoOverrides]);
 
   const locationFilterOptionsList: FilterOption[] = useMemo(() => {
-    const counts = new Map<string, { count: number; flag: string }>();
+    const counts = new Map<string, number>();
     transactions.forEach(t => {
       const loc = formatTransactionLocation(t, user);
       if (loc.hasLocation && loc.city) {
-        const existing = counts.get(loc.city);
-        counts.set(loc.city, {
-          count: (existing?.count ?? 0) + 1,
-          flag: loc.flag || '📍',
-        });
+        counts.set(loc.city, (counts.get(loc.city) ?? 0) + 1);
       }
     });
     return [...counts.entries()]
-      .sort((a, b) => b[1].count - a[1].count)
-      .map(([city, data]) => ({
+      .sort((a, b) => b[1] - a[1])
+      .map(([city, count]) => ({
         id: city,
-        label: `${data.flag} ${city}`,
-        hint: String(data.count),
+        label: city,
+        hint: String(count),
       }));
   }, [transactions, user]);
 
   const columnFilters = useMemo(() => ({
     description: {
       count: (searchTerm.trim() ? 1 : 0) + (merchantFilter.trim() ? 1 : 0),
-      title: 'Filter transactions',
+      title: 'Details and merchant',
       content: (
-        <div className="w-72 max-w-[85vw] space-y-3">
-          <TextInput label="Description contains" value={searchTerm} onChange={setSearchTerm} placeholder="Search text..." />
-          <FilterList
-            label="Merchants"
-            options={merchantOptionsList}
-            selected={merchantFilter ? [merchantFilter] : []}
-            onChange={ids => setMerchantFilter(ids[ids.length - 1] || '')}
-            maxHeightClass="max-h-56"
-          />
-        </div>
+        <FilterList
+          title="Details and merchant"
+          label="Merchants"
+          searchPlaceholder="Search merchants"
+          headerContent={
+            <div className="space-y-1.5 mb-2">
+              <label className="text-xs font-medium text-muted block">Description</label>
+              <div className="relative">
+                <Icon name="search" size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Search description"
+                  className="h-11 w-full rounded-full border border-line bg-inset pl-10 pr-4 text-sm text-ink outline-none placeholder:text-muted focus:border-primary"
+                />
+              </div>
+              <label className="text-xs font-medium text-muted pt-1 block">Merchant</label>
+            </div>
+          }
+          options={merchantOptionsList}
+          selected={merchantFilter ? [merchantFilter] : []}
+          onChange={ids => setMerchantFilter(ids[ids.length - 1] || '')}
+          maxHeightClass="max-h-60"
+        />
       ),
     },
     account: {
       count: selectedAccountIds.length,
-      title: 'Filter by account',
+      title: 'Accounts',
       content: (
         <FilterList
+          title="Accounts"
           label="Accounts"
+          searchPlaceholder="Search accounts"
           quick={accountQuickFiltersList}
           options={accountFilterOptions}
           selected={selectedAccountIds}
           onChange={setSelectedAccountIds}
+          maxHeightClass="max-h-72"
         />
       ),
     },
     category: {
       count: selectedCategoryNames.length,
-      title: 'Filter by category',
+      title: 'Categories',
       content: (
         <FilterList
+          title="Categories"
           label="Categories"
+          searchPlaceholder="Search categories"
           options={categoryFilterOptionsList}
           selected={selectedCategoryNames}
           onChange={setSelectedCategoryNames}
+          maxHeightClass="max-h-72"
         />
       ),
     },
     location: {
       count: selectedLocations.length,
-      title: 'Filter by location',
+      title: 'Locations',
       content: (
         <FilterList
+          title="Locations"
           label="Locations"
+          searchPlaceholder="Search locations"
           options={locationFilterOptionsList}
           selected={selectedLocations}
           onChange={setSelectedLocations}
+          maxHeightClass="max-h-72"
         />
       ),
     },
     tags: {
       count: selectedTagIds.length,
-      title: 'Filter by tags',
+      title: 'Tags',
       content: (
         <FilterList
+          title="Tags"
           label="Tags"
+          searchPlaceholder="Search tags"
           options={tagFilterOptionsList}
           selected={selectedTagIds}
           onChange={setSelectedTagIds}
+          maxHeightClass="max-h-72"
         />
       ),
     },
     amount: {
       count: (typeFilter !== 'all' ? 1 : 0) + (minAmount ? 1 : 0) + (maxAmount ? 1 : 0),
-      title: 'Filter by amount',
+      title: 'Amount',
       content: (
-        <div className="w-64 max-w-[85vw] space-y-3">
+        <div className="w-80 max-w-[88vw] space-y-3">
+          <h3 className="type-card-title text-base font-bold text-ink">Amount</h3>
           <RadioGroup label="Type" value={typeFilter} onChange={value => setTypeFilter(value as typeof typeFilter)}>
             {TYPE_FILTER_OPTIONS.map(option => <Radio key={option.value} value={option.value}>{option.label}</Radio>)}
           </RadioGroup>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 pt-1">
             <AmountInput label="At least" currency={getMainCurrency()} value={minAmount} onChange={setMinAmount} />
             <AmountInput label="At most" currency={getMainCurrency()} value={maxAmount} onChange={setMaxAmount} />
           </div>

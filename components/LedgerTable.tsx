@@ -4,6 +4,8 @@ import { ContextMenu } from '@base-ui/react/context-menu';
 import type { Category, DisplayTransaction, Tag } from '../types';
 import { convertToMain, getMainCurrency } from '../utils';
 import { getCategoryDetails } from '../utils/categories';
+import { adaptColorForTheme } from './EntityIcon';
+import { useIsDark } from '../hooks/useIsDark';
 import SwipeableRow from './SwipeableRow';
 import Icon from './ui/Icon';
 import { IconButton } from './ui/Actions';
@@ -58,12 +60,26 @@ const LONG_PRESS_MS = 450;
 
 const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string }> = ({ tx, url, icon }) => {
   const [hasFailed, setFailed] = useState(false);
-  const initial = tx.merchant?.trim().charAt(0).toUpperCase();
+  const nameForInitial = tx.merchant?.trim() || tx.description?.trim();
+  const initial = nameForInitial ? nameForInitial.charAt(0).toUpperCase() : null;
+  const hasImage = Boolean(url && !hasFailed);
+
   return (
-    <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-inset text-muted">
-      {url && !hasFailed
-        ? <img src={url} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
-        : initial ? <span className="type-label">{initial}</span> : <Icon name={icon} size={16} />}
+    <span
+      className={cn(
+        'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px]',
+        hasImage
+          ? 'bg-white shadow-xs'
+          : 'bg-black/5 text-ink dark:bg-white/10 font-bold border border-line/40'
+      )}
+    >
+      {hasImage ? (
+        <img src={url!} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
+      ) : initial && !tx.isTransfer ? (
+        <span className="type-label font-bold text-ink">{initial}</span>
+      ) : (
+        <Icon name={icon} size={18} className="text-muted" />
+      )}
     </span>
   );
 };
@@ -89,8 +105,8 @@ const AccountLogoTile: React.FC<{ url?: string | null; isTransfer?: boolean; lab
   }
 
   return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset text-muted" aria-hidden="true">
-      {initial ? <Icon name="account_balance" size={15} /> : <Icon name="account_balance" size={15} />}
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset text-muted border border-line" aria-hidden="true">
+      {initial ? <span className="text-xs font-bold text-ink">{initial}</span> : <Icon name="account_balance" size={15} />}
     </span>
   );
 };
@@ -149,6 +165,7 @@ const CONTEXT_ITEM_DANGER = 'flex min-h-10 cursor-pointer items-center gap-2.5 r
 /** Day-grouped ledger: a table from tablets up, day rows on phones. */
 const LedgerTable: React.FC<LedgerTableProps> = props => {
   const { items, isPhone, isCompact, selectedIds, isSelecting, sort, onSort, onToggle, onToggleGroup, onOpen, onCategorise, onExpand, onStartSelecting, amountOf, accountOf, locationOf, logoOf, menuFor, filtersFor, onFilterTo, columnFilters, categories, tags } = props;
+  const isDark = useIsDark();
   const pressTimer = useRef<number>(0);
   const didLongPress = useRef(false);
   const [contextTx, setContextTx] = useState<DisplayTransaction | null>(null);
@@ -394,7 +411,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                       </button>
                     ) : (
                       <button type="button" onClick={() => onCategorise(tx)} className="type-body flex max-w-full min-w-0 cursor-pointer items-center gap-2 rounded-full text-ink hover:underline">
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${look.color}22`, color: look.color }}>
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${adaptColorForTheme(look.color, isDark)}22`, color: adaptColorForTheme(look.color, isDark) }}>
                           <Icon name={look.icon} size={14} />
                         </span>
                         <span className="truncate">{tx.category}</span>
@@ -405,7 +422,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                   <td className="w-[90px] max-w-[90px] border-t border-line px-3 max-xl:hidden overflow-hidden">
                     {firstTag ? (
                       <span className="type-caption inline-flex max-w-full min-w-0 items-center gap-1.5 text-ink">
-                        <Icon name={firstTag.icon || 'tag'} size={13} style={{ color: firstTag.color }} className="shrink-0" />
+                        <Icon name={firstTag.icon || 'tag'} size={13} style={{ color: adaptColorForTheme(firstTag.color, isDark) }} className="shrink-0" />
                         <span className="truncate">{firstTag.name}</span>
                         {(tx.tagIds?.length ?? 0) > 1 && <span className="text-muted shrink-0">+{tx.tagIds!.length - 1}</span>}
                       </span>
@@ -435,7 +452,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Positioner className="pointer-events-auto z-[var(--z-popover)]">
-          <ContextMenu.Popup className={cn(popoverStyles, 'z-[var(--z-popover)] min-w-56 max-w-80 p-1.5 shadow-float')}>
+          <ContextMenu.Popup className="z-[var(--z-popover)] min-w-56 max-w-80 rounded-2xl border border-line bg-[#FFFDF8] dark:bg-[#1E1C17] p-1.5 shadow-2xl outline-none select-none">
             {contextTx && (
               <>
                 <p className="truncate px-2.5 pb-1 pt-1.5 text-[12px] font-medium text-muted">

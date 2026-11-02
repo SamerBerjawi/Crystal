@@ -11,6 +11,7 @@ import { Button } from './ui/Actions';
 import { Checkbox, DateInput, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
 import { Combobox, MultiSelect } from './ui/Pickers';
+import { LogoTile, EntityGlyph } from './EntityIcon';
 
 interface BulkEditTransactionsModalProps {
   onClose: () => void;
@@ -62,29 +63,14 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({ o
       id: account.id,
       label: account.name,
       description: account.financialInstitution || account.type,
-      visual: (
-        <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white shadow-xs">
-          {logoUrl ? (
-            <img src={logoUrl} alt="" className="size-full object-contain p-0.5" />
-          ) : (
-            <Icon name="account_balance" size={14} className="text-muted" />
-          )}
-        </span>
-      ),
+      visual: <LogoTile url={logoUrl} label={account.name} size={24} fallbackIcon="account_balance" />,
     };
   }), [accounts, brandfetchClientId, logoOverrides]);
 
   const tagOptions = useMemo(() => tags.map(tag => ({
     id: tag.id,
     label: tag.name,
-    visual: (
-      <span
-        className="flex size-5 shrink-0 items-center justify-center rounded-md"
-        style={{ backgroundColor: `${tag.color || 'var(--muted)'}22`, color: tag.color || 'var(--muted)' }}
-      >
-        <Icon name={tag.icon || 'tag'} size={12} />
-      </span>
-    ),
+    visual: <EntityGlyph icon={tag.icon} label={tag.name} color={tag.color} size={16} />,
   })), [tags]);
 
   const count = transactionsToEdit.length;

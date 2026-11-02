@@ -12,6 +12,7 @@ import { DateInput, TextInput } from './ui/Fields';
 import { Amount } from './ui/Money';
 import { SidePanel } from './ui/Overlays';
 import { Combobox } from './ui/Pickers';
+import { LogoTile } from './EntityIcon';
 
 interface CombineTransactionsModalProps {
   onClose: () => void;
@@ -53,15 +54,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({ onC
       id: account.id,
       label: account.name,
       description: account.financialInstitution || account.type,
-      visual: (
-        <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white shadow-xs">
-          {logoUrl ? (
-            <img src={logoUrl} alt="" className="size-full object-contain p-0.5" />
-          ) : (
-            <Icon name="account_balance" size={14} className="text-muted" />
-          )}
-        </span>
-      ),
+      visual: <LogoTile url={logoUrl} label={account.name} size={24} fallbackIcon="account_balance" />,
     };
   }), [accounts, brandfetchClientId, logoOverrides]);
 

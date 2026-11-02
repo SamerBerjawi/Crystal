@@ -19,7 +19,7 @@ export interface AmountPadProps {
 }
 
 interface Char { id: number; char: string }
-interface Glyph { key: string; char: string; kind: 'digit' | 'sep' | 'decimal' | 'ghost' }
+interface Glyph { key: string; char: string; kind: 'digit' | 'comma' | 'decimal-point' | 'decimal' | 'ghost' }
 
 function layout(chars: Char[], alwaysShowDecimals = true): Glyph[] {
   const point = chars.findIndex(c => c.char === '.');
@@ -27,16 +27,16 @@ function layout(chars: Char[], alwaysShowDecimals = true): Glyph[] {
   const glyphs: Glyph[] = [];
   whole.forEach((c, index) => {
     const fromRight = whole.length - index;
-    if (index > 0 && fromRight % 3 === 0) glyphs.push({ key: `comma-${c.id}`, char: ',', kind: 'sep' });
+    if (index > 0 && fromRight % 3 === 0) glyphs.push({ key: `comma-${c.id}`, char: ',', kind: 'comma' });
     glyphs.push({ key: `d-${c.id}`, char: c.char, kind: 'digit' });
   });
   if (point !== -1) {
     const cents = chars.slice(point + 1);
-    glyphs.push({ key: `d-${chars[point].id}`, char: '.', kind: 'sep' });
+    glyphs.push({ key: `d-${chars[point].id}`, char: '.', kind: 'decimal-point' });
     for (const c of cents) glyphs.push({ key: `d-${c.id}`, char: c.char, kind: 'decimal' });
     for (let i = cents.length; i < 2; i++) glyphs.push({ key: `ghost-${i}`, char: '0', kind: 'ghost' });
   } else if (alwaysShowDecimals && chars.length > 0) {
-    glyphs.push({ key: 'ghost-dot', char: '.', kind: 'sep' });
+    glyphs.push({ key: 'ghost-dot', char: '.', kind: 'decimal-point' });
     glyphs.push({ key: 'ghost-0', char: '0', kind: 'ghost' });
     glyphs.push({ key: 'ghost-1', char: '0', kind: 'ghost' });
   }
@@ -113,7 +113,7 @@ export const AmountPad: React.FC<AmountPadProps> = ({
     <div
       onClick={() => inputRef.current?.focus()}
       className={cn(
-        'relative flex flex-col items-center justify-center rounded-[var(--radius-lg)] border-2 border-primary/30 dark:border-primary/40 bg-inset p-4 transition-colors focus-within:border-primary cursor-text min-h-[96px]',
+        'relative flex flex-col items-center justify-center rounded-2xl border-2 border-primary/40 dark:border-primary/50 bg-inset p-4 transition-colors focus-within:border-primary cursor-text min-h-[96px]',
         className
       )}
     >
@@ -146,13 +146,13 @@ export const AmountPad: React.FC<AmountPadProps> = ({
           style={{ scale: fit }}
           className="flex origin-center items-baseline whitespace-nowrap text-4xl sm:text-5xl font-semibold tracking-tight text-ink tabular-nums select-none pointer-events-none"
         >
-          <span className="mr-1.5 text-primary font-semibold select-none">{currencySign(currency)}</span>
+          <span className="mr-1.5 text-primary text-[1.08em] font-bold select-none">{currencySign(currency)}</span>
 
           <AnimatePresence initial={false} mode="popLayout">
             {empty ? (
               <span className="inline-flex items-baseline">
-                <span className="text-muted/40 font-semibold">0</span>
-                <span className="text-muted/40 font-medium">.00</span>
+                <span className="text-ink font-semibold">0</span>
+                <span className="text-muted font-medium">.00</span>
               </span>
             ) : (
               glyphs.map(glyph => (
@@ -160,7 +160,8 @@ export const AmountPad: React.FC<AmountPadProps> = ({
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   className={cn(
                     'inline-block',
-                    (glyph.kind === 'sep' || glyph.kind === 'decimal') && 'text-muted font-medium',
+                    (glyph.kind === 'digit' || glyph.kind === 'comma') && 'text-ink font-semibold',
+                    (glyph.kind === 'decimal-point' || glyph.kind === 'decimal') && 'text-muted font-medium',
                     glyph.kind === 'ghost' && 'text-muted/40 font-medium',
                   )}
                   exit={{ opacity: 0, y: 18, filter: 'blur(2px)', transition: { duration: 0.14, ease: EASE_OUT } }}

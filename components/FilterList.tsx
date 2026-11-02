@@ -22,6 +22,7 @@ export interface QuickFilter {
 }
 
 interface FilterListProps {
+  title?: string;
   label: string;
   quick?: QuickFilter[];
   options: FilterOption[];
@@ -30,42 +31,55 @@ interface FilterListProps {
   searchFrom?: number;
   emptyText?: string;
   maxHeightClass?: string;
+  searchPlaceholder?: string;
+  headerContent?: React.ReactNode;
+  maxInitialShown?: number;
 }
 
 const CheckIndicator: React.FC<{ on: boolean; partial?: boolean }> = ({ on, partial }) => (
   <span
     className={cn(
-      'flex size-4 shrink-0 items-center justify-center rounded border transition-colors',
-      on || partial ? 'border-primary bg-primary text-on-primary' : 'border-line-strong bg-transparent',
+      'flex size-5 shrink-0 items-center justify-center rounded-[6px] border transition-colors',
+      on || partial
+        ? 'border-primary bg-primary text-on-primary'
+        : 'border-black/20 bg-black/5 dark:border-white/20 dark:bg-white/5',
     )}
     aria-hidden
   >
     {on ? (
-      <Icon name="check" size={12} className="stroke-[2.5]" />
+      <Icon name="check" size={13} className="stroke-[2.5]" />
     ) : partial ? (
-      <span className="h-0.5 w-2 rounded bg-on-primary" />
+      <span className="h-0.5 w-2.5 rounded bg-on-primary" />
     ) : null}
   </span>
 );
 
 export const FilterList: React.FC<FilterListProps> = ({
+  title,
   label,
   quick,
   options,
   selected,
   onChange,
-  searchFrom = 6,
+  searchFrom = 0,
   emptyText = 'Nothing to filter by yet.',
   maxHeightClass = 'max-h-72',
+  searchPlaceholder,
+  headerContent,
+  maxInitialShown = 150,
 }) => {
   const [search, setSearch] = useState('');
   const chosen = useMemo(() => new Set(selected), [selected]);
   const needle = search.trim().toLowerCase();
 
+  const isCapped = !needle && options.length > maxInitialShown;
+
   const visible = useMemo(() => {
-    if (!needle) return options;
-    return options.filter(o => `${o.label} ${o.group ?? ''} ${o.hint ?? ''}`.toLowerCase().includes(needle));
-  }, [options, needle]);
+    if (needle) {
+      return options.filter(o => `${o.label} ${o.group ?? ''} ${o.hint ?? ''}`.toLowerCase().includes(needle));
+    }
+    return options.slice(0, maxInitialShown);
+  }, [options, needle, maxInitialShown]);
 
   const groups = useMemo(() => {
     const map = new Map<string, FilterOption[]>();
@@ -91,68 +105,68 @@ export const FilterList: React.FC<FilterListProps> = ({
   const selectAll = () => onChange(options.map(o => o.id));
 
   return (
-    <div className="w-72 max-w-[85vw] space-y-2.5">
-      {quick && quick.length > 0 && (
-        <div className="space-y-1.5 border-b border-line pb-2.5">
-          <div className="flex items-center justify-between px-0.5">
-            <span className="type-label text-[.6875rem] uppercase tracking-wider text-muted">Quick filters</span>
-            <button
-              type="button"
-              onClick={selected.length === options.length ? clearAll : selectAll}
-              className="type-caption font-semibold text-primary hover:underline"
-            >
-              {selected.length === options.length ? 'Clear all' : 'Select all'}
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Quick filters">
-            {quick.map(q => {
-              const on = q.ids.length > 0 && q.ids.length === selected.length && q.ids.every(id => chosen.has(id));
-              return (
-                <button
-                  key={q.label}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => onChange(on ? [] : q.ids)}
-                  className={cn(
-                    'h-7.5 truncate rounded-lg border px-2 text-center text-xs font-semibold transition-colors',
-                    on
-                      ? 'border-primary bg-primary-soft text-ink'
-                      : 'border-line bg-inset/50 text-ink hover:bg-inset',
-                  )}
-                >
-                  {q.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+    <div className="w-80 max-w-[88vw] space-y-3">
+      {title && <h3 className="type-card-title text-base font-bold text-ink">{title}</h3>}
+
+      {headerContent}
 
       {options.length >= searchFrom && (
         <div className="relative">
-          <Icon name="search" size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
+          <Icon name="search" size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={`Search ${label.toLowerCase()}`}
-            className="h-8.5 w-full rounded-lg border border-line bg-inset pl-8 pr-2.5 text-xs text-ink outline-none placeholder:text-muted focus:border-primary"
+            placeholder={searchPlaceholder ?? `Search ${label.toLowerCase()}`}
+            className="h-11 w-full rounded-full border border-line bg-inset pl-10 pr-4 text-sm text-ink outline-none placeholder:text-muted focus:border-primary"
           />
         </div>
       )}
 
-      <div className="flex items-center justify-between px-0.5 text-xs">
-        <span className="type-caption text-muted">
-          {selected.length ? `${selected.length} of ${options.length} selected` : `${options.length} options`}
+      {quick && quick.length > 0 && (
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quick filters">
+          {quick.map(q => {
+            const on = q.ids.length > 0 && q.ids.length === selected.length && q.ids.every(id => chosen.has(id));
+            return (
+              <button
+                key={q.label}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onChange(on ? [] : q.ids)}
+                className={cn(
+                  'h-8 truncate rounded-full border px-3 text-xs font-medium transition-colors',
+                  on
+                    ? 'border-primary bg-primary text-on-primary'
+                    : 'border-line bg-inset text-ink hover:border-muted',
+                )}
+              >
+                {q.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted tabular-nums">
+          {selected.length ? `${selected.length} selected` : `${options.length} options`}
         </span>
-        {selected.length > 0 && (
-          <button type="button" onClick={clearAll} className="type-caption font-semibold text-primary hover:underline">
-            Clear
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={selected.length === options.length ? clearAll : selectAll}
+          className="font-semibold text-primary hover:underline"
+        >
+          {selected.length === options.length ? 'Clear all' : 'Select all'}
+        </button>
       </div>
 
-      <div className={cn('overflow-y-auto space-y-2 pr-0.5', maxHeightClass)}>
+      {isCapped && (
+        <p className="text-xs text-muted/80">
+          Showing the first {maxInitialShown} of {options.length}. Search to find the rest.
+        </p>
+      )}
+
+      <div className={cn('overflow-y-auto space-y-1 pr-1 scroll-touch', maxHeightClass)}>
         {visible.length === 0 ? (
           <p className="py-4 text-center text-xs text-muted">{emptyText}</p>
         ) : (
@@ -166,11 +180,11 @@ export const FilterList: React.FC<FilterListProps> = ({
                     type="button"
                     aria-checked={count === ids.length ? true : count ? 'mixed' : false}
                     onClick={() => toggleGroup(ids)}
-                    className="flex min-h-7 w-full items-center gap-2 rounded-md px-1.5 text-left text-[.6875rem] font-bold uppercase tracking-wider text-muted hover:bg-inset"
+                    className="flex min-h-8 w-full cursor-pointer items-center gap-2.5 rounded-lg px-1.5 text-left text-xs font-semibold uppercase tracking-wider text-muted hover:bg-inset/70"
                   >
                     <CheckIndicator on={count === ids.length} partial={count > 0 && count < ids.length} />
                     <span className="flex-1 truncate">{group}</span>
-                    <span className="font-medium normal-case tracking-normal">
+                    <span className="tabular-nums font-medium normal-case tracking-normal text-muted">
                       {count ? `${count}/` : ''}{ids.length}
                     </span>
                   </button>
@@ -182,10 +196,10 @@ export const FilterList: React.FC<FilterListProps> = ({
                     role="checkbox"
                     aria-checked={chosen.has(o.id)}
                     onClick={() => toggle(o.id)}
-                    style={{ paddingLeft: 6 + (o.level ?? 0) * 16 }}
+                    style={{ paddingLeft: 6 + (o.level ?? 0) * 20 }}
                     className={cn(
-                      'flex min-h-8.5 w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 text-left text-xs text-ink transition-colors',
-                      chosen.has(o.id) ? 'bg-primary-soft/50 font-medium' : 'hover:bg-inset',
+                      'flex min-h-9 w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 text-left text-sm text-ink transition-colors',
+                      chosen.has(o.id) ? 'bg-primary-soft/50 font-medium' : 'hover:bg-inset/60',
                     )}
                   >
                     <CheckIndicator on={chosen.has(o.id)} />
@@ -193,7 +207,7 @@ export const FilterList: React.FC<FilterListProps> = ({
                       <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: o.color }} aria-hidden />
                     ))}
                     <span className="min-w-0 flex-1 truncate">{o.label}</span>
-                    {o.hint && <span className="shrink-0 text-[.6875rem] text-muted">{o.hint}</span>}
+                    {o.hint && <span className="shrink-0 text-xs text-muted tabular-nums">{o.hint}</span>}
                   </button>
                 ))}
               </div>
@@ -204,4 +218,3 @@ export const FilterList: React.FC<FilterListProps> = ({
     </div>
   );
 };
-
