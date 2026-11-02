@@ -597,6 +597,7 @@ export const ICON_NAME_MAP: Record<string, string> = {
   content_copy: 'Copy',
   repeat: 'Repeat',
   tune: 'Sliders',
+  filter: 'Funnel',
   filter_alt: 'Funnel',
   filter_list: 'Funnel',
   drag_indicator: 'DotsSixVertical',

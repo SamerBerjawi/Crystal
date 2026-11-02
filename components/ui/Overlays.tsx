@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useState } from 'react';
 import {
+  Button as AriaButton,
   Dialog as AriaDialog,
   DialogTrigger,
   Heading,
@@ -254,7 +255,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onClose, o
 };
 
 export const popoverStyles =
-  'crystal-pop rounded-[var(--radius-lg)] border border-line bg-solid shadow-sm outline-none';
+  'crystal-pop z-popover rounded-[var(--radius-lg)] border border-line bg-solid shadow-sm outline-none';
 
 /** A small anchored picker or filter. A bottom sheet on phones. */
 export const Popover: React.FC<{
@@ -268,9 +269,15 @@ export const Popover: React.FC<{
   const [isOpen, setOpen] = useState(false);
   const headingId = useId();
 
+  // DialogTrigger requires a React Aria pressable component (like AriaButton) to attach trigger events and refs.
+  // If trigger is a raw HTML element (e.g. <button>), wrap it in an AriaButton so click/press works reliably.
+  const triggerEl = typeof trigger.type === 'string'
+    ? <AriaButton {...(trigger.props as Record<string, unknown>)}>{(trigger.props as { children?: React.ReactNode })?.children}</AriaButton>
+    : trigger;
+
   return (
     <DialogTrigger isOpen={isOpen} onOpenChange={setOpen}>
-      {trigger}
+      {triggerEl}
       {isPhone ? (
         <BottomSheet isOpen={isOpen} onClose={() => setOpen(false)} title={title}>{children}</BottomSheet>
       ) : (

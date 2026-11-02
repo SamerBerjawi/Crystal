@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Button as AriaButton } from 'react-aria-components';
 import { ContextMenu } from '@base-ui/react/context-menu';
 import type { Category, DisplayTransaction, Tag } from '../types';
 import { convertToMain, getMainCurrency } from '../utils';
@@ -118,8 +119,7 @@ const SortHeader: React.FC<{
             title={filter.title}
             placement={align === 'right' ? 'bottom end' : 'bottom start'}
             trigger={
-              <button
-                type="button"
+              <AriaButton
                 aria-label={`Filter by ${label.toLowerCase()}${filter.count ? `, ${filter.count} active` : ''}`}
                 className={cn(
                   'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-surface-elevated hover:text-ink',
@@ -132,7 +132,7 @@ const SortHeader: React.FC<{
                     {filter.count}
                   </span>
                 )}
-              </button>
+              </AriaButton>
             }
           >
             {filter.content}
@@ -292,8 +292,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                       title={columnFilters.tags.title}
                       placement="bottom start"
                       trigger={
-                        <button
-                          type="button"
+                        <AriaButton
                           aria-label={`Filter by tags${columnFilters.tags.count ? `, ${columnFilters.tags.count} active` : ''}`}
                           className={cn(
                             'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-surface-elevated hover:text-ink',
@@ -306,7 +305,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                               {columnFilters.tags.count}
                             </span>
                           )}
-                        </button>
+                        </AriaButton>
                       }
                     >
                       {columnFilters.tags.content}
