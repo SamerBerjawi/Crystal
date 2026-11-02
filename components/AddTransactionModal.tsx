@@ -139,6 +139,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const tagsContext = useTagsContext();
   const savedMerchantRules = usePreferencesSelector(p => p.merchantRules);
   const savedTransactionRules = usePreferencesSelector(p => p.transactionRules);
+  const userDateFormat = usePreferencesSelector(p => p.dateFormat);
   const transactionRules = useMemo(() => savedTransactionRules ?? [], [savedTransactionRules]);
   const merchantRules = useMemo(() => withFiling(savedMerchantRules, transactionRules), [savedMerchantRules, transactionRules]);
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
@@ -474,7 +475,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
           />
         )}
 
-        <DateInput label="Date" value={form.date} onChange={date => update({ date })} isRequired />
+        <DateInput label="Date" value={form.date} onChange={date => update({ date })} dateFormat={userDateFormat} isRequired />
 
         <CategoryPicker
           categories={categoryChoices}

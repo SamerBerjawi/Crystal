@@ -1,6 +1,15 @@
 
 import React, { createContext, useContext, useMemo, useRef, ReactNode } from 'react';
+import { I18nProvider } from 'react-aria-components';
 import { Account, AppPreferences, Transaction, Warrant, Invoice } from '../types';
+
+export const getLocaleForDateFormat = (format?: string): string => {
+  const normalized = (format || 'DD/MM/YYYY').trim().toUpperCase();
+  if (normalized.startsWith('MM')) return 'en-US';
+  if (normalized.startsWith('YYYY')) return 'en-CA';
+  if (normalized.includes('.')) return 'en-CH';
+  return 'en-GB';
+};
 
 export interface TransactionsContextValue {
   transactions: Transaction[];
@@ -61,7 +70,14 @@ export const AccountsProvider: React.FC<{ children: ReactNode; value: AccountsCo
 
 export const PreferencesProvider: React.FC<{ children: ReactNode; value: PreferencesContextValue }> = ({ children, value }) => {
   const memoValue = useMemo(() => value, [value]);
-  return <PreferencesContext.Provider value={memoValue}>{children}</PreferencesContext.Provider>;
+  const racLocale = useMemo(() => getLocaleForDateFormat(value.preferences?.dateFormat), [value.preferences?.dateFormat]);
+  return (
+    <PreferencesContext.Provider value={memoValue}>
+      <I18nProvider locale={racLocale}>
+        {children}
+      </I18nProvider>
+    </PreferencesContext.Provider>
+  );
 };
 
 export const WarrantsProvider: React.FC<{ children: ReactNode; value: WarrantsContextValue }> = ({ children, value }) => {
