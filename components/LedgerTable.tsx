@@ -150,7 +150,7 @@ const SortHeader: React.FC<{
                 type="button"
                 aria-label={`Filter by ${label.toLowerCase()}${filter.count ? `, ${filter.count} active` : ''}`}
                 className={cn(
-                  'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-surface-elevated hover:text-ink',
+                  'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-inset hover:text-ink',
                   filter.count > 0 ? 'text-ink font-semibold' : 'text-muted/60 hover:text-muted'
                 )}
               >
@@ -323,7 +323,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
             <col className="w-[250px] max-lg:hidden" />
             <col className="w-[200px]" />
             <col className="w-[200px] max-xl:hidden" />
-            <col className="w-[90px] max-xl:hidden" />
+            <col className="w-[180px] max-xl:hidden" />
             <col />
             <col className="w-12" />
           </colgroup>
@@ -343,7 +343,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
               <SortHeader id="account" label="Account" sort={sort} onSort={onSort} filter={columnFilters?.account} className="w-[250px] max-w-[250px] max-lg:hidden" />
               <SortHeader id="category" label="Category" sort={sort} onSort={onSort} filter={columnFilters?.category} className="w-[200px] max-w-[200px]" />
               <SortHeader id="location" label="Location" sort={sort} onSort={onSort} filter={columnFilters?.location} className="w-[200px] max-w-[200px] max-xl:hidden" />
-              <th scope="col" className="type-label h-10 px-3 text-left text-muted w-[90px] max-w-[90px] max-xl:hidden">
+              <th scope="col" className="type-label h-10 px-3 text-left text-muted w-[180px] max-w-[180px] max-xl:hidden">
                 <div className="flex items-center justify-between gap-1">
                   <span>Tags</span>
                   {columnFilters?.tags && (
@@ -355,7 +355,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           type="button"
                           aria-label={`Filter by tags${columnFilters.tags.count ? `, ${columnFilters.tags.count} active` : ''}`}
                           className={cn(
-                            'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-surface-elevated hover:text-ink',
+                            'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-inset hover:text-ink',
                             columnFilters.tags.count > 0 ? 'text-ink font-semibold' : 'text-muted/60 hover:text-muted'
                           )}
                         >
@@ -493,7 +493,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                     )}
                   </td>
                   <td className="type-body truncate w-[200px] max-w-[200px] border-t border-line px-3 text-muted max-xl:hidden">{location ?? '—'}</td>
-                  <td className="w-[90px] max-w-[90px] border-t border-line px-3 max-xl:hidden overflow-hidden">
+                  <td className="w-[180px] max-w-[180px] border-t border-line px-3 max-xl:hidden overflow-hidden">
                     {firstTag ? (
                       <span className="type-caption inline-flex max-w-full min-w-0 items-center gap-1.5 text-ink">
                         <Icon name={firstTag.icon || 'tag'} size={14} style={{ color: adaptColorForTheme(firstTag.color, isDark) }} className="shrink-0" />

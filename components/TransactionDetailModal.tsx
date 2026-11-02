@@ -144,19 +144,120 @@ const FactSection: React.FC<{
   const allTransactions = useTransactionSelector(all => all);
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || { });
-      const [failedLogo, setFailedLogo] = useState<string | null>(null);
-      const [catPickerOpen, setCatPickerOpen] = useState(false);
-      const catPickerRef = useRef<HTMLDivElement>(null);
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
+  const [catPickerOpen, setCatPickerOpen] = useState(false);
+  const [catSearch, setCatSearch] = useState('');
+  const catPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (catPickerRef.current && !catPickerRef.current.contains(e.target as Node)) {
-          setCatPickerOpen(false);
+        setCatPickerOpen(false);
+        setCatSearch('');
       }
     };
-        if (catPickerOpen) document.addEventListener('mousedown', handleClickOutside);
+    if (catPickerOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [catPickerOpen]);
+
+  const groupedCategories = useMemo(() => {
+    const isTxIncome = tx.type === 'income';
+    const primaryCats = isTxIncome ? incomeCategories : expenseCategories;
+    const secondaryCats = isTxIncome ? expenseCategories : incomeCategories;
+    const primaryLabel = isTxIncome ? 'Income' : 'Expenses';
+    const secondaryLabel = isTxIncome ? 'Expenses' : 'Income';
+
+    const build = (cats: Category[], defaultKindLabel: string) => {
+      const groups: Array<{
+        name: string;
+        icon?: string;
+        color?: string;
+        items: Array<{
+          id: string;
+          label: string;
+          icon?: string;
+          color?: string;
+          level: number;
+          parent?: string;
+        }>;
+      }> = [];
+      const standalone: Array<{
+        id: string;
+        label: string;
+        icon?: string;
+        color?: string;
+        level: number;
+        parent?: string;
+      }> = [];
+
+      cats.forEach(cat => {
+        if (cat.subCategories && cat.subCategories.length > 0) {
+          const items = [
+            {
+              id: cat.name,
+              label: cat.name,
+              icon: cat.icon,
+              color: cat.color,
+              level: 0,
+            },
+            ...cat.subCategories.map(sub => ({
+              id: sub.name,
+              label: sub.name,
+              icon: sub.icon || cat.icon,
+              color: sub.color || cat.color,
+              level: 1,
+              parent: cat.name,
+            })),
+          ];
+          groups.push({
+            name: cat.name,
+            icon: cat.icon,
+            color: cat.color,
+            items,
+          });
+        } else {
+          standalone.push({
+            id: cat.name,
+            label: cat.name,
+            icon: cat.icon,
+            color: cat.color,
+            level: 0,
+          });
+        }
+      });
+
+      if (standalone.length > 0) {
+        groups.push({
+          name: defaultKindLabel,
+          items: standalone,
+        });
+      }
+
+      return groups;
+    };
+
+    return [...build(primaryCats, primaryLabel), ...build(secondaryCats, secondaryLabel)];
+  }, [tx.type, incomeCategories, expenseCategories]);
+
+  const filteredCatGroups = useMemo(() => {
+    const q = catSearch.trim().toLowerCase();
+    if (!q) return groupedCategories;
+    return groupedCategories
+      .map(group => {
+        const matchesGroup = group.name.toLowerCase().includes(q);
+        const filteredItems = group.items.filter(
+          item =>
+            matchesGroup ||
+            item.label.toLowerCase().includes(q) ||
+            (item.parent && item.parent.toLowerCase().includes(q))
+        );
+        return {
+          ...group,
+          items: filteredItems,
+        };
+      })
+      .filter(group => group.items.length > 0);
+  }, [groupedCategories, catSearch]);
 
         const logoQuery = nameOf(tx);
   const logoUrl = useMemo(() => {
@@ -247,7 +348,7 @@ const FactSection: React.FC<{
                 className="h-full w-full !rounded-none"
               />
             ) : (
-              <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-black/85 via-surface-elevated/70 to-black/60">
+              <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-black/85 via-surface/70 to-black/60">
                 <Icon name={isTransfer ? 'swap_horiz' : 'receipt'} size={48} className="text-muted/20" />
               </div>
             )}
@@ -418,26 +519,81 @@ const FactSection: React.FC<{
 
                                 {/* Category Quick Picker Dropdown */}
                                 {catPickerOpen && onRecategorize && (
-                                  <div className="absolute left-0 top-full z-[var(--z-dropdown)] mt-1.5 max-h-60 w-64 overflow-y-auto rounded-2xl border border-line bg-surface-elevated p-1.5 shadow-2xl">
-                                    {allCategories.map(c => (
-                                      <button
-                                        key={c.name}
-                                        type="button"
-                                        onClick={() => {
-                                          onRecategorize(tx, c.name);
-                                          setCatPickerOpen(false);
-                                        }}
-                                        className={cn(
-                                          'flex w-full cursor-pointer items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs transition-colors',
-                                          tx.category === c.name
-                                            ? 'bg-primary-soft font-semibold text-primary'
-                                            : 'text-ink hover:bg-inset'
+                                  <div className="absolute left-0 top-full z-[var(--z-popover)] mt-1.5 flex max-h-80 w-72 flex-col overflow-hidden rounded-2xl border border-line bg-solid dark:bg-[#1E1C17] bg-[#FFFDF8] shadow-2xl">
+                                    {/* Search bar */}
+                                    <div className="border-b border-line p-2 bg-solid dark:bg-[#1E1C17] bg-[#FFFDF8]">
+                                      <div className="flex items-center gap-2 rounded-xl bg-inset px-2.5 py-1.5 text-xs text-ink">
+                                        <Icon name="search" size={14} className="shrink-0 text-muted" />
+                                        <input
+                                          type="text"
+                                          value={catSearch}
+                                          onChange={e => setCatSearch(e.target.value)}
+                                          placeholder="Search categories..."
+                                          className="w-full bg-transparent text-xs text-ink outline-none placeholder:text-muted"
+                                          autoFocus
+                                        />
+                                        {catSearch && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setCatSearch('')}
+                                            className="cursor-pointer text-muted hover:text-ink"
+                                          >
+                                            <Icon name="close" size={12} />
+                                          </button>
                                         )}
-                                      >
-                                        <Icon name={c.icon || 'category'} size={16} style={{ color: c.color }} />
-                                        <span className="truncate">{c.name}</span>
-                                      </button>
-                                    ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Grouped Category Options */}
+                                    <div className="max-h-64 overflow-y-auto p-1.5 space-y-1">
+                                      {filteredCatGroups.length === 0 ? (
+                                        <div className="px-3 py-6 text-center text-xs text-muted">
+                                          No categories found
+                                        </div>
+                                      ) : (
+                                        filteredCatGroups.map(group => (
+                                          <div key={group.name} className="space-y-0.5">
+                                            <div className="sticky top-0 z-10 flex items-center gap-1.5 border-b border-line/40 bg-solid dark:bg-[#1E1C17] bg-[#FFFDF8] px-2.5 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none">
+                                              {group.icon && (
+                                                <Icon name={group.icon} size={13} style={{ color: group.color }} className="shrink-0" />
+                                              )}
+                                              <span>{group.name}</span>
+                                            </div>
+                                            {group.items.map(item => (
+                                              <button
+                                                key={item.id}
+                                                type="button"
+                                                onClick={() => {
+                                                  onRecategorize(tx, item.id);
+                                                  setCatPickerOpen(false);
+                                                  setCatSearch('');
+                                                }}
+                                                className={cn(
+                                                  'flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-xs transition-colors',
+                                                  item.level === 1 ? 'pl-6' : 'pl-2.5',
+                                                  tx.category === item.id
+                                                    ? 'bg-primary-soft font-semibold text-primary'
+                                                    : 'text-ink hover:bg-inset'
+                                                )}
+                                              >
+                                                <div className="flex min-w-0 items-center gap-2">
+                                                  <Icon
+                                                    name={item.icon || 'category'}
+                                                    size={16}
+                                                    style={{ color: item.color }}
+                                                    className="shrink-0"
+                                                  />
+                                                  <span className="truncate">{item.label}</span>
+                                                </div>
+                                                {tx.category === item.id && (
+                                                  <Icon name="check" size={14} className="shrink-0 text-primary" />
+                                                )}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        ))
+                                      )}
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -496,7 +652,7 @@ const FactSection: React.FC<{
                                   <button
                                     type="button"
                                     onClick={() => navigateToAccount(from.accountId)}
-                                    className="group flex w-full cursor-pointer items-center gap-2.5 rounded-2xl bg-inset p-3 text-left transition-colors hover:bg-surface-elevated/80"
+                                    className="group flex w-full cursor-pointer items-center gap-2.5 rounded-2xl bg-inset p-3 text-left transition-colors hover:bg-surface"
                                   >
                                     <AccountLogoTile account={accountOf(from.accountId)} brandfetchClientId={brandfetchClientId} overrides={logoOverrides} />
                                     <div className="min-w-0 flex-1">
@@ -520,7 +676,7 @@ const FactSection: React.FC<{
                                   <button
                                     type="button"
                                     onClick={() => navigateToAccount(to.accountId)}
-                                    className="group flex w-full cursor-pointer items-center gap-2.5 rounded-2xl bg-inset p-3 text-left transition-colors hover:bg-surface-elevated/80"
+                                    className="group flex w-full cursor-pointer items-center gap-2.5 rounded-2xl bg-inset p-3 text-left transition-colors hover:bg-surface"
                                   >
                                     <AccountLogoTile account={accountOf(to.accountId)} brandfetchClientId={brandfetchClientId} overrides={logoOverrides} />
                                     <div className="min-w-0 flex-1">
@@ -548,7 +704,7 @@ const FactSection: React.FC<{
                                   <button
                                     type="button"
                                     onClick={() => navigateToAccount(mainAccount.id)}
-                                    className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl bg-inset p-3 text-left transition-colors hover:bg-surface-elevated/80"
+                                    className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl bg-inset p-3 text-left transition-colors hover:bg-surface"
                                   >
                                     <div className="flex min-w-0 items-center gap-3">
                                       <AccountLogoTile account={mainAccount} brandfetchClientId={brandfetchClientId} overrides={logoOverrides} />
