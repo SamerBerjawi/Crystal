@@ -519,9 +519,12 @@ const FactSection: React.FC<{
 
                                 {/* Category Quick Picker Dropdown */}
                                 {catPickerOpen && onRecategorize && (
-                                  <div className="absolute left-0 top-full z-[var(--z-popover)] mt-1.5 flex max-h-80 w-72 flex-col overflow-hidden rounded-2xl border border-line bg-solid dark:bg-[#1E1C17] bg-[#FFFDF8] shadow-2xl">
+                                  <div
+                                    className="absolute left-0 top-full z-[var(--z-popover)] mt-1.5 flex max-h-80 w-72 flex-col overflow-hidden rounded-2xl border border-line bg-solid shadow-2xl"
+                                    style={{ backgroundColor: 'var(--solid)' }}
+                                  >
                                     {/* Search bar */}
-                                    <div className="border-b border-line p-2 bg-solid dark:bg-[#1E1C17] bg-[#FFFDF8]">
+                                    <div className="border-b border-line p-2" style={{ backgroundColor: 'var(--solid)' }}>
                                       <div className="flex items-center gap-2 rounded-xl bg-inset px-2.5 py-1.5 text-xs text-ink">
                                         <Icon name="search" size={14} className="shrink-0 text-muted" />
                                         <input
@@ -545,7 +548,7 @@ const FactSection: React.FC<{
                                     </div>
 
                                     {/* Grouped Category Options */}
-                                    <div className="max-h-64 overflow-y-auto p-1.5 space-y-1">
+                                    <div className="max-h-64 overflow-y-auto p-1.5 space-y-1" style={{ backgroundColor: 'var(--solid)' }}>
                                       {filteredCatGroups.length === 0 ? (
                                         <div className="px-3 py-6 text-center text-xs text-muted">
                                           No categories found
@@ -553,7 +556,10 @@ const FactSection: React.FC<{
                                       ) : (
                                         filteredCatGroups.map(group => (
                                           <div key={group.name} className="space-y-0.5">
-                                            <div className="sticky top-0 z-10 flex items-center gap-1.5 border-b border-line/40 bg-solid dark:bg-[#1E1C17] bg-[#FFFDF8] px-2.5 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none">
+                                            <div
+                                              className="sticky top-0 z-10 flex items-center gap-1.5 border-b border-line/40 px-2.5 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none"
+                                              style={{ backgroundColor: 'var(--solid)' }}
+                                            >
                                               {group.icon && (
                                                 <Icon name={group.icon} size={13} style={{ color: group.color }} className="shrink-0" />
                                               )}

@@ -435,9 +435,9 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                         {!isCompact && (
                           <span className="type-caption block truncate text-muted">
                             {tx.isTransfer
-                              ? (tx.transferLabel && tx.description.trim().toLowerCase() !== tx.transferLabel.trim().toLowerCase()
+                              ? (tx.merchant || (tx.transferLabel && tx.description.trim().toLowerCase() !== tx.transferLabel.trim().toLowerCase()
                                 ? tx.transferLabel
-                                : `${tx.fromAccountName || 'Unknown'} → ${tx.toAccountName || '?'}`)
+                                : ''))
                               : (tx.merchant || '')}
                           </span>
                         )}

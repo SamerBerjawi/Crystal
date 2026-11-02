@@ -1494,7 +1494,10 @@ body::before {
   .crystal-sheet,
   .crystal-side,
   .crystal-pop,
-  .crystal-scrim
+  .crystal-scrim,
+  .react-aria-Modal,
+  .react-aria-ModalOverlay,
+  .react-aria-Dialog
 ):focus,
 :is(
   dialog,
@@ -1505,7 +1508,10 @@ body::before {
   .crystal-sheet,
   .crystal-side,
   .crystal-pop,
-  .crystal-scrim
+  .crystal-scrim,
+  .react-aria-Modal,
+  .react-aria-ModalOverlay,
+  .react-aria-Dialog
 ):focus-visible {
   outline: none !important;
 }
