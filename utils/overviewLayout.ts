@@ -47,16 +47,16 @@ const LEGACY_TABS: Record<string, string[]> = {
   activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey'],
 };
 
-export const toConfig = (id: string, span: number, index: number): WidgetConfig => ({
+export const toConfig = (id: string, span: number, index: number, rows?: number): WidgetConfig => ({
   id,
   title: OVERVIEW_WIDGETS[id]?.title ?? id,
   x: index,
   y: 0,
   w: span,
-  h: OVERVIEW_WIDGETS[id]?.rows ?? 3,
+  h: rows ?? OVERVIEW_WIDGETS[id]?.rows ?? 3,
 });
 
-const fromOrder = (order: string[]) => order.map((id, index) => toConfig(id, OVERVIEW_WIDGETS[id].span, index));
+const fromOrder = (order: string[]) => order.map((id, index) => toConfig(id, OVERVIEW_WIDGETS[id].span, index, OVERVIEW_WIDGETS[id].rows));
 
 const scaleSpan = (legacyWidth: number) => Math.max(2, Math.min(6, Math.round(legacyWidth / 2)));
 
@@ -76,12 +76,12 @@ export function resolveOverviewLayout(preferences: Pick<AppPreferences, 'dashboa
     const hidden = new Set(preferences.dashboardHiddenWidgets?.[`${tab}-${screen}`] ?? []);
     const layout = preferences.dashboardLayouts?.[`${tab}-${screen}`] ?? preferences.dashboardLayouts?.[tab];
     const widgets = layout
-      ? [...layout].sort((a, b) => a.y - b.y || a.x - b.x).map(widget => ({ id: widget.id, span: scaleSpan(widget.w) }))
-      : defaults.map(id => ({ id, span: OVERVIEW_WIDGETS[id].span }));
+      ? [...layout].sort((a, b) => a.y - b.y || a.x - b.x).map(widget => ({ id: widget.id, span: scaleSpan(widget.w), rows: widget.h ?? OVERVIEW_WIDGETS[widget.id]?.rows }))
+      : defaults.map(id => ({ id, span: OVERVIEW_WIDGETS[id].span, rows: OVERVIEW_WIDGETS[id].rows }));
     return widgets.filter(widget => OVERVIEW_WIDGETS[widget.id] && !hidden.has(widget.id));
   });
 
   const seen = new Set<string>();
   const unique = entries.filter(entry => !seen.has(entry.id) && !!seen.add(entry.id));
-  return [{ id: 'safeToSpend', span: OVERVIEW_WIDGETS.safeToSpend.span }, ...unique].map((entry, index) => toConfig(entry.id, entry.span, index));
+  return [{ id: 'safeToSpend', span: OVERVIEW_WIDGETS.safeToSpend.span, rows: OVERVIEW_WIDGETS.safeToSpend.rows }, ...unique].map((entry, index) => toConfig(entry.id, entry.span, index, entry.rows));
 }

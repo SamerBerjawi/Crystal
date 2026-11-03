@@ -13,6 +13,7 @@ interface TodayWidgetProps {
     overrides: RecurringTransactionOverride[];
     onTaskUpdate: (task: Task) => void;
     onProcessItem: (item: RecurringTransaction | BillPayment) => void;
+    size?: 's' | 'm' | 'l';
 }
 
 type AgendaItem = 
@@ -28,7 +29,8 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     goals,
     overrides = [],
     onTaskUpdate,
-    onProcessItem
+    onProcessItem,
+    size = 'm'
 }) => {
     const agendaItems = useMemo(() => {
         const items: AgendaItem[] = [];
@@ -183,10 +185,12 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         );
     }
 
+    const visibleAgenda = size === 's' ? agendaItems.slice(0, 3) : size === 'm' ? agendaItems.slice(0, 6) : agendaItems;
+
     return (
         <div className="h-full flex flex-col p-0 overflow-hidden bg-transparent">
             <div className="flex-1 overflow-y-auto p-1 space-y-2.5 custom-scrollbar">
-                {agendaItems.map((item) => {
+                {visibleAgenda.map((item) => {
                     if (item.type === 'task') {
                         return (
                             <div key={`task-${item.data.id}`} className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 hover:bg-black/[0.04] dark:hover:bg-white/[0.05] hover:border-black/10 dark:hover:border-white/10 group transition-all">

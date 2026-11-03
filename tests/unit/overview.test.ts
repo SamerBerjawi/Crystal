@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Account, BillPayment, RecurringTransaction, Transaction } from '../../types';
-import { OVERVIEW_LAYOUT_KEY, resolveOverviewLayout } from '../../utils/overviewLayout';
+import { OVERVIEW_LAYOUT_KEY, resolveOverviewLayout, toConfig } from '../../utils/overviewLayout';
+import { sizeForDimensions, sizeForSpan } from '../../components/ui/WidgetGrid';
 import { buildSummaryFacts, isUncategorised, suggestCategories } from '../../utils/overviewSummary';
 import { computeSafeToSpend, spendingAccounts } from '../../utils/safeToSpend';
 
@@ -150,4 +151,32 @@ test('category suggestions put the rule first, then the merchant, then the kind,
   const history = [tx('Shop', 'Food'), tx('Shop', 'Food'), tx('Shop', 'Gifts'), tx('Other', 'Fuel'), tx('Other', 'Transfer'), tx('Boss', 'Salary', 'income')];
   assert.deepEqual(suggestCategories(tx('Shop', ''), history, 'Treats'), ['Treats', 'Food', 'Gifts']);
   assert.deepEqual(suggestCategories(tx('Nobody', ''), history), ['Food', 'Gifts', 'Fuel']);
+});
+
+test('sizeForDimensions computes small, medium and large layout based on span and rows', () => {
+  assert.equal(sizeForDimensions(2, 2), 's');
+  assert.equal(sizeForDimensions(2, 3), 's');
+  assert.equal(sizeForDimensions(2, 4), 'm');
+  assert.equal(sizeForDimensions(3, 2), 's');
+  assert.equal(sizeForDimensions(3, 4), 'm');
+  assert.equal(sizeForDimensions(4, 4), 'l');
+  assert.equal(sizeForDimensions(6, 4), 'l');
+  assert.equal(sizeForDimensions(3, 6), 'l');
+  assert.equal(sizeForDimensions(6, 2), 'm');
+});
+
+test('sizeForSpan is backward compatible and defaults to 3 rows', () => {
+  assert.equal(sizeForSpan(2), 's');
+  assert.equal(sizeForSpan(4), 'm');
+  assert.equal(sizeForSpan(6), 'l');
+});
+
+test('toConfig saves row count for vertical resizing', () => {
+  const def = toConfig('safeToSpend', 2, 0);
+  assert.equal(def.w, 2);
+  assert.equal(def.h, 3);
+
+  const resized = toConfig('safeToSpend', 4, 0, 5);
+  assert.equal(resized.w, 4);
+  assert.equal(resized.h, 5);
 });

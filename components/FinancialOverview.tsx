@@ -16,6 +16,7 @@ interface FinancialOverviewProps {
     incomeSparkline?: { value: number }[];
     expenseSparkline?: { value: number }[];
     currency?: Currency;
+    size?: 's' | 'm' | 'l';
 }
 
 const FinancialOverview: React.FC<FinancialOverviewProps> = ({ 
@@ -26,7 +27,8 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
     expenseChange,
     incomeSparkline = [],
     expenseSparkline = [],
-    currency = getMainCurrency() 
+    currency = getMainCurrency(),
+    size = 'm'
 }) => {
     const netCashFlow = income - expenses;
     const savingsRate = income > 0 ? (netCashFlow / income) * 100 : 0;
@@ -76,13 +78,15 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                     <p className="text-base sm:text-lg font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur mt-1">
                         <FormattedAmount text={formatCurrency(income, currency as Currency, { compact: true })} />
                     </p>
-                    <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={incomeSparkline.length > 0 ? incomeSparkline : [{value:10}, {value:15}, {value:12}, {value:20}, {value:18}]}>
-                                <Line {...LINE_MOTION} type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
+                    {size !== 's' && (
+                        <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={incomeSparkline.length > 0 ? incomeSparkline : [{value:10}, {value:15}, {value:12}, {value:20}, {value:18}]}>
+                                    <Line {...LINE_MOTION} type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={false} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </div>
 
                 {/* Outflow */}
@@ -91,39 +95,43 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                     <p className="text-base sm:text-lg font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur mt-1">
                         <FormattedAmount text={formatCurrency(expenses, currency as Currency, { compact: true })} />
                     </p>
-                    <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={expenseSparkline.length > 0 ? expenseSparkline : [{value:20}, {value:12}, {value:25}, {value:15}, {value:22}]}>
-                                <Line {...LINE_MOTION} type="monotone" dataKey="value" stroke="#f43f5e" strokeWidth={2} dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
+                    {size !== 's' && (
+                        <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={expenseSparkline.length > 0 ? expenseSparkline : [{value:20}, {value:12}, {value:25}, {value:15}, {value:22}]}>
+                                    <Line {...LINE_MOTION} type="monotone" dataKey="value" stroke="#f43f5e" strokeWidth={2} dot={false} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* --- BOTTOM: BURN INTENSITY --- */}
-            <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
-                <div className="flex justify-between items-center text-xs mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Burn intensity</span>
-                        <span className="text-slate-300 dark:text-slate-600">•</span>
-                        <span className={`text-xs font-bold tabular-nums ${flowIntensity > 100 ? 'text-rose-500' : 'text-primary-600 dark:text-primary-400'}`}>
-                            {flowIntensity.toFixed(0)}%
-                        </span>
+            {size !== 's' && (
+                <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
+                    <div className="flex justify-between items-center text-xs mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Burn intensity</span>
+                            <span className="text-slate-300 dark:text-slate-600">•</span>
+                            <span className={`text-xs font-bold tabular-nums ${flowIntensity > 100 ? 'text-rose-500' : 'text-primary-600 dark:text-primary-400'}`}>
+                                {flowIntensity.toFixed(0)}%
+                            </span>
+                        </div>
+                        <span className="text-2xs font-medium text-slate-400 dark:text-slate-500">Relative to revenue</span>
                     </div>
-                    <span className="text-2xs font-medium text-slate-400 dark:text-slate-500">Relative to revenue</span>
+                    <div className="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden flex p-0.5">
+                        <div 
+                            className={`h-full rounded-full transition-all duration-700 ease-out ${
+                                flowIntensity > 100 
+                                    ? 'bg-gradient-to-r from-rose-500 to-rose-600' 
+                                    : 'bg-gradient-to-r from-primary-500 to-indigo-500'
+                            }`} 
+                            style={{ width: `${Math.max(Math.min(flowIntensity, 100), flowIntensity > 0 ? 3 : 0)}%` }}
+                        ></div>
+                    </div>
                 </div>
-                <div className="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden flex p-0.5">
-                    <div 
-                        className={`h-full rounded-full transition-all duration-700 ease-out ${
-                            flowIntensity > 100 
-                                ? 'bg-gradient-to-r from-rose-500 to-rose-600' 
-                                : 'bg-gradient-to-r from-primary-500 to-indigo-500'
-                        }`} 
-                        style={{ width: `${Math.max(Math.min(flowIntensity, 100), flowIntensity > 0 ? 3 : 0)}%` }}
-                    ></div>
-                </div>
-            </div>
+            )}
         </div>
     );
 };

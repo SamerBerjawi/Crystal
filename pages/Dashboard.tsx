@@ -106,11 +106,12 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
 
-const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statements }) => {
+const CreditCardStatementsWidget: React.FC<{ statements: any[]; size?: 's' | 'm' | 'l' }> = ({ statements, size = 'm' }) => {
   if (statements.length === 0) return null;
+  const displayed = size === 's' ? statements.slice(0, 1) : size === 'm' ? statements.slice(0, 2) : statements;
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-2.5 sm:gap-3 h-full items-stretch">
-      {statements.map(statement => (
+      {displayed.map(statement => (
         <CreditCardStatementCard
           key={statement.accountId}
           noCard={true}
@@ -1280,7 +1281,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       id: entry.id,
       title: meta.title,
       defaultSpan: meta.span,
-      rows: meta.rows,
+      rows: entry.h ?? meta.rows,
       render: size => (
         <WidgetErrorBoundary widgetTitle={meta.title}>
           <Suspense fallback={<Skeleton variant="card" />}>
@@ -1291,10 +1292,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     }];
   }), [layout, allWidgets, creditCardStatements.length]);
 
-  const gridLayout = useMemo<WidgetLayoutItem[]>(() => layout.map(entry => ({ id: entry.id, span: entry.w })), [layout]);
+  const gridLayout = useMemo<WidgetLayoutItem[]>(() => layout.map(entry => ({
+    id: entry.id,
+    span: entry.w,
+    rows: entry.h ?? OVERVIEW_WIDGETS[entry.id]?.rows ?? 3,
+  })), [layout]);
 
   const handleGridChange = useCallback((next: WidgetLayoutItem[]) => {
-    saveLayout(next.map((entry, index) => toConfig(entry.id, entry.span, index)));
+    saveLayout(next.map((entry, index) => toConfig(entry.id, entry.span, index, entry.rows)));
   }, [saveLayout]);
 
 

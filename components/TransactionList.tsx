@@ -16,6 +16,7 @@ interface TransactionListProps {
   onTransactionClick?: (transaction: DisplayTransaction) => void;
   density?: 'default' | 'high';
   maxItems?: number;
+  size?: 's' | 'm' | 'l';
   className?: string;
 }
 
@@ -41,8 +42,10 @@ const TransactionList: React.FC<TransactionListProps> = ({
   onTransactionClick, 
   density = 'default',
   maxItems,
+  size,
   className = ""
 }) => {
+  const effectiveMaxItems = size ? (size === 's' ? 4 : size === 'm' ? 8 : (maxItems ?? 15)) : maxItems;
   const { tags } = useTagsContext();
   const { accounts } = useAccountsContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
@@ -84,7 +87,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
 
   const preparedTransactions = useMemo(
     () => {
-      const listToPrepare = maxItems ? transactions.slice(0, maxItems) : transactions;
+      const listToPrepare = effectiveMaxItems ? transactions.slice(0, effectiveMaxItems) : transactions;
       return listToPrepare.map((tx) => {
         const isTransfer = tx.isTransfer;
         const description = isTransfer ? (tx.transferLabel || tx.description || `${tx.fromAccountName} → ${tx.toAccountName}`) : tx.description;
@@ -142,7 +145,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
         };
       });
     },
-    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides, maxItems, tags, accountMap]
+    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides, effectiveMaxItems, tags, accountMap]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -202,8 +205,8 @@ const TransactionList: React.FC<TransactionListProps> = ({
   return (
       <div 
         ref={containerRef} 
-        className={`space-y-1 w-full overflow-y-auto relative p-1.5 ${className} ${maxItems ? '' : 'h-full'}`}
-        style={maxItems ? { maxHeight: `${maxItems * ROW_HEIGHT + 20}px` } : {}}
+        className={`space-y-1 w-full overflow-y-auto relative p-1.5 ${className} ${effectiveMaxItems ? '' : 'h-full'}`}
+        style={effectiveMaxItems ? { maxHeight: `${effectiveMaxItems * ROW_HEIGHT + 20}px` } : {}}
         role="list"
       >
         <div style={{ height: preparedTransactions.length * ROW_HEIGHT }} aria-hidden />

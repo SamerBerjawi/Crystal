@@ -194,14 +194,16 @@ export const AccountsSummary: React.FC<{
   currency: Currency;
   onOpen: (id: string) => void;
   onAll: () => void;
-}> = ({ accounts, toDisplay, currency, onOpen, onAll }) => {
+  size?: 's' | 'm' | 'l';
+}> = ({ accounts, toDisplay, currency, onOpen, onAll, size = 'm' }) => {
   const top = [...accounts]
     .filter(account => account.status !== 'closed')
     .sort((a, b) => Math.abs(toDisplay(b.balance, b.currency)) - Math.abs(toDisplay(a.balance, a.currency)));
+  const limit = size === 's' ? 3 : size === 'l' ? 7 : 4;
   return (
     <div className="flex h-full flex-col">
       <ul className="min-h-0 flex-1 divide-y divide-line overflow-hidden">
-        {top.slice(0, 4).map(account => (
+        {top.slice(0, limit).map(account => (
           <li key={account.id}>
             <Row
               title={account.name}
@@ -212,18 +214,24 @@ export const AccountsSummary: React.FC<{
           </li>
         ))}
       </ul>
-      {top.length > 4 && <Button variant="ghost" size="sm" className="mt-1 self-start" onPress={onAll}>All {top.length} accounts</Button>}
+      {top.length > limit && <Button variant="ghost" size="sm" className="mt-1 self-start" onPress={onAll}>All {top.length} accounts</Button>}
     </div>
   );
 };
 
 /** Liquidity, savings rate, debt ratio and net flow. */
-export const KeyRatios: React.FC<{ items: { label: string; value: React.ReactNode; context: string }[] }> = ({ items }) => (
-  <dl className="grid h-full grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-4">
+export const KeyRatios: React.FC<{
+  items: { label: string; value: React.ReactNode; context: string }[];
+  size?: 's' | 'm' | 'l';
+}> = ({ items, size = 'm' }) => (
+  <dl className={cn(
+    "grid h-full gap-x-6 gap-y-3",
+    size === 's' ? "grid-cols-2" : size === 'l' ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 lg:grid-cols-4"
+  )}>
     {items.map(item => (
       <div key={item.label} className="min-w-0">
         <dt className="type-caption text-muted">{item.label}</dt>
-        <dd className="type-figure-lg truncate text-ink">{item.value}</dd>
+        <dd className={cn("truncate text-ink", size === 's' ? "type-body-strong" : "type-figure-lg")}>{item.value}</dd>
         <dd className="type-caption truncate text-muted">{item.context}</dd>
       </div>
     ))}

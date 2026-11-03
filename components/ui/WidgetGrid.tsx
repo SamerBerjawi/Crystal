@@ -45,6 +45,8 @@ export interface WidgetLayoutItem {
   id: string;
   /** Width in columns of the 6-column grid (2 to 6). */
   span: number;
+  /** Height in row units (2 to 8). */
+  rows?: number;
 }
 
 export interface WidgetGridProps {
@@ -101,6 +103,9 @@ interface PressState {
 const COLUMNS = 6;
 const NARROW_COLUMNS = 3;
 const MIN_SPAN = 2;
+const MIN_ROWS = 2;
+const MAX_ROWS = 8;
+const DEFAULT_ROWS = 3;
 const GAP = 24;
 const NARROW_BELOW = 840;
 const LONG_PRESS_MS = 350;
@@ -113,16 +118,40 @@ const SIZE_LABEL: Record<WidgetSize, string> = {
   l: "large",
 };
 
-/** Maps a column span to the widget layout it shows. */
-export function sizeForSpan(span: number, narrow = false): WidgetSize {
-  if (span <= 2) {
+/** Maps column span and row height to the widget layout it shows. */
+export function sizeForDimensions(span: number, rows = DEFAULT_ROWS, narrow = false): WidgetSize {
+  const effectiveSpan = narrow ? narrowSpan(span) * 2 : span;
+  if (rows <= 2 && effectiveSpan <= 2) {
     return "s";
   }
-  return span <= 4 || (narrow && span < 5) ? "m" : "l";
+  if (
+    (effectiveSpan >= 5 && rows >= 3) ||
+    (effectiveSpan >= 4 && rows >= 4) ||
+    (effectiveSpan >= 3 && rows >= 6) ||
+    rows >= 7
+  ) {
+    return "l";
+  }
+  if (effectiveSpan <= 2 && rows <= 3) {
+    return "s";
+  }
+  if (rows <= 2 && effectiveSpan <= 3) {
+    return "s";
+  }
+  return "m";
+}
+
+/** Maps a column span to the widget layout it shows (defaults to 3 rows). */
+export function sizeForSpan(span: number, narrow = false): WidgetSize {
+  return sizeForDimensions(span, DEFAULT_ROWS, narrow);
 }
 
 function clampSpan(span: number) {
   return Math.min(COLUMNS, Math.max(MIN_SPAN, Math.round(span)));
+}
+
+function clampRows(rows: number) {
+  return Math.min(MAX_ROWS, Math.max(MIN_ROWS, Math.round(rows)));
 }
 
 /** In the 3-column layout, spans of 2, 3 to 4, and 5 to 6 take one, two and three columns. */
@@ -134,18 +163,27 @@ function normalizeLayout(
   layout: WidgetLayoutItem[],
   items: WidgetGridItem[]
 ): WidgetLayoutItem[] {
-  const known = new Set(items.map((item) => item.id));
+  const itemsMap = new Map(items.map((item) => [item.id, item]));
   const seen = new Set<string>();
   const out: WidgetLayoutItem[] = [];
   for (const entry of layout) {
-    if (known.has(entry.id) && !seen.has(entry.id)) {
+    const item = itemsMap.get(entry.id);
+    if (item && !seen.has(entry.id)) {
       seen.add(entry.id);
-      out.push({ id: entry.id, span: clampSpan(entry.span) });
+      out.push({
+        id: entry.id,
+        span: clampSpan(entry.span),
+        rows: clampRows(entry.rows ?? item.rows ?? DEFAULT_ROWS),
+      });
     }
   }
   for (const item of items) {
     if (!seen.has(item.id)) {
-      out.push({ id: item.id, span: clampSpan(item.defaultSpan ?? MIN_SPAN) });
+      out.push({
+        id: item.id,
+        span: clampSpan(item.defaultSpan ?? MIN_SPAN),
+        rows: clampRows(item.rows ?? DEFAULT_ROWS),
+      });
     }
   }
   return out;
@@ -401,6 +439,7 @@ class GridEngine {
 interface CellProps {
   item: WidgetGridItem;
   span: number;
+  rows?: number;
   narrow: boolean;
   isEditing: boolean;
   onRemove?: (id: string) => void;
@@ -422,6 +461,7 @@ interface CellProps {
 function WidgetCell({
   item,
   span,
+  rows: layoutRows,
   narrow,
   isEditing,
   onRemove,
@@ -439,7 +479,8 @@ function WidgetCell({
   onHover,
   onFocusChange,
 }: CellProps) {
-  const size = sizeForSpan(span, narrow);
+  const rows = layoutRows ?? item.rows ?? DEFAULT_ROWS;
+  const size = sizeForDimensions(span, rows, narrow);
   const columns = narrow ? NARROW_COLUMNS : COLUMNS;
   const shownSpan = narrow ? narrowSpan(span) : span;
 
@@ -480,7 +521,7 @@ function WidgetCell({
       onPointerEnter={(e) => e.pointerType === "mouse" && onHover(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && onHover(false)}
       ref={cellRef}
-      style={{ gridColumn: `span ${shownSpan}`, gridRow: `span ${item.rows ?? 3}` } as CSSProperties}
+      style={{ gridColumn: `span ${shownSpan}`, gridRow: `span ${rows}` } as CSSProperties}
     >
       {/* Surface: scaled by the engine while a resize settles. */}
       <div className="pointer-events-none absolute inset-0 origin-top-left rounded-[var(--radius-xl)] surface-card">
@@ -544,10 +585,10 @@ function WidgetCell({
 
       {isEditing && (
       <button
-        aria-label={`Resize ${item.title}, ${shownSpan} of ${columns} columns`}
+        aria-label={`Resize ${item.title}, ${shownSpan} of ${columns} columns, ${rows} rows`}
         className={cn(
-          "absolute right-0 bottom-0 flex size-8 cursor-ew-resize touch-none items-end justify-end rounded-br-[var(--radius-xl)] p-2 text-muted",
-          "hover:text-ink"
+          "absolute right-0 bottom-0 flex size-8 cursor-se-resize touch-none items-end justify-end rounded-br-[var(--radius-xl)] p-2 text-muted",
+          "hover:text-ink focus-visible:text-ink"
         )}
         data-no-press
         onKeyDown={onResizeKeyDown}
@@ -592,7 +633,7 @@ export default function WidgetGrid({
     () => normalizeLayout(layout ?? innerLayout, items),
     [layout, innerLayout, items]
   );
-  const layoutKey = current.map((c) => `${c.id}:${c.span}`).join("|");
+  const layoutKey = current.map((c) => `${c.id}:${c.span}x${c.rows ?? DEFAULT_ROWS}`).join("|");
   const itemsById = useMemo(
     () => new Map(items.map((item) => [item.id, item])),
     [items]
@@ -621,7 +662,7 @@ export default function WidgetGrid({
   const dragRef = useRef<DragState | null>(null);
   const pressRef = useRef<PressState | null>(null);
   const resizeIdRef = useRef<string | null>(null);
-  const resizeStartRef = useRef<{ x: number; span: number } | null>(null);
+  const resizeStartRef = useRef<{ startX: number; startY: number; span: number; rows: number } | null>(null);
   const reorderingRef = useRef(false);
   const narrowRef = useRef(false);
   const layoutRef = useRef(current);
@@ -709,7 +750,10 @@ export default function WidgetGrid({
         }
         const b = engine.body(id);
         const moved =
-          Math.abs(p.x - n.x) > 0.5 || Math.abs(p.y - n.y) > 0.5 || p.w !== n.w;
+          Math.abs(p.x - n.x) > 0.5 ||
+          Math.abs(p.y - n.y) > 0.5 ||
+          Math.abs(p.w - n.w) > 0.5 ||
+          Math.abs(p.h - n.h) > 0.5;
         b.ox += p.x - n.x;
         b.oy += p.y - n.y;
         b.sx = (p.w * b.sx) / n.w;
@@ -1010,35 +1054,35 @@ export default function WidgetGrid({
 
   /* -------------------------------- resize -------------------------------- */
 
-  const spanText = useCallback((span: number) => {
+  const dimensionsText = useCallback((span: number, rows: number) => {
     const isNarrow = narrowRef.current;
     const shown = isNarrow ? narrowSpan(span) : span;
     const cols = isNarrow ? NARROW_COLUMNS : COLUMNS;
-    return `${shown} of ${cols} columns, ${SIZE_LABEL[sizeForSpan(span, isNarrow)]}`;
+    const size = sizeForDimensions(span, rows, isNarrow);
+    return `${shown} of ${cols} columns, ${rows} rows, ${SIZE_LABEL[size]}`;
   }, []);
 
-  const applySpan = useCallback(
-    (id: string, span: number) => {
+  const applyDimensions = useCallback(
+    (id: string, span: number, rows: number) => {
       const list = layoutRef.current;
       const entry = list.find((c) => c.id === id);
-      if (!entry || entry.span === span) {
+      if (!entry || (entry.span === span && entry.rows === rows)) {
         return;
       }
       commit(
-        list.map((c) => (c.id === id ? { ...c, span } : c)),
+        list.map((c) => (c.id === id ? { ...c, span, rows } : c)),
         id
       );
-      announce(`${titleOf(id)} resized to ${spanText(span)}.`);
+      announce(`${titleOf(id)} resized to ${dimensionsText(span, rows)}.`);
     },
-    [announce, commit, spanText, titleOf]
+    [announce, commit, dimensionsText, titleOf]
   );
 
   /**
-   * Whole-column span from how far the handle moved since the press. Using the
-   * delta (not the cell's left edge) keeps it stable when the cell wraps rows.
-   * Narrow grids step in whole columns of three.
+   * Whole-column span and whole-row height from how far the handle moved since the press.
+   * Using delta keeps it stable when the cell wraps or neighbors shift.
    */
-  const spanFromPointer = useCallback((clientX: number) => {
+  const dimensionsFromPointer = useCallback((clientX: number, clientY: number) => {
     const start = resizeStartRef.current;
     const grid = gridRef.current;
     if (!(start && grid)) {
@@ -1047,26 +1091,37 @@ export default function WidgetGrid({
     const isNarrow = narrowRef.current;
     const cols = isNarrow ? NARROW_COLUMNS : COLUMNS;
     const colW = (grid.clientWidth + GAP) / cols;
-    const steps = Math.round((clientX - start.x) / colW);
+    const stepsX = Math.round((clientX - start.startX) / colW);
+
+    let span: number;
     if (!isNarrow) {
-      return clampSpan(start.span + steps);
+      span = clampSpan(start.span + stepsX);
+    } else {
+      span = Math.max(1, Math.min(NARROW_COLUMNS, narrowSpan(start.span) + stepsX)) * 2;
     }
-    return Math.max(1, Math.min(NARROW_COLUMNS, narrowSpan(start.span) + steps)) * 2;
-  }, []);
+
+    const rowH = rowHeight + GAP;
+    const stepsY = Math.round((clientY - start.startY) / rowH);
+    const rows = clampRows(start.rows + stepsY);
+
+    return { span, rows };
+  }, [rowHeight]);
 
   const onResizeMove = useCallback(
     (e: globalThis.PointerEvent) => {
       const id = resizeIdRef.current;
-      const span = spanFromPointer(e.clientX);
-      if (id && span !== null) {
-        applySpan(id, span);
+      if (!id) return;
+      const dims = dimensionsFromPointer(e.clientX, e.clientY);
+      if (dims) {
+        applyDimensions(id, dims.span, dims.rows);
       }
     },
-    [applySpan, spanFromPointer]
+    [applyDimensions, dimensionsFromPointer]
   );
 
   const onResizeUp = useCallback(() => {
     resizeIdRef.current = null;
+    resizeStartRef.current = null;
     setResizingId(null);
     window.removeEventListener("pointermove", onResizeMove);
     window.removeEventListener("pointerup", onResizeUp);
@@ -1080,10 +1135,14 @@ export default function WidgetGrid({
       }
       e.preventDefault();
       cancelPress();
+      const currentEntry = layoutRef.current.find((c) => c.id === id);
+      const item = latest.current.itemsById.get(id);
       resizeIdRef.current = id;
       resizeStartRef.current = {
-        x: e.clientX,
-        span: layoutRef.current.find((c) => c.id === id)?.span ?? MIN_SPAN,
+        startX: e.clientX,
+        startY: e.clientY,
+        span: currentEntry?.span ?? item?.defaultSpan ?? MIN_SPAN,
+        rows: currentEntry?.rows ?? item?.rows ?? DEFAULT_ROWS,
       };
       setResizingId(id);
       window.addEventListener("pointermove", onResizeMove);
@@ -1096,23 +1155,42 @@ export default function WidgetGrid({
   const onResizeKeyDown = useCallback(
     (e: KeyboardEvent<HTMLButtonElement>, id: string) => {
       const entry = layoutRef.current.find((c) => c.id === id);
-      let delta = 0;
-      if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-        delta = 1;
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-        delta = -1;
+      if (!entry) return;
+
+      let deltaSpan = 0;
+      let deltaRows = 0;
+      if (e.key === "ArrowRight") {
+        deltaSpan = 1;
+      } else if (e.key === "ArrowLeft") {
+        deltaSpan = -1;
+      } else if (e.key === "ArrowDown") {
+        deltaRows = 1;
+      } else if (e.key === "ArrowUp") {
+        deltaRows = -1;
       }
-      if (!entry || delta === 0) {
+
+      if (deltaSpan === 0 && deltaRows === 0) {
         return;
       }
       e.preventDefault();
-      let span = clampSpan(entry.span + delta);
-      if (narrowRef.current) {
-        span = Math.max(1, Math.min(NARROW_COLUMNS, narrowSpan(entry.span) + delta)) * 2;
+
+      let span = entry.span;
+      if (deltaSpan !== 0) {
+        if (narrowRef.current) {
+          span = Math.max(1, Math.min(NARROW_COLUMNS, narrowSpan(entry.span) + deltaSpan)) * 2;
+        } else {
+          span = clampSpan(entry.span + deltaSpan);
+        }
       }
-      applySpan(id, span);
+
+      let rows = entry.rows ?? DEFAULT_ROWS;
+      if (deltaRows !== 0) {
+        rows = clampRows(rows + deltaRows);
+      }
+
+      applyDimensions(id, span, rows);
     },
-    [applySpan]
+    [applyDimensions]
   );
 
   /* ------------------------------- keyboard ------------------------------- */
@@ -1383,13 +1461,14 @@ export default function WidgetGrid({
               onResizeKeyDown={(e) => onResizeKeyDown(e, id)}
               onResizePointerDown={(e) => startResize(e, id)}
               span={entry.span}
+              rows={entry.rows}
             />
           );
         })}
       </div>
       <p className="sr-only" id={instructionsId}>
         Press Space to pick up. Use the arrow keys to move, Space to drop and
-        Escape to cancel. With a pointer, press and hold a widget, then drag it.
+        Escape to cancel. Tab to the resize handle and use arrow keys (left/right for width, up/down for height) to resize. With a pointer, drag the bottom-right corner of a widget to resize horizontally and vertically.
       </p>
       <p aria-live="assertive" className="sr-only">
         {message}
