@@ -118,7 +118,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
             data={sparklinePoints}
             dataKey="value"
             height={56}
-            curve="monotone"
+            curve="natural"
             endDot
             crosshair="gradient"
             springConfig={{ damping: 60 }}
