@@ -28,6 +28,16 @@ const DEFAULT_MAGNIFICATION = 60
 const DEFAULT_DISTANCE = 140
 const DEFAULT_DISABLEMAGNIFICATION = false
 
+interface DockContextType {
+  mouseX: MotionValue<number>
+  iconSize: number
+  iconMagnification: number
+  disableMagnification: boolean
+  iconDistance: number
+}
+
+const DockContext = React.createContext<DockContextType | null>(null)
+
 const dockVariants = cva(
   "supports-backdrop-blur:bg-white/10 supports-backdrop-blur:dark:bg-black/10 mx-auto mt-8 flex h-[58px] w-max items-center justify-center gap-2 rounded-2xl border p-2 backdrop-blur-md"
 )
@@ -50,17 +60,13 @@ const Dock = React.forwardRef<HTMLDivElement, DockProps>(
 
     const renderChildren = () => {
       return React.Children.map(children, (child) => {
-        if (
-          React.isValidElement<DockIconProps>(child) &&
-          (child.type === DockIcon || (child.type as any)?.displayName === "DockIcon")
-        ) {
-          return React.cloneElement(child, {
-            ...child.props,
-            mouseX: mouseX,
-            size: child.props.size ?? iconSize,
-            magnification: child.props.magnification ?? iconMagnification,
-            disableMagnification: child.props.disableMagnification ?? disableMagnification,
-            distance: child.props.distance ?? iconDistance,
+        if (React.isValidElement(child)) {
+          return React.cloneElement(child as React.ReactElement<any>, {
+            mouseX,
+            size: (child.props as any)?.size ?? iconSize,
+            magnification: (child.props as any)?.magnification ?? iconMagnification,
+            disableMagnification: (child.props as any)?.disableMagnification ?? disableMagnification,
+            distance: (child.props as any)?.distance ?? iconDistance,
           })
         }
         return child
@@ -68,19 +74,29 @@ const Dock = React.forwardRef<HTMLDivElement, DockProps>(
     }
 
     return (
-      <motion.div
-        ref={ref}
-        onMouseMove={(e) => mouseX.set(e.clientX)}
-        onMouseLeave={() => mouseX.set(Infinity)}
-        {...props}
-        className={cn(dockVariants({ className }), {
-          "items-start": direction === "top",
-          "items-center": direction === "middle",
-          "items-end": direction === "bottom",
-        })}
+      <DockContext.Provider
+        value={{
+          mouseX,
+          iconSize,
+          iconMagnification,
+          disableMagnification,
+          iconDistance,
+        }}
       >
-        {renderChildren()}
-      </motion.div>
+        <motion.div
+          ref={ref}
+          onMouseMove={(e) => mouseX.set(e.clientX)}
+          onMouseLeave={() => mouseX.set(Infinity)}
+          {...props}
+          className={cn(dockVariants({ className }), {
+            "items-start": direction === "top",
+            "items-center": direction === "middle",
+            "items-end": direction === "bottom",
+          })}
+        >
+          {renderChildren()}
+        </motion.div>
+      </DockContext.Provider>
     )
   }
 )
@@ -104,10 +120,10 @@ export interface DockIconProps extends Omit<
 const DockIcon = React.forwardRef<HTMLDivElement, DockIconProps>(
   (
     {
-      size = DEFAULT_SIZE,
-      magnification = DEFAULT_MAGNIFICATION,
-      disableMagnification = DEFAULT_DISABLEMAGNIFICATION,
-      distance = DEFAULT_DISTANCE,
+      size,
+      magnification,
+      disableMagnification,
+      distance,
       mouseX,
       className,
       children,
@@ -118,20 +134,27 @@ const DockIcon = React.forwardRef<HTMLDivElement, DockIconProps>(
   ) => {
     const internalRef = useRef<HTMLDivElement>(null)
     React.useImperativeHandle(forwardedRef, () => internalRef.current!)
-    const padding = Math.max(6, size * 0.2)
+
+    const context = React.useContext(DockContext)
     const defaultMouseX = useMotionValue(Infinity)
 
-    const distanceCalc = useTransform(mouseX ?? defaultMouseX, (val: number) => {
+    const resolvedMouseX = mouseX ?? context?.mouseX ?? defaultMouseX
+    const resolvedSize = size ?? context?.iconSize ?? DEFAULT_SIZE
+    const resolvedMagnification = magnification ?? context?.iconMagnification ?? DEFAULT_MAGNIFICATION
+    const resolvedDistance = distance ?? context?.iconDistance ?? DEFAULT_DISTANCE
+    const resolvedDisableMagnification = disableMagnification ?? context?.disableMagnification ?? DEFAULT_DISABLEMAGNIFICATION
+
+    const distanceCalc = useTransform(resolvedMouseX, (val: number) => {
       const bounds = internalRef.current?.getBoundingClientRect() ?? { x: 0, width: 0 }
       return val - bounds.x - bounds.width / 2
     })
 
-    const targetSize = disableMagnification ? size : magnification
+    const targetSize = resolvedDisableMagnification ? resolvedSize : resolvedMagnification
 
     const sizeTransform = useTransform(
       distanceCalc,
-      [-distance, 0, distance],
-      [size, targetSize, size]
+      [-resolvedDistance, 0, resolvedDistance],
+      [resolvedSize, targetSize, resolvedSize]
     )
 
     const scaleSize = useSpring(sizeTransform, {
@@ -143,10 +166,10 @@ const DockIcon = React.forwardRef<HTMLDivElement, DockIconProps>(
     return (
       <motion.div
         ref={internalRef}
-        style={{ width: scaleSize, height: scaleSize, padding, ...style }}
+        style={{ width: scaleSize, height: scaleSize, ...style }}
         className={cn(
-          "flex aspect-square cursor-pointer items-center justify-center rounded-full",
-          disableMagnification && "hover:bg-muted-foreground transition-colors",
+          "flex aspect-square cursor-pointer items-center justify-center rounded-full p-0.5",
+          resolvedDisableMagnification && "hover:bg-muted-foreground transition-colors",
           className
         )}
         {...props}

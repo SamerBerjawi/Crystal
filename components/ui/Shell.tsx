@@ -16,6 +16,8 @@ import {
   Settings05Icon,
   Sun01Icon,
   Moon02Icon,
+  EyeClosedIcon,
+  EyeIcon,
 } from '@hugeicons/core-free-icons';
 import Icon from './Icon';
 import { IconButton, Tooltip } from './Actions';
@@ -194,10 +196,11 @@ interface DockToolProps {
   onPress: () => void;
   isActive?: boolean;
   isBusy?: boolean;
+  mouseX?: any;
 }
 
-const DockTool: React.FC<DockToolProps> = ({ icon, label, onPress, isActive, isBusy }) => (
-  <DockIcon>
+const DockTool: React.FC<DockToolProps> = ({ icon, label, onPress, isActive, isBusy, mouseX }) => (
+  <DockIcon mouseX={mouseX}>
     <Tooltip label={label} placement="top" delay={150}>
       <AriaButton
         onPress={onPress}
@@ -205,10 +208,10 @@ const DockTool: React.FC<DockToolProps> = ({ icon, label, onPress, isActive, isB
         aria-current={isActive ? 'page' : undefined}
         isPending={isBusy}
         className={cn(
-          'flex size-full items-center justify-center rounded-full text-ink outline-none transition-[background-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-primary/50',
+          'flex size-full items-center justify-center rounded-full text-ink outline-none transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-primary/50',
           isActive
-            ? 'bg-primary-soft text-primary font-bold shadow-xs'
-            : 'hover:bg-primary-soft/60 active:scale-95'
+            ? 'bg-primary-soft text-primary font-bold shadow-xs ring-1 ring-primary/20'
+            : 'hover:bg-primary-soft data-[hovered]:bg-primary-soft hover:text-primary data-[hovered]:text-primary active:scale-95'
         )}
       >
         {isBusy ? (
@@ -235,6 +238,8 @@ export const ToolRail: React.FC<ShellProps> = ({
   setCurrentPage,
   theme,
   setTheme,
+  isPrivacyMode,
+  togglePrivacyMode,
   isSyncing,
   onSync,
   onSearch,
@@ -296,7 +301,7 @@ export const ToolRail: React.FC<ShellProps> = ({
             theme={isDark ? 'dark' : 'light'}
             onThemeChange={nextTheme => setTheme(nextTheme)}
             aria-label={isDark ? 'Use light theme' : 'Use dark theme'}
-            className="flex size-full items-center justify-center rounded-full text-ink outline-none transition-[background-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-primary-soft/60 active:scale-95"
+            className="flex size-full items-center justify-center rounded-full text-ink outline-none transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-primary-soft data-[hovered]:bg-primary-soft hover:text-primary data-[hovered]:text-primary active:scale-95"
           >
             <HugeiconsIcon
               icon={isDark ? Sun01Icon : Moon02Icon}
@@ -307,6 +312,12 @@ export const ToolRail: React.FC<ShellProps> = ({
           </AnimatedThemeToggler>
         </Tooltip>
       </DockIcon>
+      <DockTool
+        icon={isPrivacyMode ? EyeClosedIcon : EyeIcon}
+        label={isPrivacyMode ? 'Show amounts' : 'Hide amounts'}
+        isActive={isPrivacyMode}
+        onPress={togglePrivacyMode}
+      />
     </Dock>
   );
 };
