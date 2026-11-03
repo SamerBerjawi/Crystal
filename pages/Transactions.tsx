@@ -90,7 +90,7 @@ const LEDGER_SORTS = [
   { id: 'category-desc', label: 'Category, Z to A' },
 ];
 
-const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
+const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
   useEffect(() => {
@@ -155,7 +155,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
-  const urlTab = useUrlTab();
   const [isSelecting, setSelecting] = useState(false);
 
   const activeFilterCount = useMemo(() => {
@@ -1459,8 +1458,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   }, [filteredTransactions]);
 
-  if (urlTab === 'review') return <ReviewQueue />;
-
   const money = (value: number, tone: 'flow' | 'plain' = 'plain') => <Amount value={value} currency={getMainCurrency()} tone={tone} />;
 
   const accountFilterOptions: FilterOption[] = useMemo(() => {
@@ -2027,6 +2024,16 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       )}
     </div>
   );
+};
+
+const Transactions: React.FC<TransactionsProps> = props => {
+  const urlTab = useUrlTab();
+
+  if (urlTab === 'review') {
+    return <ReviewQueue />;
+  }
+
+  return <LedgerView {...props} />;
 };
 
 export default Transactions;

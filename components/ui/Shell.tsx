@@ -155,7 +155,10 @@ export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'
                   : 'font-medium text-muted hover:bg-inset/60 hover:text-ink'
               )}
             >
-              <span className="truncate">{tab.label}</span>
+              <span className="flex min-w-0 items-center gap-2 truncate">
+                {tab.icon && <Icon name={tab.icon} size={15} className={cn('shrink-0', isSubActive ? 'text-ink' : 'text-muted')} />}
+                <span className="truncate">{tab.label}</span>
+              </span>
               {isSubActive && <Icon name="chevron_right" size={15} className="shrink-0 text-ink" />}
             </button>
           </li>
@@ -340,7 +343,16 @@ export const TopPills: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage
                     className="absolute inset-0 rounded-full bg-pill"
                   />
                 )}
-                <span className="relative">{tab.label}</span>
+                <span className="relative flex items-center gap-1.5">
+                  {tab.icon && (
+                    <Icon
+                      name={tab.icon}
+                      size={15}
+                      className={cn('shrink-0 transition-opacity', isActive ? 'text-on-pill' : 'text-muted')}
+                    />
+                  )}
+                  <span>{tab.label}</span>
+                </span>
               </button>
             </li>
           );

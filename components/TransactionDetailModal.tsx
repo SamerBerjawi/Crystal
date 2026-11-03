@@ -488,14 +488,10 @@ const FactSection: React.FC<{
                                 isTransfer && 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
                               )}
                             >
-                              <span
-                                className={cn(
-                                  'size-2 rounded-full',
-                                  isExpense && 'bg-orange-500',
-                                  isIncome && 'bg-emerald-500',
-                                  isTransfer && 'bg-sky-500'
-                                )}
-                                aria-hidden
+                              <Icon
+                                name={isExpense ? 'arrow-up-right-01' : isIncome ? 'arrow-down-left-01' : 'arrow-data-transfer-horizontal'}
+                                size={14}
+                                className="shrink-0"
                               />
                               {isExpense ? 'Expense' : isIncome ? 'Income' : 'Transfer'}
                             </span>
@@ -823,9 +819,11 @@ const FactSection: React.FC<{
                                     {(tx.principalAmount || tx.interestAmount) ? (
                                       <div className="flex flex-wrap gap-2">
                                         <span className="inline-flex items-center gap-1.5 rounded-full bg-inset px-3.5 py-1.5 text-xs font-semibold text-ink">
+                                          <Icon name="bank" size={14} className="shrink-0 text-muted" />
                                           Principal <FormattedAmount text={formatCurrency(tx.principalAmount || 0, tx.currency)} />
                                         </span>
                                         <span className="inline-flex items-center gap-1.5 rounded-full bg-inset px-3.5 py-1.5 text-xs font-semibold text-ink">
+                                          <Icon name="coins-01" size={14} className="shrink-0 text-muted" />
                                           Interest <FormattedAmount text={formatCurrency(tx.interestAmount || 0, tx.currency)} />
                                         </span>
                                       </div>
