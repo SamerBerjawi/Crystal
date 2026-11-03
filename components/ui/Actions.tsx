@@ -314,7 +314,7 @@ export const SelectionBar: React.FC<{
       aria-label="Selection actions"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-float fixed inset-x-4 bottom-[calc(96px+env(safe-area-inset-bottom,0px))] z-[var(--z-bar)] mx-auto flex w-fit max-w-[calc(100%-32px)] items-center gap-2 rounded-full p-1.5 pl-4 md:bottom-6"
+      className="glass-float fixed inset-x-4 bottom-[calc(96px+env(safe-area-inset-bottom,0px))] z-[var(--z-bar)] mx-auto flex w-fit max-w-[calc(100%-32px)] items-center gap-2 rounded-full p-1.5 pl-4 md:bottom-20"
     >
       <span className="type-label whitespace-nowrap text-ink tabular-nums">{count} {noun}</span>
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">{children}</div>

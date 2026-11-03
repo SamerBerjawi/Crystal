@@ -1555,9 +1555,9 @@ body::before {
   .crystal-skeleton { animation: none; }
 }
 
-/* Toasts sit bottom centre and move above the selection bar and the phone bar (D-066). */
-:root { --toast-bottom: 24px; --toast-phone-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
-html[data-selection-bar] { --toast-bottom: 88px; --toast-phone-bottom: calc(164px + env(safe-area-inset-bottom, 0px)); }
+/* Toasts sit bottom centre and move above the toolrail, the selection bar and the phone bar (D-066). */
+:root { --toast-bottom: 84px; --toast-phone-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+html[data-selection-bar] { --toast-bottom: 148px; --toast-phone-bottom: calc(164px + env(safe-area-inset-bottom, 0px)); }
 
 /* Cards rise and fade in on the first visit, up to six (D-062). */
 @keyframes crystal-card-in { from { opacity: 0; transform: translateY(8px); } }

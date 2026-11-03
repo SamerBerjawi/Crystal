@@ -99,7 +99,7 @@ export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>
 
   return (
     <nav aria-label={`${hub.label} pages`} className="border-b border-line">
-      <ul className="no-scrollbar mx-auto flex max-w-[1488px] gap-5 overflow-x-auto px-4 md:pl-6 md:pr-[84px] lg:pl-8 lg:pr-[96px]">
+      <ul className="no-scrollbar mx-auto flex max-w-[1488px] gap-5 overflow-x-auto px-4 md:px-6 lg:px-8">
         {hub.tabs.map(tab => {
           const isActive = tab.page === currentPage && (tab.tab ?? null) === urlTab;
           return (
@@ -170,12 +170,12 @@ export const TopBar: React.FC<ShellProps> = props => (
   </div>
 );
 
-/** Eight tools, and Lock when signed in, in frosted glass, vertically centred in the right margin (D-018, D-052). */
+/** Eight tools, and Lock when signed in, in frosted glass, horizontally centred at the bottom (D-018, D-052). */
 export const ToolRail: React.FC<ShellProps> = ({ onLock, currentPage, setCurrentPage, theme, setTheme, isPrivacyMode, togglePrivacyMode, isSyncing, onSync, onSearch, onCreate }) => {
   const isDark = isDarkNow(theme);
-  const tool = { variant: 'glass', tooltipPlacement: 'left', iconSize: 24, className: 'size-11' } as const;
+  const tool = { variant: 'glass', tooltipPlacement: 'top', iconSize: 24, className: 'size-11' } as const;
   return (
-    <nav aria-label="Tools" className="glass-float fixed right-3 top-1/2 z-[var(--z-bar)] no-scrollbar flex max-h-[calc(100dvh-24px)] w-[60px] -translate-y-1/2 flex-col items-center gap-1 overflow-y-auto rounded-[30px] p-2 lg:right-4">
+    <nav aria-label="Tools" className="glass-float fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] left-1/2 z-[var(--z-bar)] no-scrollbar flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-row items-center gap-1 overflow-x-auto rounded-full p-2">
       <IconButton {...tool} icon="search" label="Search (⌘K)" onPress={onSearch} />
       <IconButton {...tool} icon="add" label="Add transaction (N)" onPress={onCreate} />
       <IconButton {...tool} icon="today" label="Today" isActive={currentPage === 'Schedule & Bills'} onPress={() => setCurrentPage('Schedule & Bills')} />

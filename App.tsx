@@ -3104,7 +3104,7 @@ const App: React.FC = () => {
           </header>
           {!isPhone && <ToolRail {...shellProps} />}
           <main className="relative min-h-0 flex-1 overflow-y-auto scroll-touch focus:outline-none" id="main-content" tabIndex={-1}>
-            <div className="mx-auto w-full max-w-[1488px] px-4 pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-4 md:pb-8 md:pl-6 md:pr-[84px] md:pt-6 lg:pl-8 lg:pr-[96px] lg:pt-8">
+            <div className="mx-auto w-full max-w-[1488px] px-4 pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-4 md:pb-24 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
               <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
                 {ratelessCurrencies.length > 0 && (
                   <Banner tone="attention" className="mb-4" actionLabel="Add a rate" onAction={() => setCurrentPage('Preferences')}>
