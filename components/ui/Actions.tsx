@@ -70,9 +70,10 @@ Button.displayName = 'Button';
 export const Tooltip: React.FC<{
   label: React.ReactNode;
   placement?: 'top' | 'bottom' | 'left' | 'right';
+  delay?: number;
   children: React.ReactElement;
-}> = ({ label, placement = 'top', children }) => (
-  <TooltipTrigger delay={300} closeDelay={0}>
+}> = ({ label, placement = 'top', delay = 300, children }) => (
+  <TooltipTrigger delay={delay} closeDelay={0}>
     {children}
     <AriaTooltip
       placement={placement}

@@ -7,7 +7,9 @@ import type { Page, Theme, User } from '../../types';
 import { HUBS, PHONE_BAR_HUBS, hubForPage } from '../../utils/navigation';
 import { setUrlTab, useUrlTab } from '../../hooks/useUrlTab';
 import Icon from './Icon';
-import { IconButton } from './Actions';
+import { IconButton, Tooltip } from './Actions';
+import { Spinner } from './States';
+import { Dock, DockIcon, DockSeparator } from './dock';
 import { Menu } from './Menu';
 import { BottomSheet, SheetRow } from './Overlays';
 import { cn } from '../../lib/utils';
@@ -174,22 +176,121 @@ export const TopBar: React.FC<ShellProps> = props => (
   </div>
 );
 
-/** Eight tools, and Lock when signed in, in frosted glass, horizontally centred at the bottom (D-018, D-052). */
-export const ToolRail: React.FC<ShellProps> = ({ onLock, currentPage, setCurrentPage, theme, setTheme, isPrivacyMode, togglePrivacyMode, isSyncing, onSync, onSearch, onCreate }) => {
+interface DockToolProps {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  isActive?: boolean;
+  isBusy?: boolean;
+}
+
+const DockTool: React.FC<DockToolProps> = ({ icon, label, onPress, isActive, isBusy }) => (
+  <DockIcon>
+    <Tooltip label={label} placement="top" delay={150}>
+      <AriaButton
+        onPress={onPress}
+        aria-label={label}
+        aria-current={isActive ? 'page' : undefined}
+        isPending={isBusy}
+        className={cn(
+          'flex size-full items-center justify-center rounded-full text-ink outline-none transition-[background-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-primary/50',
+          isActive
+            ? 'bg-primary-soft text-primary font-bold shadow-xs'
+            : 'hover:bg-primary-soft/60 active:scale-95'
+        )}
+      >
+        {isBusy ? (
+          <Spinner className="size-5" />
+        ) : (
+          <Icon
+            name={icon}
+            size={20}
+            weight={isActive ? 'bold' : 'regular'}
+            className={cn(isActive && 'text-primary')}
+          />
+        )}
+      </AriaButton>
+    </Tooltip>
+  </DockIcon>
+);
+
+/**
+ * Dock-based tool rail built on @magicui/dock, with custom spacing,
+ * spring physics magnification, and hover tooltips.
+ */
+export const ToolRail: React.FC<ShellProps> = ({
+  currentPage,
+  setCurrentPage,
+  theme,
+  setTheme,
+  isPrivacyMode,
+  togglePrivacyMode,
+  isSyncing,
+  onSync,
+  onSearch,
+  onCreate,
+}) => {
   const isDark = isDarkNow(theme);
-  const tool = { variant: 'glass', tooltipPlacement: 'top', iconSize: 24, className: 'size-11' } as const;
+
   return (
-    <nav aria-label="Tools" className="glass-float fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] left-1/2 z-[var(--z-bar)] no-scrollbar flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-row items-center gap-1 overflow-x-auto rounded-full p-2">
-      <IconButton {...tool} icon="search" label="Search (⌘K)" onPress={onSearch} />
-      <IconButton {...tool} icon="add" label="Add transaction (N)" onPress={onCreate} />
-      <IconButton {...tool} icon="today" label="Today" isActive={currentPage === 'Schedule & Bills'} onPress={() => setCurrentPage('Schedule & Bills')} />
-      <IconButton {...tool} icon="review_queue" label="Review queue" onPress={() => { setCurrentPage('Transactions'); setUrlTab('review'); }} />
-      <IconButton {...tool} icon="sync_banks" label="Sync banks" isBusy={isSyncing} onPress={onSync} />
-      <IconButton {...tool} icon="settings" label="Settings" isActive={hubForPage(currentPage).id === 'settings'} onPress={() => setCurrentPage('Personal Info')} />
-      <IconButton {...tool} icon={isDark ? 'light_mode' : 'dark_mode'} label={isDark ? 'Use light theme' : 'Use dark theme'} onPress={() => setTheme(isDark ? 'light' : 'dark')} />
-      <IconButton {...tool} icon={isPrivacyMode ? 'visibility' : 'visibility_off'} label={isPrivacyMode ? 'Show amounts' : 'Hide amounts'} isActive={isPrivacyMode} onPress={togglePrivacyMode} />
-      {onLock && <IconButton {...tool} icon="lock" label="Lock Crystal (L)" onPress={onLock} />}
-    </nav>
+    <Dock
+      role="toolbar"
+      aria-label="Tools"
+      className="glass-float fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] left-1/2 z-[var(--z-bar)] mt-0 max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-2xl"
+    >
+      <DockTool icon="search" label="Search (⌘K)" onPress={onSearch} />
+      <DockTool icon="add" label="Add transaction (N)" onPress={onCreate} />
+      <DockTool
+        icon="sync_banks"
+        label={isSyncing ? 'Syncing banks...' : 'Sync banks'}
+        isBusy={isSyncing}
+        onPress={onSync}
+      />
+
+      <DockSeparator />
+
+      <DockTool
+        icon="ledger"
+        label="Ledger"
+        isActive={currentPage === 'Transactions'}
+        onPress={() => {
+          setCurrentPage('Transactions');
+          setUrlTab(null);
+        }}
+      />
+      <DockTool
+        icon="forecast"
+        label="Forecast"
+        isActive={currentPage === 'Forecasting'}
+        onPress={() => {
+          setCurrentPage('Forecasting');
+          setUrlTab(null);
+        }}
+      />
+
+      <DockSeparator />
+
+      <DockTool
+        icon="settings"
+        label="Settings"
+        isActive={hubForPage(currentPage).id === 'settings'}
+        onPress={() => {
+          setCurrentPage('Personal Info');
+          setUrlTab(null);
+        }}
+      />
+      <DockTool
+        icon={isDark ? 'light_mode' : 'dark_mode'}
+        label={isDark ? 'Use light theme' : 'Use dark theme'}
+        onPress={() => setTheme(isDark ? 'light' : 'dark')}
+      />
+      <DockTool
+        icon={isPrivacyMode ? 'visibility' : 'visibility_off'}
+        label={isPrivacyMode ? 'Show amounts' : 'Hide amounts'}
+        isActive={isPrivacyMode}
+        onPress={togglePrivacyMode}
+      />
+    </Dock>
   );
 };
 
