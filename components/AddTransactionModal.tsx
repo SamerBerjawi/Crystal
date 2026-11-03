@@ -25,7 +25,13 @@ import { Badge } from './ui/Display';
 import { AmountInput, DateInput, Radio, RadioGroup, Switch, Textarea, TextInput, controlStyles } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
 import { Combobox, type PickerOption } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  ArrowDataTransferHorizontalIcon,
+} from '@hugeicons/core-free-icons';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 import { AmountPad } from './ui/AmountPad';
 import { cn } from '../lib/utils';
 
@@ -46,24 +52,27 @@ interface AddTransactionModalProps {
   initialDetails?: TxInitial;
 }
 
-const TYPE_ITEMS = [
+const TRANSACTION_TYPE_TABS: SwipeTabItem[] = [
   {
     id: 'expense',
-    label: 'Expense',
-    icon: 'arrow_downward',
-    activeClassName: 'bg-red-500 dark:bg-red-600 text-white shadow-xs',
+    title: 'Expense',
+    icon: () => <HugeiconsIcon icon={ArrowDown01Icon} size={16} className="shrink-0" />,
+    activeColor: 'bg-red-500 dark:bg-red-600',
+    activeTextColor: 'text-white',
   },
   {
     id: 'income',
-    label: 'Income',
-    icon: 'arrow_upward',
-    activeClassName: 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs',
+    title: 'Income',
+    icon: () => <HugeiconsIcon icon={ArrowUp01Icon} size={16} className="shrink-0" />,
+    activeColor: 'bg-emerald-600 dark:bg-emerald-500',
+    activeTextColor: 'text-white',
   },
   {
     id: 'transfer',
-    label: 'Transfer',
-    icon: 'swap_horiz',
-    activeClassName: 'bg-blue-600 dark:bg-blue-500 text-white shadow-xs',
+    title: 'Transfer',
+    icon: () => <HugeiconsIcon icon={ArrowDataTransferHorizontalIcon} size={16} className="shrink-0" />,
+    activeColor: 'bg-blue-600 dark:bg-blue-500',
+    activeTextColor: 'text-white',
   },
 ];
 
@@ -349,7 +358,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       )}
     >
       <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
-        <SegmentedControl className="w-full" items={TYPE_ITEMS} activeId={form.type} onChange={setType} />
+        <SmoothTab
+          fullWidth
+          className="w-full"
+          items={TRANSACTION_TYPE_TABS}
+          value={form.type}
+          onChange={setType}
+          label="Transaction type"
+        />
 
         <div>
           <div className="type-label mb-1.5 flex items-center justify-between text-muted">
