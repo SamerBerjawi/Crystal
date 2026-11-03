@@ -16,7 +16,7 @@ const HIGHLIGHT = { type: 'spring', stiffness: 420, damping: 38 } as const;
 
 export interface ShellProps {
   currentPage: Page;
-  setCurrentPage: (page: Page) => void;
+  setCurrentPage: (page: Page, tab?: string | null) => void;
   user: User;
   theme: Theme;
   setTheme: (theme: Theme) => void;
@@ -107,7 +107,7 @@ export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>
               <button
                 ref={isActive ? activeRef : undefined}
                 type="button"
-                onClick={() => { setCurrentPage(tab.page); setUrlTab(tab.tab ?? null); }}
+                onClick={() => { setCurrentPage(tab.page, tab.tab ?? null); setUrlTab(tab.tab ?? null); }}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'relative flex h-11 cursor-pointer items-center whitespace-nowrap text-sm font-bold transition-colors duration-[var(--duration-base)]',

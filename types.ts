@@ -718,7 +718,7 @@ export interface BillPayment {
 
 export interface AccountDetailProps {
   account: Account;
-  setCurrentPage: (page: Page) => void;
+  setCurrentPage: (page: Page, tab?: string | null) => void;
   setViewingAccountId: (id: string | null) => void;
   saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }

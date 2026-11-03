@@ -20,14 +20,15 @@ const AccountPanels = React.lazy(() => import('../components/AccountPanels'));
 
 const AccountDetail: React.FC<{
     account: Account;
-    setCurrentPage: (page: any) => void;
+    setCurrentPage: (page: any, tab?: string | null) => void;
     setViewingAccountId: (id: string | null) => void;
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
+    onOpenAccount?: (id: string, tab?: string) => void;
     enableBankingLink?: { connection: EnableBankingConnection; account: EnableBankingAccount };
     onTriggerEnableBankingSync?: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
     onCloseAsset?: (accountId: string, details: AssetClosureDetails) => void;
     onRevertClosure?: (accountId: string) => void;
-}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount, enableBankingLink, onTriggerEnableBankingSync, onCloseAsset, onRevertClosure }) => {
+}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount, onOpenAccount, enableBankingLink, onTriggerEnableBankingSync, onCloseAsset, onRevertClosure }) => {
     const { accounts } = useAccountsContext();
     const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -313,6 +314,37 @@ const AccountDetail: React.FC<{
         deleteTransactions(ids);
     };
 
+    const handleBack = () => {
+        setViewingAccountId(null);
+        const tab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+        const fallbackTab = tab || (
+            account.type === 'Loan' || account.type === 'Lending' || account.type === 'Other Liabilities' ? 'loans' :
+            account.type === 'Property' || account.type === 'Vehicle' || (account.type === 'Other Assets' && account.otherSubType !== 'Cash') ? 'assets' :
+            account.type === 'Checking' || account.type === 'Savings' || (account.type === 'Other Assets' && account.otherSubType === 'Cash') ? 'accounts' :
+            null
+        );
+
+        if (typeof window !== 'undefined' && window.history.state?.internal && window.history.state?.fromAccounts) {
+            window.history.back();
+        } else {
+            setCurrentPage('Accounts', fallbackTab);
+        }
+    };
+
+    const handleOpenLinkedAccount = (targetAccountId: string) => {
+        if (onOpenAccount) {
+            const tab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+            onOpenAccount(targetAccountId, tab ?? undefined);
+        } else {
+            setViewingAccountId(targetAccountId);
+            const tab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+            const tabSuffix = tab ? `?tab=${encodeURIComponent(tab)}` : '';
+            if (typeof window !== 'undefined') {
+                window.history.pushState({ internal: true, fromAccounts: true }, '', `/accounts/${encodeURIComponent(targetAccountId)}${tabSuffix}`);
+            }
+        }
+    };
+
     return (
         <>
              {isTransactionModalOpen && (
@@ -415,8 +447,8 @@ const AccountDetail: React.FC<{
                     onTransactionClick={handleTransactionClick}
                     onAddTransaction={() => handleOpenTransactionModal()}
                     onAdjustBalance={handleOpenAdjustModal}
-                    onBack={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }}
-                    onOpenAccount={setViewingAccountId}
+                    onBack={handleBack}
+                    onOpenAccount={handleOpenLinkedAccount}
                     onSync={enableBankingLink ? handleOpenSyncPrompt : undefined}
                     onUpdateValuation={handleOpenValuationModal}
                     onCloseAsset={handleOpenCloseModal}

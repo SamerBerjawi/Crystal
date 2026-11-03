@@ -31,9 +31,9 @@ interface AccountsProps {
     transactions: Transaction[];
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
     deleteAccount: (accountId: string) => void;
-    setCurrentPage: (page: Page) => void;
+    setCurrentPage: (page: Page, tab?: string | null) => void;
     setViewingAccountId: (id: string | null) => void;
-    onViewAccount?: (id: string) => void;
+    onViewAccount?: (id: string, tab?: string) => void;
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder?: string[];
     setAccountOrder?: React.Dispatch<React.SetStateAction<string[]>>;
@@ -112,11 +112,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   }, {} as Record<string, Transaction[]>), [transactions]);
 
   const handleAccountClick = (accountId: string) => {
+    const tab = activeTab !== 'cards' ? activeTab : undefined;
     if (onViewAccount) {
-      onViewAccount(accountId);
+      onViewAccount(accountId, tab);
     } else {
       setViewingAccountId(accountId);
-      setCurrentPage('AccountDetail');
+      setCurrentPage('AccountDetail', tab);
     }
   };
 

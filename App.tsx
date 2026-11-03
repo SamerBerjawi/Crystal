@@ -398,7 +398,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 const App: React.FC = () => {
-  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const initialPath = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : '/';
   const initialRoute = parseRoute(initialPath);
 
   const { isLocked, lockedOnLoadRef, user, setUser, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword, authorizedFetch } = useAuth();
@@ -623,21 +623,26 @@ const App: React.FC = () => {
     return resolved;
   }, [assetPrices, warrants]);
 
-  const navigateToPath = useCallback((path: string, replace = false) => {
+  const navigateToPath = useCallback((path: string, replace = false, state?: any) => {
     if (typeof window === 'undefined') return;
     const nextPath = path || '/';
+    const historyState = { internal: true, ...state };
     try {
-      if (replace) { window.history.replaceState(null, '', nextPath); }
-      else { window.history.pushState(null, '', nextPath); }
+      if (replace) { window.history.replaceState(historyState, '', nextPath); }
+      else { window.history.pushState(historyState, '', nextPath); }
     } catch (e) {
       console.warn('Navigation state update failed, falling back to in-memory navigation:', e);
     }
     setCurrentPath(nextPath);
+    window.dispatchEvent(new Event('crystal:tab'));
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const handlePopState = () => { setCurrentPath(window.location.pathname || '/'); };
+    const handlePopState = () => {
+      setCurrentPath((window.location.pathname + window.location.search) || '/');
+      window.dispatchEvent(new Event('crystal:tab'));
+    };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
@@ -699,18 +704,24 @@ const App: React.FC = () => {
     return isPrivacyMode ? startPrivacyMask() : undefined;
   }, [isPrivacyMode]);
 
-  const setCurrentPage = useCallback((page: Page) => {
-    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : page === 'HoldingDetail' ? viewingHoldingSymbol : null);
+  const setCurrentPage = useCallback((page: Page, tab?: string | null) => {
+    let targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : page === 'HoldingDetail' ? viewingHoldingSymbol : null);
+    const resolvedTab = tab !== undefined ? tab : (page === 'Accounts' && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null);
+    if (resolvedTab) {
+      targetPath += `?tab=${encodeURIComponent(resolvedTab)}`;
+    }
     navigateToPath(targetPath);
     setCurrentPageState(page);
     if (page !== 'AccountDetail') { setViewingAccountId(null); }
     if (page !== 'HoldingDetail') { setViewingHoldingSymbol(null); }
   }, [navigateToPath, viewingAccountId, viewingHoldingSymbol]);
 
-  const handleOpenAccountDetail = useCallback((accountId: string) => {
+  const handleOpenAccountDetail = useCallback((accountId: string, tab?: string | null) => {
     setViewingAccountId(accountId);
     setCurrentPageState('AccountDetail');
-    navigateToPath(pageToPath('AccountDetail', accountId));
+    const activeTab = tab !== undefined ? tab : (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null);
+    const tabSuffix = activeTab ? `?tab=${encodeURIComponent(activeTab)}` : '';
+    navigateToPath(pageToPath('AccountDetail', accountId) + tabSuffix, false, { fromAccounts: true });
   }, [navigateToPath]);
 
   const handleOpenHoldingDetail = useCallback((symbol: string) => {
@@ -2965,7 +2976,7 @@ const App: React.FC = () => {
       return <PageLoader label="Loading holding..." />;
     }
     if (viewingAccountId) {
-      if (viewingAccount) return <AccountDetail account={viewingAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} saveAccount={handleSaveAccount} enableBankingLink={enableBankingLinkMap.get(viewingAccount.id)} onTriggerEnableBankingSync={handleSyncEnableBankingConnection} onCloseAsset={handleCloseAsset} onRevertClosure={handleRevertAccountClosure} />;
+      if (viewingAccount) return <AccountDetail account={viewingAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onOpenAccount={handleOpenAccountDetail} saveAccount={handleSaveAccount} enableBankingLink={enableBankingLinkMap.get(viewingAccount.id)} onTriggerEnableBankingSync={handleSyncEnableBankingConnection} onCloseAsset={handleCloseAsset} onRevertClosure={handleRevertAccountClosure} />;
       return <PageLoader label="Loading account..." />;
     }
     switch (currentPage) {
