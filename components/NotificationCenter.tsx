@@ -41,7 +41,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   return (
     <>
-      <IconButton icon="notifications" label="Bill alerts" iconSize={24} badge={notificationCount} tooltipPlacement="bottom" onPress={() => setIsOpen(true)} />
+      <IconButton icon="notifications" label="Bill alerts" iconSize={22} badge={notificationCount} tooltipPlacement="bottom" className="flex items-center justify-center" onPress={() => setIsOpen(true)} />
       <SidePanel
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}

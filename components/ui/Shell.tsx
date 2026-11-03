@@ -152,18 +152,22 @@ const ProfileMenu: React.FC<ShellProps> = ({ user, setCurrentPage, isPrivacyMode
 
 /** Logo, seven pills, then notifications and profile. The logo steps aside on narrow tablets, where the pills need the room. */
 export const TopBar: React.FC<ShellProps> = props => (
-  <div className="mx-auto flex h-[72px] max-w-[1488px] items-center justify-between gap-2 px-4 lg:px-8">
-    <button
-      type="button"
-      onClick={() => props.setCurrentPage('Dashboard')}
-      aria-label="Crystal, go to Overview"
-      className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full max-[899px]:hidden"
-    >
-      <CrystalLogo showText={false} />
-      <span className="type-card-title hidden text-ink xl:block">Crystal</span>
-    </button>
-    <TopPills currentPage={props.currentPage} setCurrentPage={props.setCurrentPage} />
-    <div className="flex shrink-0 items-center gap-1">
+  <div className="mx-auto flex h-[72px] max-w-[1488px] items-center justify-between gap-4 px-4 md:px-6 lg:px-8">
+    <div className="flex flex-1 items-center justify-start min-w-0">
+      <button
+        type="button"
+        onClick={() => props.setCurrentPage('Dashboard')}
+        aria-label="Crystal, go to Overview"
+        className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full max-[899px]:hidden"
+      >
+        <CrystalLogo showText={false} />
+        <span className="type-card-title hidden text-ink xl:block">Crystal</span>
+      </button>
+    </div>
+    <div className="flex shrink-0 items-center justify-center">
+      <TopPills currentPage={props.currentPage} setCurrentPage={props.setCurrentPage} />
+    </div>
+    <div className="flex flex-1 items-center justify-end min-w-0 gap-1.5">
       {props.notifications}
       <ProfileMenu {...props} />
     </div>

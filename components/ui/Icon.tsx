@@ -1197,12 +1197,12 @@ export const Icon: React.FC<IconProps> = ({
   const hasWidthClass = /\b(w-\d+|w-\[.*\]|w-full|w-screen|w-auto|size-\d+|size-\[.*\])\b/.test(className);
   const hasHeightClass = /\b(h-\d+|h-\[.*\]|h-full|h-screen|h-auto|size-\d+|size-\[.*\])\b/.test(className);
 
-  const defaultSizeClass = !hasWidthClass && !hasHeightClass && !size ? 'w-[1em] h-[1em] inline-block shrink-0 align-middle' : '';
+  const defaultSizeClass = !hasWidthClass && !hasHeightClass && !size ? 'w-[1em] h-[1em]' : '';
 
   return (
     <HugeiconsIcon
       icon={icon}
-      className={`${defaultSizeClass} ${className}`.trim()}
+      className={`shrink-0 block ${defaultSizeClass} ${className}`.trim()}
       size={size ?? '1em'}
       color={color}
       strokeWidth={Number(strokeWidth ?? (weight === 'bold' || weight === 'fill' ? 2 : 1.5))}
