@@ -11,7 +11,7 @@ import { Button, IconButton } from './ui/Actions';
 import { AmountInput, DateInput, Textarea, TextInput } from './ui/Fields';
 import { FullPanel } from './ui/Overlays';
 import { Select } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 interface InvoiceModalProps {
   onClose: () => void;
@@ -23,8 +23,8 @@ interface InvoiceModalProps {
 /** A line while it's being typed. Numbers stay text until saving, so "1." doesn't jump. */
 type DraftLine = Omit<InvoiceItem, 'quantity' | 'unitPrice' | 'discountPercent' | 'total'> & { quantity: string; unitPrice: string; discountPercent: string };
 
-const TYPES = [{ id: 'invoice', label: 'Invoice' }, { id: 'quote', label: 'Quote' }];
-const DIRECTIONS = [{ id: 'sent', label: 'You bill them' }, { id: 'received', label: 'They bill you' }];
+const TYPES: SwipeTabItem[] = [{ id: 'invoice', title: 'Invoice' }, { id: 'quote', title: 'Quote' }];
+const DIRECTIONS: SwipeTabItem[] = [{ id: 'sent', title: 'You bill them' }, { id: 'received', title: 'They bill you' }];
 const CURRENCIES = CURRENCY_OPTIONS.map(option => ({ id: option.split(' ')[0], label: option }));
 
 const blankLine = (): DraftLine => ({ id: uuidv4(), description: '', quantity: '1', unitPrice: '', discountPercent: '' });
@@ -138,8 +138,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
       <form className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-[minmax(0,1fr)_300px]" onSubmit={event => { event.preventDefault(); save(); }}>
         <div className="min-w-0 space-y-4">
           <Section title="Details">
-            {!isEditing && <SegmentedControl className="w-full" items={TYPES} activeId={draft.type} onChange={id => changeType(id as InvoiceType)} />}
-            <SegmentedControl className="w-full" items={DIRECTIONS} activeId={draft.direction} onChange={id => update({ direction: id as InvoiceDirection })} />
+            {!isEditing && <SmoothTab fullWidth className="w-full" items={TYPES} value={draft.type} onChange={id => changeType(id as InvoiceType)} label="Document type" />}
+            <SmoothTab fullWidth className="w-full" items={DIRECTIONS} value={draft.direction} onChange={id => update({ direction: id as InvoiceDirection })} label="Billing direction" />
             <div className="grid grid-cols-2 gap-3 min-[600px]:grid-cols-3">
               <TextInput label="Number" value={draft.number} onChange={number => update({ number })} />
               <Select label="Status" options={statusOptions} value={draft.status} onChange={id => update({ status: id as InvoiceStatus })} />

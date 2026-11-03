@@ -12,12 +12,12 @@ import { Button } from './ui/Actions';
 import { Switch, Textarea, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
 import { Combobox } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
-const TABS = [
-  { id: 'details', label: 'Details' },
-  { id: 'branches', label: 'Branches' },
-  { id: 'logo', label: 'Logo' },
+const TABS: SwipeTabItem[] = [
+  { id: 'details', title: 'Details' },
+  { id: 'branches', title: 'Branches' },
+  { id: 'logo', title: 'Logo' },
 ];
 
 interface MerchantDetailModalProps {
@@ -105,7 +105,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({ isOpen, onClo
       )}
     >
       <div className="space-y-5">
-        <SegmentedControl items={TABS} activeId={tab} onChange={setTab} />
+        <SmoothTab fullWidth className="w-full" items={TABS} value={tab} onChange={setTab} label="Merchant details sections" />
 
         {tab === 'details' && (
           <>

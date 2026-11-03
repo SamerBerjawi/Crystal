@@ -5,8 +5,13 @@ import { validateBackup } from '../utils/validateBackup';
 import { Button } from './ui/Actions';
 import { Checkbox } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 import { Banner } from './ui/States';
+
+const RESTORE_STRATEGY_TABS: SwipeTabItem[] = [
+  { id: 'merge', title: 'Merge' },
+  { id: 'replace', title: 'Replace' },
+];
 
 interface SmartRestoreModalProps {
   onClose: () => void;
@@ -150,10 +155,11 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                     {isIncluded && (isSingle ? (
                       <span className="type-caption text-muted">Replaces what’s here</span>
                     ) : (
-                      <SegmentedControl
-                        items={[{ id: 'merge', label: 'Merge' }, { id: 'replace', label: 'Replace' }]}
-                        activeId={strategies[section.key]}
+                      <SmoothTab
+                        items={RESTORE_STRATEGY_TABS}
+                        value={strategies[section.key]}
                         onChange={id => setStrategies(prev => ({ ...prev, [section.key]: id as RestoreStrategy }))}
+                        label={`Restore strategy for ${section.label}`}
                       />
                     ))}
                   </li>

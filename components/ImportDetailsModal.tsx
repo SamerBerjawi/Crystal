@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ImportExportHistoryItem } from '../types';
 import { Button } from './ui/Actions';
 import { ConfirmDialog, SidePanel } from './ui/Overlays';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 import { EmptyState } from './ui/States';
 
 interface ImportDetailsModalProps {
@@ -66,11 +66,21 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
         </div>
       }
     >
-      <SegmentedControl
-        className="mb-4"
-        items={[{ id: 'imported', label: `Valid rows ${imported.length}` }, { id: 'errors', label: `Errors ${errors.length}` }]}
-        activeId={tab}
+      <SmoothTab
+        fullWidth
+        className="mb-4 w-full"
+        items={[
+          { id: 'imported', title: `Valid rows (${imported.length})` },
+          {
+            id: 'errors',
+            title: `Errors (${errors.length})`,
+            activeColor: errors.length > 0 ? 'bg-red-500 dark:bg-red-600' : undefined,
+            activeTextColor: errors.length > 0 ? 'text-white' : undefined,
+          },
+        ]}
+        value={tab}
         onChange={id => setTab(id as 'imported' | 'errors')}
+        label="Import details rows"
       />
       {tab === 'imported' && (imported.length > 0
         ? <DataTable headers={headers} rows={imported} />

@@ -4,7 +4,7 @@ import type { Task, TaskPriority, TaskStatus } from '../types';
 import { Button } from './ui/Actions';
 import { DateInput, Textarea, TextInput } from './ui/Fields';
 import { Dialog } from './ui/Overlays';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 interface TaskModalProps {
   isOpen?: boolean;
@@ -14,8 +14,12 @@ interface TaskModalProps {
   onDelete: (id: string) => void;
 }
 
-const PRIORITIES = (['Low', 'Medium', 'High'] as TaskPriority[]).map(id => ({ id, label: id }));
-const STATUSES = (['To Do', 'In Progress', 'Done'] as TaskStatus[]).map(id => ({ id, label: id }));
+const PRIORITIES: SwipeTabItem[] = ([
+  { id: 'Low', title: 'Low' },
+  { id: 'Medium', title: 'Medium' },
+  { id: 'High', title: 'High', activeColor: 'bg-red-500 dark:bg-red-600', activeTextColor: 'text-white' },
+]);
+const STATUSES: SwipeTabItem[] = (['To Do', 'In Progress', 'Done'] as TaskStatus[]).map(id => ({ id, title: id }));
 
 /** Add or edit a task (TSK-04). */
 const TaskModal: React.FC<TaskModalProps> = ({ task, onClose, onSave, onDelete }) => {
@@ -55,11 +59,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, onClose, onSave, onDelete }
         <Textarea label="Description" value={draft.description} onChange={description => update({ description })} />
         <div>
           <p className="type-label mb-1.5 text-ink">Priority</p>
-          <SegmentedControl className="w-full" items={PRIORITIES} activeId={draft.priority} onChange={priority => update({ priority: priority as TaskPriority })} />
+          <SmoothTab fullWidth className="w-full" items={PRIORITIES} value={draft.priority} onChange={priority => update({ priority: priority as TaskPriority })} label="Task priority" />
         </div>
         <div>
           <p className="type-label mb-1.5 text-ink">Status</p>
-          <SegmentedControl className="w-full" items={STATUSES} activeId={draft.status} onChange={status => update({ status: status as TaskStatus })} />
+          <SmoothTab fullWidth className="w-full" items={STATUSES} value={draft.status} onChange={status => update({ status: status as TaskStatus })} label="Task status" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <DateInput label="Due date" value={draft.dueDate} onChange={dueDate => update({ dueDate })} />

@@ -7,10 +7,10 @@ import { Button } from './ui/Actions';
 import { AmountInput, DateInput } from './ui/Fields';
 import { Dialog } from './ui/Overlays';
 import { Select, type PickerOption } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 const ALL_NET_WORTH = 'all_net_worth';
-const KINDS = [{ id: 'spending_cap', label: 'Spending' }, { id: 'net_worth_goal', label: 'Net worth' }, { id: 'price_target', label: 'Price' }];
+const KINDS: SwipeTabItem[] = [{ id: 'spending_cap', title: 'Spending' }, { id: 'net_worth_goal', title: 'Net worth' }, { id: 'price_target', title: 'Price' }];
 const TARGET_LABELS: Record<PredictionType, string> = { spending_cap: 'Category', net_worth_goal: 'Account', price_target: 'Holding' };
 const AMOUNT_LABELS: Record<PredictionType, string> = { spending_cap: 'Limit', net_worth_goal: 'Balance to reach', price_target: 'Price to reach' };
 
@@ -98,7 +98,7 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
       }
     >
       <form className="space-y-4" onSubmit={event => { event.preventDefault(); save(); }}>
-        <SegmentedControl className="w-full" items={KINDS} activeId={type} onChange={id => { setType(id as PredictionType); setTargetId(''); }} />
+        <SmoothTab fullWidth className="w-full" items={KINDS} value={type} onChange={id => { setType(id as PredictionType); setTargetId(''); }} label="Prediction target kind" />
         <Select label={TARGET_LABELS[type]} options={options} value={targetId || null} onChange={setTargetId} />
         <AmountInput label={AMOUNT_LABELS[type]} value={targetAmount} onChange={setTargetAmount} />
         <DateInput label="End date" value={endDate} onChange={setEndDate} />

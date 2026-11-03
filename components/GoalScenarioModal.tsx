@@ -9,7 +9,7 @@ import { Button } from './ui/Actions';
 import { AmountInput, DateInput, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
 import { Select, type PickerOption } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 interface GoalScenarioModalProps {
   onClose: () => void;
@@ -22,7 +22,7 @@ interface GoalScenarioModalProps {
 
 type Shape = 'by-date' | 'ongoing' | 'bucket';
 
-const SHAPES = [{ id: 'by-date', label: 'Target date' }, { id: 'ongoing', label: 'Recurring' }, { id: 'bucket', label: 'Bucket' }];
+const SHAPES: SwipeTabItem[] = [{ id: 'by-date', title: 'Target date' }, { id: 'ongoing', title: 'Recurring' }, { id: 'bucket', title: 'Bucket' }];
 const CATEGORIES: PickerOption[] = [{ id: 'savings', label: 'Saving' }, { id: 'expense', label: 'Spending' }, { id: 'income', label: 'Income' }];
 const AMOUNT_LABELS = {
   savings: { target: 'Target amount', current: 'Saved so far' },
@@ -92,7 +92,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
       )}
     >
       <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
-        {!isEditing && !isSubGoal && <SegmentedControl className="w-full" items={SHAPES} activeId={shape} onChange={setShape} />}
+        {!isEditing && !isSubGoal && <SmoothTab fullWidth className="w-full" items={SHAPES} value={shape} onChange={setShape} label="Goal structure" />}
         <TextInput label={isBucket ? 'Bucket name' : 'Goal name'} value={draft.name} onChange={name => update({ name })} autoFocus />
 
         {isBucket ? (

@@ -5,7 +5,12 @@ import { Button } from './ui/Actions';
 import { DateInput, TextInput } from './ui/Fields';
 import { Dialog } from './ui/Overlays';
 import { Select } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
+
+const BANK_LINK_MODES: SwipeTabItem[] = [
+  { id: 'existing', title: 'Existing account' },
+  { id: 'create', title: 'New account' },
+];
 
 const ACCOUNT_TYPES: AccountType[] = ['Checking', 'Savings', 'Credit Card', 'Investment', 'Loan', 'Property', 'Vehicle', 'Other Assets', 'Other Liabilities', 'Lending'];
 const PRESETS = [30, 60, 90];
@@ -78,10 +83,13 @@ const BankLinkDialog: React.FC<BankLinkDialogProps> = ({ account, accounts, take
       )}
     >
       <div className="space-y-4">
-        <SegmentedControl
-          items={[{ id: 'existing', label: 'Existing account' }, { id: 'create', label: 'New account' }]}
-          activeId={mode}
+        <SmoothTab
+          fullWidth
+          className="w-full"
+          items={BANK_LINK_MODES}
+          value={mode}
           onChange={id => setMode(id as 'existing' | 'create')}
+          label="Bank account link mode"
         />
         {mode === 'existing' ? (
           <Select label="Crystal account" options={accountOptions} value={accountId || null} onChange={setAccountId} />

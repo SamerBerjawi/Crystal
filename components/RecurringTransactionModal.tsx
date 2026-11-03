@@ -9,7 +9,13 @@ import { Button } from './ui/Actions';
 import { AmountInput, DateInput, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
 import { Combobox, Select, type PickerOption } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  ArrowDataTransferHorizontalIcon,
+} from '@hugeicons/core-free-icons';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 export interface RecurringTransactionModalProps {
   isOpen?: boolean;
@@ -25,25 +31,28 @@ export interface RecurringTransactionModalProps {
   initialDate?: string;
 }
 
-const KINDS = [{ id: 'recurring', label: 'Recurring' }, { id: 'bill', label: 'One-time' }];
-const RECURRING_TYPES = [
+const KINDS: SwipeTabItem[] = [{ id: 'recurring', title: 'Recurring' }, { id: 'bill', title: 'One-time' }];
+const RECURRING_TYPES: SwipeTabItem[] = [
   {
     id: 'expense',
-    label: 'Payment',
-    icon: 'arrow_downward',
-    activeClassName: 'bg-red-500 dark:bg-red-600 text-white shadow-xs',
+    title: 'Payment',
+    icon: () => <HugeiconsIcon icon={ArrowDown01Icon} size={16} className="shrink-0" />,
+    activeColor: 'bg-red-500 dark:bg-red-600',
+    activeTextColor: 'text-white',
   },
   {
     id: 'income',
-    label: 'Income',
-    icon: 'arrow_upward',
-    activeClassName: 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs',
+    title: 'Income',
+    icon: () => <HugeiconsIcon icon={ArrowUp01Icon} size={16} className="shrink-0" />,
+    activeColor: 'bg-emerald-600 dark:bg-emerald-500',
+    activeTextColor: 'text-white',
   },
   {
     id: 'transfer',
-    label: 'Transfer',
-    icon: 'swap_horiz',
-    activeClassName: 'bg-blue-600 dark:bg-blue-500 text-white shadow-xs',
+    title: 'Transfer',
+    icon: () => <HugeiconsIcon icon={ArrowDataTransferHorizontalIcon} size={16} className="shrink-0" />,
+    activeColor: 'bg-blue-600 dark:bg-blue-500',
+    activeTextColor: 'text-white',
   },
 ];
 const BILL_TYPES = RECURRING_TYPES.slice(0, 2);
@@ -125,8 +134,8 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = prop
       )}
     >
       <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
-        {!isEditing && <SegmentedControl className="w-full" items={KINDS} activeId={draft.kind} onChange={setKind} />}
-        <SegmentedControl className="w-full" items={isBill ? BILL_TYPES : RECURRING_TYPES} activeId={draft.type} onChange={type => update({ type: type as SeriesDraft['type'], ...(isEditing ? {} : { category: '' }) })} />
+        {!isEditing && <SmoothTab fullWidth className="w-full" items={KINDS} value={draft.kind} onChange={setKind} label="Transaction recurrence" />}
+        <SmoothTab fullWidth className="w-full" items={isBill ? BILL_TYPES : RECURRING_TYPES} value={draft.type} onChange={type => update({ type: type as SeriesDraft['type'], ...(isEditing ? {} : { category: '' }) })} label="Transaction type" />
         <AmountInput label="Amount" value={draft.amount} onChange={amount => update({ amount })} />
         <TextInput label="Name" value={draft.description} onChange={description => update({ description })} />
         {!isBill && <TextInput label="Merchant" value={draft.merchant} onChange={merchant => update({ merchant })} help="Optional." />}

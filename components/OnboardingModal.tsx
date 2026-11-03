@@ -13,13 +13,27 @@ import { AmountInput, DateInput, TextInput } from './ui/Fields';
 import Icon from './ui/Icon';
 import { FullPanel } from './ui/Overlays';
 import { Combobox, Select } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ArrowDown01Icon, ArrowUp01Icon } from '@hugeicons/core-free-icons';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 const LAST_STEP = 6;
 
-const FLOW_OPTIONS = [
-  { id: 'income', label: 'Income' },
-  { id: 'expense', label: 'Expense' },
+const FLOW_OPTIONS: SwipeTabItem[] = [
+  {
+    id: 'income',
+    title: 'Income',
+    icon: () => <HugeiconsIcon icon={ArrowUp01Icon} size={16} className="shrink-0" />,
+    activeColor: 'bg-emerald-600 dark:bg-emerald-500',
+    activeTextColor: 'text-white',
+  },
+  {
+    id: 'expense',
+    title: 'Expense',
+    icon: () => <HugeiconsIcon icon={ArrowDown01Icon} size={16} className="shrink-0" />,
+    activeColor: 'bg-red-500 dark:bg-red-600',
+    activeTextColor: 'text-white',
+  },
 ];
 
 const PLAN = [
@@ -214,7 +228,14 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, user
         )}
         {step === 5 && (
           <>
-            <SegmentedControl items={FLOW_OPTIONS} activeId={rtType} onChange={id => { setRtType(id as 'income' | 'expense'); setRtCategory(null); }} />
+            <SmoothTab
+              fullWidth
+              className="w-full"
+              items={FLOW_OPTIONS}
+              value={rtType}
+              onChange={id => { setRtType(id as 'income' | 'expense'); setRtCategory(null); }}
+              label="Transaction flow type"
+            />
             <TextInput autoFocus label="Description" placeholder={rtType === 'income' ? 'Salary' : 'Rent'} value={rtDescription} onChange={setRtDescription} />
             <AmountInput label="Amount each month" currency={currencySign(accountCurrency)} value={rtAmount} onChange={setRtAmount} />
             <Combobox label="Category" options={categoryOptions} value={rtCategory} onChange={setRtCategory} placeholder="Search categories" />

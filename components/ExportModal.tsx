@@ -5,7 +5,7 @@ import { Button } from './ui/Actions';
 import { Checkbox, DateInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
 import { MultiSelect } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 interface ExportModalProps {
   onClose: () => void;
@@ -29,6 +29,8 @@ const DATA_TYPES = [
   { id: 'preferences', label: 'Preferences' },
   { id: 'userStats', label: 'Challenge stats' },
 ];
+
+const FORMAT_TABS: SwipeTabItem[] = [{ id: 'csv', title: 'CSV tables' }, { id: 'json', title: 'JSON backup' }];
 
 const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, initialFormat = 'csv' }) => {
   const [isOpen, setOpen] = useState(true);
@@ -69,7 +71,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
       <div className="space-y-5">
         <div>
           <p className="type-label mb-1.5 text-ink">Format</p>
-          <SegmentedControl items={[{ id: 'csv', label: 'CSV tables' }, { id: 'json', label: 'JSON backup' }]} activeId={format} onChange={id => setFormat(id as 'json' | 'csv')} />
+          <SmoothTab fullWidth className="w-full" items={FORMAT_TABS} value={format} onChange={id => setFormat(id as 'json' | 'csv')} label="Export format" />
         </div>
 
         <div>

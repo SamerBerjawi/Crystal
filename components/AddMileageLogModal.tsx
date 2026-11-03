@@ -6,11 +6,11 @@ import { Button } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { DateInput, Textarea, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
-const MODES = [
-  { id: 'single', label: 'One reading' },
-  { id: 'batch', label: 'Paste several' },
+const MODES: SwipeTabItem[] = [
+  { id: 'single', title: 'One reading' },
+  { id: 'batch', title: 'Paste several' },
 ];
 
 interface AddMileageLogModalProps {
@@ -67,7 +67,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({ onClose, onSave
       )}
     >
       <div className="space-y-4">
-        {!logToEdit && <SegmentedControl items={MODES} activeId={mode} onChange={setMode} />}
+        {!logToEdit && <SmoothTab fullWidth className="w-full" items={MODES} value={mode} onChange={setMode} label="Mileage entry mode" />}
         {isSingle ? (
           <>
             <TextInput autoFocus label="Odometer (km)" inputMode="numeric" placeholder="45000" value={reading} onChange={text => { setReading(text); setReadingError(null); }} error={readingError ?? undefined} />

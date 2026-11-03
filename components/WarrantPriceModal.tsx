@@ -10,9 +10,9 @@ import { Button, IconButton } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { AmountInput, DateInput, Radio, RadioGroup, Textarea, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
-const MODES = [{ id: 'single', label: 'One price' }, { id: 'bulk', label: 'Many prices' }];
+const MODES: SwipeTabItem[] = [{ id: 'single', title: 'One price' }, { id: 'bulk', title: 'Many prices' }];
 const SUPPORTED_CURRENCIES = CURRENCY_OPTIONS.map(option => option.split(' ')[0]);
 
 interface WarrantPriceModalProps {
@@ -441,7 +441,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
             )}
         >
             <form className="space-y-4" onSubmit={handleSubmit}>
-                {!initialEntry && <SegmentedControl className="w-full" items={MODES} activeId={mode} onChange={id => setMode(id as 'single' | 'bulk')} />}
+                {!initialEntry && <SmoothTab fullWidth className="w-full" items={MODES} value={mode} onChange={id => setMode(id as 'single' | 'bulk')} label="Price entry mode" />}
                 {mode === 'single' ? (
                     <>
                         <div className="grid grid-cols-2 gap-3">

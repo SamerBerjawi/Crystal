@@ -11,7 +11,7 @@ import { Button, IconButton } from './ui/Actions';
 import { AmountInput, DateInput, Switch, TextInput } from './ui/Fields';
 import { ConfirmDialog, SidePanel } from './ui/Overlays';
 import { Select, type PickerOption } from './ui/Pickers';
-import SegmentedControl from './ui/SegmentedControl';
+import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 export interface InvestmentModalProps {
   onClose: () => void;
@@ -29,9 +29,12 @@ export interface InvestmentModalProps {
   initialSymbol?: string;
 }
 
-const MODES = [{ id: 'trade', label: 'Trade' }, { id: 'grant', label: 'Equity grant' }];
-const SIDES = [{ id: 'buy', label: 'Buy' }, { id: 'sell', label: 'Sell' }];
-const TAX_TYPES = [{ id: 'percentage', label: 'Percentage' }, { id: 'amount', label: 'Fixed amount' }];
+const MODES: SwipeTabItem[] = [{ id: 'trade', title: 'Trade' }, { id: 'grant', title: 'Equity grant' }];
+const SIDES: SwipeTabItem[] = [
+  { id: 'buy', title: 'Buy', activeColor: 'bg-emerald-600 dark:bg-emerald-500', activeTextColor: 'text-white' },
+  { id: 'sell', title: 'Sell', activeColor: 'bg-red-500 dark:bg-red-600', activeTextColor: 'text-white' },
+];
+const TAX_TYPES: SwipeTabItem[] = [{ id: 'percentage', title: 'Percentage' }, { id: 'amount', title: 'Fixed amount' }];
 const SUB_TYPES: InvestmentSubType[] = ['Stock', 'ETF', 'Crypto', 'Pension Fund', 'Spare Change', 'Other'];
 const CURRENCIES: PickerOption[] = CURRENCY_OPTIONS.map(option => ({ id: option.split(' ')[0], label: option }));
 
@@ -218,11 +221,11 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
         )}
       >
         <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
-          {!isEditingTrade && !isEditingGrant && <SegmentedControl className="w-full" items={MODES} activeId={draft.mode} onChange={mode => update({ mode: mode as 'trade' | 'grant' })} />}
+          {!isEditingTrade && !isEditingGrant && <SmoothTab fullWidth className="w-full" items={MODES} value={draft.mode} onChange={mode => update({ mode: mode as 'trade' | 'grant' })} label="Investment mode" />}
 
           {draft.mode === 'trade' ? (
             <>
-              <SegmentedControl className="w-full" items={SIDES} activeId={draft.side} onChange={side => update({ side: side as 'buy' | 'sell' })} />
+              <SmoothTab fullWidth className="w-full" items={SIDES} value={draft.side} onChange={side => update({ side: side as 'buy' | 'sell' })} label="Order side" />
               <div>
                 <TextInput label="Ticker" value={draft.symbol} onChange={symbol => update({ symbol })} isDisabled={isEditingTrade} autoFocus={!startSymbol} />
                 {suggestions.length > 0 && (
@@ -260,7 +263,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
               <DateInput label="Grant date" value={draft.grantDate} onChange={grantDate => update({ grantDate })} />
               <div>
                 <p className="type-label mb-1.5 text-ink">Tax</p>
-                <SegmentedControl className="w-full" items={TAX_TYPES} activeId={draft.taxType} onChange={taxType => update({ taxType: taxType as 'amount' | 'percentage' })} />
+                <SmoothTab fullWidth className="w-full" items={TAX_TYPES} value={draft.taxType} onChange={taxType => update({ taxType: taxType as 'amount' | 'percentage' })} label="Tax calculation type" />
               </div>
               <TextInput label={draft.taxType === 'percentage' ? 'Tax rate (%)' : 'Tax amount'} inputMode="decimal" value={draft.taxValue} onChange={taxValue => update({ taxValue })} help={`Tax comes to ${formatCurrency(taxAmount, draft.currency)}.`} />
               <section aria-label="Tax instalments" className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-4">
