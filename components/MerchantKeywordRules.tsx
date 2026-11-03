@@ -43,7 +43,7 @@ const MerchantKeywordRules: React.FC<{ merchantName: string; category: string; d
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <h3 className="type-card-title text-ink">Matching keywords</h3>
-        {!isAdding && <Button variant="ghost" size="sm" icon="add" onPress={() => setAdding(true)}>Add</Button>}
+        {!isAdding && <Button variant="ghost" size="sm" icon="add-01" onPress={() => setAdding(true)}>Add</Button>}
       </div>
       {isAdding && (
         <div className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-3">

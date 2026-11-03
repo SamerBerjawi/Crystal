@@ -88,7 +88,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
                   {title && <Heading slot="title" className="type-section-title truncate text-ink">{title}</Heading>}
                   {description && <p className="type-caption text-muted">{description}</p>}
                 </div>
-                <IconButton icon="close" label="Close" onPress={onClose} onPointerDown={e => e.stopPropagation()} />
+                <IconButton icon="cancel-01" label="Close" onPress={onClose} onPointerDown={e => e.stopPropagation()} />
               </header>
             )}
             <div className={cn("scroll-touch min-h-0 flex-1 overflow-y-auto", contentPadding !== false && "px-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))]")}>{children}</div>
@@ -191,7 +191,7 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
                   {title && <Heading slot="title" className="type-section-title text-ink">{title}</Heading>}
                   {description && <div className="type-body mt-1 text-muted">{description}</div>}
                 </div>
-                <IconButton icon="close" label="Close" onPress={requestClose} />
+                <IconButton icon="cancel-01" label="Close" onPress={requestClose} />
               </header>
             )}
             <div className={cn("min-h-0 flex-1 overflow-y-auto", contentPadding !== false && "px-6 pb-6")}>

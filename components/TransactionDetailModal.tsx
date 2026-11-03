@@ -87,7 +87,7 @@ const AccountLogoTile: React.FC<{
       ) : initial ? (
         <span className="text-sm font-bold text-ink">{initial}</span>
       ) : (
-        <Icon name="account_balance" size={18} className="text-muted" />
+        <Icon name="bank" size={18} className="text-muted" />
       )}
     </span>
   );
@@ -360,14 +360,14 @@ const FactSection: React.FC<{
               />
             ) : (
               <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-black/85 via-surface/70 to-black/60">
-                <Icon name={isTransfer ? 'swap_horiz' : 'receipt'} size={48} className="text-muted/20" />
+                <Icon name={isTransfer ? 'arrow-data-transfer-horizontal' : 'receipt'} size={48} className="text-muted/20" />
               </div>
             )}
 
             {/* Top-left location pill */}
             {place && (
               <span className="absolute left-4 top-4 z-10 inline-flex h-8 max-w-[65%] items-center gap-1.5 rounded-full bg-black/60 px-3 text-xs font-semibold text-white shadow-sm backdrop-blur-md">
-                <Icon name="location_on" size={16} className="shrink-0 text-primary" />
+                <Icon name="location-01" size={16} className="shrink-0 text-primary" />
                 <span className="truncate">{place}</span>
               </span>
             )}
@@ -379,7 +379,7 @@ const FactSection: React.FC<{
               aria-label="Close"
               className="absolute right-4 top-4 z-10 flex size-8 items-center justify-center rounded-full bg-black/60 text-white shadow-sm backdrop-blur-md transition-colors hover:bg-black/80"
             >
-              <Icon name="close" size={16} />
+              <Icon name="cancel-01" size={16} />
             </button>
 
             {/* Fade gradient overlay at bottom of map banner */}
@@ -395,7 +395,7 @@ const FactSection: React.FC<{
                   <img src={logo} alt="" onError={() => setFailedLogo(logoUrl)} className="size-full object-cover" />
                 ) : isTransfer ? (
                   <span className="flex size-full items-center justify-center bg-sky-500/15 text-sky-600 dark:text-sky-400">
-                    <Icon name="swap_horiz" size={28} />
+                    <Icon name="arrow-data-transfer-horizontal" size={28} />
                   </span>
                 ) : mainAccount ? (
                   <span className="flex size-full items-center justify-center bg-black/5 dark:bg-white/10 text-muted">
@@ -488,14 +488,10 @@ const FactSection: React.FC<{
                                 isTransfer && 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
                               )}
                             >
-                              <span
-                                className={cn(
-                                  'size-2 rounded-full',
-                                  isExpense && 'bg-orange-500',
-                                  isIncome && 'bg-emerald-500',
-                                  isTransfer && 'bg-sky-500'
-                                )}
-                                aria-hidden
+                              <Icon
+                                name={isExpense ? 'arrow-up-right-01' : isIncome ? 'arrow-down-left-01' : 'arrow-data-transfer-horizontal'}
+                                size={14}
+                                className="shrink-0"
                               />
                               {isExpense ? 'Expense' : isIncome ? 'Income' : 'Transfer'}
                             </span>
@@ -623,7 +619,7 @@ const FactSection: React.FC<{
                             {/* Badges */}
                             {tx.isSplitParent && <Badge tone="attention">Split, {parts.length}</Badge>}
                             {tx.isCombinedParent && <Badge tone="teal">Combined, {parts.length}</Badge>}
-                            {tx.recurringSourceId && <Badge tone="positive" icon="repeat">Recurring</Badge>}
+                            {tx.recurringSourceId && <Badge tone="positive" icon="repeat-one-01">Recurring</Badge>}
                             {tx.isBalanceAdjustment && <Badge tone="neutral">Adjustment</Badge>}
                           </div>
 
@@ -668,7 +664,7 @@ const FactSection: React.FC<{
                               </div>
                             )}
                             <div className="grid grid-cols-2 gap-3">
-                              <FactSection label="From" icon="account_balance">
+                              <FactSection label="From" icon="bank">
                                 {from?.accountId ? (
                                   <button
                                     type="button"
@@ -692,7 +688,7 @@ const FactSection: React.FC<{
                                   </div>
                                 )}
                               </FactSection>
-                              <FactSection label="To" icon="account_balance">
+                              <FactSection label="To" icon="bank">
                                 {to?.accountId ? (
                                   <button
                                     type="button"
@@ -719,7 +715,7 @@ const FactSection: React.FC<{
                             </div>
                           </div>
                         ) : (
-                          <FactSection label="Payment & Account" icon="account_balance">
+                          <FactSection label="Payment & Account" icon="bank">
                               <div className="space-y-2.5">
                                 {mainAccount ? (
                                   <button
@@ -760,7 +756,7 @@ const FactSection: React.FC<{
                                         <div className="flex items-center justify-between gap-3 rounded-2xl bg-inset p-3">
                                           <div className="flex min-w-0 items-center gap-3">
                                             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                                              <Icon name="piggy" size={20} />
+                                              <Icon name="piggy-bank" size={20} />
                                             </span>
                                             <p className="truncate text-sm font-semibold text-ink">
                                               Spare Change Round-up
@@ -777,14 +773,14 @@ const FactSection: React.FC<{
 
                                 {/* Description Section */}
                                     {tx.description && (
-                                      <FactSection label="Description" icon="calendar_today">
+                                      <FactSection label="Description" icon="calendar-03">
                                         <p className="break-words text-base font-semibold text-ink">{tx.description}</p>
                                       </FactSection>
                                     )}
 
                                     {/* Memo / Notes Section */}
                                     {tx.notes && (
-                                      <FactSection label="Notes" icon="notes">
+                                      <FactSection label="Notes" icon="doc-01">
                                         <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">{tx.notes}</p>
                                       </FactSection>
                                     )}
@@ -793,7 +789,7 @@ const FactSection: React.FC<{
                                     {(place || tx.address || hasPlace(tx)) && (
                                       <FactSection
                                         label="Location"
-                                        icon="location_on"
+                                        icon="location-01"
                                         action={
                                           <a
                                             href={mapsUrl(tx)}
@@ -802,7 +798,7 @@ const FactSection: React.FC<{
                                             className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                                           >
                                             Open in Maps
-                                            <Icon name="open_in_new" size={14} />
+                                            <Icon name="link-square-02" size={14} />
                                           </a>
                                         }
                                       >
@@ -823,16 +819,18 @@ const FactSection: React.FC<{
                                     {(tx.principalAmount || tx.interestAmount) ? (
                                       <div className="flex flex-wrap gap-2">
                                         <span className="inline-flex items-center gap-1.5 rounded-full bg-inset px-3.5 py-1.5 text-xs font-semibold text-ink">
+                                          <Icon name="bank" size={14} className="shrink-0 text-muted" />
                                           Principal <FormattedAmount text={formatCurrency(tx.principalAmount || 0, tx.currency)} />
                                         </span>
                                         <span className="inline-flex items-center gap-1.5 rounded-full bg-inset px-3.5 py-1.5 text-xs font-semibold text-ink">
+                                          <Icon name="coins-01" size={14} className="shrink-0 text-muted" />
                                           Interest <FormattedAmount text={formatCurrency(tx.interestAmount || 0, tx.currency)} />
                                         </span>
                                       </div>
                                     ) : null}
 
                                     {/* Tags Section */}
-                                    <FactSection label="Tags" icon="tag">
+                                    <FactSection label="Tags" icon="tag-01">
                                       <div className="flex flex-wrap items-center gap-2">
                                         {txTags.map(tag => (
                                           <span

@@ -23,17 +23,17 @@ import { cn } from '../lib/utils';
 const LEGACY_VIEWS_KEY = 'reports.savedViews.v1';
 
 const TILES: { id: ReportId; label: string; icon: string }[] = [
-  { id: 'summary', label: 'Summary', icon: 'analytics' },
-  { id: 'spending', label: 'Spending pace', icon: 'trending_up' },
-  { id: 'categories', label: 'Categories', icon: 'pie_chart' },
-  { id: 'usual', label: 'Compared with usual', icon: 'compare_arrows' },
-  { id: 'needs', label: 'Needs and wants', icon: 'balance' },
+  { id: 'summary', label: 'Summary', icon: 'analytics-01' },
+  { id: 'spending', label: 'Spending pace', icon: 'chart-line-data-01' },
+  { id: 'categories', label: 'Categories', icon: 'pie-chart-01' },
+  { id: 'usual', label: 'Compared with usual', icon: 'exchange-01' },
+  { id: 'needs', label: 'Needs and wants', icon: 'balance-scale' },
   { id: 'breakdown', label: 'Spend breakdown', icon: 'receipt' },
-  { id: 'cashflow', label: 'Cash flow', icon: 'swap_horiz' },
-  { id: 'budget', label: 'Budget and actual', icon: 'savings' },
-  { id: 'recurring', label: 'Repeat spending', icon: 'refresh' },
-  { id: 'unusual', label: 'Unusual payments', icon: 'error' },
-  { id: 'forecast', label: 'Month-end forecast', icon: 'calendar_today' },
+  { id: 'cashflow', label: 'Cash flow', icon: 'arrow-data-transfer-horizontal' },
+  { id: 'budget', label: 'Budget and actual', icon: 'sliders-horizontal' },
+  { id: 'recurring', label: 'Repeat spending', icon: 'repeat-one-01' },
+  { id: 'unusual', label: 'Unusual payments', icon: 'alert-circle' },
+  { id: 'forecast', label: 'Month-end forecast', icon: 'clock-01' },
 ];
 
 interface LibraryCardProps {
@@ -131,8 +131,8 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
   };
 
   const stats: PageStat[] = [
-    { label: 'Total spend', icon: 'credit_card', value: report.totalSpend, format: 'money', currency: getMainCurrency(), ...(report.changePct === null ? {} : { badge: `${report.changePct >= 0 ? '+' : '−'}${Math.abs(report.changePct).toFixed(1)}%`, badgeTone: report.changePct > 0 ? 'tomato' as const : 'pine' as const }) },
-    { label: 'Savings rate', icon: 'savings', value: report.savingsRate, format: 'percent' },
+    { label: 'Total spend', icon: 'credit-card', value: report.totalSpend, format: 'money', currency: getMainCurrency(), ...(report.changePct === null ? {} : { badge: `${report.changePct >= 0 ? '+' : '−'}${Math.abs(report.changePct).toFixed(1)}%`, badgeTone: report.changePct > 0 ? 'tomato' as const : 'pine' as const }) },
+    { label: 'Savings rate', icon: 'piggy-bank', value: report.savingsRate, format: 'percent' },
     { label: 'Transactions', icon: 'receipt', value: report.count, format: 'number' },
   ];
 
@@ -151,7 +151,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
         stats={stats}
         actions={
           <div className="flex gap-2">
-            <Button variant="secondary" icon="tune" onPress={() => setFilterOpen(true)}>
+            <Button variant="secondary" icon="sliders-horizontal" onPress={() => setFilterOpen(true)}>
               <span className="flex items-center gap-1.5">Filters{activeFilters > 0 && <CountPill count={activeFilters} />}</span>
             </Button>
             <Button variant="secondary" onPress={() => setSaving(true)}>Save view</Button>
@@ -206,7 +206,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
         {showReport && (
           <section aria-label={active.label} className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 md:self-start">
-            {isPhone && <Button variant="ghost" size="sm" icon="chevron_left" className="-ml-2 mb-2" onPress={() => setPhoneReportOpen(false)}>All reports</Button>}
+            {isPhone && <Button variant="ghost" size="sm" icon="arrow-left-01" className="-ml-2 mb-2" onPress={() => setPhoneReportOpen(false)}>All reports</Button>}
             <h2 className="type-card-title text-ink">{active.label}</h2>
             <p className="type-caption mb-4 mt-1 text-muted"><span className="font-semibold">What it says: </span>{tiles[activeId].says}</p>
             <ReportPanel id={activeId} report={report} cashflowTransactions={cashflowTransactions} groupBy={groupBy} onGroupBy={setGroupBy} isPhone={isPhone} setCurrentPage={setCurrentPage} />

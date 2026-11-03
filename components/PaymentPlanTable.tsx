@@ -147,9 +147,9 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         {deferredCount > 0 && <Badge tone="attention" className="mr-auto">{deferredCount} deferred</Badge>}
-        <Button variant="secondary" size="sm" icon="calendar" onPress={() => setDeferring({})}>Defer</Button>
-        <Button variant="secondary" size="sm" icon="bolt" onPress={() => setPayingEarly({})}>Early payment</Button>
-        <Button variant="secondary" size="sm" icon="edit" onPress={() => setIsBulkEditOpen(true)}>Bulk edit</Button>
+        <Button variant="secondary" size="sm" icon="calendar-03" onPress={() => setDeferring({})}>Defer</Button>
+        <Button variant="secondary" size="sm" icon="flash" onPress={() => setPayingEarly({})}>Early payment</Button>
+        <Button variant="secondary" size="sm" icon="pencil-edit-02" onPress={() => setIsBulkEditOpen(true)}>Bulk edit</Button>
       </div>
 
       {isNarrow ? (

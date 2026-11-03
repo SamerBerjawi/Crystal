@@ -37,7 +37,7 @@ const BudgetRow: React.FC<BudgetRowProps> = ({ name, icon, color, spent, limit, 
   const remaining = hasLimit ? limit - spent : 0;
   return (
     <button type="button" onClick={onPress} className="flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] p-2 text-left transition-colors duration-[var(--duration-fast)] hover:bg-inset">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset" style={toneDot(color)}><Icon name={icon || 'category'} size={20} /></span>
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset" style={toneDot(color)}><Icon name={icon || 'folder-01'} size={20} /></span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2">

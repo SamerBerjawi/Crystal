@@ -90,7 +90,7 @@ const LEDGER_SORTS = [
   { id: 'category-desc', label: 'Category, Z to A' },
 ];
 
-const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
+const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
   useEffect(() => {
@@ -155,7 +155,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
-  const urlTab = useUrlTab();
   const [isSelecting, setSelecting] = useState(false);
 
   const activeFilterCount = useMemo(() => {
@@ -1261,17 +1260,17 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) ?? null;
     const isPart = !!tx.parentTransactionId;
     const parent = isPart ? transactions.find(t => t.id === tx.parentTransactionId) : undefined;
-    const items: MenuAction[] = [{ id: 'edit', label: 'Edit transaction', icon: 'edit', onAction: () => { setEditingTransaction(original); setTransactionModalOpen(true); } }];
-    if (tx.isSplitParent || (isPart && parent?.isSplitParent)) items.push({ id: 'unsplit', label: 'Unsplit transaction', icon: 'call_merge', onAction: () => handleUnsplit(tx) });
-    if (tx.isCombinedParent || (isPart && parent?.isCombinedParent)) items.push({ id: 'uncombine', label: 'Uncombine transaction', icon: 'call_split', onAction: () => handleUncombine(tx) });
-    if (!tx.isSplitParent && !tx.isCombinedParent && !isPart && !tx.isTransfer) items.push({ id: 'split', label: 'Split transaction', icon: 'call_split', onAction: () => { setTransactionToSplit(original); setIsSplitModalOpen(true); } });
+    const items: MenuAction[] = [{ id: 'edit', label: 'Edit transaction', icon: 'pencil-edit-02', onAction: () => { setEditingTransaction(original); setTransactionModalOpen(true); } }];
+    if (tx.isSplitParent || (isPart && parent?.isSplitParent)) items.push({ id: 'unsplit', label: 'Unsplit transaction', icon: 'git-merge', onAction: () => handleUnsplit(tx) });
+    if (tx.isCombinedParent || (isPart && parent?.isCombinedParent)) items.push({ id: 'uncombine', label: 'Uncombine transaction', icon: 'split', onAction: () => handleUncombine(tx) });
+    if (!tx.isSplitParent && !tx.isCombinedParent && !isPart && !tx.isTransfer) items.push({ id: 'split', label: 'Split transaction', icon: 'split', onAction: () => { setTransactionToSplit(original); setIsSplitModalOpen(true); } });
     items.push(
-      { id: 'duplicate', label: 'Duplicate', icon: 'content_copy', onAction: () => handleDuplicate(tx) },
-      { id: 'recurring', label: 'Make recurring', icon: 'repeat', isDisabled: tx.isTransfer, onAction: () => handleMakeRecurring(tx) },
+      { id: 'duplicate', label: 'Duplicate', icon: 'copy-01', onAction: () => handleDuplicate(tx) },
+      { id: 'recurring', label: 'Make recurring', icon: 'repeat-one-01', isDisabled: tx.isTransfer, onAction: () => handleMakeRecurring(tx) },
     );
     const hasLocation = Boolean(tx.city || tx.country || tx.latitude || tx.longitude || (original && (original.city || original.country || original.latitude || original.longitude || original.address)));
-    if (hasLocation) items.push({ id: 'location', label: 'Remove location', icon: 'location_off', onAction: () => handleClearLocation(tx) });
-    items.push({ id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => { setSelectedIds(new Set([tx.id])); setIsDeleteConfirmOpen(true); } });
+    if (hasLocation) items.push({ id: 'location', label: 'Remove location', icon: 'location-offline-01', onAction: () => handleClearLocation(tx) });
+    items.push({ id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => { setSelectedIds(new Set([tx.id])); setIsDeleteConfirmOpen(true); } });
     return items;
   };
 
@@ -1333,7 +1332,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           kind: 'account',
           value: accId,
           label: tx.fromAccountName,
-          icon: 'account_balance',
+          icon: 'bank',
           isActive,
         });
       }
@@ -1345,7 +1344,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           kind: 'account',
           value: accId,
           label: tx.toAccountName,
-          icon: 'account_balance',
+          icon: 'bank',
           isActive,
         });
       }
@@ -1359,7 +1358,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           kind: 'account',
           value: accId,
           label: accName,
-          icon: 'account_balance',
+          icon: 'bank',
           isActive,
         });
       }
@@ -1371,7 +1370,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         kind: 'category',
         value: tx.category,
         label: tx.category,
-        icon: 'pie_chart',
+        icon: 'pie-chart-01',
         isActive,
       });
     }
@@ -1382,7 +1381,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         kind: 'merchant',
         value: tx.merchant.trim(),
         label: tx.merchant.trim(),
-        icon: 'wallet',
+        icon: 'store-01',
         isActive,
       });
     }
@@ -1394,7 +1393,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         kind: 'location',
         value: loc.city,
         label: loc.city,
-        icon: 'location_on',
+        icon: 'location-01',
         isActive,
       });
     }
@@ -1458,8 +1457,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     });
     return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   }, [filteredTransactions]);
-
-  if (urlTab === 'review') return <ReviewQueue />;
 
   const money = (value: number, tone: 'flow' | 'plain' = 'plain') => <Amount value={value} currency={getMainCurrency()} tone={tone} />;
 
@@ -1809,12 +1806,12 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   );
 
   const selectionMore: MenuAction[] = [
-    { id: 'combine', label: 'Combine', icon: 'merge_type', isDisabled: !canCombine, onAction: handleOpenCombineModal },
-    { id: 'split', label: 'Split', icon: 'splitscreen', isDisabled: !canSplit, onAction: handleOpenSplitModal },
-    { id: 'unsplit', label: 'Unsplit', icon: 'call_merge', isDisabled: !canUnsplit, onAction: () => handleUnsplit() },
-    { id: 'uncombine', label: 'Uncombine', icon: 'call_split', isDisabled: !canUncombine, onAction: () => handleUncombine() },
-    { id: 'recurring', label: 'Make recurring', icon: 'repeat', isDisabled: selectedIds.size !== 1, onAction: () => handleMakeRecurring() },
-    ...(isMobile ? [{ id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: handleOpenDeleteModal }] : []),
+    { id: 'combine', label: 'Combine', icon: 'git-merge', isDisabled: !canCombine, onAction: handleOpenCombineModal },
+    { id: 'split', label: 'Split', icon: 'split', isDisabled: !canSplit, onAction: handleOpenSplitModal },
+    { id: 'unsplit', label: 'Unsplit', icon: 'git-merge', isDisabled: !canUnsplit, onAction: () => handleUnsplit() },
+    { id: 'uncombine', label: 'Uncombine', icon: 'split', isDisabled: !canUncombine, onAction: () => handleUncombine() },
+    { id: 'recurring', label: 'Make recurring', icon: 'repeat-one-01', isDisabled: selectedIds.size !== 1, onAction: () => handleMakeRecurring() },
+    ...(isMobile ? [{ id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: handleOpenDeleteModal }] : []),
   ];
   const deleteLabel = `Delete ${selectedIds.size} ${selectedIds.size === 1 ? 'transaction' : 'transactions'}`;
   const clearSelection = () => { setSelectedIds(new Set()); setSelecting(false); };
@@ -1925,13 +1922,13 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         title="Transactions"
         stats={[
           { label: 'Transactions shown', icon: 'receipt', value: filteredTransactions.length },
-          { label: 'Money in', icon: 'arrow_downward', value: totalIncome, format: 'money' },
-          { label: 'Money out', icon: 'arrow_upward', value: totalExpense, format: 'money' },
+          { label: 'Money in', icon: 'arrow-down-left-01', value: totalIncome, format: 'money' },
+          { label: 'Money out', icon: 'arrow-up-right-01', value: totalExpense, format: 'money' },
         ]}
         actions={!isMobile ? (
           <>
-            <Button variant="secondary" icon="download" onPress={handleExport}>Export</Button>
-            <Button icon="add" onPress={handleOpenAddModal}>Add transaction</Button>
+            <Button variant="secondary" icon="download-04" onPress={handleExport}>Export</Button>
+            <Button icon="add-01" onPress={handleOpenAddModal}>Add transaction</Button>
           </>
         ) : isSelecting
           ? <Button variant="ghost" onPress={clearSelection}>Done</Button>
@@ -2007,7 +2004,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           />
         ) : (
           <EmptyState
-            icon="search"
+            icon="search-01"
             title={transactions.length ? 'Nothing matches' : 'No transactions yet'}
             description={transactions.length ? 'Try fewer filters.' : 'Add one, or connect a bank in Settings.'}
             actionLabel={transactions.length ? 'Clear filters' : 'Add transaction'}
@@ -2021,12 +2018,22 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         <SelectionBar count={selectedIds.size} onClear={clearSelection}>
           <Button size="sm" variant="ghost" onPress={handleOpenCategorizeModal}>Categorise</Button>
           <Button size="sm" variant="ghost" onPress={() => setBulkEditModalOpen(true)}>Edit</Button>
-          <Menu title="More actions" placement="top" trigger={<IconButton icon="more_horiz" label="More actions" />} items={selectionMore} />
+          <Menu title="More actions" placement="top" trigger={<IconButton icon="more-horizontal" label="More actions" />} items={selectionMore} />
           {!isMobile && <HoldButton label={deleteLabel} onConfirm={handleConfirmBulkDelete} />}
         </SelectionBar>
       )}
     </div>
   );
+};
+
+const Transactions: React.FC<TransactionsProps> = props => {
+  const urlTab = useUrlTab();
+
+  if (urlTab === 'review') {
+    return <ReviewQueue />;
+  }
+
+  return <LedgerView {...props} />;
 };
 
 export default Transactions;

@@ -261,30 +261,30 @@ const Investments: React.FC<InvestmentsProps> = ({
     holding,
     trend: historyWindow(logFor(holding.symbol), 30, new Date()).points.map(point => ({ value: point.price })),
     menu: [
-      { id: 'details', label: 'Details', icon: 'visibility', onAction: () => setOpenSymbol(holding.symbol) },
-      { id: 'price', label: 'Log or fetch a price', icon: 'edit', onAction: () => setPriceTarget({ symbol: holding.symbol, name: holding.name }) },
-      { id: 'trade', label: 'Trade', icon: 'swap_horiz', onAction: () => setTradeForm({ mode: 'trade', symbol: holding.symbol }) },
+      { id: 'details', label: 'Details', icon: 'view', onAction: () => setOpenSymbol(holding.symbol) },
+      { id: 'price', label: 'Log or fetch a price', icon: 'pencil-edit-02', onAction: () => setPriceTarget({ symbol: holding.symbol, name: holding.name }) },
+      { id: 'trade', label: 'Trade', icon: 'arrow-data-transfer-horizontal', onAction: () => setTradeForm({ mode: 'trade', symbol: holding.symbol }) },
     ],
   })), [shownHoldings, logFor]);
 
   const accountMenu = (account: Account): MenuAction[] => [
-    { id: 'open', label: 'Open account', icon: 'open_in_new', onAction: () => onViewAccount?.(account.id) },
-    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setAccountForm(account) },
-    ...(account.status === 'closed' ? [] : [{ id: 'adjust', label: 'Adjust balance', icon: 'tune', onAction: () => setAdjustingAccount(account) }]),
-    { id: 'status', label: account.status === 'closed' ? 'Reopen' : 'Close', icon: account.status === 'closed' ? 'lock_open' : 'lock', startsGroup: true, onAction: () => onToggleAccountStatus(account.id) },
-    { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, onAction: () => setAccountToDelete(account) },
+    { id: 'open', label: 'Open account', icon: 'link-square-02', onAction: () => onViewAccount?.(account.id) },
+    { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setAccountForm(account) },
+    ...(account.status === 'closed' ? [] : [{ id: 'adjust', label: 'Adjust balance', icon: 'sliders-horizontal', onAction: () => setAdjustingAccount(account) }]),
+    { id: 'status', label: account.status === 'closed' ? 'Reopen' : 'Close', icon: account.status === 'closed' ? 'square-unlock-02' : 'square-lock-02', startsGroup: true, onAction: () => onToggleAccountStatus(account.id) },
+    { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, onAction: () => setAccountToDelete(account) },
   ];
 
   const stats: PageStat[] = [
-    { label: 'Portfolio value', icon: 'nav_investments', value: current.value, format: 'money', currency: getMainCurrency() },
-    { label: 'Gain or loss', icon: gain >= 0 ? 'trending_up' : 'trending_down', value: gain, format: 'money', currency: getMainCurrency(), badge: `${gain >= 0 ? '+' : '−'}${Math.abs(gainPct).toFixed(1)}%`, badgeTone: gain >= 0 ? 'pine' : 'tomato' },
-    { label: 'Realised', icon: 'payments', value: realized.total, format: 'money', currency: getMainCurrency() },
+    { label: 'Portfolio value', icon: 'chart-line-data-01', value: current.value, format: 'money', currency: getMainCurrency() },
+    { label: 'Gain or loss', icon: gain >= 0 ? 'chart-line-data-01' : 'chart-decrease', value: gain, format: 'money', currency: getMainCurrency(), badge: `${gain >= 0 ? '+' : '−'}${Math.abs(gainPct).toFixed(1)}%`, badgeTone: gain >= 0 ? 'pine' : 'tomato' },
+    { label: 'Realised', icon: 'coins-01', value: realized.total, format: 'money', currency: getMainCurrency() },
   ];
 
   const hasNothing = investmentAccounts.length === 0 && warrants.length === 0 && investmentTransactions.length === 0;
   const addMenu: MenuAction[] = [
-    { id: 'trade', label: 'Trade', icon: 'swap_horiz', onAction: () => setTradeForm({ mode: 'trade' }) },
-    { id: 'grant', label: 'Equity grant', icon: 'workspace_premium', onAction: () => setTradeForm({ mode: 'grant' }) },
+    { id: 'trade', label: 'Trade', icon: 'arrow-data-transfer-horizontal', onAction: () => setTradeForm({ mode: 'trade' }) },
+    { id: 'grant', label: 'Equity grant', icon: 'award-01', onAction: () => setTradeForm({ mode: 'grant' }) },
   ];
   const segmentItems = [{ id: 'all', label: 'All' }, ...presentSegments.map(name => ({ id: name, label: SEGMENT_LABELS[name] }))];
 
@@ -296,13 +296,13 @@ const Investments: React.FC<InvestmentsProps> = ({
         actions={
           <div className="flex gap-2">
             <Button variant="secondary" icon="refresh" isBusy={isUpdatingPrices} isDisabled={heldHoldings.length === 0} onPress={updateAllPrices}>Update prices</Button>
-            <Menu title="Add" trigger={<Button icon="add">Add</Button>} items={addMenu} />
+            <Menu title="Add" trigger={<Button icon="add-01">Add</Button>} items={addMenu} />
           </div>
         }
       />
 
       {hasNothing ? (
-        <EmptyState icon="nav_investments" title="No investments yet" description="Add a trade or an equity grant to start your portfolio." actionLabel="Add a trade" onAction={() => setTradeForm({ mode: 'trade' })} />
+        <EmptyState icon="chart-line-data-01" title="No investments yet" description="Add a trade or an equity grant to start your portfolio." actionLabel="Add a trade" onAction={() => setTradeForm({ mode: 'trade' })} />
       ) : (
         <>
           {presentSegments.length > 1 && <SegmentedControl scrollable items={segmentItems} activeId={activeSegment} onChange={id => setSegment(id as InvestmentSegment)} />}
@@ -392,10 +392,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                           <span className="type-figure-row shrink-0 text-ink"><Amount value={item.quantity * item.price} currency={item.currency} /></span>
                           <Menu
                             title={item.symbol}
-                            trigger={<IconButton icon="more_horiz" label={`Actions for ${item.kind.toLowerCase()} of ${item.symbol}`} tooltipPlacement="left" />}
+                            trigger={<IconButton icon="more-horizontal" label={`Actions for ${item.kind.toLowerCase()} of ${item.symbol}`} tooltipPlacement="left" />}
                             items={[
-                              { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setTradeForm({ trade: item.trade, grant: item.grant }) },
-                              { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setActivityToDelete({ id: item.id, isGrant: !!item.grant, label: `${item.kind.toLowerCase()} of ${item.symbol}` }) },
+                              { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setTradeForm({ trade: item.trade, grant: item.grant }) },
+                              { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setActivityToDelete({ id: item.id, isGrant: !!item.grant, label: `${item.kind.toLowerCase()} of ${item.symbol}` }) },
                             ]}
                           />
                         </li>

@@ -221,7 +221,7 @@ const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants =
                     <span className="type-body text-ink">{log.date}</span>
                     <span className="flex items-center gap-1">
                       <span className="type-figure-row text-ink">{log.reading.toLocaleString()} km</span>
-                      <IconButton icon="delete" label={`Delete the reading from ${log.date}`} onPress={() => set({ mileageLogs: draft.mileageLogs.filter((_, i) => i !== index) })} />
+                      <IconButton icon="delete-02" label={`Delete the reading from ${log.date}`} onPress={() => set({ mileageLogs: draft.mileageLogs.filter((_, i) => i !== index) })} />
                     </span>
                   </li>
                 ))}
@@ -231,7 +231,7 @@ const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants =
               <div className="md:col-span-2">
                 <Button
                   variant="secondary"
-                  icon="add"
+                  icon="add-01"
                   isDisabled={!newLog.date || !newLog.reading}
                   onPress={() => {
                     set({ mileageLogs: [...draft.mileageLogs, { id: `log-${uuidv4()}`, date: newLog.date, reading: parseInt(newLog.reading, 10) }] });

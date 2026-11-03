@@ -204,9 +204,9 @@ const Budgeting: React.FC<BudgetingProps> = ({
   };
 
   const pageStats: PageStat[] = [
-    { label: 'Budgeted this month', icon: 'pie_chart', value: totalBudgeted, format: 'money' },
-    { label: 'Spent so far', icon: 'payments', value: totalSpent, format: 'money' },
-    { label: 'Left to spend', icon: 'savings', value: totalRemaining, format: 'money' },
+    { label: 'Budgeted this month', icon: 'pie-chart-01', value: totalBudgeted, format: 'money' },
+    { label: 'Spent so far', icon: 'money-send-01', value: totalSpent, format: 'money' },
+    { label: 'Left to spend', icon: 'piggy-bank', value: totalRemaining, format: 'money' },
   ];
 
   const ringTone = overallProgress > 100 ? 'loss' : overallProgress >= 85 ? 'amber' : 'pine';
@@ -220,18 +220,18 @@ const Budgeting: React.FC<BudgetingProps> = ({
           <>
             <Menu
               title="Quick budget"
-              trigger={<Button variant="secondary" icon="bolt">Quick budget</Button>}
+              trigger={<Button variant="secondary" icon="flash">Quick budget</Button>}
               items={quickOptions.map(option => ({ id: String(option.value), label: option.label, onAction: () => setQuickPeriod(option.value) }))}
             />
-            <Button icon="add" onPress={() => openForm()}>Set a budget</Button>
+            <Button icon="add-01" onPress={() => openForm()}>Set a budget</Button>
           </>
         }
       />
 
       <div className="flex items-center gap-1">
-        <IconButton icon="chevron_left" label="Previous month" onPress={() => handleMonthChange(-1)} />
+        <IconButton icon="arrow-left-01" label="Previous month" onPress={() => handleMonthChange(-1)} />
         <h2 className="type-card-title min-w-36 text-center text-ink" aria-live="polite">{monthName}</h2>
-        <IconButton icon="chevron_right" label="Next month" onPress={() => handleMonthChange(1)} />
+        <IconButton icon="arrow-right-01" label="Next month" onPress={() => handleMonthChange(1)} />
         {pace.when !== 'current' && <Button variant="ghost" onPress={() => setCurrentDate(new Date())}>This month</Button>}
       </div>
 
@@ -298,7 +298,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
             </div>
           ) : (
             <EmptyState
-              icon="pie_chart"
+              icon="pie-chart-01"
               title={filter === 'attention' ? 'Nothing near its cap' : 'No budgets yet'}
               description={filter === 'attention' ? 'Every budget is within its limit.' : 'Set a budget, or build them all from your recent spending.'}
               actionLabel={filter === 'attention' ? undefined : 'Set a budget'}

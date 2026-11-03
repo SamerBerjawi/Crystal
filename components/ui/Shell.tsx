@@ -6,6 +6,7 @@ import { APP_VERSION } from '../../version';
 import type { Page, Theme, User } from '../../types';
 import { HUBS, PHONE_BAR_HUBS, hubForPage } from '../../utils/navigation';
 import { setUrlTab, useUrlTab } from '../../hooks/useUrlTab';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   SearchingIcon,
@@ -71,38 +72,237 @@ const Avatar: React.FC<{ user: User; size?: number }> = ({ user, size = 36 }) =>
   );
 };
 
-/** Seven hub pills. They compress at tablet widths and never become a menu. */
-const TopPills: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = ({ currentPage, setCurrentPage }) => {
+/** Collapsible left sidebar with nested sub-page tree and collapsed hover flyout. */
+export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = ({ currentPage, setCurrentPage }) => {
+  const [isCollapsed, setCollapsed] = useLocalStorage<boolean>('crystal-sidebar-collapsed', false);
   const activeHub = hubForPage(currentPage);
+  const urlTab = useUrlTab();
+  const [openHubIds, setOpenHubIds] = useState<Record<string, boolean>>(() => ({ [activeHub.id]: true }));
+  const [hoveredHubId, setHoveredHubId] = useState<string | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setOpenHubIds(prev => (prev[activeHub.id] ? prev : { ...prev, [activeHub.id]: true }));
+  }, [activeHub.id]);
+
+  useEffect(() => () => {
+    if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+  }, []);
+
+  const effectivePage: Page =
+    currentPage === 'AccountDetail' ? 'Accounts' :
+    currentPage === 'HoldingDetail' ? 'Investments' :
+    currentPage;
+
+  const isTabActive = (hub: (typeof HUBS)[number], tab: (typeof HUBS)[number]['tabs'][number]) => {
+    if (hub.id !== activeHub.id) return false;
+    const exactMatch = hub.tabs.some(t => t.page === effectivePage && (t.tab ?? null) === urlTab);
+    return tab.page === effectivePage && (exactMatch ? (tab.tab ?? null) === urlTab : !tab.tab);
+  };
+
+  const handleHubPress = (hub: (typeof HUBS)[number]) => {
+    const isCurrentHub = hub.id === activeHub.id;
+    if (!isCollapsed && hub.tabs.length > 0) {
+      if (isCurrentHub) {
+        setOpenHubIds(prev => ({ ...prev, [hub.id]: !prev[hub.id] }));
+        return;
+      }
+      setOpenHubIds(prev => ({ ...prev, [hub.id]: true }));
+    }
+    setCurrentPage(hub.home, null);
+    setUrlTab(null);
+  };
+
+  const handleMouseEnterHub = (hubId: string) => {
+    if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+    setHoveredHubId(hubId);
+  };
+
+  const handleMouseLeaveHub = () => {
+    if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = window.setTimeout(() => setHoveredHubId(null), 120);
+  };
+
+  const renderSubmenuTree = (hub: (typeof HUBS)[number], onSelectDone?: () => void) => (
+    <ul className="flex flex-col">
+      {hub.tabs.map((tab, index) => {
+        const isSubActive = isTabActive(hub, tab);
+        const isLast = index === hub.tabs.length - 1;
+        return (
+          <li key={tab.label} className="relative pl-4 pt-1">
+            {!isLast && (
+              <span
+                aria-hidden="true"
+                className=" pointer-events-none absolute bottom-0 left-0 top-0 border-l-[1.5px] border-line-strong"
+              />
+            )}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-0 top-0 h-[22px] w-3.5 rounded-bl-[10px] border-b-[1.5px] border-l-[1.5px] border-line-strong"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentPage(tab.page, tab.tab ?? null);
+                setUrlTab(tab.tab ?? null);
+                onSelectDone?.();
+              }}
+              aria-current={isSubActive ? 'page' : undefined}
+              className={cn(
+                'relative flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 text-[.8125rem] transition-colors duration-[var(--duration-fast)]',
+                isSubActive
+                  ? 'bg-inset font-bold text-ink'
+                  : 'font-medium text-muted hover:bg-inset/60 hover:text-ink'
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2 truncate">
+                {tab.icon && <Icon name={tab.icon} size={15} className={cn('shrink-0', isSubActive ? 'text-ink' : 'text-muted')} />}
+                <span className="truncate">{tab.label}</span>
+              </span>
+              {isSubActive && <Icon name="chevron_right" size={15} className="shrink-0 text-ink" />}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   return (
-    <nav aria-label="Main">
-      <ul className="flex items-center gap-0.5 rounded-[22px] surface-card p-1">
-        {HUBS.map(hub => {
-          const isActive = hub.id === activeHub.id;
-          return (
-            <li key={hub.id}>
-              <button
-                type="button"
-                onClick={() => setCurrentPage(hub.home)}
-                aria-current={isActive ? 'page' : undefined}
-                className={cn(
-                  'relative flex h-[38px] cursor-pointer items-center whitespace-nowrap rounded-full px-3 text-[.8125rem] font-bold transition-colors duration-[var(--duration-base)] pointer-coarse:h-11 lg:px-[15px] lg:text-sm',
-                  isActive ? 'text-on-pill' : 'text-ink hover:bg-inset'
-                )}
+    <aside
+      aria-label="Sidebar"
+      className={cn(
+        'safe-top relative z-[var(--z-sticky)] flex h-dvh shrink-0 flex-col border-r border-line bg-solid transition-[width] duration-[var(--duration-base)] ease-[var(--ease-standard)]',
+        isCollapsed ? 'w-[76px]' : 'w-[252px]'
+      )}
+    >
+      {/* Floating collapse / expand button on the right border */}
+      <button
+        type="button"
+        onClick={() => setCollapsed(prev => !prev)}
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className=" 
+          absolute -right-3.5 top-[22px] z-20 flex size-7 cursor-pointer items-center justify-center
+          rounded-full border border-line bg-solid text-ink shadow-sm
+          transition-transform duration-[var(--duration-fast)] hover:scale-105 active:scale-95
+        "
+      >
+        <Icon name={isCollapsed ? 'chevron_right' : 'chevron_left'} size={15} />
+      </button>
+
+      {/* Top Logo */}
+      <div className={cn('flex h-[72px] shrink-0 items-center', isCollapsed ? 'justify-center px-2' : 'px-5')}>
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentPage('Dashboard', null);
+            setUrlTab(null);
+          }}
+          aria-label="Crystal, go to Overview"
+          className={cn(
+            'flex cursor-pointer items-center gap-3 rounded-2xl outline-none transition-opacity hover:opacity-85',
+            isCollapsed && 'justify-center'
+          )}
+        >
+          <CrystalLogo showText={false} />
+          {!isCollapsed && <span className="type-card-title text-ink">Crystal</span>}
+        </button>
+      </div>
+
+      {/* Main Navigation */}
+      <nav
+        aria-label="Main"
+        className={cn(
+          'no-scrollbar flex-1 py-2',
+          isCollapsed ? 'overflow-visible px-3' : 'overflow-y-auto overflow-x-hidden px-4'
+        )}
+      >
+        <ul className="flex flex-col gap-1.5">
+          {HUBS.map(hub => {
+            const isActive = hub.id === activeHub.id;
+            const hasTabs = hub.tabs.length > 0;
+            const isOpen = Boolean(openHubIds[hub.id]);
+            const isHovered = hoveredHubId === hub.id;
+
+            return (
+              <li
+                key={hub.id}
+                className="relative"
+                onMouseEnter={() => isCollapsed && handleMouseEnterHub(hub.id)}
+                onMouseLeave={() => isCollapsed && handleMouseLeaveHub()}
               >
-                {isActive && <motion.span layoutId="hub-pill" transition={HIGHLIGHT} className="absolute inset-0 rounded-full bg-pill" />}
-                <span className="relative">{hub.label}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+                <button
+                  type="button"
+                  onClick={() => handleHubPress(hub)}
+                  aria-label={isCollapsed ? hub.label : undefined}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-expanded={!isCollapsed && hasTabs ? isOpen : undefined}
+                  className={cn(
+                    'relative flex h-11 cursor-pointer items-center rounded-xl text-sm transition-colors duration-[var(--duration-fast)]',
+                    isCollapsed
+                      ? 'mx-auto size-11 justify-center px-0'
+                      : 'w-full justify-between px-3.5',
+                    isActive || (isCollapsed && isHovered)
+                      ? 'bg-inset font-bold text-ink'
+                      : 'font-medium text-muted hover:bg-inset/60 hover:text-ink'
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <Icon
+                      name={hub.icon}
+                      size={20}
+                      weight={isActive ? 'bold' : 'regular'}
+                      className={cn('shrink-0', isActive ? 'text-ink' : 'text-muted')}
+                    />
+                    {!isCollapsed && <span className="truncate">{hub.label}</span>}
+                  </span>
+                  {!isCollapsed && hasTabs && (
+                    <Icon
+                      name={isOpen ? 'chevron_up' : 'chevron_down'}
+                      size={16}
+                      className="shrink-0 text-muted"
+                    />
+                  )}
+                </button>
+
+                {/* Expanded mode: inline nested tree */}
+                {!isCollapsed && hasTabs && isOpen && (
+                  <div className="mb-1 ml-[22px] mt-0.5 pr-1">
+                    {renderSubmenuTree(hub)}
+                  </div>
+                )}
+
+                {/* Collapsed mode: floating label pill + submenu tree card on hover */}
+                {isCollapsed && isHovered && (
+                  <div
+                    className="absolute left-full top-0 z-[var(--z-popover)] pl-3"
+                    onMouseEnter={() => handleMouseEnterHub(hub.id)}
+                    onMouseLeave={handleMouseLeaveHub}
+                  >
+                    <div className="flex flex-col items-start">
+                      <div className="mt-1.5 inline-flex items-center rounded-xl bg-pill px-3.5 py-1.5 text-xs font-bold text-on-pill shadow-md whitespace-nowrap">
+                        {hub.label}
+                      </div>
+                      {hasTabs && (
+                        <div className="mt-2 min-w-[196px] rounded-2xl border border-line bg-solid p-3 shadow-lg">
+                          <div className="ml-1.5">
+                            {renderSubmenuTree(hub, () => setHoveredHubId(null))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </aside>
   );
 };
 
-/** The hub's pages, underlined. Scrolls sideways when it doesn't fit, with the next tab partly showing. */
-export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = ({ currentPage, setCurrentPage }) => {
+/** The active hub's page tabs rendered as top pills. */
+export const TopPills: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = ({ currentPage, setCurrentPage }) => {
   const hub = hubForPage(currentPage);
   const activeRef = useRef<HTMLButtonElement>(null);
   const urlTab = useUrlTab();
@@ -113,11 +313,17 @@ export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>
 
   if (!hub.tabs.length) return null;
 
+  const effectivePage: Page =
+    currentPage === 'AccountDetail' ? 'Accounts' :
+    currentPage === 'HoldingDetail' ? 'Investments' :
+    currentPage;
+  const exactMatch = hub.tabs.some(t => t.page === effectivePage && (t.tab ?? null) === urlTab);
+
   return (
-    <nav aria-label={`${hub.label} pages`} className="border-b border-line">
-      <ul className="no-scrollbar mx-auto flex max-w-[1488px] gap-5 overflow-x-auto px-4 md:px-6 lg:px-8">
+    <nav aria-label={`${hub.label} pages`} className="max-w-full overflow-hidden">
+      <ul className="no-scrollbar flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[22px] surface-card p-1">
         {hub.tabs.map(tab => {
-          const isActive = tab.page === currentPage && (tab.tab ?? null) === urlTab;
+          const isActive = tab.page === effectivePage && (exactMatch ? (tab.tab ?? null) === urlTab : !tab.tab);
           return (
             <li key={tab.label} className="shrink-0">
               <button
@@ -126,18 +332,45 @@ export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>
                 onClick={() => { setCurrentPage(tab.page, tab.tab ?? null); setUrlTab(tab.tab ?? null); }}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'relative flex h-11 cursor-pointer items-center whitespace-nowrap text-sm font-bold transition-colors duration-[var(--duration-base)]',
-                  isActive ? 'text-ink' : 'text-muted hover:text-ink'
+                  'relative flex h-[38px] cursor-pointer items-center whitespace-nowrap rounded-full px-3 text-[.8125rem] font-bold transition-colors duration-[var(--duration-base)] pointer-coarse:h-11 lg:px-[15px] lg:text-sm',
+                  isActive ? 'text-on-pill' : 'text-ink hover:bg-inset'
                 )}
               >
-                {tab.label}
-                {isActive && <motion.span layoutId="tab-line" transition={HIGHLIGHT} className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-pill" />}
+                {isActive && (
+                  <motion.span
+                    layoutId={`page-pill-${hub.id}`}
+                    transition={HIGHLIGHT}
+                    className="absolute inset-0 rounded-full bg-pill"
+                  />
+                )}
+                <span className="relative flex items-center gap-1.5">
+                  {tab.icon && (
+                    <Icon
+                      name={tab.icon}
+                      size={15}
+                      className={cn('shrink-0 transition-opacity', isActive ? 'text-on-pill' : 'text-muted')}
+                    />
+                  )}
+                  <span>{tab.label}</span>
+                </span>
               </button>
             </li>
           );
         })}
       </ul>
     </nav>
+  );
+};
+
+/** Mobile top pill row for the active hub's page tabs. */
+export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = ({ currentPage, setCurrentPage }) => {
+  const hub = hubForPage(currentPage);
+  if (!hub.tabs.length) return null;
+
+  return (
+    <div className="flex justify-center px-4 pb-2 pt-0.5 md:px-6">
+      <TopPills currentPage={currentPage} setCurrentPage={setCurrentPage} />
+    </div>
   );
 };
 
@@ -166,24 +399,14 @@ const ProfileMenu: React.FC<ShellProps> = ({ user, setCurrentPage, isPrivacyMode
   />
 );
 
-/** Logo, seven pills, then notifications and profile. The logo steps aside on narrow tablets, where the pills need the room. */
+/** Page tab pills in the center, then notifications and profile on the right. */
 export const TopBar: React.FC<ShellProps> = props => (
   <div className="mx-auto flex h-[72px] max-w-[1488px] items-center justify-between gap-4 px-4 md:px-6 lg:px-8">
-    <div className="flex flex-1 items-center justify-start min-w-0">
-      <button
-        type="button"
-        onClick={() => props.setCurrentPage('Dashboard')}
-        aria-label="Crystal, go to Overview"
-        className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full max-[899px]:hidden"
-      >
-        <CrystalLogo showText={false} />
-        <span className="type-card-title hidden text-ink xl:block">Crystal</span>
-      </button>
-    </div>
-    <div className="flex shrink-0 items-center justify-center">
+    <div className="hidden flex-1 items-center justify-start min-w-0 lg:flex" aria-hidden="true" />
+    <div className="flex min-w-0 items-center justify-center">
       <TopPills currentPage={props.currentPage} setCurrentPage={props.setCurrentPage} />
     </div>
-    <div className="flex flex-1 items-center justify-end min-w-0 gap-1.5">
+    <div className="flex flex-1 shrink-0 items-center justify-end gap-1.5">
       {props.notifications}
       <ProfileMenu {...props} />
     </div>
@@ -327,13 +550,13 @@ export const ToolRail: React.FC<ShellProps> = ({
 /** Logo, Search, notifications and Create. Phones. */
 export const PhoneTopBar: React.FC<ShellProps> = ({ setCurrentPage, onSearch, onCreate, notifications }) => (
   <div className="flex h-14 items-center justify-between gap-2 px-4">
-    <button type="button" onClick={() => setCurrentPage('Dashboard')} aria-label="Crystal, go to Overview" className="flex min-h-11 cursor-pointer items-center">
+    <button type="button" onClick={() => { setCurrentPage('Dashboard', null); setUrlTab(null); }} aria-label="Crystal, go to Overview" className="flex min-h-11 cursor-pointer items-center">
       <CrystalLogo showText={false} />
     </button>
     <div className="flex items-center gap-1">
-      <IconButton icon="search" label="Search" iconSize={24} onPress={onSearch} />
+      <IconButton icon="search-01" label="Search" iconSize={24} onPress={onSearch} />
       {notifications}
-      <IconButton icon="add" label="Add transaction" variant="primary" iconSize={24} onPress={onCreate} />
+      <IconButton icon="add-01" label="Add transaction" variant="primary" iconSize={24} onPress={onCreate} />
     </div>
   </div>
 );
@@ -365,7 +588,8 @@ export const PhoneBar: React.FC<ShellProps> = props => {
   const isDark = isDarkNow(theme);
 
   const go = (page: Page) => {
-    setCurrentPage(page);
+    setCurrentPage(page, null);
+    setUrlTab(null);
     setMoreOpen(false);
   };
 

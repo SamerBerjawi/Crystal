@@ -36,8 +36,8 @@ const TYPE_LABEL = { import: 'Import', export: 'Export', restore: 'Restore' };
 const HISTORY_PAGE = 10;
 
 const IMPORT_SOURCES: { type: 'transactions' | 'accounts'; title: string; description: string; icon: string }[] = [
-  { type: 'transactions', title: 'Transactions', description: 'From a bank statement or spreadsheet', icon: 'receipt_long' },
-  { type: 'accounts', title: 'Accounts', description: 'From a spreadsheet', icon: 'wallet' },
+  { type: 'transactions', title: 'Transactions', description: 'From a bank statement or spreadsheet', icon: 'receipt' },
+  { type: 'accounts', title: 'Accounts', description: 'From a spreadsheet', icon: 'wallet-02' },
 ];
 
 const downloadJson = (data: unknown) => {
@@ -107,8 +107,8 @@ const DataImportExportPage: React.FC<DataImportExportProps> = props => {
         title="Data"
         setCurrentPage={props.setCurrentPage}
         stats={[
-          { label: 'Imports', icon: 'download', value: countOf('import') },
-          { label: 'Exports', icon: 'upload', value: countOf('export') },
+          { label: 'Imports', icon: 'download-04', value: countOf('import') },
+          { label: 'Exports', icon: 'upload-04', value: countOf('export') },
           { label: 'Restores', icon: 'refresh', value: countOf('restore') },
         ]}
       />
@@ -165,10 +165,10 @@ const DataImportExportPage: React.FC<DataImportExportProps> = props => {
       <SettingsGroup title="Import and export" description="Move data in and out as spreadsheets.">
         <div className="divide-y divide-line">
           <ActionRow title="Import" description="Bring in transactions or accounts from a CSV file.">
-            <Button variant="secondary" size="sm" icon="upload_file" onPress={() => setChoosingImport(true)}>Import</Button>
+            <Button variant="secondary" size="sm" icon="upload-04" onPress={() => setChoosingImport(true)}>Import</Button>
           </ActionRow>
           <ActionRow title="Export" description="Download your data as CSV tables.">
-            <Button variant="secondary" size="sm" icon="download" onPress={() => setExportFormat('csv')}>Export</Button>
+            <Button variant="secondary" size="sm" icon="download-04" onPress={() => setExportFormat('csv')}>Export</Button>
           </ActionRow>
         </div>
       </SettingsGroup>
@@ -176,17 +176,17 @@ const DataImportExportPage: React.FC<DataImportExportProps> = props => {
       <SettingsGroup title="Backups" description="A full copy of Crystal in one file.">
         <div className="divide-y divide-line">
           <ActionRow title="Back up" description="Download everything as a JSON file.">
-            <Button variant="secondary" size="sm" icon="download" onPress={() => setExportFormat('json')}>Back up</Button>
+            <Button variant="secondary" size="sm" icon="download-04" onPress={() => setExportFormat('json')}>Back up</Button>
           </ActionRow>
           <ActionRow title="Restore" description="Merge or replace data from a backup, section by section.">
-            <Button variant="secondary" size="sm" icon="restore" onPress={() => setRestoring(true)}>Restore</Button>
+            <Button variant="secondary" size="sm" icon="refresh" onPress={() => setRestoring(true)}>Restore</Button>
           </ActionRow>
         </div>
       </SettingsGroup>
 
       <SettingsGroup title="History">
         {history.length === 0 ? (
-          <EmptyState icon="history" title="No activity yet" description="Imports, exports and restores appear here." />
+          <EmptyState icon="clock-01" title="No activity yet" description="Imports, exports and restores appear here." />
         ) : (
           <>
             <ul className="divide-y divide-line">
@@ -202,8 +202,8 @@ const DataImportExportPage: React.FC<DataImportExportProps> = props => {
                     ? <Badge tone="attention">Partly imported</Badge>
                     : <Badge tone={STATUS_TONE[item.status] ?? 'neutral'}>{item.status}</Badge>}
                   <div className="flex items-center">
-                    {item.type === 'import' && <IconButton icon="visibility" label={`Open ${item.fileName}`} onPress={() => setViewing(item)} />}
-                    <IconButton icon="delete" label={`Remove ${item.fileName} from history`} onPress={() => props.onDeleteHistoryItem(item.id)} />
+                    {item.type === 'import' && <IconButton icon="view" label={`Open ${item.fileName}`} onPress={() => setViewing(item)} />}
+                    <IconButton icon="delete-02" label={`Remove ${item.fileName} from history`} onPress={() => props.onDeleteHistoryItem(item.id)} />
                   </div>
                 </li>
               ))}

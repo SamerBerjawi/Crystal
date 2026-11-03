@@ -59,14 +59,14 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({ onClose, 
           <section key={part.id} aria-label={`Part ${index + 1}`} className="space-y-3 border-t border-line pt-3">
             <div className="flex items-center justify-between gap-3">
               <h3 className="type-card-title text-ink">Part {index + 1}</h3>
-              {parts.length > 1 && <IconButton icon="delete" label={`Remove part ${index + 1}`} tooltipPlacement="left" onPress={() => change(parts.filter(item => item.id !== part.id))} />}
+              {parts.length > 1 && <IconButton icon="delete-02" label={`Remove part ${index + 1}`} tooltipPlacement="left" onPress={() => change(parts.filter(item => item.id !== part.id))} />}
             </div>
             <AmountInput label="Amount" currency={currencySign(transaction.currency)} value={part.amount} onChange={amount => update(part.id, { amount })} />
             <Combobox label="Category" options={categoryOptions} value={part.category || null} onChange={id => update(part.id, { category: id ?? '' })} placeholder="Search categories" />
             <TextInput label="Description" value={part.description} onChange={description => update(part.id, { description })} />
           </section>
         ))}
-        <Button variant="secondary" size="sm" icon="add" onPress={() => change([...parts, { id: Date.now().toString(), amount: left > 0 ? left.toFixed(2) : '0', category: '', description: '' }])}>Add part</Button>
+        <Button variant="secondary" size="sm" icon="add-01" onPress={() => change([...parts, { id: Date.now().toString(), amount: left > 0 ? left.toFixed(2) : '0', category: '', description: '' }])}>Add part</Button>
       </div>
     </Dialog>
   );

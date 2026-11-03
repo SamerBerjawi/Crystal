@@ -30,7 +30,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, value, curr
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Badge tone={state.tone}>{state.label}</Badge>
-          <IconButton icon="delete" label={`Delete prediction on ${prediction.targetName}`} tooltipPlacement="left" onPress={() => onDelete(prediction.id)} />
+          <IconButton icon="delete-02" label={`Delete prediction on ${prediction.targetName}`} tooltipPlacement="left" onPress={() => onDelete(prediction.id)} />
         </div>
       </div>
       <div className="mt-3 flex items-baseline justify-between gap-3">

@@ -107,7 +107,7 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
                   <span className="type-caption block text-muted">{fullDate(item.date)}</span>
                 </span>
                 <span className="type-figure-row shrink-0 text-ink"><Amount value={item.quantity * item.price} currency={item.tradeCurrency} /></span>
-                <IconButton icon="edit" label={`Edit ${item.label.toLowerCase()} from ${fullDate(item.date)}`} tooltipPlacement="left" onPress={item.onEdit} />
+                <IconButton icon="pencil-edit-02" label={`Edit ${item.label.toLowerCase()} from ${fullDate(item.date)}`} tooltipPlacement="left" onPress={item.onEdit} />
               </li>
             ))}
           </ul>
@@ -124,10 +124,10 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
                 <span className="type-figure-row shrink-0 text-ink"><Amount value={entry.price} currency={currency} /></span>
                 <Menu
                   title={fullDate(entry.date)}
-                  trigger={<IconButton icon="more_horiz" label={`Actions for ${fullDate(entry.date)}`} tooltipPlacement="left" />}
+                  trigger={<IconButton icon="more-horizontal" label={`Actions for ${fullDate(entry.date)}`} tooltipPlacement="left" />}
                   items={[
-                    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => onLogPrice(entry) },
-                    { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => onDeletePrice(entry.date) },
+                    { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => onLogPrice(entry) },
+                    { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => onDeletePrice(entry.date) },
                   ]}
                 />
               </li>

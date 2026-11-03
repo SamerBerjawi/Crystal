@@ -28,7 +28,7 @@ const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(unde
 const DocumentRow: React.FC<{ doc: Invoice; today: string; isPhone: boolean; menu: MenuAction[]; onOpen: () => void }> = ({ doc, today, isPhone, menu, onOpen }) => {
   const status = effectiveStatus(doc, today);
   const due = doc.dueDate ? `Due ${shortDate(doc.dueDate)}` : shortDate(doc.date);
-  const actions = <Menu title={doc.number} trigger={<IconButton icon="more_horiz" label={`Actions for ${doc.number}`} tooltipPlacement="left" />} items={menu} />;
+  const actions = <Menu title={doc.number} trigger={<IconButton icon="more-horizontal" label={`Actions for ${doc.number}`} tooltipPlacement="left" />} items={menu} />;
   const identity = (
     <span className="flex min-w-0 items-center gap-3">
       <BrandMark name={doc.entityName} />
@@ -100,15 +100,15 @@ const InvoicesPage: React.FC = () => {
   };
 
   const menuFor = (doc: Invoice): MenuAction[] => [
-    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setEditor({ type: doc.type, invoice: doc }) },
-    ...(doc.type === 'quote' ? [{ id: 'convert', label: 'Turn into invoice', icon: 'receipt', onAction: () => (doc.status === 'accepted' ? setConverting(doc) : convert(doc)) }] : []),
-    { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setDeleting(doc) },
+    { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setEditor({ type: doc.type, invoice: doc }) },
+    ...(doc.type === 'quote' ? [{ id: 'convert', label: 'Turn into invoice', icon: 'invoice-02', onAction: () => (doc.status === 'accepted' ? setConverting(doc) : convert(doc)) }] : []),
+    { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setDeleting(doc) },
   ];
 
   const stats: PageStat[] = [
-    { label: 'Paid this month', icon: 'check_circle', value: summary.paidThisMonth, format: 'money', currency: getMainCurrency() },
-    { label: 'Outstanding', icon: 'schedule', value: summary.outstanding, format: 'money', currency: getMainCurrency() },
-    { label: 'Overdue', icon: 'warning', value: summary.overdue, format: 'money', currency: getMainCurrency(), ...(summary.overdueCount > 0 ? { badge: `${summary.overdueCount} late`, badgeTone: 'tomato' as const } : {}) },
+    { label: 'Paid this month', icon: 'checkmark-circle-02', value: summary.paidThisMonth, format: 'money', currency: getMainCurrency() },
+    { label: 'Outstanding', icon: 'clock-01', value: summary.outstanding, format: 'money', currency: getMainCurrency() },
+    { label: 'Overdue', icon: 'alert-02', value: summary.overdue, format: 'money', currency: getMainCurrency(), ...(summary.overdueCount > 0 ? { badge: `${summary.overdueCount} late`, badgeTone: 'tomato' as const } : {}) },
   ];
 
   const statusItems = [{ id: 'all', label: 'All' }, ...(type === 'quote' ? QUOTE_STATUSES : INVOICE_STATUSES).map(id => ({ id, label: STATUS_LABELS[id] }))];
@@ -121,13 +121,13 @@ const InvoicesPage: React.FC = () => {
         actions={
           <div className="flex gap-2">
             <Button variant="secondary" onPress={() => setEditor({ type: 'quote' })}>New quote</Button>
-            <Button icon="add" onPress={() => setEditor({ type: 'invoice' })}>New invoice</Button>
+            <Button icon="add-01" onPress={() => setEditor({ type: 'invoice' })}>New invoice</Button>
           </div>
         }
       />
 
       {invoices.length === 0 ? (
-        <EmptyState icon="receipt" title="No invoices yet" description="Draft a quote or an invoice, and follow it until it's paid." actionLabel="New invoice" onAction={() => setEditor({ type: 'invoice' })} secondaryActionLabel="New quote" onSecondaryAction={() => setEditor({ type: 'quote' })} />
+        <EmptyState icon="invoice-01" title="No invoices yet" description="Draft a quote or an invoice, and follow it until it's paid." actionLabel="New invoice" onAction={() => setEditor({ type: 'invoice' })} secondaryActionLabel="New quote" onSecondaryAction={() => setEditor({ type: 'quote' })} />
       ) : (
         <>
           <section aria-label="Money owed to you" className="surface-card rounded-[var(--radius-xl)] p-6 max-md:p-5">

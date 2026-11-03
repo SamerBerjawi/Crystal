@@ -14,12 +14,12 @@ import { Amount, Change } from './ui/Money';
 import { cn } from '../lib/utils';
 
 export const accountIcon = (account: Account) => {
-  if (isCashAccount(account)) return account.icon || 'wallet';
+  if (isCashAccount(account)) return account.icon || 'wallet-02';
   let style = ACCOUNT_TYPE_STYLES[account.type];
   if (account.type === 'Investment' && account.subType) style = INVESTMENT_SUB_TYPE_STYLES[account.subType];
   else if (account.type === 'Other Assets' && account.otherSubType) style = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType] || style;
   else if (account.type === 'Other Liabilities' && account.otherSubType) style = OTHER_LIABILITY_SUB_TYPE_STYLES[account.otherSubType as OtherLiabilitySubType] || style;
-  return account.icon || style?.icon || 'wallet';
+  return account.icon || style?.icon || 'wallet-02';
 };
 
 const accountContext = (account: Account) => {
@@ -104,7 +104,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
   const menu = (
     <Menu
       title={account.name}
-      trigger={<IconButton ref={menuRef} icon="more_horiz" label={`Actions for ${account.name}`} tooltipPlacement="left" />}
+      trigger={<IconButton ref={menuRef} icon="more-horizontal" label={`Actions for ${account.name}`} tooltipPlacement="left" />}
       items={menuItems}
     />
   );

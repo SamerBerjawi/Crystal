@@ -229,12 +229,12 @@ const ReviewQueue: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           {review.likelyCount > 0 && <Button variant="soft" onPress={review.confirmLikely}>Confirm {review.likelyCount} likely</Button>}
           {counts.transfer + counts.bill > 0 && <Button variant="ghost" onPress={review.dismissAll}>Dismiss matches</Button>}
-          <IconButton icon="tune" label="Matching settings" tooltipPlacement="bottom" onPress={() => setSettingsOpen(true)} />
+          <IconButton icon="sliders-horizontal" label="Matching settings" tooltipPlacement="bottom" onPress={() => setSettingsOpen(true)} />
         </div>
       </header>
 
       {allItems.length === 0 ? (
-        <EmptyState icon="check" title="Nothing to review. Nice." description="New transactions that need a look appear here." />
+        <EmptyState icon="tick-02" title="Nothing to review. Nice." description="New transactions that need a look appear here." />
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">
@@ -250,13 +250,13 @@ const ReviewQueue: React.FC = () => {
               onChange={setFilter}
             />
             <div className="relative min-w-0 flex-1 md:max-w-xs">
-              <Icon name="search" size={20} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <Icon name="search-01" size={20} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input type="search" aria-label="Search the queue" placeholder="Search" value={search} onChange={e => setSearch(e.target.value)} className={cn(controlStyles, 'h-10 pl-10 pr-3 text-[.9375rem] max-md:h-12 max-md:text-base')} />
             </div>
           </div>
 
           {items.length === 0 ? (
-            <EmptyState icon="search" title="No matches" description={`Nothing here matches “${search}”.`} actionLabel="Clear search" onAction={() => { setSearch(''); setFilter('all'); }} />
+            <EmptyState icon="search-01" title="No matches" description={`Nothing here matches “${search}”.`} actionLabel="Clear search" onAction={() => { setSearch(''); setFilter('all'); }} />
           ) : isPhone ? (
             <>
               <p className="type-caption text-muted">{Math.max(1, items.findIndex(item => item.id === active?.id) + 1)} of {items.length}</p>

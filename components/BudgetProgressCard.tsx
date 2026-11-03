@@ -24,7 +24,7 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
       {/* Header */}
       <div className="flex justify-between items-start relative z-10">
         <div className="flex items-center gap-3">
-          <Icon name={category.icon || 'folder'} className="text-2xl flex-shrink-0" style={{
+          <Icon name={category.icon || 'folder-01'} className="text-2xl flex-shrink-0" style={{
               color: category.color,
               fontVariationSettings: "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24"
             }} />

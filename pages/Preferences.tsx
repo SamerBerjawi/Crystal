@@ -23,9 +23,9 @@ interface PreferencesProps {
 }
 
 const THEMES = [
-  { id: 'light', label: 'Light', icon: 'light_mode' },
-  { id: 'dark', label: 'Dark', icon: 'dark_mode' },
-  { id: 'system', label: 'System', icon: 'settings_brightness' },
+  { id: 'light', label: 'Light', icon: 'sun-01' },
+  { id: 'dark', label: 'Dark', icon: 'moon-02' },
+  { id: 'system', label: 'System', icon: 'contrast' },
 ];
 
 const DATE_FORMATS = [

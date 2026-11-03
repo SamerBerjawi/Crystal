@@ -141,7 +141,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
   }, [menuFor, selected, onReorder, cards, selectedIndex]);
 
   if (!selected) {
-    return <EmptyState icon="credit_card" title="No cards yet" description="Add a card to a checking account, or a credit card or meal voucher." actionLabel="Add account" onAction={onAddCard} />;
+    return <EmptyState icon="credit-card" title="No cards yet" description="Add a card to a checking account, or a credit card or meal voucher." actionLabel="Add account" onAction={onAddCard} />;
   }
 
   const settlement = accounts.find(item => item.id === selected.settlementAccountId);
@@ -178,14 +178,14 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
               {onReorder && cards.length > 1 && (
                 <div className="flex items-center gap-1">
                   <IconButton
-                    icon="arrow_back"
+                    icon="arrow-left-01"
                     label="Move card left"
                     tooltipPlacement="top"
                     isDisabled={selectedIndex <= 0}
                     onPress={() => onReorder(selected.id, cards[selectedIndex - 1].id)}
                   />
                   <IconButton
-                    icon="arrow_forward"
+                    icon="arrow-right-01"
                     label="Move card right"
                     tooltipPlacement="top"
                     isDisabled={selectedIndex >= cards.length - 1}
@@ -193,7 +193,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
                   />
                 </div>
               )}
-              <Menu title={selected.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${selected.name}`} tooltipPlacement="left" />} items={cardMenuItems} />
+              <Menu title={selected.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${selected.name}`} tooltipPlacement="left" />} items={cardMenuItems} />
             </div>
           </header>
           <BankCard account={selected} size="large" />

@@ -114,7 +114,7 @@ const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransact
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
-import { PhoneBar, PhoneTopBar, SkipLink, TabRow, ToolRail, TopBar, type ShellProps } from './components/ui/Shell';
+import { PhoneBar, PhoneTopBar, Sidebar, SkipLink, TabRow, ToolRail, TopBar, type ShellProps } from './components/ui/Shell';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
 import { fetchEcbRates } from './src/services/exchangeRates';
@@ -3113,38 +3113,47 @@ const App: React.FC = () => {
           mobileOffset={{ bottom: 'var(--toast-phone-bottom)', left: '16px', right: '16px' }}
           style={{ '--normal-bg': 'var(--solid)', '--normal-border': 'var(--line)', '--normal-text': 'var(--ink)', '--border-radius': 'var(--radius-lg)' } as React.CSSProperties}
         />
-        <div className={`flex h-dvh flex-col text-ink font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
+        <div className={`flex h-dvh text-ink font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
           <SkipLink />
-          <header className="safe-top shrink-0">
-            {isPhone ? <PhoneTopBar {...shellProps} /> : <TopBar {...shellProps} />}
-            <TabRow currentPage={currentPage} setCurrentPage={setCurrentPage} />
-          </header>
-          {!isPhone && <ToolRail {...shellProps} />}
-          <main className="relative min-h-0 flex-1 overflow-y-auto scroll-touch focus:outline-none" id="main-content" tabIndex={-1}>
-            <div className="mx-auto w-full max-w-[1488px] px-4 pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-4 md:pb-24 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
-              <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
-                {ratelessCurrencies.length > 0 && (
-                  <Banner tone="attention" className="mb-4" actionLabel="Add a rate" onAction={() => setCurrentPage('Preferences')}>
-                    Totals leave out {ratelessCurrencies.join(', ')}, which {ratelessCurrencies.length === 1 ? 'has' : 'have'} no exchange rate.
-                  </Banner>
-                )}
-                <Suspense key={getMainCurrency()} fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentPage + (viewingAccountId || '') + (viewingHoldingSymbol || '')}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.15, ease: 'easeInOut' }}
-                    >
-                      {renderPage()}
-                    </motion.div>
-                  </AnimatePresence>
-                </Suspense>
-              </ErrorBoundary>
-            </div>
-          </main>
-          {isPhone && <PhoneBar {...shellProps} />}
+          {!isPhone && <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <header className="safe-top shrink-0">
+              {isPhone ? (
+                <>
+                  <PhoneTopBar {...shellProps} />
+                  <TabRow currentPage={currentPage} setCurrentPage={setCurrentPage} />
+                </>
+              ) : (
+                <TopBar {...shellProps} />
+              )}
+            </header>
+            {!isPhone && <ToolRail {...shellProps} />}
+            <main className="relative min-h-0 flex-1 overflow-y-auto scroll-touch focus:outline-none" id="main-content" tabIndex={-1}>
+              <div className="mx-auto w-full max-w-[1488px] px-4 pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-4 md:pb-24 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
+                <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
+                  {ratelessCurrencies.length > 0 && (
+                    <Banner tone="attention" className="mb-4" actionLabel="Add a rate" onAction={() => setCurrentPage('Preferences')}>
+                      Totals leave out {ratelessCurrencies.join(', ')}, which {ratelessCurrencies.length === 1 ? 'has' : 'have'} no exchange rate.
+                    </Banner>
+                  )}
+                  <Suspense key={getMainCurrency()} fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentPage + (viewingAccountId || '') + (viewingHoldingSymbol || '')}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15, ease: 'easeInOut' }}
+                      >
+                        {renderPage()}
+                      </motion.div>
+                    </AnimatePresence>
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+            </main>
+            {isPhone && <PhoneBar {...shellProps} />}
+          </div>
           {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
           <CommandCenter
             isOpen={isCommandCenterOpen}
