@@ -1060,7 +1060,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'financialOverview',
       name: 'Financial Overview',
-      icon: 'Activity',
+      icon: 'pulse-01',
       description: 'Key performance indicators',
       defaultW: 6,
       defaultH: 2,
@@ -1079,6 +1079,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'safeToSpend',
       name: 'Safe to spend',
+      icon: 'shield-01',
       description: 'What is left until your next income',
       defaultW: 2,
       defaultH: 3,
@@ -1088,6 +1089,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'accountsSummary',
       name: 'Accounts',
+      icon: 'wallet-02',
       description: 'Your biggest accounts',
       defaultW: 2,
       defaultH: 4,
@@ -1097,6 +1099,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'overviewKpis',
       name: 'Key ratios',
+      icon: 'balance-scale',
       description: 'Liquidity, savings, debt and net flow',
       defaultW: 6,
       defaultH: 2,
@@ -1106,6 +1109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'assetAllocation',
       name: 'Asset allocation',
+      icon: 'safe',
       description: 'Assets and debts by group',
       defaultW: 6,
       defaultH: 7,
@@ -1115,7 +1119,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'todayWidget',
       name: 'Today\'s Agenda',
-      icon: 'calendar_check',
+      icon: 'calendar-check-in-01',
       description: 'Upcoming tasks and payments',
       defaultW: 6,
       defaultH: 2,
@@ -1133,7 +1137,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'forecastHorizon',
       name: 'Forecast Horizon',
-      icon: 'fast_forward',
+      icon: 'clock-01',
       description: 'Projected liquidity trends',
       defaultW: 6,
       defaultH: 2,
@@ -1143,7 +1147,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'creditCardStatements',
       name: 'Credit Card Statements',
-      icon: 'credit_card',
+      icon: 'credit-card',
       description: 'Recent and upcoming bills',
       defaultW: 6,
       defaultH: 2,
@@ -1154,7 +1158,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     {
       id: 'netWorthOverTime',
       name: 'Net Worth Over Time',
-      icon: 'trending_up',
+      icon: 'chart-line-data-01',
       description: 'Historical wealth progression',
       defaultW: 12,
       defaultH: 2,
@@ -1169,19 +1173,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       }
     },
     // Removed forecastChart
-    { id: 'outflowsByCategory', name: 'Outflows by Category', icon: 'pie_chart', description: 'Spending distribution', defaultW: 6, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'circle_cut', description: 'Assets vs Liabilities', defaultW: 6, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
-    { id: 'recentActivity', name: 'Recent Activity', icon: 'rows', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick, maxItems: 15 } },
-    { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'account_balance', description: 'Categorized asset values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
-    { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'bank_note', description: 'Categorized debt values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
-    { id: 'budgetOverview', name: 'Budget Overview', icon: 'sliders', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
-    { id: 'transactionMap', name: 'Transaction Map', icon: 'marker_pin', description: 'Geographic spend patterns', defaultW: 6, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-    { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'git_branch', description: 'Money movement visualizer', defaultW: 12, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
+    { id: 'outflowsByCategory', name: 'Outflows by Category', icon: 'pie-chart-01', description: 'Spending distribution', defaultW: 6, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
+    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'chart-ring', description: 'Assets vs Liabilities', defaultW: 6, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
+    { id: 'recentActivity', name: 'Recent Activity', icon: 'clock-03', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick, maxItems: 15 } },
+    { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'bank', description: 'Categorized asset values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
+    { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'receipt', description: 'Categorized debt values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
+    { id: 'budgetOverview', name: 'Budget Overview', icon: 'sliders-horizontal', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
+    { id: 'transactionMap', name: 'Transaction Map', icon: 'maps', description: 'Geographic spend patterns', defaultW: 6, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'hierarchy-square-01', description: 'Money movement visualizer', defaultW: 12, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
 
     // ANALYSIS WIDGETS
-    { id: 'financialRunway', name: 'Financial Runway', icon: 'hourglass', description: 'Days until zero balance', defaultW: 6, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
-    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'shopping_bag', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
-    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'zap', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
+    { id: 'financialRunway', name: 'Financial Runway', icon: 'timer-01', description: 'Days until zero balance', defaultW: 6, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
+    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'store-01', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'flash', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
   ], [safeToSpend, eurToDisplay, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const layout = useMemo(() => resolveOverviewLayout(preferences, isMobile), [preferences.dashboardLayouts, preferences.dashboardHiddenWidgets, isMobile]);

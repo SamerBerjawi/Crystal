@@ -62,7 +62,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
       footer={
         <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
           <Button variant="ghost" onPress={close}>Cancel</Button>
-          <Button icon="download" isDisabled={selected.length === 0} onPress={submit}>
+          <Button icon="download-04" isDisabled={selected.length === 0} onPress={submit}>
             {format === 'json' ? 'Download backup' : `Export ${selected.length}`}
           </Button>
         </div>

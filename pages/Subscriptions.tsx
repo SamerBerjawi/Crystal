@@ -99,9 +99,9 @@ const Subscriptions: React.FC = () => {
   ];
 
   const pageStats: PageStat[] = [
-    { label: 'Every month', icon: 'payments', value: totals.monthly, format: 'money' },
-    { label: 'Over a year', icon: 'calendar_today', value: totals.yearly, format: 'money' },
-    { label: 'Renewing in 30 days', icon: 'refresh', value: totals.renewing, format: 'money', ...(totals.dueSoon ? { badge: `${totals.dueSoon} due soon`, badgeTone: 'butter' as const } : {}) },
+    { label: 'Every month', icon: 'money-send-01', value: totals.monthly, format: 'money' },
+    { label: 'Over a year', icon: 'calendar-03', value: totals.yearly, format: 'money' },
+    { label: 'Renewing in 30 days', icon: 'repeat-one-01', value: totals.renewing, format: 'money', ...(totals.dueSoon ? { badge: `${totals.dueSoon} due soon`, badgeTone: 'butter' as const } : {}) },
   ];
 
   return (
@@ -110,8 +110,8 @@ const Subscriptions: React.FC = () => {
         title="Subscriptions"
         stats={pageStats}
         actions={tab === 'wallet'
-          ? <Button icon="add" onPress={() => { setCardToEdit(null); setCardFormOpen(true); }}>Add a card</Button>
-          : <Button icon="add" onPress={() => openForm(null)}>Add a service</Button>}
+          ? <Button icon="add-01" onPress={() => { setCardToEdit(null); setCardFormOpen(true); }}>Add a card</Button>
+          : <Button icon="add-01" onPress={() => openForm(null)}>Add a service</Button>}
       />
 
       <SegmentedControl items={tabs} activeId={tab} onChange={id => setTab(id as Tab)} scrollable />
@@ -157,16 +157,16 @@ const Subscriptions: React.FC = () => {
                   nextDate={nextDates(service, today, 1)[0]}
                   onEdit={() => openForm(service)}
                   actions={[
-                    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => openForm(service) },
+                    { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => openForm(service) },
                     { id: 'pause', label: 'Pause', icon: 'pause', onAction: () => pause(service) },
-                    { id: 'cancel', label: 'Mark as cancelled', icon: 'event_busy', onAction: () => cancel(service) },
-                    { id: 'stop', label: 'Stop tracking', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setStopping(service) },
+                    { id: 'cancel', label: 'Mark as cancelled', icon: 'cancel-circle', onAction: () => cancel(service) },
+                    { id: 'stop', label: 'Stop tracking', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setStopping(service) },
                   ]}
                 />
               ))}
             </div>
           ) : (
-            <EmptyState icon="refresh" title="No services yet" description="Add one, or track what Crystal finds in your transactions." actionLabel="Add a service" onAction={() => openForm(null)} />
+            <EmptyState icon="repeat-one-01" title="No services yet" description="Add one, or track what Crystal finds in your transactions." actionLabel="Add a service" onAction={() => openForm(null)} />
           )}
         </>
       )}
@@ -192,9 +192,9 @@ const Subscriptions: React.FC = () => {
                   accountName={accountName(service.accountId)}
                   onEdit={() => openForm(service)}
                   actions={[
-                    { id: 'resume', label: service.pausedAt ? 'Resume' : 'Start again', icon: 'play_arrow', onAction: () => resume(service) },
-                    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => openForm(service) },
-                    { id: 'stop', label: 'Stop tracking', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setStopping(service) },
+                    { id: 'resume', label: service.pausedAt ? 'Resume' : 'Start again', icon: 'play', onAction: () => resume(service) },
+                    { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => openForm(service) },
+                    { id: 'stop', label: 'Stop tracking', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setStopping(service) },
                   ]}
                 />
               ))}
@@ -219,7 +219,7 @@ const Subscriptions: React.FC = () => {
             ))}
           </div>
         ) : (
-          <EmptyState icon="wallet" title="No cards yet" description="Keep your loyalty and membership numbers here." actionLabel="Add a card" onAction={() => { setCardToEdit(null); setCardFormOpen(true); }} />
+          <EmptyState icon="wallet-02" title="No cards yet" description="Keep your loyalty and membership numbers here." actionLabel="Add a card" onAction={() => { setCardToEdit(null); setCardFormOpen(true); }} />
         )
       )}
 

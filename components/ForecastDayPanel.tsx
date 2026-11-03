@@ -33,7 +33,7 @@ const ForecastDayPanel: React.FC<ForecastDayPanelProps> = ({ date, events, balan
       isOpen
       onClose={onClose}
       title={title ?? fullDate(date)}
-      footer={<Button variant="secondary" icon="add" onPress={onAdd}>Add to this day</Button>}
+      footer={<Button variant="secondary" icon="add-01" onPress={onAdd}>Add to this day</Button>}
     >
       <dl className="mb-4 flex gap-8">
         <div><dt className="type-label text-muted">Net change</dt><dd className="type-figure-lg text-ink"><Amount value={net} currency={getMainCurrency()} tone="flow" /></dd></div>

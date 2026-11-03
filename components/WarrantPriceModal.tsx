@@ -468,7 +468,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                 <div className="flex items-center gap-2">
                                     <p className="type-caption min-w-0 flex-1 truncate text-muted" title={smartFetcherBinding.url}>{smartFetcherBinding.url}</p>
                                     <Button variant="secondary" size="sm" isBusy={smartFetcherStatus === 'loading'} onPress={() => handleSmartFetcher({ useSavedSelector: true })}>Fetch</Button>
-                                    <IconButton icon="delete" label="Remove the saved page" tooltipPlacement="left" onPress={removeSmartBinding} />
+                                    <IconButton icon="delete-02" label="Remove the saved page" tooltipPlacement="left" onPress={removeSmartBinding} />
                                 </div>
                             )}
                             {!isSmartFetcherOpen && <Button variant="secondary" onPress={() => setIsSmartFetcherOpen(true)}>{smartFetcherBinding ? 'Choose another page' : 'Set up a page'}</Button>}

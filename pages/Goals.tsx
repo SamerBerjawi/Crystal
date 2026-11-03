@@ -125,19 +125,19 @@ const Goals: React.FC = () => {
   };
 
   const pageStats: PageStat[] = [
-    { label: 'Saved so far', icon: 'savings', value: savings.saved, format: 'money' },
-    { label: 'Still to save', icon: 'flag', value: Math.max(0, savings.target - savings.saved), format: 'money' },
-    { label: 'Needed a month', icon: 'calendar_today', value: need, format: 'money' },
+    { label: 'Saved so far', icon: 'piggy-bank', value: savings.saved, format: 'money' },
+    { label: 'Still to save', icon: 'target-01', value: Math.max(0, savings.target - savings.saved), format: 'money' },
+    { label: 'Needed a month', icon: 'calendar-03', value: need, format: 'money' },
   ];
 
   const deletingItems = deletingGoal?.isBucket ? financialGoals.filter(goal => goal.parentId === deletingGoal.id).length : 0;
 
   return (
     <div className="space-y-6 pb-8 max-md:space-y-4">
-      <PageHeader title="Goals" stats={pageStats} actions={<Button icon="add" onPress={() => openForm()}>New goal</Button>} />
+      <PageHeader title="Goals" stats={pageStats} actions={<Button icon="add-01" onPress={() => openForm()}>New goal</Button>} />
 
       {financialGoals.length === 0 ? (
-        <EmptyState icon="flag" title="No goals yet" description="Set a number and a date, and Crystal works out the monthly amount." actionLabel="New goal" onAction={() => openForm()} />
+        <EmptyState icon="target-01" title="No goals yet" description="Set a number and a date, and Crystal works out the monthly amount." actionLabel="New goal" onAction={() => openForm()} />
       ) : (
         <>
           <section aria-label="Goals summary" className="surface-card rounded-[var(--radius-xl)] p-6 max-md:p-5">
@@ -174,7 +174,7 @@ const Goals: React.FC = () => {
             <Select className="w-56 max-sm:w-full" label="Show goals for" options={accountOptions} value={accountFilter} onChange={setAccountFilter} />
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="ghost" onPress={toggleAll}>{allIncluded ? 'Take all out of forecast' : 'Include all in forecast'}</Button>
-              {view === 'cards' && <Button variant={isReordering ? 'primary' : 'secondary'} icon="swap_vert" onPress={() => setReordering(on => !on)}>{isReordering ? 'Done' : 'Reorder'}</Button>}
+              {view === 'cards' && <Button variant={isReordering ? 'primary' : 'secondary'} icon="arrow-up-down" onPress={() => setReordering(on => !on)}>{isReordering ? 'Done' : 'Reorder'}</Button>}
               <SegmentedControl items={VIEWS} activeId={view} onChange={setView} />
             </div>
           </div>
@@ -192,8 +192,8 @@ const Goals: React.FC = () => {
                       isOn={isReordering}
                       extra={
                         <>
-                          <IconButton icon="arrow_upward" label={`Move ${node.goal.name} up`} isDisabled={index === 0} onPress={() => setGoalOrder(moveGoal(tree, node.goal.id, -1))} />
-                          <IconButton icon="arrow_downward" label={`Move ${node.goal.name} down`} isDisabled={index === tree.length - 1} onPress={() => setGoalOrder(moveGoal(tree, node.goal.id, 1))} />
+                          <IconButton icon="arrow-up-02" label={`Move ${node.goal.name} up`} isDisabled={index === 0} onPress={() => setGoalOrder(moveGoal(tree, node.goal.id, -1))} />
+                          <IconButton icon="arrow-down-02" label={`Move ${node.goal.name} down`} isDisabled={index === tree.length - 1} onPress={() => setGoalOrder(moveGoal(tree, node.goal.id, 1))} />
                         </>
                       }
                     >
@@ -218,7 +218,7 @@ const Goals: React.FC = () => {
               </SortableContext>
             </DndContext>
           ) : (
-            <EmptyState icon="flag" title="No goals for this account" description="Choose all accounts to see the rest." />
+            <EmptyState icon="target-01" title="No goals for this account" description="Choose all accounts to see the rest." />
           )}
 
           <section aria-label="Monthly targets" className="surface-card rounded-[var(--radius-xl)] p-6 max-md:p-5">

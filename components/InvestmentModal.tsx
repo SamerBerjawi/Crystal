@@ -269,13 +269,13 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
               <section aria-label="Tax instalments" className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-4">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="type-label text-ink">Instalments</h3>
-                  <Button variant="secondary" size="sm" icon="add" onPress={() => setTaxPayments(items => [...items, { id: uuidv4(), label: `Tax payment ${items.length + 1}`, percentage: 0, amount: taxLeft > 0 ? taxLeft : 0, dueDate: today, status: 'pending' }])}>Add</Button>
+                  <Button variant="secondary" size="sm" icon="add-01" onPress={() => setTaxPayments(items => [...items, { id: uuidv4(), label: `Tax payment ${items.length + 1}`, percentage: 0, amount: taxLeft > 0 ? taxLeft : 0, dueDate: today, status: 'pending' }])}>Add</Button>
                 </div>
                 {taxPayments.map(payment => (
                   <div key={payment.id} className="space-y-2 border-t border-line pt-3">
                     <div className="flex items-end gap-1">
                       <TextInput className="min-w-0 flex-1" label="Name" value={payment.label} onChange={label => updatePayment(payment.id, { label })} />
-                      <IconButton icon="delete" label={`Remove ${payment.label}`} onPress={() => setTaxPayments(items => items.filter(item => item.id !== payment.id))} />
+                      <IconButton icon="delete-02" label={`Remove ${payment.label}`} onPress={() => setTaxPayments(items => items.filter(item => item.id !== payment.id))} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <AmountInput label="Amount" currency={getMainCurrency()} value={String(payment.amount)} onChange={value => updatePayment(payment.id, { amount: parseFloat(value) || 0 })} />

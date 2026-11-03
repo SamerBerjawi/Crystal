@@ -319,7 +319,7 @@ export const SelectionBar: React.FC<{
     >
       <span className="type-label whitespace-nowrap text-ink tabular-nums">{count} {noun}</span>
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">{children}</div>
-      <IconButton icon="close" label="Clear selection" onPress={onClear} />
+      <IconButton icon="cancel-01" label="Clear selection" onPress={onClear} />
     </motion.div>
   );
 };

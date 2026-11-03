@@ -41,11 +41,11 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, today, onEdit, onTick, onMove
       {reorder}
       <Menu
         title={task.title}
-        trigger={<IconButton icon="more_horiz" label={`Actions for ${task.title}`} tooltipPlacement="left" />}
+        trigger={<IconButton icon="more-horizontal" label={`Actions for ${task.title}`} tooltipPlacement="left" />}
         items={[
-          { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => onEdit(task) },
-          ...STATUSES.filter(status => status !== task.status).map(status => ({ id: status, label: `Move to ${status}`, icon: 'arrow_forward', onAction: () => onMove(task, status) })),
-          { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => onDelete(task.id) },
+          { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => onEdit(task) },
+          ...STATUSES.filter(status => status !== task.status).map(status => ({ id: status, label: `Move to ${status}`, icon: 'arrow-right-01', onAction: () => onMove(task, status) })),
+          { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => onDelete(task.id) },
         ]}
       />
     </div>

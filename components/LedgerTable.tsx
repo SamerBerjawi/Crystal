@@ -77,7 +77,7 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string;
         className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cyan-950/60 dark:bg-[#0c313a] text-cyan-400 border border-cyan-800/30"
         aria-hidden="true"
       >
-        <Icon name="swap_horiz" size={18} />
+        <Icon name="arrow-data-transfer-horizontal" size={18} />
       </span>
     );
   }
@@ -103,7 +103,7 @@ const AccountLogoTile: React.FC<{ url?: string | null; isTransfer?: boolean; lab
   if (isTransfer) {
     return (
       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-cyan-950/60 dark:bg-[#0c313a] text-cyan-400 border border-cyan-800/30" aria-hidden="true">
-        <Icon name="swap_horiz" size={16} />
+        <Icon name="arrow-data-transfer-horizontal" size={16} />
       </span>
     );
   }
@@ -118,7 +118,7 @@ const AccountLogoTile: React.FC<{ url?: string | null; isTransfer?: boolean; lab
 
   return (
     <span className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset text-muted border border-line" aria-hidden="true">
-      {initial ? <span className="text-xs font-bold text-ink">{initial}</span> : <Icon name="account_balance" size={16} />}
+      {initial ? <span className="text-xs font-bold text-ink">{initial}</span> : <Icon name="bank" size={16} />}
     </span>
   );
 };
@@ -202,7 +202,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
     const isPlainTransfer = tx.isTransfer && (!tx.category || tx.category === 'Transfer');
     return {
       color: isPlainTransfer ? 'var(--muted)' : category.color || 'var(--muted)',
-      icon: isPlainTransfer ? 'swap_horiz' : category.icon || 'category',
+      icon: isPlainTransfer ? 'arrow-data-transfer-horizontal' : category.icon || 'folder-01',
     };
   };
 
@@ -232,7 +232,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
             aria-label="Recurring"
             className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
           >
-            <Icon name="repeat" size={14} />
+            <Icon name="repeat-one-01" size={14} />
           </span>
         )}
         {tx.notes && <Icon name="notes" size={16} className="shrink-0 text-muted" aria-label="Has notes" />}
@@ -507,7 +507,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                     {money(tx)}
                     {!!tx.spareChangeAmount && !isCompact && (
                       <span title="Round-up set aside" className="type-caption flex items-center justify-end gap-1 text-emerald-600 dark:text-emerald-400">
-                        <Icon name="savings" size={14} className="shrink-0" aria-hidden="true" />
+                        <Icon name="piggy-bank" size={14} className="shrink-0" aria-hidden="true" />
                         <Amount value={convertToMain(Math.abs(tx.spareChangeAmount), tx.currency)} currency={getMainCurrency()} tone="plain" />
                       </span>
                     )}

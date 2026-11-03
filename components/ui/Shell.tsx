@@ -542,9 +542,9 @@ export const PhoneTopBar: React.FC<ShellProps> = ({ setCurrentPage, onSearch, on
       <CrystalLogo showText={false} />
     </button>
     <div className="flex items-center gap-1">
-      <IconButton icon="search" label="Search" iconSize={24} onPress={onSearch} />
+      <IconButton icon="search-01" label="Search" iconSize={24} onPress={onSearch} />
       {notifications}
-      <IconButton icon="add" label="Add transaction" variant="primary" iconSize={24} onPress={onCreate} />
+      <IconButton icon="add-01" label="Add transaction" variant="primary" iconSize={24} onPress={onCreate} />
     </div>
   </div>
 );

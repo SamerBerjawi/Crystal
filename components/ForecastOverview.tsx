@@ -35,18 +35,18 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                     let cardStyle = 'bg-black/[0.02] dark:bg-white/[0.03] border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10';
                     let amountColor = 'text-emerald-700 dark:text-emerald-400';
                     let iconColor = 'text-emerald-500/60 dark:text-emerald-400/60';
-                    let icon = 'check_circle';
+                    let icon = 'checkmark-circle-02';
 
                     if (isLow) {
                         cardStyle = 'bg-rose-500/[0.03] dark:bg-rose-500/[0.06] border-rose-500/20';
                         amountColor = 'text-rose-700 dark:text-rose-400';
                         iconColor = 'text-rose-500';
-                        icon = 'alert_triangle';
+                        icon = 'alert-02';
                     } else if (isWarning) {
                         cardStyle = 'bg-amber-500/[0.03] dark:bg-amber-500/[0.06] border-amber-500/20';
                         amountColor = 'text-amber-700 dark:text-amber-400';
                         iconColor = 'text-amber-500';
-                        icon = 'alert_circle';
+                        icon = 'alert-circle';
                     }
 
                     const formattedDate = parseLocalDate(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

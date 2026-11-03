@@ -108,14 +108,14 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const priceCurrency = (prediction: Prediction): Currency => (prediction.type === 'price_target' && prediction.targetId ? preferences.investmentPriceConfigs?.[prediction.targetId]?.currency ?? 'EUR' : 'EUR');
 
   const stats: PageStat[] = [
-    { label: 'Health score', icon: 'analytics', value: Math.round(health.score), format: 'number', badge: health.rank, badgeTone: 'pine' },
-    { label: 'Day streak', icon: 'calendar_today', value: userStats.currentStreak, format: 'number', badge: `best ${userStats.longestStreak}`, badgeTone: 'butter' },
-    { label: 'Savings rate', icon: 'savings', value: metrics.savingsRate * 100, format: 'percent' },
+    { label: 'Health score', icon: 'analytics-01', value: Math.round(health.score), format: 'number', badge: health.rank, badgeTone: 'pine' },
+    { label: 'Day streak', icon: 'calendar-03', value: userStats.currentStreak, format: 'number', badge: `best ${userStats.longestStreak}`, badgeTone: 'butter' },
+    { label: 'Savings rate', icon: 'piggy-bank', value: metrics.savingsRate * 100, format: 'percent' },
   ];
 
   return (
     <div className="space-y-6 pb-8 max-md:space-y-4">
-      <PageHeader title="Challenges" stats={stats} actions={tab === 'predictions' ? <Button icon="add" onPress={() => setPredicting(true)}>New prediction</Button> : undefined} />
+      <PageHeader title="Challenges" stats={stats} actions={tab === 'predictions' ? <Button icon="add-01" onPress={() => setPredicting(true)}>New prediction</Button> : undefined} />
       <SegmentedControl scrollable items={TABS} activeId={tab} onChange={setTab} />
 
       {tab === 'score' && (
@@ -153,7 +153,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
       {tab === 'progress' && (
         progress.debts.length === 0 && progress.savings.length === 0
-          ? <EmptyState icon="check_circle" title="All quiet" description="You have no debts or open goals to work through right now." />
+          ? <EmptyState icon="checkmark-circle-02" title="All quiet" description="You have no debts or open goals to work through right now." />
           : (
             <>
               {progress.debts.length > 0 && (
@@ -204,7 +204,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
             <ul className={GRID}>
               {rows.map(badge => (
                 <li key={badge.id} className={`${CARD} flex items-center gap-3`}>
-                  <span className={`flex size-11 shrink-0 items-center justify-center rounded-full ${badge.unlocked ? 'bg-pine text-on-pine' : 'bg-inset text-muted'}`}><Icon name={badge.unlocked ? badge.icon : 'lock'} size={20} /></span>
+                  <span className={`flex size-11 shrink-0 items-center justify-center rounded-full ${badge.unlocked ? 'bg-pine text-on-pine' : 'bg-inset text-muted'}`}><Icon name={badge.unlocked ? badge.icon : 'square-lock-02'} size={20} /></span>
                   <span className="min-w-0 flex-1">
                     <span className="type-body-strong block truncate text-ink">{badge.title}</span>
                     <span className="type-caption block text-muted">{badge.description}</span>
@@ -219,7 +219,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
       {tab === 'budgets' && (
         mastery.length === 0
-          ? <EmptyState icon="savings" title="No budgets yet" description="Create a budget, and each one earns a level by how little of its limit you use." />
+          ? <EmptyState icon="sliders-horizontal" title="No budgets yet" description="Create a budget, and each one earns a level by how little of its limit you use." />
           : (
             <ul className={GRID}>
               {mastery.map(row => (
@@ -277,7 +277,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
       {tab === 'predictions' && (
         predictions.length === 0
-          ? <EmptyState icon="visibility" title="No predictions yet" description="Bet on your own spending, net worth or a holding's price, and see how you do." actionLabel="New prediction" onAction={() => setPredicting(true)} />
+          ? <EmptyState icon="target-01" title="No predictions yet" description="Bet on your own spending, net worth or a holding's price, and see how you do." actionLabel="New prediction" onAction={() => setPredicting(true)} />
           : (
             <div className={GRID}>
               {predictions.map(prediction => <PredictionCard key={prediction.id} prediction={prediction} value={predictionValue(prediction, predictionContext)} currency={priceCurrency(prediction)} onDelete={deletePrediction} />)}

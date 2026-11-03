@@ -184,7 +184,7 @@ export const MerchantLogo: React.FC<{
     });
   }, [merchantName, brandfetchClientId, effectiveOverrides, size]);
 
-  const resolvedFallbackIcon = isTransfer ? 'swap_horiz' : (fallbackIcon || (account ? accountIcon(account) : 'wallet'));
+  const resolvedFallbackIcon = isTransfer ? 'arrow-data-transfer-horizontal' : (fallbackIcon || (account ? accountIcon(account) : 'wallet-02'));
 
   return (
     <LogoTile

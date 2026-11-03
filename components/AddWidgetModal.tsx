@@ -28,8 +28,11 @@ const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, availa
               onClick={() => handleAdd(widget.id)}
               className="w-full text-left p-3.5 rounded-2xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 hover:border-primary-500/30 hover:bg-primary-500/5 transition-all text-xs font-bold flex items-center justify-between group active:scale-98 cursor-pointer"
             >
-              <span className="text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors">{widget.name}</span>
-              <Icon name="add" className="text-gray-400 group-hover:text-primary-500 group-hover:scale-110 transition-transform text-lg" />
+              <div className="flex items-center gap-3">
+                <Icon name={widget.icon || 'dashboard-square-add'} size={18} className="text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors" />
+                <span className="text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors">{widget.name}</span>
+              </div>
+              <Icon name="add-01" className="text-gray-400 group-hover:text-primary-500 group-hover:scale-110 transition-transform text-lg" />
             </button>
           ))
         ) : (

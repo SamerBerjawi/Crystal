@@ -93,15 +93,15 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
     switch (activeTab) {
       case 'accounts':
-        return [money('Total balance', 'account_balance_wallet', totals.netWorth), money('Net this month', 'trending_up', computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates })), count('Accounts', 'account_balance', tabAccounts.length)];
+        return [money('Total balance', 'wallet-02', totals.netWorth), money('Net this month', 'chart-line-data-01', computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates })), count('Accounts', 'bank', tabAccounts.length)];
       case 'loans':
-        return [money('Still to pay', 'payments', Math.abs(totals.totalDebt)), count('Loans', 'account_balance', tabAccounts.length)];
+        return [money('Still to pay', 'coins-01', Math.abs(totals.totalDebt)), count('Loans', 'bank', tabAccounts.length)];
       case 'assets':
-        return [money('Total value', 'home', totals.totalAssets), count('Assets', 'layers', tabAccounts.length)];
+        return [money('Total value', 'home-01', totals.totalAssets), count('Assets', 'layers-01', tabAccounts.length)];
       default: {
         const credit = countable.filter(acc => acc.type === 'Credit Card');
         const owed = calculateAccountTotals(credit, analyticsTransactions, loanPaymentOverrides).totalDebt;
-        return [count('Cards', 'credit_card', tabAccounts.length, 'teal'), money('Owed on credit', 'payments', Math.abs(owed), 'rose')];
+        return [count('Cards', 'credit-card', tabAccounts.length, 'teal'), money('Owed on credit', 'coins-01', Math.abs(owed), 'rose')];
       }
     }
   }, [tabAccounts, activeTab, analyticsTransactions, loanPaymentOverrides, transactions, conversionRates, preferredCurrency]);
@@ -155,11 +155,11 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const menuFor = (account: Account) => {
     const isComputed = account.type === 'Investment' && !!account.symbol && warrants.some(w => w.isin === account.symbol);
     return [
-      { id: 'open', label: 'Open account', icon: 'open_in_new', onAction: () => handleAccountClick(account.id) },
-      { id: 'transactions', label: 'See transactions', icon: 'receipt', onAction: () => onNavigateToTransactions({ accountName: account.name }) },
-      { id: 'edit', label: 'Edit', icon: 'edit', startsGroup: true, onAction: () => openEditModal(account) },
-      { id: 'adjust', label: 'Adjust balance', icon: 'tune', isDisabled: isComputed, onAction: () => openAdjustModal(account) },
-      { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setDeletingAccount(account) },
+      { id: 'open', label: 'Open account', icon: 'link-square-02', onAction: () => handleAccountClick(account.id) },
+      { id: 'transactions', label: 'See transactions', icon: 'arrow-data-transfer-horizontal', onAction: () => onNavigateToTransactions({ accountName: account.name }) },
+      { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', startsGroup: true, onAction: () => openEditModal(account) },
+      { id: 'adjust', label: 'Adjust balance', icon: 'sliders-horizontal', isDisabled: isComputed, onAction: () => openAdjustModal(account) },
+      { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setDeletingAccount(account) },
     ];
   };
 
@@ -261,11 +261,11 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         actions={
           <>
             {activeTab !== 'cards' && (
-              <Popover title="View options" placement="bottom end" trigger={<IconButton icon="tune" label="View options" tooltipPlacement="bottom" />}>
+              <Popover title="View options" placement="bottom end" trigger={<IconButton icon="sliders-horizontal" label="View options" tooltipPlacement="bottom" />}>
                 {viewOptions}
               </Popover>
             )}
-            <Button icon="add" onPress={() => setAddModalOpen(true)}>Add account</Button>
+            <Button icon="add-01" onPress={() => setAddModalOpen(true)}>Add account</Button>
           </>
         }
       />
@@ -284,7 +284,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           onReorder={handleReorderCards}
         />
       ) : tabAccounts.length === 0 ? (
-        <EmptyState icon="wallet" title="Nothing here yet" description="Accounts of this kind appear here." actionLabel="Add account" onAction={() => setAddModalOpen(true)} />
+        <EmptyState icon="wallet-02" title="Nothing here yet" description="Accounts of this kind appear here." actionLabel="Add account" onAction={() => setAddModalOpen(true)} />
       ) : showPots ? (
         <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sortedPots.map(account => (
@@ -302,7 +302,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       ) : section('', tabAccounts)}
 
       {activeTab === 'assets' && openAccounts.some(acc => acc.type === 'Investment') && (
-        <Button variant="ghost" icon="nav_investments" onPress={() => setCurrentPage('Investments')}>Investments are in their own hub</Button>
+        <Button variant="ghost" icon="chart-line-data-01" onPress={() => setCurrentPage('Investments')}>Investments are in their own hub</Button>
       )}
 
       {accountsInTab(closedAccounts, activeTab).length > 0 && section('Closed', accountsInTab(closedAccounts, activeTab), { isCollapsible: true, defaultExpanded: false })}

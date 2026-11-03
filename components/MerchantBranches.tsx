@@ -92,7 +92,7 @@ const MerchantBranches: React.FC<{ branches: MerchantLocation[]; onChange: (bran
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <h3 className="type-card-title text-ink">Branches</h3>
-        {branches.length > 0 && !isAdding && <Button variant="ghost" size="sm" icon="add" onPress={() => setAdding(true)}>Add</Button>}
+        {branches.length > 0 && !isAdding && <Button variant="ghost" size="sm" icon="add-01" onPress={() => setAdding(true)}>Add</Button>}
       </div>
       {branches.length > 0 && (
         <ul className="divide-y divide-line">

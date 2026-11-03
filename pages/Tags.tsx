@@ -44,10 +44,10 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
         title="Tags"
         setCurrentPage={setCurrentPage}
         stats={[
-          { label: 'Tags', icon: 'label', value: tags.length },
-          { label: 'Transactions tagged', icon: 'pie_chart', value: taggedShare(transactions), format: 'percent' },
+          { label: 'Tags', icon: 'tag-01', value: tags.length },
+          { label: 'Transactions tagged', icon: 'pie-chart-01', value: taggedShare(transactions), format: 'percent' },
         ]}
-        actions={<Button icon="add" onPress={() => setEditing({ tag: null })}>New tag</Button>}
+        actions={<Button icon="add-01" onPress={() => setEditing({ tag: null })}>New tag</Button>}
       />
 
       {editing && <TagModal onClose={() => setEditing(null)} onSave={saveTag} tagToEdit={editing.tag} />}
@@ -87,10 +87,10 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
               </button>
               <Menu
                 title={tag.name}
-                trigger={<IconButton icon="more_horiz" label={`More for ${tag.name}`} />}
+                trigger={<IconButton icon="more-horizontal" label={`More for ${tag.name}`} />}
                 items={[
-                  { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setEditing({ tag }) },
-                  { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setDeleting(tag) },
+                  { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setEditing({ tag }) },
+                  { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setDeleting(tag) },
                 ]}
               />
             </li>
@@ -98,7 +98,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
         </ul>
       ) : (
         <EmptyState
-          icon="label_off"
+          icon="tag-01"
           title={search ? 'No tags match' : 'No tags yet'}
           description={search ? 'Try another word.' : 'Tags group transactions across categories and accounts.'}
           actionLabel={search ? undefined : 'New tag'}

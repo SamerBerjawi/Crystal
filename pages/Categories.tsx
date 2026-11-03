@@ -66,11 +66,11 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         title="Categories"
         setCurrentPage={setCurrentPage}
         stats={[
-          { label: 'Expense', icon: 'arrow_upward', value: expenseCategories.length },
-          { label: 'Income', icon: 'arrow_downward', value: incomeCategories.length },
-          { label: 'Sub-categories', icon: 'folder', value: countSubCategories(expenseCategories) + countSubCategories(incomeCategories) },
+          { label: 'Expense', icon: 'arrow-up-right-01', value: expenseCategories.length },
+          { label: 'Income', icon: 'arrow-down-left-01', value: incomeCategories.length },
+          { label: 'Sub-categories', icon: 'folder-01', value: countSubCategories(expenseCategories) + countSubCategories(incomeCategories) },
         ]}
-        actions={<Button icon="add" onPress={() => setEditing({ mode: 'add', category: null, classification: activeTab })}>New category</Button>}
+        actions={<Button icon="add-01" onPress={() => setEditing({ mode: 'add', category: null, classification: activeTab })}>New category</Button>}
       />
 
       {editing && (
@@ -119,7 +119,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         </ul>
       ) : (
         <EmptyState
-          icon="folder"
+          icon="folder-01"
           title={search ? 'No categories match' : 'No categories yet'}
           description={search ? 'Try another word.' : 'Add one to start grouping transactions.'}
           actionLabel={search ? undefined : 'New category'}

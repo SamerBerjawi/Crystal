@@ -161,10 +161,10 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ rule, rules, transactions, in
                       onChange={id => setCondition(index, { operator: id as RuleOperator })}
                     />
                     {whenValue(condition, index)}
-                    <IconButton icon="delete" label={`Remove condition ${index + 1}`} isDisabled={draft.conditions.length === 1} onPress={() => update({ conditions: draft.conditions.filter((_, position) => position !== index) })} />
+                    <IconButton icon="delete-02" label={`Remove condition ${index + 1}`} isDisabled={draft.conditions.length === 1} onPress={() => update({ conditions: draft.conditions.filter((_, position) => position !== index) })} />
                   </div>
                 ))}
-                <Button variant="ghost" size="sm" icon="add" onPress={() => update({ conditions: [...draft.conditions, { field: 'description', operator: 'contains', value: '' }] })}>Add condition</Button>
+                <Button variant="ghost" size="sm" icon="add-01" onPress={() => update({ conditions: [...draft.conditions, { field: 'description', operator: 'contains', value: '' }] })}>Add condition</Button>
               </section>
             )}
 
@@ -182,14 +182,14 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ rule, rules, transactions, in
                     {action.field === 'category'
                       ? <Combobox label="To" options={categoryOptions} value={action.value || null} onChange={id => setAction(index, { value: id ?? '' })} />
                       : <TextInput label="To" value={action.value} onChange={text => setAction(index, { value: text })} />}
-                    <IconButton icon="delete" label={`Remove action ${index + 1}`} isDisabled={draft.actions.length === 1} onPress={() => update({ actions: draft.actions.filter((_, position) => position !== index) })} />
+                    <IconButton icon="delete-02" label={`Remove action ${index + 1}`} isDisabled={draft.actions.length === 1} onPress={() => update({ actions: draft.actions.filter((_, position) => position !== index) })} />
                   </div>
                 ))}
                 {draft.actions.length < ACTION_FIELDS.length && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    icon="add"
+                    icon="add-01"
                     onPress={() => update({ actions: [...draft.actions, { field: ACTION_FIELDS.find(field => !draft.actions.some(action => action.field === field)) ?? 'category', value: '' }] })}
                   >
                     Add action

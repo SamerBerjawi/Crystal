@@ -27,9 +27,9 @@ import { SidePanel } from './ui/Overlays';
 import { Combobox, type PickerOption } from './ui/Pickers';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
   ArrowDataTransferHorizontalIcon,
+  ArrowDownLeft01Icon,
+  ArrowUpRight01Icon,
 } from '@hugeicons/core-free-icons';
 import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 import { AmountPad } from './ui/AmountPad';
@@ -56,14 +56,14 @@ const TRANSACTION_TYPE_TABS: SwipeTabItem[] = [
   {
     id: 'expense',
     title: 'Expense',
-    icon: () => <HugeiconsIcon icon={ArrowDown01Icon} size={16} className="shrink-0" />,
+    icon: () => <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} className="shrink-0" />,
     activeColor: 'bg-red-500 dark:bg-red-600',
     activeTextColor: 'text-white',
   },
   {
     id: 'income',
     title: 'Income',
-    icon: () => <HugeiconsIcon icon={ArrowUp01Icon} size={16} className="shrink-0" />,
+    icon: () => <HugeiconsIcon icon={ArrowDownLeft01Icon} size={16} className="shrink-0" />,
     activeColor: 'bg-emerald-600 dark:bg-emerald-500',
     activeTextColor: 'text-white',
   },
@@ -394,11 +394,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                   label={form.merchant}
                   size={24}
                   rounded="md"
-                  fallbackIcon={form.type === 'transfer' ? 'swap_horiz' : 'storefront'}
+                  fallbackIcon={form.type === 'transfer' ? 'arrow-data-transfer-horizontal' : 'store-01'}
                 />
               ) : (
                 <Icon
-                  name={form.type === 'transfer' ? 'swap_horiz' : 'storefront'}
+                  name={form.type === 'transfer' ? 'arrow-data-transfer-horizontal' : 'store-01'}
                   size={18}
                   className="text-muted"
                 />
@@ -478,7 +478,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         {form.type === 'transfer' ? (
           <div className="flex items-end gap-1 max-md:flex-col max-md:items-stretch">
             <Combobox className="min-w-0 flex-1 max-md:flex-none" label="From" options={accountOptions(form.toAccountId, form.fromAccountId)} value={form.fromAccountId} onChange={id => id && update({ fromAccountId: id })} placeholder="Search accounts" />
-            <IconButton className="max-md:self-end" icon="swap_horiz" label="Swap accounts" onPress={() => update({ fromAccountId: form.toAccountId, toAccountId: form.fromAccountId })} />
+            <IconButton className="max-md:self-end" icon="arrow-data-transfer-horizontal" label="Swap accounts" onPress={() => update({ fromAccountId: form.toAccountId, toAccountId: form.fromAccountId })} />
             <Combobox className="min-w-0 flex-1 max-md:flex-none" label="To" options={accountOptions(form.fromAccountId, form.toAccountId)} value={form.toAccountId} onChange={id => id && update({ toAccountId: id })} placeholder="Search accounts" />
           </div>
         ) : (

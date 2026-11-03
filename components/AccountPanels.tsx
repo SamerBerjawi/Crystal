@@ -60,11 +60,11 @@ const money = (value: number, account: Account) => <Amount value={value} currenc
 const day = (value?: string) => (value ? parseLocalDate(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : undefined);
 
 const commonActions = (props: AccountPanelProps, withAdjust = true): FrameAction[] => [
-  ...(props.onSync ? [{ id: 'sync', label: 'Sync', icon: 'sync', onPress: props.onSync }] : []),
-  ...(withAdjust ? [{ id: 'adjust', label: 'Adjust balance', icon: 'tune', onPress: props.onAdjustBalance }] : []),
+  ...(props.onSync ? [{ id: 'sync', label: 'Sync', icon: 'refresh', onPress: props.onSync }] : []),
+  ...(withAdjust ? [{ id: 'adjust', label: 'Adjust balance', icon: 'sliders-horizontal', onPress: props.onAdjustBalance }] : []),
 ];
 
-const addAction = (props: AccountPanelProps, label = 'Add transaction'): FrameAction => ({ id: 'add', label, icon: 'add', onPress: props.onAddTransaction });
+const addAction = (props: AccountPanelProps, label = 'Add transaction'): FrameAction => ({ id: 'add', label, icon: 'add-01', onPress: props.onAddTransaction });
 
 const transactionsTab = (props: AccountPanelProps) => ({
   id: 'transactions',
@@ -595,9 +595,9 @@ const closureBanner = (account: Account, title: string) => account.status === 'c
 const valuationActions = (props: AccountPanelProps, closeLabel: string): FrameAction[] => {
   const isClosed = props.account.status === 'closed';
   return [
-    ...(props.onSync ? [{ id: 'sync', label: 'Sync', icon: 'sync', onPress: props.onSync }] : []),
-    ...(!isClosed ? [{ id: 'close', label: closeLabel, icon: 'sell', onPress: props.onCloseAsset }] : []),
-    ...(isClosed && props.onRevertClosure ? [{ id: 'reopen', label: 'Reopen', icon: 'history', onPress: props.onRevertClosure }] : []),
+    ...(props.onSync ? [{ id: 'sync', label: 'Sync', icon: 'refresh', onPress: props.onSync }] : []),
+    ...(!isClosed ? [{ id: 'close', label: closeLabel, icon: 'tag-01', onPress: props.onCloseAsset }] : []),
+    ...(isClosed && props.onRevertClosure ? [{ id: 'reopen', label: 'Reopen', icon: 'clock-01', onPress: props.onRevertClosure }] : []),
   ];
 };
 
@@ -630,7 +630,7 @@ const PropertyPanel: React.FC<AccountPanelProps> = props => {
         { label: 'Owned', value: `${ownershipPercent.toFixed(0)}%` },
         { label: 'Purchase cost', value: money(purchasePrice, account) },
       ]}
-      mainAction={!isClosed ? { id: 'value', label: 'Update value', icon: 'edit', onPress: props.onUpdateValuation } : undefined}
+      mainAction={!isClosed ? { id: 'value', label: 'Update value', icon: 'pencil-edit-02', onPress: props.onUpdateValuation } : undefined}
       actions={valuationActions(props, 'Record sale')}
       onBack={props.onBack}
       transactionsForChart={props.transactions}
@@ -663,7 +663,7 @@ const PropertyPanel: React.FC<AccountPanelProps> = props => {
           label: 'Valuations',
           content: (account.priceHistory?.length ?? 0) > 1
             ? <Panel title="Value over time"><ValueChart data={account.priceHistory as unknown as Record<string, unknown>[]} currency={account.currency} dataKey="price" /></Panel>
-            : <EmptyState icon="trending_up" title="Not enough valuations yet" description="Add two or more to see a trend." actionLabel={isClosed ? undefined : 'Update value'} onAction={props.onUpdateValuation} />,
+            : <EmptyState icon="chart-line-data-01" title="Not enough valuations yet" description="Add two or more to see a trend." actionLabel={isClosed ? undefined : 'Update value'} onAction={props.onUpdateValuation} />,
         },
         {
           id: 'details',
@@ -732,8 +732,8 @@ const VehiclePanel: React.FC<AccountPanelProps> = props => {
         { label: isLeased ? 'Lease allowance' : 'Lifespan target', value: `${target.toLocaleString()} km` },
         { label: 'Model year', value: account.year || '—' },
       ]}
-      mainAction={!isClosed ? { id: 'value', label: 'Update value', icon: 'edit', onPress: props.onUpdateValuation } : undefined}
-      actions={[{ id: 'log', label: 'Add reading', icon: 'add', onPress: props.onAddLog }, ...valuationActions(props, 'Retire vehicle')]}
+      mainAction={!isClosed ? { id: 'value', label: 'Update value', icon: 'pencil-edit-02', onPress: props.onUpdateValuation } : undefined}
+      actions={[{ id: 'log', label: 'Add reading', icon: 'add-01', onPress: props.onAddLog }, ...valuationActions(props, 'Retire vehicle')]}
       onBack={props.onBack}
       transactionsForChart={props.transactions}
       tabs={[
@@ -767,7 +767,7 @@ const VehiclePanel: React.FC<AccountPanelProps> = props => {
           label: 'Valuations',
           content: (account.priceHistory?.length ?? 0) > 1
             ? <Panel title="Value over time"><ValueChart data={priceHistory} currency={account.currency} dataKey="price" trendKey="trend" /></Panel>
-            : <EmptyState icon="trending_up" title="Not enough valuations yet" description="Add two or more to see a trend." actionLabel={isClosed ? undefined : 'Update value'} onAction={props.onUpdateValuation} />,
+            : <EmptyState icon="chart-line-data-01" title="Not enough valuations yet" description="Add two or more to see a trend." actionLabel={isClosed ? undefined : 'Update value'} onAction={props.onUpdateValuation} />,
         },
         {
           id: 'mileage',
@@ -786,8 +786,8 @@ const VehiclePanel: React.FC<AccountPanelProps> = props => {
                         <span className="type-body min-w-0 flex-1 truncate text-ink">{day(log.date)}</span>
                         {added > 0 && <span className="type-caption text-muted">+{added.toLocaleString()} km</span>}
                         <span className="type-figure-row text-ink">{log.reading.toLocaleString()} km</span>
-                        <IconButton icon="edit" label={`Edit the reading from ${day(log.date)}`} onPress={() => props.onEditLog(log)} />
-                        <IconButton icon="delete" label={`Delete the reading from ${day(log.date)}`} onPress={() => props.onDeleteLog(log.id)} />
+                        <IconButton icon="pencil-edit-02" label={`Edit the reading from ${day(log.date)}`} onPress={() => props.onEditLog(log)} />
+                        <IconButton icon="delete-02" label={`Delete the reading from ${day(log.date)}`} onPress={() => props.onDeleteLog(log.id)} />
                       </li>
                     );
                   })}

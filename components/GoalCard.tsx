@@ -56,10 +56,10 @@ interface GoalCardProps {
 }
 
 const goalMenu = (goal: FinancialGoal, view: GoalCardView, props: GoalCardProps): MenuAction[] => [
-  { id: 'complete', label: view.done ? 'Mark as not reached' : 'Mark as reached', icon: 'check_circle', onAction: () => props.onToggleComplete(goal) },
-  ...(goal.isBucket ? [{ id: 'add', label: 'Add an item', icon: 'add', onAction: () => props.onAddItem(goal.id) }] : []),
-  { id: 'duplicate', label: 'Duplicate', icon: 'content_copy', onAction: () => props.onDuplicate(goal) },
-  { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => props.onDelete(goal) },
+  { id: 'complete', label: view.done ? 'Mark as not reached' : 'Mark as reached', icon: 'checkmark-circle-02', onAction: () => props.onToggleComplete(goal) },
+  ...(goal.isBucket ? [{ id: 'add', label: 'Add an item', icon: 'add-01', onAction: () => props.onAddItem(goal.id) }] : []),
+  { id: 'duplicate', label: 'Duplicate', icon: 'copy-01', onAction: () => props.onDuplicate(goal) },
+  { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => props.onDelete(goal) },
 ];
 
 const ItemRow: React.FC<{ item: FinancialGoal; today: Date; card: GoalCardProps }> = ({ item, today, card }) => {
@@ -75,7 +75,7 @@ const ItemRow: React.FC<{ item: FinancialGoal; today: Date; card: GoalCardProps 
         <span className="type-caption block text-muted"><Amount value={view.saved} currency={getMainCurrency()} /> of <Amount value={view.target} currency={getMainCurrency()} /></span>
         <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-inset"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${view.pct}%` }} /></span>
       </button>
-      <Menu title={item.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${item.name}`} tooltipPlacement="left" />} items={goalMenu(item, view, card)} />
+      <Menu title={item.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${item.name}`} tooltipPlacement="left" />} items={goalMenu(item, view, card)} />
     </li>
   );
 };
@@ -124,7 +124,7 @@ const GoalCard: React.FC<GoalCardProps> = props => {
           {isOpen && (
             <>
               {items.length > 0 && <ul className="divide-y divide-line">{items.map(item => <ItemRow key={item.id} item={item} today={today} card={props} />)}</ul>}
-              <Button variant="ghost" size="sm" icon="add" onPress={() => props.onAddItem(goal.id)}>Add an item</Button>
+              <Button variant="ghost" size="sm" icon="add-01" onPress={() => props.onAddItem(goal.id)}>Add an item</Button>
             </>
           )}
         </div>
@@ -134,7 +134,7 @@ const GoalCard: React.FC<GoalCardProps> = props => {
         <Switch isSelected={isIncluded} onChange={() => onToggleIncluded(goal)} className="min-w-0 flex-1">In forecast</Switch>
         <div className="flex shrink-0 items-center gap-1">
           <Button variant="secondary" size="sm" onPress={() => onEdit(goal)}>Edit</Button>
-          <Menu title={goal.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${goal.name}`} tooltipPlacement="left" />} items={goalMenu(goal, view, props)} />
+          <Menu title={goal.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${goal.name}`} tooltipPlacement="left" />} items={goalMenu(goal, view, props)} />
         </div>
       </footer>
     </article>

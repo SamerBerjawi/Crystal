@@ -101,8 +101,8 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
 
   const toggle = (id: string, isActive: boolean) => setRules(current => current.map(rule => (rule.id === id ? { ...rule, isActive } : rule)));
   const commonItems = (rule: TransactionRule) => [
-    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => setEditing({ rule }) },
-    { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setDeleting(rule) },
+    { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setEditing({ rule }) },
+    { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setDeleting(rule) },
   ];
 
   const hasNoRules = rules.length === 0;
@@ -112,11 +112,11 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
       <PageHeader
         title="Rules"
         stats={[
-          { label: 'Rules on', icon: 'bolt', value: rules.filter(rule => rule.isActive).length, badge: `of ${rules.length}`, badgeTone: 'pine' },
-          { label: 'Always file', icon: 'folder', value: rules.filter(isAlwaysFile).length },
-          { label: 'Suggestions', icon: 'magic_wand', value: suggestions.length },
+          { label: 'Rules on', icon: 'flash', value: rules.filter(rule => rule.isActive).length, badge: `of ${rules.length}`, badgeTone: 'pine' },
+          { label: 'Always file', icon: 'folder-01', value: rules.filter(isAlwaysFile).length },
+          { label: 'Suggestions', icon: 'magic-wand-01', value: suggestions.length },
         ]}
-        actions={<Button icon="add" onPress={() => setEditing({ rule: null })}>New rule</Button>}
+        actions={<Button icon="add-01" onPress={() => setEditing({ rule: null })}>New rule</Button>}
       />
 
       {editing && (
@@ -157,7 +157,7 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
           <div className="min-w-0 space-y-6">
             {!hasNoRules && <TextInput label="Find a rule" value={search} onChange={setSearch} />}
             {hasNoRules && (
-              <EmptyState icon="bolt" title="No rules yet" description="Rules file transactions for you as they arrive." actionLabel="New rule" onAction={() => setEditing({ rule: null })} />
+              <EmptyState icon="flash" title="No rules yet" description="Rules file transactions for you as they arrive." actionLabel="New rule" onAction={() => setEditing({ rule: null })} />
             )}
             {filings.length > 0 && (
               <RuleGroup title="Always file" description="These run first and always win for what they set.">
@@ -183,8 +183,8 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
                     matchCount={matchCounts.get(rule.id) ?? 0}
                     menuItems={[
                       ...commonItems(rule).slice(0, 1),
-                      { id: 'up', label: 'Move up', icon: 'arrow_upward', startsGroup: true, onAction: () => setRules(current => shiftRule(current, rule.id, -1)) },
-                      { id: 'down', label: 'Move down', icon: 'arrow_downward', onAction: () => setRules(current => shiftRule(current, rule.id, 1)) },
+                      { id: 'up', label: 'Move up', icon: 'arrow-up-02', startsGroup: true, onAction: () => setRules(current => shiftRule(current, rule.id, -1)) },
+                      { id: 'down', label: 'Move down', icon: 'arrow-down-02', onAction: () => setRules(current => shiftRule(current, rule.id, 1)) },
                       ...commonItems(rule).slice(1),
                     ]}
                     onToggle={isActive => toggle(rule.id, isActive)}
@@ -202,7 +202,7 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
                 ))}
               </RuleGroup>
             )}
-            {!hasNoRules && search && filings.length === 0 && ordered.length === 0 && <EmptyState icon="search" title="No rules match" description="Try another word." />}
+            {!hasNoRules && search && filings.length === 0 && ordered.length === 0 && <EmptyState icon="search-01" title="No rules match" description="Try another word." />}
           </div>
 
           {suggestions.length > 0 && (

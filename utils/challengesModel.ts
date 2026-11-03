@@ -212,17 +212,17 @@ export interface SprintDefinition {
 }
 
 export const SPRINTS: SprintDefinition[] = [
-  { id: 'zero_day', title: 'The Zero Day', description: 'Spend nothing for 24 hours.', durationDays: 1, targetType: 'global', limitAmount: 0, icon: 'block' },
-  { id: 'weekend_warrior', title: 'Weekend Warrior', description: 'Spend nothing for 2 days.', durationDays: 2, targetType: 'global', limitAmount: 0, icon: 'calendar_today' },
-  { id: 'coffee_break', title: 'The Coffee Break', description: 'Spend under €15 on coffee in a week.', durationDays: 7, targetType: 'category', keywords: ['cafe', 'café', 'coffee'], limitAmount: 15, icon: 'schedule' },
-  { id: 'dining_detox', title: 'Dining Detox', description: 'Spend nothing on restaurants for 7 days.', durationDays: 7, targetType: 'category', keywords: ['dining', 'restaurant', 'takeaway'], limitAmount: 0, icon: 'block' },
+  { id: 'zero_day', title: 'The Zero Day', description: 'Spend nothing for 24 hours.', durationDays: 1, targetType: 'global', limitAmount: 0, icon: 'cancel-circle' },
+  { id: 'weekend_warrior', title: 'Weekend Warrior', description: 'Spend nothing for 2 days.', durationDays: 2, targetType: 'global', limitAmount: 0, icon: 'calendar-03' },
+  { id: 'coffee_break', title: 'The Coffee Break', description: 'Spend under €15 on coffee in a week.', durationDays: 7, targetType: 'category', keywords: ['cafe', 'café', 'coffee'], limitAmount: 15, icon: 'clock-01' },
+  { id: 'dining_detox', title: 'Dining Detox', description: 'Spend nothing on restaurants for 7 days.', durationDays: 7, targetType: 'category', keywords: ['dining', 'restaurant', 'takeaway'], limitAmount: 0, icon: 'cancel-circle' },
   { id: 'grocery_gauntlet', title: 'Grocery Gauntlet', description: 'Keep groceries under €50 for a week.', durationDays: 7, targetType: 'category', keywords: ['supermarket', 'grocer'], limitAmount: 50, icon: 'receipt' },
-  { id: 'transport_trim', title: 'Transport Trim', description: 'Spend under €20 on fuel and transit in a week.', durationDays: 7, targetType: 'category', keywords: ['transport', 'fuel', 'transit'], limitAmount: 20, icon: 'swap_horiz' },
-  { id: 'entertainment_fast', title: 'Entertainment Fast', description: 'Spend nothing on movies or games for 2 weeks.', durationDays: 14, targetType: 'category', keywords: ['entertainment', 'cinema', 'movie', 'game'], limitAmount: 0, icon: 'block' },
-  { id: 'shopping_ban', title: 'Shopping Ban', description: 'Buy no clothes or gadgets for 30 days.', durationDays: 30, targetType: 'category', keywords: ['shopping', 'clothing', 'electronics'], limitAmount: 0, icon: 'block' },
-  { id: 'low_cost_living', title: 'Low Cost Living', description: 'Spend under €200 in total in a week.', durationDays: 7, targetType: 'global', limitAmount: 200, icon: 'balance' },
-  { id: 'ten_euro_challenge', title: 'The €10 Challenge', description: 'Spend under €10 in total over 3 days.', durationDays: 3, targetType: 'global', limitAmount: 10, icon: 'payments' },
-  { id: 'impulse_control', title: 'Impulse Control', description: 'Make no single payment over €50 for a week.', durationDays: 7, targetType: 'transaction_limit', limitAmount: 50, icon: 'credit_card' },
+  { id: 'transport_trim', title: 'Transport Trim', description: 'Spend under €20 on fuel and transit in a week.', durationDays: 7, targetType: 'category', keywords: ['transport', 'fuel', 'transit'], limitAmount: 20, icon: 'car-01' },
+  { id: 'entertainment_fast', title: 'Entertainment Fast', description: 'Spend nothing on movies or games for 2 weeks.', durationDays: 14, targetType: 'category', keywords: ['entertainment', 'cinema', 'movie', 'game'], limitAmount: 0, icon: 'cancel-circle' },
+  { id: 'shopping_ban', title: 'Shopping Ban', description: 'Buy no clothes or gadgets for 30 days.', durationDays: 30, targetType: 'category', keywords: ['shopping', 'clothing', 'electronics'], limitAmount: 0, icon: 'cancel-circle' },
+  { id: 'low_cost_living', title: 'Low Cost Living', description: 'Spend under €200 in total in a week.', durationDays: 7, targetType: 'global', limitAmount: 200, icon: 'balance-scale' },
+  { id: 'ten_euro_challenge', title: 'The €10 Challenge', description: 'Spend under €10 in total over 3 days.', durationDays: 3, targetType: 'global', limitAmount: 10, icon: 'coins-01' },
+  { id: 'impulse_control', title: 'Impulse Control', description: 'Make no single payment over €50 for a week.', durationDays: 7, targetType: 'transaction_limit', limitAmount: 50, icon: 'credit-card' },
 ];
 
 export interface ActiveSprint { id: string; startDate: string }

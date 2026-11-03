@@ -196,14 +196,14 @@ const SchedulePage: React.FC = () => {
   };
 
   const pageStats: PageStat[] = [
-    { label: 'Going out, next 30 days', icon: 'arrow_upward', value: summary.out, format: 'money', ...(summary.overdueCount ? { badge: `${summary.overdueCount} overdue`, badgeTone: 'butter' as const } : {}) },
-    { label: 'Coming in, next 30 days', icon: 'arrow_downward', value: summary.in, format: 'money' },
-    { label: 'Net', icon: 'balance', value: summary.net, format: 'money' },
+    { label: 'Going out, next 30 days', icon: 'arrow-up-right-01', value: summary.out, format: 'money', ...(summary.overdueCount ? { badge: `${summary.overdueCount} overdue`, badgeTone: 'butter' as const } : {}) },
+    { label: 'Coming in, next 30 days', icon: 'arrow-down-left-01', value: summary.in, format: 'money' },
+    { label: 'Net', icon: 'balance-scale', value: summary.net, format: 'money' },
   ];
 
   const seriesMenu = (row: SeriesRow) => [
-    { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => { setEditingSeries(row.series); setFormMode('recurring'); } },
-    { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setConfirm({ title: `Delete ${row.series.description}?`, message: 'This removes every future date.', label: 'Delete', isDestructive: true, onConfirm: () => deleteRecurringTransaction(row.series.id) }) },
+    { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => { setEditingSeries(row.series); setFormMode('recurring'); } },
+    { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setConfirm({ title: `Delete ${row.series.description}?`, message: 'This removes every future date.', label: 'Delete', isDestructive: true, onConfirm: () => deleteRecurringTransaction(row.series.id) }) },
   ];
 
   const postAs = (bill: BillPayment): Occurrence => ({
@@ -230,7 +230,7 @@ const SchedulePage: React.FC = () => {
           <ul className="divide-y divide-line">{overdue.map(item => <OccurrenceRow key={item.key} occurrence={item} accountName={accountName} showDate isCompact {...actions} />)}</ul>
         </div>
       )}
-      <Button className="mt-3 w-full" variant="secondary" icon="add" onPress={() => openForm('recurring', selected)}>Add to this day</Button>
+      <Button className="mt-3 w-full" variant="secondary" icon="add-01" onPress={() => openForm('recurring', selected)}>Add to this day</Button>
     </section>
   );
 
@@ -242,9 +242,9 @@ const SchedulePage: React.FC = () => {
         actions={
           <Menu
             title="Add"
-            trigger={<Button icon="add">Add</Button>}
+            trigger={<Button icon="add-01">Add</Button>}
             items={[
-              { id: 'recurring', label: 'Recurring item', icon: 'repeat', onAction: () => openForm('recurring') },
+              { id: 'recurring', label: 'Recurring item', icon: 'repeat-one-01', onAction: () => openForm('recurring') },
               { id: 'one-time', label: 'One-time bill', icon: 'receipt', onAction: () => openForm('one-time') },
             ]}
           />
@@ -327,14 +327,14 @@ const SchedulePage: React.FC = () => {
                     </div>
                     <span className="type-figure-row shrink-0 text-ink"><Amount value={row.monthly} currency={row.series.currency} /><span className="type-caption text-muted"> /mo</span></span>
                     {row.source === 'recurring'
-                      ? <Menu title={row.series.description} trigger={<IconButton icon="more_horiz" label={`Actions for ${row.series.description}`} tooltipPlacement="left" />} items={seriesMenu(row)} />
+                      ? <Menu title={row.series.description} trigger={<IconButton icon="more-horizontal" label={`Actions for ${row.series.description}`} tooltipPlacement="left" />} items={seriesMenu(row)} />
                       : <Badge tone="neutral">From account</Badge>}
                   </li>
                 ))}
               </ul>
             </section>
           ))}
-          {series.length === 0 && <EmptyState icon="repeat" title="Nothing scheduled" description="Add a recurring payment, and it shows on every date." actionLabel="Add a recurring item" onAction={() => openForm('recurring')} />}
+          {series.length === 0 && <EmptyState icon="repeat-one-01" title="Nothing scheduled" description="Add a recurring payment, and it shows on every date." actionLabel="Add a recurring item" onAction={() => openForm('recurring')} />}
         </div>
       )}
 
@@ -364,10 +364,10 @@ const SchedulePage: React.FC = () => {
                   <Button variant="secondary" size="sm" onPress={() => { saveBillPayment({ ...bill, status: 'unpaid' }); toast.success(`${bill.description} restored`); }}>Restore</Button>
                   <Menu
                     title={bill.description}
-                    trigger={<IconButton icon="more_horiz" label={`Actions for ${bill.description}`} tooltipPlacement="left" />}
+                    trigger={<IconButton icon="more-horizontal" label={`Actions for ${bill.description}`} tooltipPlacement="left" />}
                     items={[
-                      { id: 'paid', label: 'Mark as paid', icon: 'check', onAction: () => setPosting(postAs(bill)) },
-                      { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => { deleteBillPayment(bill.id); toast.success(`${bill.description} deleted`); } },
+                      { id: 'paid', label: 'Mark as paid', icon: 'tick-02', onAction: () => setPosting(postAs(bill)) },
+                      { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => { deleteBillPayment(bill.id); toast.success(`${bill.description} deleted`); } },
                     ]}
                   />
                 </li>

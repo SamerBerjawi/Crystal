@@ -159,7 +159,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
             </div>
           </Section>
 
-          <Section title="Lines" aside={<Button variant="secondary" size="sm" icon="add" onPress={() => update({ lines: [...draft.lines, blankLine()] })}>Add line</Button>}>
+          <Section title="Lines" aside={<Button variant="secondary" size="sm" icon="add-01" onPress={() => update({ lines: [...draft.lines, blankLine()] })}>Add line</Button>}>
             <ul className="divide-y divide-line">
               {draft.lines.map((line, index) => {
                 const numbers = toNumbers(line);
@@ -167,7 +167,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
                   <li key={line.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
                     <div className="flex items-end gap-1">
                       <TextInput className="min-w-0 flex-1" label={`Line ${index + 1}`} value={line.description} onChange={description => updateLine(line.id, { description })} />
-                      <IconButton icon="delete" label={`Remove line ${index + 1}`} tooltipPlacement="left" onPress={() => removeLine(line.id)} />
+                      <IconButton icon="delete-02" label={`Remove line ${index + 1}`} tooltipPlacement="left" onPress={() => removeLine(line.id)} />
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       <TextInput label="Quantity" inputMode="decimal" value={line.quantity} onChange={quantity => updateLine(line.id, { quantity })} />

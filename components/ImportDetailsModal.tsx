@@ -84,13 +84,13 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
       />
       {tab === 'imported' && (imported.length > 0
         ? <DataTable headers={headers} rows={imported} />
-        : <EmptyState icon="table_view" title="No valid rows" description="Every row in this file had a problem." />)}
+        : <EmptyState icon="table-01" title="No valid rows" description="Every row in this file had a problem." />)}
       {tab === 'errors' && (errors.length > 0
         ? <DataTable headers={headers} rows={errors.map(error => error.data)} lead={[
             { title: 'Row', cells: errors.map(error => error.row) },
             { title: 'Problem', cells: errors.map(error => error.message) },
           ]} />
-        : <EmptyState icon="check_circle" title="No errors" description="Every row imported cleanly." />)}
+        : <EmptyState icon="checkmark-circle-02" title="No errors" description="Every row imported cleanly." />)}
 
       <ConfirmDialog
         isOpen={isConfirming}

@@ -63,8 +63,8 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                       <p className="type-body-strong text-ink"><Amount value={entry.price} currency={account.currency} /></p>
                       <p className="type-caption text-muted">{day}</p>
                     </div>
-                    <IconButton icon="edit" label={`Load the value from ${day}`} tooltipPlacement="left" onPress={() => { setNewValue(String(entry.price)); setDate(entry.date); }} />
-                    {onDeleteEntry && <IconButton icon="delete" label={`Delete the value from ${day}`} tooltipPlacement="left" onPress={() => onDeleteEntry(entry.date)} />}
+                    <IconButton icon="pencil-edit-02" label={`Load the value from ${day}`} tooltipPlacement="left" onPress={() => { setNewValue(String(entry.price)); setDate(entry.date); }} />
+                    {onDeleteEntry && <IconButton icon="delete-02" label={`Delete the value from ${day}`} tooltipPlacement="left" onPress={() => onDeleteEntry(entry.date)} />}
                   </li>
                 );
               })}

@@ -459,7 +459,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         <Popover
           title="View options"
           placement="bottom end"
-          trigger={<IconButton icon="tune" label="View options" tooltipPlacement="bottom" />}
+          trigger={<IconButton icon="sliders-horizontal" label="View options" tooltipPlacement="bottom" />}
         >
           <div className="flex w-56 flex-col gap-3 max-md:w-full">
             <Select label="Sort by" options={MERCHANT_SORTS} value={sortBy} onChange={id => setSortBy(id as typeof sortBy)} />
@@ -469,7 +469,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       </div>
       {filteredEntities.length === 0 ? (
         <EmptyState
-          icon="search"
+          icon="search-01"
           title={searchTerm ? 'No matches' : 'No merchants yet'}
           description={searchTerm ? 'Try a different name.' : 'Merchants appear here once you have transactions.'}
           actionLabel={searchTerm ? 'Clear search' : undefined}
@@ -503,7 +503,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     <section aria-label={selected.name} className="min-w-0 space-y-4">
       <div className="space-y-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
         <header className="flex flex-wrap items-center gap-3">
-          {isPhone && <IconButton icon="ArrowLeft" label="Back to the list" className="mr-auto" onPress={() => setSelectedId(null)} />}
+          {isPhone && <IconButton icon="arrow-left-01" label="Back to the list" className="mr-auto" onPress={() => setSelectedId(null)} />}
           <div className="flex min-w-0 flex-1 items-center gap-3 max-md:order-last max-md:basis-full">
             {entityLogo(selected, 48)}
             <div className="min-w-0 flex-1">
@@ -513,13 +513,13 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           </div>
           <Menu
             title={selected.name}
-            trigger={<IconButton icon="more_horiz" label={`Actions for ${selected.name}`} tooltipPlacement="left" />}
+            trigger={<IconButton icon="more-horizontal" label={`Actions for ${selected.name}`} tooltipPlacement="left" />}
             items={[
-              { id: 'logo', label: 'Refresh logo', icon: 'sync', onAction: () => handleRefreshSingleLogo(selected.name, selected.logoKey, selected.rule?.logo) },
-              { id: 'hide', label: selected.rule?.isHidden ? 'Show in lists' : 'Hide from lists', icon: selected.rule?.isHidden ? 'visibility' : 'visibility_off', onAction: () => handleToggleHidden(selected) },
+              { id: 'logo', label: 'Refresh logo', icon: 'refresh', onAction: () => handleRefreshSingleLogo(selected.name, selected.logoKey, selected.rule?.logo) },
+              { id: 'hide', label: selected.rule?.isHidden ? 'Show in lists' : 'Hide from lists', icon: selected.rule?.isHidden ? 'view' : 'view-off', onAction: () => handleToggleHidden(selected) },
             ]}
           />
-          <Button variant="secondary" icon="edit" onPress={() => { setEditingEntity(selected); setIsDetailModalOpen(true); }}>Edit</Button>
+          <Button variant="secondary" icon="pencil-edit-02" onPress={() => { setEditingEntity(selected); setIsDetailModalOpen(true); }}>Edit</Button>
         </header>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
           <div><dt className="type-caption text-muted">{selected.type === 'Institution' ? 'Balance' : 'Total'}</dt><dd className="type-figure-row text-ink"><Amount value={selected.totalValue} currency={getMainCurrency()} /></dd></div>
@@ -608,14 +608,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         <PageHeader
           title="Merchants"
           stats={[
-            { label: 'Merchants', icon: 'store', value: stats.totalMerchants, ...(stats.missingCount ? { badge: `${stats.missingCount} no logo`, badgeTone: 'butter' as const } : {}) },
-            { label: 'Institutions', icon: 'account_balance', value: stats.totalInstitutions },
-            { label: 'Total volume', icon: 'payments', value: stats.totalVolume, format: 'money' },
+            { label: 'Merchants', icon: 'store-01', value: stats.totalMerchants, ...(stats.missingCount ? { badge: `${stats.missingCount} no logo`, badgeTone: 'butter' as const } : {}) },
+            { label: 'Institutions', icon: 'bank', value: stats.totalInstitutions },
+            { label: 'Total volume', icon: 'coins-01', value: stats.totalVolume, format: 'money' },
           ]}
           actions={
             <>
-              <Button variant="secondary" icon="bolt" onPress={() => setCurrentPage('Rules')}>Rules</Button>
-              <Button variant="secondary" icon="magic_wand" isBusy={isRefreshing} onPress={handleRefreshLogos}>Find logos</Button>
+              <Button variant="secondary" icon="flash" onPress={() => setCurrentPage('Rules')}>Rules</Button>
+              <Button variant="secondary" icon="magic-wand-01" isBusy={isRefreshing} onPress={handleRefreshLogos}>Find logos</Button>
             </>
           }
         />

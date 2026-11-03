@@ -133,7 +133,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
       <div className="space-y-4">
         {error && <Banner tone="error">{error}</Banner>}
         {!backup ? (
-          <Button variant="secondary" icon="upload_file" onPress={() => fileInput.current?.click()}>Choose file</Button>
+          <Button variant="secondary" icon="upload-04" onPress={() => fileInput.current?.click()}>Choose file</Button>
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2">

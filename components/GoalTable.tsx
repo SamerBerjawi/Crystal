@@ -127,7 +127,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, o
                     <td className="type-body whitespace-nowrap px-3 py-2 text-ink">{shortDate(view.projectedDate)}</td>
                     <td className="px-3 py-2"><Badge tone={status.tone}>{status.label}</Badge></td>
                     <td className="px-1 py-2 text-right">
-                      <IconButton icon="delete" label={`Delete ${goal.name}`} tooltipPlacement="left" onPress={() => onDelete(goal)} />
+                      <IconButton icon="delete-02" label={`Delete ${goal.name}`} tooltipPlacement="left" onPress={() => onDelete(goal)} />
                     </td>
                   </tr>
                 );

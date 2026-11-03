@@ -210,9 +210,9 @@ const Forecasting: React.FC = () => {
   };
 
   const pageStats: PageStat[] = [
-    { label: 'Balance today', icon: 'account_balance_wallet', value: summary.today, format: 'money' },
-    { label: 'Lowest point', icon: 'trending_down', value: summary.lowest?.value ?? 0, format: 'money' },
-    { label: 'End of forecast', icon: 'flag', value: summary.end, format: 'money' },
+    { label: 'Balance today', icon: 'wallet-02', value: summary.today, format: 'money' },
+    { label: 'Lowest point', icon: 'chart-decrease', value: summary.lowest?.value ?? 0, format: 'money' },
+    { label: 'End of forecast', icon: 'target-01', value: summary.end, format: 'money' },
   ];
 
   const hasAccounts = selectedAccounts.length > 0;
@@ -225,7 +225,7 @@ const Forecasting: React.FC = () => {
       <PageHeader
         title="Forecast"
         stats={pageStats}
-        actions={<Button icon="add" onPress={() => { setFormDate(undefined); setFormMode('one-time'); }}>Add bill</Button>}
+        actions={<Button icon="add-01" onPress={() => { setFormDate(undefined); setFormMode('one-time'); }}>Add bill</Button>}
       />
 
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -249,7 +249,7 @@ const Forecasting: React.FC = () => {
       </div>
 
       {!hasAccounts ? (
-        <EmptyState icon="account_balance" title="Choose an account" description="The forecast follows the accounts you pick." />
+        <EmptyState icon="bank" title="Choose an account" description="The forecast follows the accounts you pick." />
       ) : (
         <div className="grid gap-6 max-md:gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 space-y-6 max-md:space-y-4">
@@ -349,9 +349,9 @@ const Forecasting: React.FC = () => {
               <h2 className="type-card-title text-ink">Cash buffer</h2>
               <p className="type-caption text-muted">The least you want to keep. Safe to spend uses the same number.</p>
               <div className="mt-3 flex items-end gap-1">
-                <IconButton icon="remove" label="Lower the buffer" isDisabled={cushion <= 0} onPress={() => setCushion(cushion - BUFFER_STEP)} />
+                <IconButton icon="minus-sign" label="Lower the buffer" isDisabled={cushion <= 0} onPress={() => setCushion(cushion - BUFFER_STEP)} />
                 <AmountInput key={cushion} className="min-w-0 flex-1" label="Buffer" currency={getMainCurrency()} defaultValue={cushion ? String(cushion) : ''} onBlur={e => setCushion(parseFloat((e.target as HTMLInputElement).value) || 0)} />
-                <IconButton icon="add" label="Raise the buffer" onPress={() => setCushion(cushion + BUFFER_STEP)} />
+                <IconButton icon="add-01" label="Raise the buffer" onPress={() => setCushion(cushion + BUFFER_STEP)} />
               </div>
             </section>
 

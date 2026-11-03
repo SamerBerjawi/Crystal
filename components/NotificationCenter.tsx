@@ -41,7 +41,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   return (
     <>
-      <IconButton icon="notifications" label="Bill alerts" iconSize={22} badge={notificationCount} tooltipPlacement="bottom" className="flex items-center justify-center" onPress={() => setIsOpen(true)} />
+      <IconButton icon="notification-01" label="Bill alerts" iconSize={22} badge={notificationCount} tooltipPlacement="bottom" className="flex items-center justify-center" onPress={() => setIsOpen(true)} />
       <SidePanel
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
@@ -55,7 +55,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         )}
       >
         {notifications.length === 0 ? (
-          <EmptyState icon="verified" title="No bill alerts" description="Recurring bills for the next 3 days are settled." />
+          <EmptyState icon="checkmark-circle-02" title="No bill alerts" description="Recurring bills for the next 3 days are settled." />
         ) : (
           <div className="space-y-5">
             {group('Needs action', overdueOrToday)}
@@ -83,7 +83,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
           <h4 className="type-body-strong truncate text-ink">{item.description}</h4>
           <Badge tone={isUrgent ? 'negative' : 'attention'} className="mt-1">{item.statusText}</Badge>
         </div>
-        <IconButton icon="close" label={`Dismiss ${item.description}`} onPress={() => onDismiss(item.id)} />
+        <IconButton icon="cancel-01" label={`Dismiss ${item.description}`} onPress={() => onDismiss(item.id)} />
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-line pt-2">
         <span className="type-figure-row privacy-blur text-ink">{formatCurrency(item.amount, item.currency)}</span>

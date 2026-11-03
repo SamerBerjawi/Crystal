@@ -57,7 +57,7 @@ const ApiKeyField: React.FC<{
           onChange={setDraft}
           onBlur={() => { if (draft !== value) onCommit(draft); }}
         />
-        <IconButton icon={isVisible ? 'visibility_off' : 'visibility'} label={isVisible ? `Hide ${label}` : `Show ${label}`} onPress={() => setVisible(shown => !shown)} />
+        <IconButton icon={isVisible ? 'view-off' : 'view'} label={isVisible ? `Hide ${label}` : `Show ${label}`} onPress={() => setVisible(shown => !shown)} />
       </div>
     </div>
   );
@@ -88,10 +88,10 @@ const Integrations: React.FC<IntegrationsProps> = ({
         title="Connections"
         setCurrentPage={setCurrentPage}
         stats={enableBankingConnections.length > 0 ? [
-          { label: 'Banks connected', icon: 'account_balance', value: connected, badge: `of ${enableBankingConnections.length}`, badgeTone: 'pine' },
-          { label: 'Accounts linked', icon: 'link', value: linked },
+          { label: 'Banks connected', icon: 'bank', value: connected, badge: `of ${enableBankingConnections.length}`, badgeTone: 'pine' },
+          { label: 'Accounts linked', icon: 'link-01', value: linked },
         ] : undefined}
-        actions={<Button icon="add" onPress={() => setConnectOpen(true)}>Connect a bank</Button>}
+        actions={<Button icon="add-01" onPress={() => setConnectOpen(true)}>Connect a bank</Button>}
       />
 
       <SettingsGroup isPlain title="Banks" description="Live balances and transactions through Enable Banking.">
