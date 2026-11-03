@@ -10,6 +10,7 @@ import Icon from './Icon';
 import { IconButton, Tooltip } from './Actions';
 import { Spinner } from './States';
 import { Dock, DockIcon, DockSeparator } from './dock';
+import { AnimatedThemeToggler } from './animated-theme-toggler';
 import { Menu } from './Menu';
 import { BottomSheet, SheetRow } from './Overlays';
 import { cn } from '../../lib/utils';
@@ -279,11 +280,18 @@ export const ToolRail: React.FC<ShellProps> = ({
           setUrlTab(null);
         }}
       />
-      <DockTool
-        icon={isDark ? 'light_mode' : 'dark_mode'}
-        label={isDark ? 'Use light theme' : 'Use dark theme'}
-        onPress={() => setTheme(isDark ? 'light' : 'dark')}
-      />
+      <DockIcon>
+        <Tooltip label={isDark ? 'Use light theme' : 'Use dark theme'} placement="top" delay={150}>
+          <AnimatedThemeToggler
+            theme={isDark ? 'dark' : 'light'}
+            onThemeChange={nextTheme => setTheme(nextTheme)}
+            aria-label={isDark ? 'Use light theme' : 'Use dark theme'}
+            className="flex size-full items-center justify-center rounded-full text-ink outline-none transition-[background-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-primary-soft/60 active:scale-95"
+          >
+            <Icon name={isDark ? 'light_mode' : 'dark_mode'} size={20} />
+          </AnimatedThemeToggler>
+        </Tooltip>
+      </DockIcon>
       <DockTool
         icon={isPrivacyMode ? 'visibility' : 'visibility_off'}
         label={isPrivacyMode ? 'Show amounts' : 'Hide amounts'}
