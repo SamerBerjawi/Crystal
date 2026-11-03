@@ -484,10 +484,20 @@ const App: React.FC = () => {
   const lockRef = useRef<() => void>(() => undefined);
 
   useKeyboardShortcuts({
-    onNavigate: (page) => setCurrentPage(page),
-    onOpenNewTransaction: () => setIsQuickAddTxModalOpen(true),
+    onNavigate: (page) => {
+      setIsShortcutsModalOpen(false);
+      setCurrentPage(page);
+    },
+    onOpenNewTransaction: () => {
+      setIsShortcutsModalOpen(false);
+      setIsQuickAddTxModalOpen(true);
+    },
     onToggleShortcutsModal: () => setIsShortcutsModalOpen(prev => !prev),
-    onLock: hasPin ? () => lockRef.current() : undefined,
+    onCloseShortcutsModal: () => setIsShortcutsModalOpen(false),
+    onLock: hasPin ? () => {
+      setIsShortcutsModalOpen(false);
+      lockRef.current();
+    } : undefined,
   });
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
@@ -3011,6 +3021,7 @@ const App: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
+        setIsShortcutsModalOpen(false);
         setIsCommandCenterOpen(prev => !prev);
       }
     };
@@ -3068,8 +3079,14 @@ const App: React.FC = () => {
     togglePrivacyMode: () => setIsPrivacyMode(!isPrivacyMode),
     isSyncing: isSyncingBanks,
     onSync: handleSyncAllEnableBankingConnections,
-    onSearch: () => setIsCommandCenterOpen(true),
-    onCreate: () => setIsQuickAddTxModalOpen(true),
+    onSearch: () => {
+      setIsShortcutsModalOpen(false);
+      setIsCommandCenterOpen(true);
+    },
+    onCreate: () => {
+      setIsShortcutsModalOpen(false);
+      setIsQuickAddTxModalOpen(true);
+    },
     onLogout: handleLogout,
     notifications: (
       <NotificationCenter
