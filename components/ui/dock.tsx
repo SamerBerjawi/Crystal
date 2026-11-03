@@ -23,8 +23,8 @@ export interface DockProps
   children: React.ReactNode
 }
 
-const DEFAULT_SIZE = 40
-const DEFAULT_MAGNIFICATION = 60
+const DEFAULT_SIZE = 36
+const DEFAULT_MAGNIFICATION = 48
 const DEFAULT_DISTANCE = 140
 const DEFAULT_DISABLEMAGNIFICATION = false
 

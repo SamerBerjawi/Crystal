@@ -252,6 +252,8 @@ export const ToolRail: React.FC<ShellProps> = ({
       direction="middle"
       role="toolbar"
       aria-label="Tools"
+      iconSize={36}
+      iconMagnification={48}
       className="glass-float fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] left-1/2 z-[var(--z-bar)] mt-0 max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-2xl"
     >
       <DockTool icon={SearchingIcon} label="Search (⌘K)" onPress={onSearch} />
