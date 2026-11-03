@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Moon02Icon, Sun01Icon } from "@hugeicons/core-free-icons";
 import { flushSync } from "react-dom";
 
 import { cn } from "../../lib/utils";
@@ -327,7 +328,12 @@ export const AnimatedThemeToggler = ({
     >
       {children ?? (
         <>
-          {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+          <HugeiconsIcon
+            icon={isDark ? Sun01Icon : Moon02Icon}
+            size={20}
+            strokeWidth={1.5}
+            className="shrink-0"
+          />
           <span className="sr-only">Toggle theme</span>
         </>
       )}

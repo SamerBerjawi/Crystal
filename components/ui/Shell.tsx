@@ -6,6 +6,17 @@ import { APP_VERSION } from '../../version';
 import type { Page, Theme, User } from '../../types';
 import { HUBS, PHONE_BAR_HUBS, hubForPage } from '../../utils/navigation';
 import { setUrlTab, useUrlTab } from '../../hooks/useUrlTab';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  SearchingIcon,
+  AddInvoiceIcon,
+  AiAutoRotateIcon,
+  LogsIcon,
+  ChartEvaluationIcon,
+  Settings05Icon,
+  Sun01Icon,
+  Moon02Icon,
+} from '@hugeicons/core-free-icons';
 import Icon from './Icon';
 import { IconButton, Tooltip } from './Actions';
 import { Spinner } from './States';
@@ -178,7 +189,7 @@ export const TopBar: React.FC<ShellProps> = props => (
 );
 
 interface DockToolProps {
-  icon: string;
+  icon: any;
   label: string;
   onPress: () => void;
   isActive?: boolean;
@@ -203,11 +214,11 @@ const DockTool: React.FC<DockToolProps> = ({ icon, label, onPress, isActive, isB
         {isBusy ? (
           <Spinner className="size-5" />
         ) : (
-          <Icon
-            name={icon}
+          <HugeiconsIcon
+            icon={icon}
             size={20}
-            weight={isActive ? 'bold' : 'regular'}
-            className={cn(isActive && 'text-primary')}
+            strokeWidth={isActive ? 2 : 1.5}
+            className={cn('shrink-0', isActive && 'text-primary')}
           />
         )}
       </AriaButton>
@@ -217,15 +228,13 @@ const DockTool: React.FC<DockToolProps> = ({ icon, label, onPress, isActive, isB
 
 /**
  * Dock-based tool rail built on @magicui/dock, with custom spacing,
- * spring physics magnification, and hover tooltips.
+ * spring physics magnification, Hugeicons, and hover tooltips.
  */
 export const ToolRail: React.FC<ShellProps> = ({
   currentPage,
   setCurrentPage,
   theme,
   setTheme,
-  isPrivacyMode,
-  togglePrivacyMode,
   isSyncing,
   onSync,
   onSearch,
@@ -235,14 +244,15 @@ export const ToolRail: React.FC<ShellProps> = ({
 
   return (
     <Dock
+      direction="middle"
       role="toolbar"
       aria-label="Tools"
       className="glass-float fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] left-1/2 z-[var(--z-bar)] mt-0 max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-2xl"
     >
-      <DockTool icon="search" label="Search (⌘K)" onPress={onSearch} />
-      <DockTool icon="add" label="Add transaction (N)" onPress={onCreate} />
+      <DockTool icon={SearchingIcon} label="Search (⌘K)" onPress={onSearch} />
+      <DockTool icon={AddInvoiceIcon} label="Add transaction (N)" onPress={onCreate} />
       <DockTool
-        icon="sync_banks"
+        icon={AiAutoRotateIcon}
         label={isSyncing ? 'Syncing banks...' : 'Sync banks'}
         isBusy={isSyncing}
         onPress={onSync}
@@ -251,7 +261,7 @@ export const ToolRail: React.FC<ShellProps> = ({
       <DockSeparator />
 
       <DockTool
-        icon="ledger"
+        icon={LogsIcon}
         label="Ledger"
         isActive={currentPage === 'Transactions'}
         onPress={() => {
@@ -260,7 +270,7 @@ export const ToolRail: React.FC<ShellProps> = ({
         }}
       />
       <DockTool
-        icon="forecast"
+        icon={ChartEvaluationIcon}
         label="Forecast"
         isActive={currentPage === 'Forecasting'}
         onPress={() => {
@@ -272,7 +282,7 @@ export const ToolRail: React.FC<ShellProps> = ({
       <DockSeparator />
 
       <DockTool
-        icon="settings"
+        icon={Settings05Icon}
         label="Settings"
         isActive={hubForPage(currentPage).id === 'settings'}
         onPress={() => {
@@ -288,16 +298,15 @@ export const ToolRail: React.FC<ShellProps> = ({
             aria-label={isDark ? 'Use light theme' : 'Use dark theme'}
             className="flex size-full items-center justify-center rounded-full text-ink outline-none transition-[background-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-primary-soft/60 active:scale-95"
           >
-            <Icon name={isDark ? 'light_mode' : 'dark_mode'} size={20} />
+            <HugeiconsIcon
+              icon={isDark ? Sun01Icon : Moon02Icon}
+              size={20}
+              strokeWidth={1.5}
+              className="shrink-0"
+            />
           </AnimatedThemeToggler>
         </Tooltip>
       </DockIcon>
-      <DockTool
-        icon={isPrivacyMode ? 'visibility' : 'visibility_off'}
-        label={isPrivacyMode ? 'Show amounts' : 'Hide amounts'}
-        isActive={isPrivacyMode}
-        onPress={togglePrivacyMode}
-      />
     </Dock>
   );
 };

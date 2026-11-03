@@ -163,7 +163,7 @@ export interface DockSeparatorProps {
   className?: string
 }
 
-export const DockSeparator: React.FC<DockSeparatorProps> = ({ className }) => (
+const DockSeparator: React.FC<DockSeparatorProps> = ({ className }) => (
   <div
     role="separator"
     aria-orientation="vertical"
@@ -173,4 +173,4 @@ export const DockSeparator: React.FC<DockSeparatorProps> = ({ className }) => (
 
 DockSeparator.displayName = "DockSeparator"
 
-export { Dock, DockIcon, dockVariants }
+export { Dock, DockIcon, DockSeparator, dockVariants }
