@@ -88,7 +88,10 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <SegmentedControl
-          items={[{ id: 'expense', label: 'Expenses' }, { id: 'income', label: 'Income' }]}
+          items={[
+            { id: 'expense', label: 'Expenses', icon: 'arrow-up-right-01' },
+            { id: 'income', label: 'Income', icon: 'arrow-down-left-01' },
+          ]}
           activeId={activeTab}
           onChange={id => setActiveTab(id as Classification)}
         />
