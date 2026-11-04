@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Account, BillPayment, RecurringTransaction, RecurringTransactionOverride, Transaction } from '../../types';
-import { heatKind, postDetails,
+import { generateSyntheticCardFees } from '../../utils';
+import { heatKind, postDetails, sourceOfSeries, owningAccountId,
   buildOccurrences, cadenceLabel, classifyFlow, dailyCommitted, groupUpcoming, makeConverter, monthGrid, monthlyEquivalent,
   endSeriesAt, firstDueOnOrAfter, nextDueAfterPaying, splitSeriesAt, parseAmountInput, planSeries, seriesGroups, summarize, emptySeriesDraft, oldUnpaidBills, type Occurrence,
 } from '../../utils/scheduleModel';
@@ -246,4 +247,23 @@ test('posting fills the form the way money flows', () => {
   assert.equal(deposit.initialType, 'income');
   assert.equal(deposit.initialToAccountId, 'a');
   assert.equal(deposit.initialCategory, 'Income');
+});
+
+test('a credit card annual fee becomes a yearly expense on the card, on the next anniversary', () => {
+  const card = { id: 'cc1', name: 'Gold', type: 'Credit Card', balance: -100, currency: 'EUR', annualFee: 60, annualFeeDate: '2024-03-15' } as Account;
+  const [fee] = generateSyntheticCardFees([card], TODAY);
+  assert.equal(fee.id, 'cc-fee-cc1');
+  assert.equal(fee.accountId, 'cc1');
+  assert.equal(fee.nextDueDate, '2027-03-15'); // this year's 15 Mar has passed
+  assert.equal(fee.frequency, 'yearly');
+  assert.equal(sourceOfSeries(fee), 'card');
+  assert.equal(owningAccountId(fee), 'cc1');
+  const occ = buildOccurrences({ recurring: [fee], overrides: [], bills: [], accounts: [...accounts, card], transactions: [], from: TODAY, to: d('2028-12-31'), today: TODAY, includeSynthetic: false });
+  assert.deepEqual(occ.map(o => o.date), ['2027-03-15', '2028-03-15']);
+  assert.equal(occ[0].flow, 'out');
+  // Falls back to the opening date; nothing without a fee, a date, or an open card.
+  assert.equal(generateSyntheticCardFees([{ ...card, annualFeeDate: undefined, openingDate: '2020-11-20' }], TODAY)[0].nextDueDate, '2026-11-20');
+  assert.equal(generateSyntheticCardFees([{ ...card, annualFee: 0 }], TODAY).length, 0);
+  assert.equal(generateSyntheticCardFees([{ ...card, annualFeeDate: undefined }], TODAY).length, 0);
+  assert.equal(generateSyntheticCardFees([{ ...card, status: 'closed' }], TODAY).length, 0);
 });

@@ -310,6 +310,15 @@ const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants =
         </Section>
       )}
 
+      {type === 'Credit Card' && (
+        <Section title="Interest and fees">
+          {numberField('apr', 'Interest rate (APR %)', { inputMode: 'decimal' })}
+          {money('annualFee', 'Annual fee')}
+          {date('annualFeeDate', 'Annual fee charged on')}
+          {money('minimumPayment', 'Minimum payment')}
+        </Section>
+      )}
+
       {type === 'Other Assets' && (
         <Section title="Asset">
           {pick('otherAssetSubType', 'Kind', options(OTHER_ASSET_SUB_TYPES))}

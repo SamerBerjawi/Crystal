@@ -899,6 +899,42 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
     return syntheticPayments;
 }
 
+/**
+ * The yearly fee of each open credit card as a forecast item: an expense on the card itself on the fee date's
+ * anniversary (`annualFeeDate`, else the opening date). Cards with no fee or no date produce nothing.
+ */
+export function generateSyntheticCardFees(accounts: Account[], today: Date = new Date()): RecurringTransaction[] {
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const items: RecurringTransaction[] = [];
+    accounts.forEach(card => {
+        const anchor = card.annualFeeDate || card.openingDate;
+        if (card.type !== 'Credit Card' || card.status === 'closed' || !card.annualFee || card.annualFee <= 0 || !anchor) return;
+        const base = parseLocalDate(anchor);
+        if (isNaN(base.getTime())) return;
+        // The next anniversary on or after today (Feb 29 falls back to Feb 28 in other years).
+        const onYear = (year: number) => new Date(year, base.getMonth(), Math.min(base.getDate(), new Date(year, base.getMonth() + 1, 0).getDate()));
+        let next = onYear(todayStart.getFullYear());
+        if (next < todayStart) next = onYear(todayStart.getFullYear() + 1);
+        const nextDue = toLocalISOString(next);
+        items.push({
+            id: `cc-fee-${card.id}`,
+            accountId: card.id,
+            description: `Annual fee: ${card.name}`,
+            amount: card.annualFee,
+            type: 'expense',
+            category: 'Fees',
+            currency: card.currency,
+            frequency: 'yearly',
+            startDate: nextDue,
+            nextDueDate: nextDue,
+            dueDateOfMonth: next.getDate(),
+            weekendAdjustment: 'on',
+            isSynthetic: true,
+        });
+    });
+    return items;
+}
+
 export function generateSyntheticPropertyTransactions(accounts: Account[]): RecurringTransaction[] {
     const syntheticItems: RecurringTransaction[] = [];
     const properties = accounts.filter(acc => acc.type === 'Property');

@@ -6,6 +6,7 @@ import { Badge } from './ui/Display';
 import { Menu } from './ui/Menu';
 import { Amount } from './ui/Money';
 import { Banner } from './ui/States';
+import { countDeleted } from '../utils/deletedSync';
 
 const STATUS: Record<EnableBankingConnection['status'], { label: string; tone: 'neutral' | 'attention' | 'positive' | 'negative' }> = {
   disconnected: { label: 'Disconnected', tone: 'neutral' },
@@ -22,10 +23,12 @@ interface BankConnectionCardProps {
   onSync: (account?: EnableBankingAccount) => void;
   onReconnect: () => void;
   onDelete: () => void;
+  onResetDeleted: () => void;
   onLink: (account: EnableBankingAccount) => void;
 }
 
-const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, accounts, onSync, onReconnect, onDelete, onLink }) => {
+const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, accounts, onSync, onReconnect, onDelete, onResetDeleted, onLink }) => {
+  const heldBack = countDeleted(connection);
   const status = STATUS[connection.status] ?? STATUS.disconnected;
   const name = connection.selectedBank || 'Bank';
   const needsReconnect = connection.status === 'requires_update' || !connection.sessionId;
@@ -51,7 +54,10 @@ const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, acc
           <Menu
             title={name}
             trigger={<IconButton icon="more_horiz" label={`More for ${name}`} />}
-            items={[{ id: 'delete', label: 'Delete connection', icon: 'delete', isDestructive: true, onAction: onDelete }]}
+            items={[
+              ...(heldBack > 0 ? [{ id: 'reset-deleted', label: `Reset deleted transactions (${heldBack})`, icon: 'refresh', onAction: onResetDeleted }] : []),
+              { id: 'delete', label: 'Delete connection', icon: 'delete', isDestructive: true, onAction: onDelete },
+            ]}
           />
         </div>
       </header>

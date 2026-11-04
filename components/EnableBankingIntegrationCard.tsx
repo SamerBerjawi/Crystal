@@ -32,6 +32,7 @@ interface EnableBankingIntegrationCardProps {
     { id: string; name: string; country?: string }[]
   >;
   onDeleteConnection: (connectionId: string) => void;
+  onResetDeletedTransactions: (connectionId: string) => void;
   onLinkAccount: (
     connectionId: string,
     providerAccountId: string,
@@ -48,6 +49,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
   onCreateConnection,
   onFetchBanks,
   onDeleteConnection,
+  onResetDeletedTransactions,
   onLinkAccount,
   onTriggerSync,
 }) => {
@@ -71,6 +73,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
   const hasCredentials = Boolean(formState.applicationId.trim() && (formState.clientCertificate.trim() || hasStoredKey));
   const [linking, setLinking] = useState<{ connectionId: string; account: EnableBankingAccount } | null>(null);
   const [deleting, setDeleting] = useState<EnableBankingConnection | null>(null);
+  const [resetting, setResetting] = useState<EnableBankingConnection | null>(null);
   const autoSyncedConnections = React.useRef<Set<string>>(new Set());
   const [bankOptions, setBankOptions] = useState<{ id: string; name: string; country?: string }[]>([]);
   const [banksLoading, setBanksLoading] = useState(false);
@@ -290,6 +293,14 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
         }}
       />
       <ConfirmDialog
+        isOpen={!!resetting}
+        onClose={() => setResetting(null)}
+        onConfirm={() => { if (resetting) onResetDeletedTransactions(resetting.id); setResetting(null); }}
+        title={`Reset deleted transactions for ${resetting?.selectedBank || 'this bank'}?`}
+        message="Transactions you deleted are no longer held back. The next sync brings back any the bank still lists."
+        confirmLabel="Reset"
+      />
+      <ConfirmDialog
         isOpen={!!deleting}
         onClose={() => setDeleting(null)}
         onConfirm={() => { if (deleting) onDeleteConnection(deleting.id); setDeleting(null); }}
@@ -315,6 +326,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
           onSync={account => openSyncPrompt(connection, account)}
           onReconnect={() => handleReauthorize(connection)}
           onDelete={() => setDeleting(connection)}
+          onResetDeleted={() => setResetting(connection)}
           onLink={account => setLinking({ connectionId: connection.id, account })}
         />
       ))}

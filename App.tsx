@@ -102,6 +102,8 @@ import { useAuth } from './hooks/useAuth';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
 import { moveLocalChoices } from './utils/syncedChoices';
+import { syncFill, withEditLocks } from './utils/lockedFields';
+import { clearDeleted, deletedIdsByAccount, forgetDeleted, rememberDeleted } from './utils/deletedSync';
 import LockScreen from './components/LockScreen';
 import { Banner } from './components/ui/States';
 import { useIdleLock } from './hooks/useIdleLock';
@@ -1709,7 +1711,7 @@ const App: React.FC = () => {
   const handleSaveTransaction = useCallback((
     transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[],
     transactionIdsToDelete: string[] = [],
-    options?: { autoSpareChange?: boolean; skipRules?: boolean; applyRules?: boolean; isNew?: boolean }
+    options?: { autoSpareChange?: boolean; skipRules?: boolean; applyRules?: boolean; isNew?: boolean; fromSync?: boolean; resyncable?: boolean }
   ) => {
     // Bank records arrive with their own id, so `isNew` says they're new rather than edits (DEF-06).
     const isNewRecord = (tx: { id?: string }) => !tx.id || options?.isNew;
@@ -1771,21 +1773,41 @@ const App: React.FC = () => {
       });
     }
 
+    // Your edits to a bank-synced transaction lock the fields you changed, so the next sync keeps them.
+    if (!options?.fromSync && !options?.isNew) {
+      finalTxArray.forEach((tx, index) => {
+        if (!tx.id) return;
+        finalTxArray[index] = withEditLocks(transactionsRef.current.find(existing => existing.id === tx.id), tx);
+      });
+    }
+
+    // A bank-synced transaction you delete is remembered so the next sync does not bring it back; restoring it forgets that.
+    // `resyncable` deletes (a whole import) are left out, so the bank can fetch them again.
+    if (!options?.fromSync) {
+      const removed = transactionsRef.current.filter(tx => transactionIdsToDelete.includes(tx.id));
+      if (removed.length > 0 && !options?.resyncable) setEnableBankingConnections(prev => rememberDeleted(prev, removed));
+      if (!options?.isNew) {
+        const restored = finalTxArray.filter(tx => tx.id && !transactionsRef.current.some(existing => existing.id === tx.id)) as Transaction[];
+        if (restored.length > 0) setEnableBankingConnections(prev => forgetDeleted(prev, restored));
+      }
+    }
+
     const changes = planTransactionChanges(transactionsRef.current, finalTxArray, transactionIdsToDelete, accounts);
     transactionsRef.current = applyTransactionChanges(transactionsRef.current, changes);
     setTransactions(prev => applyTransactionChanges(prev, changes));
     if (Object.keys(changes.balanceChanges).length > 0) setAccounts(prev => applyBalanceChanges(prev, changes.balanceChanges));
   }, [accounts, preferences]);
 
-  const handleDeleteTransactions = useCallback((transactionIds: string[]) => {
+  const handleDeleteTransactions = useCallback((transactionIds: string[], options?: { resyncable?: boolean }) => {
     if (transactionIds.length === 0) return;
     const deletedTxs = transactions.filter(t => transactionIds.includes(t.id));
-    handleSaveTransaction([], transactionIds);
+    handleSaveTransaction([], transactionIds, { resyncable: options?.resyncable });
     toast.success(
       deletedTxs.length === 1 
         ? `Deleted "${deletedTxs[0].description}"`
         : `Deleted ${deletedTxs.length} transactions`,
       {
+        duration: 10000,
         action: {
           label: 'Undo',
           onClick: () => {
@@ -2647,7 +2669,7 @@ const App: React.FC = () => {
         const currency = (account?.currency || details?.currency || resolvedBalance.currency || 'EUR') as Currency;
         const existingLinkedAccount = connection.accounts?.find(a => a.id === providerAccountId);
         const linkedAccountId = existingLinkedAccount?.linkedAccountId;
-        updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: resolvedBalance.amount, linkedAccountId, syncStartDate: existingLinkedAccount?.syncStartDate, lastSyncedAt: toLocalDateTimeString(new Date()) });
+        updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: resolvedBalance.amount, linkedAccountId, syncStartDate: existingLinkedAccount?.syncStartDate, deletedTransactionIds: existingLinkedAccount?.deletedTransactionIds, lastSyncedAt: toLocalDateTimeString(new Date()) });
 
         if (shouldUpdateLinkedAccountBalances && linkedAccountId && Number.isFinite(resolvedBalance.amount)) {
           linkedAccountBalanceUpdates.set(linkedAccountId, {
@@ -2730,6 +2752,7 @@ const App: React.FC = () => {
           if (list) list.push(tx); else existingByFingerprint.set(key, [tx]);
         }
 
+        const deletedByAccount = deletedIdsByAccount(connection);
         const deduped: Transaction[] = [];
         const toUpdate: Transaction[] = [];
         const occurrencesOfFallbackId = new Map<string, number>();
@@ -2752,13 +2775,10 @@ const App: React.FC = () => {
           }
 
           if (existing) {
-            if ((!existing.merchant && tx.merchant) || (!existing.description && tx.description)) {
-              toUpdate.push({
-                ...existing,
-                merchant: existing.merchant || tx.merchant,
-                description: existing.description || tx.description
-              });
-            }
+            const filled = syncFill(existing, tx);
+            if (filled) toUpdate.push(filled);
+          } else if (tx.sureId && deletedByAccount.get(tx.accountId)?.has(tx.sureId)) {
+            continue; // You deleted this one; the bank still lists it.
           } else {
             deduped.push(tx);
             existingTxMapCountId.set(tx.id, tx);
@@ -2775,7 +2795,7 @@ const App: React.FC = () => {
         }
 
         if (toUpdate.length > 0) {
-          handleSaveTransaction(toUpdate);
+          handleSaveTransaction(toUpdate, [], { fromSync: true });
         }
       }
 
@@ -2791,7 +2811,7 @@ const App: React.FC = () => {
         }));
       }
 
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', accounts: updatedAccounts, lastSyncedAt: toLocalDateTimeString(new Date()) } : conn));
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', accounts: updatedAccounts.map(account => ({ ...account, deletedTransactionIds: conn.accounts?.find(a => a.id === account.id)?.deletedTransactionIds ?? account.deletedTransactionIds })), lastSyncedAt: toLocalDateTimeString(new Date()) } : conn));
       const bankName = connection.selectedBank || 'your bank';
       if (truncatedAccountNames.length > 0) {
         toast.warning(`${bankName}: sync incomplete`, { description: `Very long history for ${truncatedAccountNames.join(', ')}. Sync again to fetch the rest.` });
@@ -2826,6 +2846,11 @@ const App: React.FC = () => {
       setIsSyncingBanks(false);
     }
   }, [enableBankingConnections, handleSyncEnableBankingConnection]);
+
+  const handleResetDeletedBankTransactions = useCallback((connectionId: string) => {
+    setEnableBankingConnections(prev => clearDeleted(prev, connectionId));
+    toast.success('Deleted transactions reset. The next sync can bring them back.');
+  }, []);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
@@ -2887,7 +2912,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteHistoryItem = (id: string) => { setImportExportHistory(prev => prev.filter(item => item.id !== id)); };
-  const handleDeleteImportedTransactions = (importId: string) => { const idsToDelete = transactions.filter(t => t.importId === importId).map(t => t.id); if (idsToDelete.length > 0) handleDeleteTransactions(idsToDelete); };
+  const handleDeleteImportedTransactions = (importId: string) => { const idsToDelete = transactions.filter(t => t.importId === importId).map(t => t.id); if (idsToDelete.length > 0) handleDeleteTransactions(idsToDelete, { resyncable: true }); };
   const handleResetAccount = async () => {
     if (!(user || isDemoMode)) return;
     allowEmptySaveRef.current = true;
@@ -3005,7 +3030,7 @@ const App: React.FC = () => {
       case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} onLogExport={handleLogExport} fullFinancialData={dataToSave} />;
       case 'Preferences': return <PreferencesPage currenciesInUse={usedCurrencies} preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
-      case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
+      case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onResetDeletedTransactions={handleResetDeletedBankTransactions} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
       case 'Investments': return renderInvestments();
       case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation': return <Documentation setCurrentPage={setCurrentPage} />;

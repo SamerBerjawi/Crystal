@@ -117,3 +117,15 @@ test('top merchants count this month, skip transfers, and rank by amount', () =>
   const result = topMerchantsThisMonth([tx('A', -10), tx('B', -30), tx('A', -25), tx('Old', -99, '2026-09-05'), tx('Move', -50, '2026-10-06', { transferId: 't' })], 3, new Date(2026, 9, 20));
   assert.deepEqual(result, [{ name: 'A', amount: 35 }, { name: 'B', amount: 30 }]);
 });
+
+test('credit card interest and fee fields round-trip through the draft', () => {
+  const card = { id: 'apr-card', name: 'Card', type: 'Credit Card', balance: -10, currency: 'EUR', apr: 19.9, annualFee: 45, minimumPayment: 25 } as Account;
+  const draft = draftFromAccount(card);
+  assert.equal(draft.apr, '19.9');
+  assert.equal(draft.annualFee, '45');
+  const built = buildAccount(draft, { base: card });
+  assert.equal(built.apr, 19.9);
+  assert.equal(built.annualFee, 45);
+  assert.equal(built.minimumPayment, 25);
+  assert.equal(buildAccount({ ...draft, apr: '' }, { base: card }).apr, undefined);
+});

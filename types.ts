@@ -107,6 +107,10 @@ export interface Account {
   paymentDate?: number; // Day of themonth (1-31)
   settlementAccountId?: string; // ID of a checking account
   creditLimit?: number;
+  apr?: number; // Annual percentage rate (%) charged on a carried balance
+  annualFee?: number; // Yearly card fee, in the account currency
+  annualFeeDate?: string; // A date the fee is charged (YYYY-MM-DD); it recurs every year on this day. Falls back to the opening date.
+  minimumPayment?: number; // Smallest payment that keeps the statement in good standing
 
   // Loan specific
   totalAmount?: number;
@@ -209,6 +213,8 @@ export interface EnableBankingAccount {
   linkedAccountId?: string;
   syncStartDate?: string;
   lastSyncedAt?: string;
+  /** The bank's ids of synced transactions you deleted; sync skips them (utils/deletedSync.ts). */
+  deletedTransactionIds?: string[];
 }
 
 export interface EnableBankingConnection {
@@ -313,6 +319,8 @@ export interface Transaction {
   parentTransactionId?: string;
   isSplitParent?: boolean;
   isCombinedParent?: boolean;
+  /** Fields you edited on a bank-synced transaction. Sync leaves them alone (utils/lockedFields.ts). */
+  lockedFields?: ('merchant' | 'description')[];
 }
 
 export interface DisplayTransaction extends Transaction {

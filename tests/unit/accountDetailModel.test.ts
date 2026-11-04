@@ -550,3 +550,13 @@ test('Phase 1 Archetypes: resolveAccountArchetype, Operating safe-to-spend, Comp
   assertClose(solvedRate ?? 0, 5, 0.05);
 });
 
+
+test('credit card metrics estimate a month of interest from the APR and carry the annual fee', () => {
+  const cc: Account = { id: 'cc-apr', name: 'Card', type: 'Credit Card', balance: -1200, creditLimit: 5000, apr: 18, annualFee: 60, currency: 'EUR' };
+  const metrics = computeCreditCardAccountMetrics(cc, []);
+  assert.equal(metrics.estimatedMonthlyInterest, 18); // 1200 * 18% / 12
+  assert.equal(metrics.annualFee, 60);
+  // No APR, or nothing owed, means no interest.
+  assert.equal(computeCreditCardAccountMetrics({ ...cc, apr: undefined }, []).estimatedMonthlyInterest, 0);
+  assert.equal(computeCreditCardAccountMetrics({ ...cc, balance: 50 }, []).estimatedMonthlyInterest, 0);
+});

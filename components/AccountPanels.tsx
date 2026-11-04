@@ -213,7 +213,7 @@ const CreditCardPanel: React.FC<AccountPanelProps> = props => {
   const { account } = props;
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const raw = useRawTransactions(props);
-  const { totalSpent, totalPayments, utilization, availableCredit, spendingHistory } = useMemo(
+  const { totalSpent, totalPayments, utilization, availableCredit, estimatedMonthlyInterest, spendingHistory } = useMemo(
     () => computeCreditCardAccountMetrics(account, raw, { conversionRates, showBalanceAdjustments: props.showBalanceAdjustments }),
     [account, raw, conversionRates, props.showBalanceAdjustments]
   );
@@ -242,6 +242,7 @@ const CreditCardPanel: React.FC<AccountPanelProps> = props => {
                 { label: 'Spent', value: money(totalSpent, account), context: 'This month' },
                 { label: 'Repaid', value: money(totalPayments, account), context: 'This month' },
                 { label: 'Available', value: money(availableCredit, account), context: 'Unused credit' },
+                ...(estimatedMonthlyInterest > 0 ? [{ label: 'Interest', value: money(estimatedMonthlyInterest, account), context: `Per month at ${account.apr}% APR` }] : []),
               ]} />
               <Panel title="Spending by month"><MonthlyBars data={spendingHistory} currency={account.currency} bars={[{ key: 'value', color: 'var(--chart-1)' }]} /></Panel>
             </>
@@ -257,6 +258,9 @@ const CreditCardPanel: React.FC<AccountPanelProps> = props => {
                 { label: 'Statement opens', value: account.statementStartDate ? `Day ${account.statementStartDate}` : 'Not set' },
                 { label: 'Payment due', value: account.paymentDate ? `Day ${account.paymentDate}` : 'Not set' },
                 { label: 'Paid by', value: account.settlementAccountId ? 'Auto-pay from a linked account' : 'You, manually' },
+                { label: 'Interest rate', value: account.apr != null ? `${account.apr}% APR` : undefined },
+                { label: 'Annual fee', value: account.annualFee ? money(account.annualFee, account) : undefined },
+                { label: 'Minimum payment', value: account.minimumPayment ? money(account.minimumPayment, account) : undefined },
                 { label: 'Network', value: account.cardNetwork },
                 { label: 'Card ending', value: account.last4 },
                 { label: 'Expires', value: account.expirationDate },

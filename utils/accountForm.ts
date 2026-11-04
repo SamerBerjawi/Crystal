@@ -9,12 +9,13 @@ const TEXT_FIELDS = [
   'name', 'financialInstitution', 'accountNumber', 'routingNumber', 'openingDate', 'last4', 'expirationDate', 'cardNetwork', 'cardholderName',
   'symbol', 'location', 'assetCondition', 'counterparty', 'notes', 'make', 'model', 'licensePlate', 'registrationCountryCode', 'vin', 'purchaseDate',
   'leaseProvider', 'leaseStartDate', 'leaseEndDate', 'leasePaymentAccountId', 'address', 'propertyTaxDate', 'insuranceProvider', 'insurancePolicyNumber',
-  'insurancePaymentDate', 'linkedAccountId', 'linkedAssetId', 'linkedLoanId', 'settlementAccountId', 'loanStartDate',
+  'insurancePaymentDate', 'annualFeeDate', 'linkedAccountId', 'linkedAssetId', 'linkedLoanId', 'settlementAccountId', 'loanStartDate',
 ] as const;
 
 const NUMBER_FIELDS = [
   'balance', 'apy', 'expectedRetirementYear', 'totalAmount', 'principalAmount', 'interestAmount', 'downPayment', 'duration', 'interestRate', 'monthlyPayment',
   'paymentDayOfMonth', 'year', 'purchasePrice', 'annualMileageAllowance', 'leasePaymentAmount', 'leasePaymentDay', 'statementStartDate', 'paymentDate', 'creditLimit',
+  'apr', 'annualFee', 'minimumPayment',
   'principalOwned', 'propertySize', 'yearBuilt', 'floors', 'bedrooms', 'bathrooms', 'indoorParkingSpaces', 'outdoorParkingSpaces', 'gardenSize', 'terraceSize',
   'propertyTaxAmount', 'insuranceAmount', 'hoaFeeAmount', 'rentalIncomeAmount',
 ] as const;
@@ -260,6 +261,10 @@ export function buildAccount(draft: AccountDraft, { base, isComputed }: BuildOpt
       paymentDate: int(draft.paymentDate),
       settlementAccountId: draft.settlementAccountId || undefined,
       creditLimit: num(draft.creditLimit),
+      apr: num(draft.apr),
+      annualFee: num(draft.annualFee),
+      annualFeeDate: draft.annualFeeDate || undefined,
+      minimumPayment: num(draft.minimumPayment),
     }),
   };
 }

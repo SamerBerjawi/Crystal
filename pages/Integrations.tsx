@@ -18,6 +18,7 @@ interface IntegrationsProps {
     { id: string; name: string; country?: string }[]
   >;
   onDeleteConnection: (connectionId: string) => void;
+  onResetDeletedTransactions: (connectionId: string) => void;
   onLinkAccount: (
     connectionId: string,
     providerAccountId: string,
@@ -72,6 +73,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
   onCreateConnection,
   onFetchBanks,
   onDeleteConnection,
+  onResetDeletedTransactions,
   onLinkAccount,
   onTriggerSync,
 }) => {
@@ -103,6 +105,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
           onCreateConnection={onCreateConnection}
           onFetchBanks={onFetchBanks}
           onDeleteConnection={onDeleteConnection}
+          onResetDeletedTransactions={onResetDeletedTransactions}
           onLinkAccount={onLinkAccount}
           onTriggerSync={onTriggerSync}
         />

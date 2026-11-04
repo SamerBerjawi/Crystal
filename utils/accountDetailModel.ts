@@ -497,6 +497,10 @@ export function computeCreditCardAccountMetrics(
   const creditSurplus = Math.max(0, safeRound(realTodayBalance, 2));
   const utilization = creditLimit > 0 ? safeRound((balanceOwed / creditLimit) * 100, 1) : 0;
   const availableCredit = safeRound(Math.max(0, creditLimit - balanceOwed) + creditSurplus, 2);
+  // What carrying today's balance for a month would cost at the card's APR (simple monthly rate, no compounding).
+  const apr = Math.max(0, account.apr || 0);
+  const estimatedMonthlyInterest = apr > 0 ? safeRound((balanceOwed * apr) / 1200, 2) : 0;
+  const annualFee = Math.max(0, account.annualFee || 0);
 
   // One period computation. Cycles run from the statement day to the day before the next one;
   // without a statement day, calendar months.
@@ -552,6 +556,8 @@ export function computeCreditCardAccountMetrics(
     creditLimit,
     utilization,
     availableCredit,
+    estimatedMonthlyInterest,
+    annualFee,
     totalSpent: safeRound(totalSpent, 2),
     totalPayments: safeRound(totalPayments, 2),
     spendingHistory,

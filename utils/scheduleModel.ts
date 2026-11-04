@@ -4,7 +4,7 @@ import type {
   RecurringTransactionOverride, ScheduledItem, Transaction, WeekendAdjustment,
 } from '../types';
 import {
-  adjustDateForWeekend, advanceRecurrenceDate, convertCurrency, generateSyntheticCreditCardPayments,
+  adjustDateForWeekend, advanceRecurrenceDate, convertCurrency, generateSyntheticCreditCardPayments, generateSyntheticCardFees,
   generateSyntheticLoanPayments, generateSyntheticPropertyTransactions, parseLocalDate, round2, safeAdd, toLocalISOString,
 } from '../utils';
 import { ASSET_TYPES } from '../constants';
@@ -81,7 +81,7 @@ export const addDays = (d: Date, n: number) => { const x = new Date(d.getFullYea
 export const sourceOfSeries = (rt: Pick<RecurringTransaction, 'id' | 'isSynthetic'>): OccurrenceSource => {
   if (!rt.isSynthetic) return 'recurring';
   if (rt.id.startsWith('loan-pmt-')) return 'loan';
-  if (rt.id.startsWith('cc-pmt-')) return 'card';
+  if (rt.id.startsWith('cc-pmt-') || rt.id.startsWith('cc-fee-')) return 'card';
   if (rt.id.startsWith('prop-')) return 'property';
   return 'recurring';
 };
@@ -90,7 +90,7 @@ export const sourceOfSeries = (rt: Pick<RecurringTransaction, 'id' | 'isSyntheti
 export const owningAccountId = (rt: RecurringTransaction): string | undefined => {
   const source = sourceOfSeries(rt);
   if (source === 'loan') return rt.id.replace(/^loan-pmt-/, '').replace(/-\d+$/, '');
-  if (source === 'card') return rt.toAccountId;
+  if (source === 'card') return rt.id.startsWith('cc-fee-') ? rt.accountId : rt.toAccountId;
   if (source === 'property') return rt.id.replace(/^prop-[a-z]+-/, '');
   return undefined;
 };
@@ -235,6 +235,7 @@ const statusFor = (date: string, todayStr: string): OccurrenceStatus => (date < 
 export const syntheticSeries = (accounts: Account[], transactions: Transaction[], loanPaymentOverrides: LoanPaymentOverrides = {}): RecurringTransaction[] => [
   ...generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides),
   ...generateSyntheticCreditCardPayments(accounts, transactions),
+  ...generateSyntheticCardFees(accounts, new Date()),
   ...generateSyntheticPropertyTransactions(accounts),
 ];
 
