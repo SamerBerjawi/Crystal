@@ -1564,13 +1564,24 @@ html[data-selection-bar] { --toast-bottom: 148px; --toast-phone-bottom: calc(164
 .crystal-stagger-grid > div > :nth-child(4) { animation-delay: calc(var(--stagger) * 4); }
 .crystal-stagger-grid > div > :nth-child(n+5) { animation-delay: calc(var(--stagger) * 5); }
 
-/* Net worth hero & pine widgets: keep currency symbol in white (var(--on-pine)) and decimals in high-contrast grey */
+/* Net worth hero & pine widgets: keep currency symbol, integer digits in white (var(--on-pine)) and decimals in high-contrast grey */
 .net-worth-hero .amount-symbol,
-.bg-pine .amount-symbol {
+.bg-pine .amount-symbol,
+.text-on-pine .amount-symbol {
+  color: var(--on-pine) !important;
+}
+
+.net-worth-hero .amount-integer,
+.bg-pine .amount-integer,
+.text-on-pine .amount-integer,
+.net-worth-hero .text-ink,
+.bg-pine .text-ink,
+.text-on-pine .text-ink {
   color: var(--on-pine) !important;
 }
 
 .net-worth-hero .amount-fraction,
-.bg-pine .amount-fraction {
+.bg-pine .amount-fraction,
+.text-on-pine .amount-fraction {
   color: rgba(251, 248, 242, 0.68) !important;
 }

@@ -107,7 +107,7 @@ export const FormattedAmount: React.FC<{
     <>
       {sign && <span className={cn('amount-symbol text-primary font-semibold', symbolClassName)}>{sign}</span>}
       {symbol && <span className={cn('amount-symbol text-primary font-semibold', symbolClassName)}>{symbol}</span>}
-      <span className={cn('text-ink', integerClassName)}>{integer}</span>
+      <span className={cn('amount-integer text-ink', integerClassName)}>{integer}</span>
       {fraction && <span className={cn('amount-fraction text-muted', fractionClassName)}>{fraction}</span>}
       {suffix && (
         <span
