@@ -41,15 +41,15 @@ const CheckIndicator: React.FC<{ on: boolean; partial?: boolean }> = ({ on, part
     className={cn(
       'flex size-5 shrink-0 items-center justify-center rounded-[6px] border transition-colors',
       on || partial
-        ? 'border-primary bg-primary text-on-primary'
-        : 'border-black/10 bg-black/[0.03] dark:border-white/12 dark:bg-white/[0.04]',
+        ? 'border-pill bg-pill text-on-pill'
+        : 'border-black/15 bg-black/[0.03] dark:border-white/20 dark:bg-white/[0.04]',
     )}
     aria-hidden
   >
     {on ? (
       <Icon name="check" size={13} className="stroke-[2.5]" />
     ) : partial ? (
-      <span className="h-0.5 w-2.5 rounded bg-on-primary" />
+      <span className="h-0.5 w-2.5 rounded bg-on-pill" />
     ) : null}
   </span>
 );
