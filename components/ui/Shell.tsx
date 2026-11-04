@@ -24,7 +24,7 @@ import Icon from './Icon';
 import { IconButton, Tooltip } from './Actions';
 import { Spinner } from './States';
 import { Dock, DockIcon, DockSeparator } from './dock';
-import { AnimatedThemeToggler } from './animated-theme-toggler';
+import { SwitchButton } from './switch-button';
 import { Menu } from './Menu';
 import { BottomSheet, SheetRow } from './Overlays';
 import { cn } from '../../lib/utils';
@@ -531,7 +531,7 @@ export const ToolRail: React.FC<ShellProps> = ({
       />
       <DockIcon>
         <Tooltip label={isDark ? 'Use light theme' : 'Use dark theme'} placement="top" delay={150}>
-          <AnimatedThemeToggler
+          <SwitchButton
             theme={isDark ? 'dark' : 'light'}
             onThemeChange={nextTheme => setTheme(nextTheme)}
             aria-label={isDark ? 'Use light theme' : 'Use dark theme'}
@@ -543,7 +543,7 @@ export const ToolRail: React.FC<ShellProps> = ({
               strokeWidth={1.5}
               className="shrink-0"
             />
-          </AnimatedThemeToggler>
+          </SwitchButton>
         </Tooltip>
       </DockIcon>
       <DockTool

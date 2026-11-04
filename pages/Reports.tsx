@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Page } from '../types';
-import { toLocalISOString, getMainCurrency } from '../utils';
+import { toLocalISOString, getMainCurrency, formatCurrency } from '../utils';
 import { sortAccountsByType } from '../utils/accountsModel';
 import { categoryPickerOptions } from '../utils/categoryTree';
 import { automaticReports, buildReport, dailySpend, expensesIn, MAX_SAVED_VIEWS, NO_FILTERS, reportTiles, type GroupBy, type ReportFilters, type ReportId, type SavedReportView } from '../utils/reportsModel';
@@ -12,12 +12,13 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import PageHeader, { type PageStat } from '../components/PageHeader';
 import ReportPanel from '../components/ReportPanel';
 import { Button, IconButton } from '../components/ui/Actions';
-import { CountPill, Sparkline } from '../components/ui/Display';
+import { CountPill } from '../components/ui/Display';
 import { DateInput, TextInput } from '../components/ui/Fields';
 import Icon from '../components/ui/Icon';
 import { Amount } from '../components/ui/Money';
 import { Dialog, SidePanel } from '../components/ui/Overlays';
 import { Select } from '../components/ui/Pickers';
+import { AreaSparkline, useSparklineHover } from '../src/components/charts';
 import { cn } from '../lib/utils';
 
 const LEGACY_VIEWS_KEY = 'reports.savedViews.v1';
@@ -36,25 +37,100 @@ const TILES: { id: ReportId; label: string; icon: string }[] = [
   { id: 'forecast', label: 'Month-end forecast', icon: 'clock-01' },
 ];
 
-interface LibraryCardProps {
-  name: string;
-  amount: number;
-  trend: { value: number }[];
-  isActive: boolean;
-  onOpen: () => void;
+export type Point = {
+  day?: string;
+  value: number;
+};
+
+const defaultKpiData: Point[] = Array.from({ length: 24 }, (_, i) => ({
+  day: `Day ${i + 1}`,
+  value: Math.round(4200 + 40 * i + Math.sin(i * 0.7) * 500),
+}));
+
+export interface KpiCardProps {
+  label?: string;
+  name?: string;
+  data?: Point[];
+  trend?: { value: number }[];
+  amount?: number;
+  isActive?: boolean;
+  onOpen?: () => void;
   onDelete?: () => void;
+  className?: string;
 }
 
-const LibraryCard: React.FC<LibraryCardProps> = ({ name, amount, trend, isActive, onOpen, onDelete }) => (
-  <div className={cn('surface-card relative w-44 shrink-0 rounded-[var(--radius-lg)] p-3 transition-colors duration-[var(--duration-fast)]', isActive && 'border-primary')}>
-    <button type="button" aria-pressed={isActive} onClick={onOpen} className="block w-full cursor-pointer text-left after:absolute after:inset-0">
-      <span className="type-label block truncate pr-6 text-muted">{name}</span>
-      <span className="type-figure-row mt-0.5 block text-ink"><Amount value={amount} currency={getMainCurrency()} /></span>
-    </button>
-    <Sparkline data={trend} isPositive className="mt-2" width={150} height={28} />
-    {onDelete && <span className="absolute right-1 top-1 z-10"><IconButton icon="close" label={`Delete ${name}`} tooltipPlacement="left" onPress={onDelete} /></span>}
-  </div>
-);
+export function KpiCard({
+  label,
+  name,
+  data = defaultKpiData,
+  trend,
+  amount,
+  isActive = false,
+  onOpen,
+  onDelete,
+  className,
+}: KpiCardProps) {
+  const cardLabel = label ?? name ?? '';
+  const cardData = useMemo(() => {
+    if (trend && trend.length > 0) {
+      return trend.map((p, i) => ({ day: `Day ${i + 1}`, value: p.value }));
+    }
+    return data && data.length > 0 ? data : defaultKpiData;
+  }, [data, trend]);
+
+  const hover = useSparklineHover<Point>();
+  const fallback = amount !== undefined ? { value: amount } : cardData.at(-1);
+  const shown = hover.datum ?? fallback;
+  const currency = getMainCurrency();
+  const formatter = useMemo(
+    () => ({
+      format: (val: number) => formatCurrency(val, currency),
+    }),
+    [currency]
+  );
+
+  return (
+    <div
+      className={cn(
+        'surface-card relative w-48 shrink-0 rounded-xl border p-4 transition-colors duration-[var(--duration-fast)]',
+        isActive && 'border-primary',
+        className
+      )}
+    >
+      <button
+        type="button"
+        aria-pressed={isActive}
+        onClick={onOpen}
+        className="block w-full cursor-pointer text-left focus:outline-none"
+      >
+        <span className="type-label block truncate pr-6 text-muted">{cardLabel}</span>
+        <span className="type-figure-row mt-0.5 block text-ink">
+          {shown && shown.value != null ? formatter.format(shown.value) : '—'}
+        </span>
+      </button>
+      <div className="mt-2 h-10 w-full cursor-pointer" onClick={onOpen}>
+        <AreaSparkline
+          data={cardData}
+          dataKey="value"
+          height={40}
+          {...hover.sparklineProps}
+        />
+      </div>
+      {onDelete && (
+        <span className="absolute right-1 top-1 z-10">
+          <IconButton
+            icon="close"
+            label={`Delete ${cardLabel}`}
+            tooltipPlacement="left"
+            onPress={onDelete}
+          />
+        </span>
+      )}
+    </div>
+  );
+}
+
+const LibraryCard = KpiCard;
 
 interface ReportsProps {
   setCurrentPage?: (page: Page) => void;
@@ -161,12 +237,12 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
       <section aria-label="Ready-made reports and saved views" className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar md:mx-0 md:px-0">
         {library.automatic.map(item => (
-          <LibraryCard key={item.id} name={item.name} amount={item.amount} trend={item.trend} isActive={isSame({ ...item, ...NO_FILTERS })} onOpen={() => setFilters({ startDate: item.startDate, endDate: item.endDate, ...NO_FILTERS })} />
+          <KpiCard key={item.id} label={item.name} amount={item.amount} trend={item.trend} isActive={isSame({ ...item, ...NO_FILTERS })} onOpen={() => setFilters({ startDate: item.startDate, endDate: item.endDate, ...NO_FILTERS })} />
         ))}
         {library.saved.map(({ view, amount, trend }) => (
-          <LibraryCard
+          <KpiCard
             key={view.id}
-            name={view.name}
+            label={view.name}
             amount={amount}
             trend={trend}
             isActive={isSame(view)}

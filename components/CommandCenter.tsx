@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Page, Account, Transaction } from '../types';
+import React, { useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import type { Page, Account, Transaction } from '../types';
 import { NAV_ITEMS } from '../constants';
-import { APP_VERSION } from '../version';
 import Icon from './ui/Icon';
+import ActionSearchBar, { type CommandItem } from './ui/action-search-bar';
 
 interface CommandCenterProps {
   isOpen: boolean;
@@ -28,209 +28,152 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
   togglePrivacyMode,
   isPrivacyMode,
   theme,
-  setTheme
+  setTheme,
 }) => {
-  const [query, setQuery] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      setQuery('');
-      setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 10);
-    }
-  }, [isOpen]);
-
-  const results = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    
-    const items: { type: 'page' | 'account' | 'action' | 'transaction'; id: string; title: string; subtitle?: string; icon: string; action: () => void }[] = [];
+  const items: CommandItem[] = useMemo(() => {
+    const list: CommandItem[] = [];
 
     // Pages
-    NAV_ITEMS.forEach(item => {
-      if (!q || item.name.toLowerCase().includes(q)) {
-        items.push({
-          type: 'page',
-          id: `page-${item.name}`,
-          title: item.name,
-          icon: item.icon,
-          action: () => { setCurrentPage(item.name); onClose(); }
-        });
-      }
+    NAV_ITEMS.forEach(nav => {
+      list.push({
+        id: `page-${nav.name}`,
+        label: nav.name,
+        group: 'Pages',
+        icon: <Icon name={nav.icon} size={16} />,
+        keywords: ['navigate', 'page', 'go to', nav.name.toLowerCase()],
+      });
     });
 
     // Accounts
     accounts.forEach(acc => {
-      if (!q || acc.name.toLowerCase().includes(q) || acc.financialInstitution?.toLowerCase().includes(q)) {
-        items.push({
-          type: 'account',
-          id: `acc-${acc.id}`,
-          title: acc.name,
-          subtitle: acc.financialInstitution || acc.type,
-          icon: 'account_balance',
-          action: () => { onOpenAccount(acc.id); onClose(); }
-        });
-      }
+      list.push({
+        id: `acc-${acc.id}`,
+        label: acc.name,
+        group: 'Accounts',
+        icon: <Icon name="account_balance" size={16} />,
+        keywords: ['account', acc.type, acc.financialInstitution || '', acc.currency || ''],
+      });
     });
 
     // Actions
-    if (!q || 'privacy'.includes(q) || 'incognito'.includes(q)) {
-      items.push({
-        type: 'action',
-        id: 'action-privacy',
-        title: isPrivacyMode ? 'Disable Privacy Mode' : 'Enable Privacy Mode',
-        subtitle: 'Toggle visibility of sensitive amounts',
-        icon: isPrivacyMode ? 'visibility' : 'visibility_off',
-        action: () => { togglePrivacyMode(); onClose(); }
+    list.push({
+      id: 'action-privacy',
+      label: isPrivacyMode ? 'Disable Privacy Mode' : 'Enable Privacy Mode',
+      group: 'Actions',
+      icon: <Icon name={isPrivacyMode ? 'visibility' : 'visibility_off'} size={16} />,
+      keywords: ['privacy', 'incognito', 'hide', 'show', 'amounts'],
+      shortcut: ['⇧', 'P'],
+    });
+
+    list.push({
+      id: 'action-theme',
+      label: 'Change Theme',
+      group: 'Actions',
+      icon: <Icon name={theme === 'dark' ? 'dark_mode' : 'light_mode'} size={16} />,
+      keywords: ['theme', 'appearance', 'dark', 'light', 'mode'],
+      placeholder: 'Choose a theme…',
+      children: [
+        { id: 'theme-light', label: 'Light Mode', group: 'Theme', icon: <Icon name="light_mode" size={16} /> },
+        { id: 'theme-dark', label: 'Dark Mode', group: 'Theme', icon: <Icon name="dark_mode" size={16} /> },
+        { id: 'theme-system', label: 'Match System', group: 'Theme', icon: <Icon name="settings_suggest" size={16} /> },
+      ],
+    });
+
+    // Recent Transactions
+    transactions.slice(0, 8).forEach(tx => {
+      const title = tx.merchant || tx.description || 'Transaction';
+      list.push({
+        id: `tx-${tx.id}`,
+        label: `${title} (${tx.amount < 0 ? '−' : '+'}${Math.abs(tx.amount)} ${tx.currency})`,
+        group: 'Recent Transactions',
+        icon: <Icon name="receipt" size={16} />,
+        keywords: ['transaction', tx.merchant || '', tx.description || '', tx.category || ''],
       });
-    }
+    });
 
-    if (!q || 'dark'.includes(q) || 'theme'.includes(q)) {
-      items.push({
-        type: 'action',
-        id: 'action-theme-dark',
-        title: 'Switch to Dark Mode',
-        icon: 'dark_mode',
-        action: () => { setTheme('dark'); onClose(); }
-      });
-    }
-    
-    if (!q || 'light'.includes(q) || 'theme'.includes(q)) {
-      items.push({
-        type: 'action',
-        id: 'action-theme-light',
-        title: 'Switch to Light Mode',
-        icon: 'light_mode',
-        action: () => { setTheme('light'); onClose(); }
-      });
-    }
+    return list;
+  }, [accounts, isPrivacyMode, theme, transactions]);
 
-    return items.slice(0, 8); // Limit results for speed/focus
-  }, [query, accounts, setCurrentPage, onClose, onOpenAccount, togglePrivacyMode, isPrivacyMode, setTheme]);
-
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [results]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(prev => (prev + 1) % results.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(prev => (prev - 1 + results.length) % results.length);
-    } else if (e.key === 'Enter') {
-      if (results[selectedIndex]) {
-        results[selectedIndex].action();
-      }
-    } else if (e.key === 'Escape') {
+  const handleSelect = (item: CommandItem) => {
+    if (item.id.startsWith('page-')) {
+      const pageName = item.id.replace('page-', '') as Page;
+      setCurrentPage(pageName);
       onClose();
+      return;
+    }
+    if (item.id.startsWith('acc-')) {
+      const accId = item.id.replace('acc-', '');
+      onOpenAccount(accId);
+      onClose();
+      return;
+    }
+    if (item.id.startsWith('tx-')) {
+      const txId = item.id.replace('tx-', '');
+      const tx = transactions.find(t => t.id === txId);
+      if (tx?.accountId) {
+        onOpenAccount(tx.accountId);
+      } else {
+        setCurrentPage('Transactions');
+      }
+      onClose();
+      return;
+    }
+    if (item.id === 'action-privacy') {
+      togglePrivacyMode();
+      onClose();
+      return;
+    }
+    if (item.id === 'theme-light') {
+      setTheme('light');
+      onClose();
+      return;
+    }
+    if (item.id === 'theme-dark') {
+      setTheme('dark');
+      onClose();
+      return;
+    }
+    if (item.id === 'theme-system') {
+      setTheme('system');
+      onClose();
+      return;
     }
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 scrim z-[var(--z-overlay)]"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98, y: -10 }}
-            className="fixed inset-0 z-[var(--z-overlay)] flex flex-col bg-solid text-ink shadow-lg md:inset-x-0 md:bottom-auto md:top-[12%] md:mx-auto md:max-w-2xl md:rounded-[var(--radius-xl)] overflow-hidden"
-          >
-            <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-4">
-              <Icon name="search" size={24} className="text-muted" />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[var(--z-overlay)] flex items-start justify-center pt-[10vh] px-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 scrim"
+              onClick={onClose}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: -10 }}
+              className="relative z-10 w-full max-w-xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <ActionSearchBar
+                defaultOpen={true}
+                items={items}
+                onSelect={handleSelect}
+                onOpenChange={open => {
+                  if (!open) onClose();
+                }}
                 placeholder="What are you looking for?"
-                aria-label="Search Crystal"
-                className="min-w-0 flex-1 bg-transparent border-none outline-none text-ink text-base md:text-lg font-semibold placeholder:text-muted"
+                className="w-full max-w-xl"
               />
-              <div className="hidden sm:flex items-center gap-2">
-                <kbd className="px-2 py-1 rounded-xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 text-xs font-mono font-medium text-gray-400">ESC</kbd>
-              </div>
-            </div>
-
-            <div ref={scrollRef} className="min-h-0 flex-1 md:max-h-[450px] overflow-y-auto pt-2 no-scrollbar">
-              {results.length > 0 ? (
-                <div className="px-2 pb-2">
-                  {results.map((item, index) => (
-                    <div
-                      key={item.id}
-                      onClick={item.action}
-                      onMouseEnter={() => setSelectedIndex(index)}
-                      className={`px-4 py-3 sm:py-4 cursor-pointer flex items-center justify-between rounded-2xl transition-all duration-200 group ${
-                        index === selectedIndex ? 'bg-primary-500 shadow-lg shadow-primary-500/20 scale-[1.02]' : 'hover:bg-black/5 dark:hover:bg-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4 sm:gap-5">
-                        <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm border border-black/5 dark:border-white/5 transition-colors ${
-                           index === selectedIndex ? 'bg-white/20 text-white' : 'bg-white dark:bg-white/5 text-gray-500 group-hover:text-primary-500'
-                        }`}>
-                           <Icon name={item.icon} className="text-xl sm:text-2xl" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className={`font-semibold text-sm tracking-tight truncate ${index === selectedIndex ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
-                            {item.title}
-                          </p>
-                          {item.subtitle && (
-                            <p className={`text-xs font-normal truncate mt-0.5 ${index === selectedIndex ? 'text-white/80' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{item.subtitle}</p>
-                          )}
-                        </div>
-                      </div>
-                      {index === selectedIndex && (
-                        <div className="hidden sm:flex items-center gap-2 pr-2">
-                            <span className="text-xs font-medium text-white/70">Select</span>
-                            <kbd className="px-2 py-1 rounded-lg bg-white/20 text-xs font-mono font-medium text-white">ENTER</kbd>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="px-6 py-20 text-center">
-                  <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-6 scale-110">
-                    <Icon name="search_off" className="text-4xl text-gray-300" />
-                  </div>
-                  <p className="text-light-text dark:text-dark-text font-bold text-lg mb-1">Nothing matches</p>
-                  <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm font-normal">Unable to locate records for "{query}"</p>
-                </div>
-              )}
-            </div>
-
-            <div className="p-5 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-               <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <kbd className="px-2 py-1 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 text-xs font-mono font-medium text-gray-500 shadow-sm">↑↓</kbd>
-                    <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">Navigate</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <kbd className="px-2 py-1 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 text-xs font-mono font-medium text-gray-500 shadow-sm">Enter</kbd>
-                    <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">Execute</span>
-                  </div>
-               </div>
-               <div className="flex items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
-                  <span className="font-mono text-xs text-primary-500/80">{APP_VERSION}</span>
-                  <span className="opacity-40">•</span>
-                  <span className="opacity-60">Shortcut: <kbd className="font-mono text-primary-500">⌘ K</kbd></span>
-               </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
