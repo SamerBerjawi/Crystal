@@ -102,11 +102,11 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
           <div
             className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all ${
               isChecked
-                ? 'bg-primary-500 border-primary-500 text-white'
-                : 'border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04]'
+                ? 'bg-pill border-pill text-on-pill'
+                : 'border-black/15 dark:border-white/20 bg-black/[0.03] dark:bg-white/[0.04]'
             }`}
           >
-            {isChecked && <Icon name="check" className="text-xs text-white" />}
+            {isChecked && <Icon name="check" className="text-xs stroke-[2.5]" />}
           </div>
           <span className="text-xs truncate">
             {account.name}

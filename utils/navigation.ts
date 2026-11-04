@@ -25,16 +25,16 @@ export interface Hub {
  * those pages are built.
  */
 export const HUBS: Hub[] = [
-  { id: 'overview', label: 'Overview', icon: 'nav_overview', home: 'Dashboard', tabs: [] },
+  { id: 'overview', label: 'Overview', icon: 'dashboard-square-01', home: 'Dashboard', tabs: [] },
   {
     id: 'accounts',
     label: 'Accounts',
-    icon: 'nav_accounts',
+    icon: 'layers-01',
     home: 'Accounts',
     tabs: [
       { label: 'Cards', page: 'Accounts', icon: 'credit-card' },
       { label: 'Accounts', page: 'Accounts', tab: 'accounts', icon: 'wallet-02' },
-      { label: 'Loans', page: 'Accounts', tab: 'loans', icon: 'bank' },
+      { label: 'Loans', page: 'Accounts', tab: 'loans', icon: 'agreement-01' },
       { label: 'Assets', page: 'Accounts', tab: 'assets', icon: 'home-01' },
     ],
     otherPages: ['AccountDetail'],
@@ -42,10 +42,10 @@ export const HUBS: Hub[] = [
   {
     id: 'transactions',
     label: 'Transactions',
-    icon: 'nav_transactions',
+    icon: 'arrow-data-transfer-horizontal',
     home: 'Transactions',
     tabs: [
-      { label: 'Ledger', page: 'Transactions', icon: 'arrow-data-transfer-horizontal' },
+      { label: 'Ledger', page: 'Transactions', icon: 'logs' },
       { label: 'Review queue', page: 'Transactions', tab: 'review', icon: 'tick-02' },
       { label: 'Rules', page: 'Rules', icon: 'flash' },
       { label: 'Merchants', page: 'Merchants', icon: 'store-01' },
@@ -54,12 +54,12 @@ export const HUBS: Hub[] = [
   {
     id: 'planning',
     label: 'Planning',
-    icon: 'nav_planning',
+    icon: 'compass-01',
     home: 'Forecasting',
     tabs: [
-      { label: 'Forecast', page: 'Forecasting', icon: 'chart-decrease' },
+      { label: 'Forecast', page: 'Forecasting', icon: 'chart-evaluation' },
       { label: 'Budget', page: 'Budget', icon: 'pie-chart-01' },
-      { label: 'Goals', page: 'Goals', icon: 'piggy-bank' },
+      { label: 'Goals', page: 'Goals', icon: 'target-01' },
       { label: 'Calendar', page: 'Schedule & Bills', icon: 'calendar-03' },
       { label: 'Subscriptions', page: 'Subscriptions', icon: 'repeat-one-01' },
       { label: 'Tasks', page: 'Tasks', icon: 'task-01' },
@@ -68,22 +68,22 @@ export const HUBS: Hub[] = [
   {
     id: 'investments',
     label: 'Investments',
-    icon: 'nav_investments',
+    icon: 'chart-increase',
     home: 'Investments',
     tabs: [
       { label: 'Portfolio', page: 'Investments', icon: 'chart-line-data-01' },
       { label: 'Holdings', page: 'Investments', tab: 'holdings', icon: 'coins-01' },
-      { label: 'Activity', page: 'Investments', tab: 'activity', icon: 'arrow-data-transfer-horizontal' },
+      { label: 'Activity', page: 'Investments', tab: 'activity', icon: 'clock-01' },
     ],
     otherPages: ['HoldingDetail'],
   },
   {
     id: 'reports',
     label: 'Reports',
-    icon: 'nav_reports',
+    icon: 'analytics-01',
     home: 'Reports',
     tabs: [
-      { label: 'Reports', page: 'Reports', icon: 'analytics-01' },
+      { label: 'Reports', page: 'Reports', icon: 'chart-column' },
       { label: 'Invoices', page: 'Quotes & Invoices', icon: 'invoice-02' },
       { label: 'Challenges', page: 'Challenges', icon: 'award-01' },
     ],
@@ -91,7 +91,7 @@ export const HUBS: Hub[] = [
   {
     id: 'settings',
     label: 'Settings',
-    icon: 'settings',
+    icon: 'settings-05',
     home: 'Personal Info',
     tabs: [
       { label: 'Profile', page: 'Personal Info', icon: 'user' },

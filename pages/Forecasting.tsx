@@ -211,7 +211,7 @@ const Forecasting: React.FC = () => {
 
   const pageStats: PageStat[] = [
     { label: 'Balance today', icon: 'wallet-02', value: summary.today, format: 'money' },
-    { label: 'Lowest point', icon: 'chart-decrease', value: summary.lowest?.value ?? 0, format: 'money' },
+    { label: 'Lowest point', icon: 'chart-evaluation', value: summary.lowest?.value ?? 0, format: 'money' },
     { label: 'End of forecast', icon: 'target-01', value: summary.end, format: 'money' },
   ];
 

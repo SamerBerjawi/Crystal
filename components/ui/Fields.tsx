@@ -273,15 +273,26 @@ type CheckboxProps = Omit<React.ComponentProps<typeof AriaCheckbox>, 'children' 
 /** For choices that are saved with a form. */
 export const Checkbox: React.FC<CheckboxProps> = ({ children, className, ...props }) => (
   <AriaCheckbox {...props} className={cn(choiceRow, className)}>
-    {({ isSelected, isIndeterminate }) => (
-      <>
-        <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04] text-on-pill transition-colors duration-[var(--duration-fast)]', (isSelected || isIndeterminate) && 'border-pill bg-pill', choiceFocus)}>
-          {isSelected && <Icon name="check" size={13} className="stroke-[2.5]" />}
-          {isIndeterminate && !isSelected && <span className="h-0.5 w-2.5 rounded-full bg-on-pill" />}
-        </span>
-        <span className="type-body min-w-0 text-ink">{children}</span>
-      </>
-    )}
+    {({ isSelected, isIndeterminate }) => {
+      const isChecked = isSelected || isIndeterminate;
+      return (
+        <>
+          <span
+            className={cn(
+              'flex size-5 shrink-0 items-center justify-center rounded-[6px] border transition-colors duration-[var(--duration-fast)]',
+              choiceFocus,
+              isChecked
+                ? 'border-pill bg-pill text-on-pill'
+                : 'border-black/15 bg-black/[0.03] dark:border-white/20 dark:bg-white/[0.04] group-hover:border-black/30 dark:group-hover:border-white/35'
+            )}
+          >
+            {isSelected && <Icon name="check" size={13} className="stroke-[2.5]" />}
+            {isIndeterminate && !isSelected && <span className="h-0.5 w-2.5 rounded-full bg-on-pill" />}
+          </span>
+          <span className="type-body min-w-0 text-ink">{children}</span>
+        </>
+      );
+    }}
   </AriaCheckbox>
 );
 

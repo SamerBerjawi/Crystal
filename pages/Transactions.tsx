@@ -1921,7 +1921,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       <PageHeader
         title="Transactions"
         stats={[
-          { label: 'Transactions shown', icon: 'receipt', value: filteredTransactions.length },
+          { label: 'Transactions shown', icon: 'logs', value: filteredTransactions.length },
           { label: 'Money in', icon: 'arrow-down-left-01', value: totalIncome, format: 'money' },
           { label: 'Money out', icon: 'arrow-up-right-01', value: totalExpense, format: 'money' },
         ]}

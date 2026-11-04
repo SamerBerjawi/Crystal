@@ -171,10 +171,19 @@ export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'
     <aside
       aria-label="Sidebar"
       className={cn(
-        'safe-top relative z-[var(--z-sticky)] flex h-dvh shrink-0 flex-col border-r border-line bg-solid transition-[width] duration-[var(--duration-base)] ease-[var(--ease-standard)]',
+        'safe-top relative z-[var(--z-sticky)] flex h-dvh shrink-0 flex-col bg-black/[0.015] dark:bg-white/[0.02] transition-[width] duration-[var(--duration-base)] ease-[var(--ease-standard)]',
         isCollapsed ? 'w-[76px]' : 'w-[252px]'
       )}
     >
+      {/* Subtle separator with faded edges */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 w-px"
+        style={{
+          background: 'linear-gradient(to bottom, transparent 0%, var(--line) 15%, var(--line) 85%, transparent 100%)',
+        }}
+      />
+
       {/* Floating collapse / expand button on the right border */}
       <button
         type="button"
@@ -182,7 +191,7 @@ export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'
         aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         className=" 
           absolute -right-3.5 top-[22px] z-20 flex size-7 cursor-pointer items-center justify-center
-          rounded-full border border-line bg-solid text-ink shadow-sm
+          rounded-full border border-line bg-solid/90 backdrop-blur-md text-muted hover:text-ink shadow-xs
           transition-transform duration-[var(--duration-fast)] hover:scale-105 active:scale-95
         "
       >

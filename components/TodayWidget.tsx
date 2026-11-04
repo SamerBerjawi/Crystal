@@ -196,7 +196,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                             <div key={`task-${item.data.id}`} className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 hover:bg-black/[0.04] dark:hover:bg-white/[0.05] hover:border-black/10 dark:hover:border-white/10 group transition-all">
                                 <button 
                                     onClick={() => handleTaskToggle(item.data)}
-                                    className="w-5 h-5 rounded-lg border border-black/10 dark:border-white/12 bg-black/[0.03] dark:bg-white/[0.04] shrink-0 flex items-center justify-center hover:border-primary-500 hover:bg-primary-500/10 transition-colors cursor-pointer"
+                                    className="w-5 h-5 rounded-lg border border-black/15 dark:border-white/20 bg-black/[0.03] dark:bg-white/[0.04] hover:border-black/30 dark:hover:border-white/35 shrink-0 flex items-center justify-center hover:bg-primary-500/10 transition-colors cursor-pointer"
                                     aria-label="Mark task as complete"
                                 />
                                 <div className="flex-1 min-w-0">

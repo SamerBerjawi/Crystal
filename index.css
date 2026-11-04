@@ -1002,9 +1002,9 @@ img {
   --hero-loan: #8E2440;
   --hero-other-liabilities: #A8326E;
   --canvas: #EBE8E1;
-  --mesh-a: rgba(242, 211, 189, .95);
-  --mesh-b: rgba(207, 223, 205, .95);
-  --mesh-c: rgba(241, 228, 191, .95);
+  --mesh-a: rgba(242, 211, 189, .5);
+  --mesh-b: rgba(207, 223, 205, .5);
+  --mesh-c: rgba(241, 228, 191, .5);
   --solid: #FFFDF8;
   --surface: rgba(255, 255, 255, .46);
   --inset: rgba(27, 24, 19, .05);
@@ -1108,9 +1108,9 @@ img {
 .dark {
   color-scheme: dark;
   --canvas: #100F0C;
-  --mesh-a: rgba(216, 106, 32, .05);
-  --mesh-b: rgba(47, 92, 80, .14);
-  --mesh-c: rgba(242, 201, 76, .03);
+  --mesh-a: rgba(216, 106, 32, .15);
+  --mesh-b: rgba(47, 92, 80, .15);
+  --mesh-c: rgba(242, 201, 76, .1);
   --solid: #1E1C17;
   --surface: rgba(255, 255, 255, .05);
   --inset: rgba(255, 255, 255, .06);
