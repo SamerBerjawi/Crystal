@@ -451,7 +451,7 @@ export const MOCK_EXPENSE_CATEGORIES: Category[] = [
     ]
   },
   {
-    id: 'exp-8', name: 'Travel', color: '#F59E0B', icon: 'airplane-01', classification: 'expense', subCategories: [
+    id: 'exp-8', name: 'Travel', color: '#F59E0B', icon: 'luggage-01', classification: 'expense', subCategories: [
       { id: 'exp-8a', name: 'Flights', color: '#F59E0B', icon: 'airplane-take-off-01', classification: 'expense', subCategories: [], parentId: 'exp-8' },
       { id: 'exp-8b', name: 'Accommodation', color: '#F59E0B', icon: 'bed', classification: 'expense', subCategories: [], parentId: 'exp-8' },
       { id: 'exp-8c', name: 'Activities & Tours', color: '#F59E0B', icon: 'ticket-01', classification: 'expense', subCategories: [], parentId: 'exp-8' },

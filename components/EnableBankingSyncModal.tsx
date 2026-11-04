@@ -61,7 +61,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({ isOpen,
       footer={close => (
         <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
           <Button variant="ghost" onPress={close}>Cancel</Button>
-          <Button icon="refresh" isDisabled={mode === 'full' && !startDate} onPress={confirm}>Start sync</Button>
+          <Button icon="sync" isDisabled={mode === 'full' && !startDate} onPress={confirm}>Start sync</Button>
         </div>
       )}
     >
