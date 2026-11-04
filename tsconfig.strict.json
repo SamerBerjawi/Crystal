@@ -13,6 +13,7 @@
     "utils/fetchWithTimeout.ts",
     "utils/logging.ts",
     "utils/enableBankingStorage.ts",
+    "utils/enableBankingMapper.ts",
     "utils/brandfetch.ts",
     "utils/investments.ts",
     "utils/transactionsModel.ts",

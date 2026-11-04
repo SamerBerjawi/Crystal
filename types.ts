@@ -205,6 +205,8 @@ export type EnableBankingConnectionStatus = 'disconnected' | 'pending' | 'ready'
 
 export interface EnableBankingAccount {
   id: string;
+  /** Persistent Enable Banking hash identifying the account across consent renewals. */
+  identificationHash?: string;
   name: string;
   bankName: string;
   currency: Currency;
@@ -226,6 +228,9 @@ export interface EnableBankingConnection {
   status: EnableBankingConnectionStatus;
   selectedBank?: string;
   selectedBankId?: string;
+  bankLogoUrl?: string;
+  psuType?: 'personal' | 'business';
+  maximumConsentValidity?: number;
   sessionId?: string;
   sessionExpiresAt?: string;
   authorizationId?: string;

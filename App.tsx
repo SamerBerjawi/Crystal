@@ -118,6 +118,15 @@ import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsPr
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { PhoneBar, PhoneTopBar, Sidebar, SkipLink, TabRow, ToolRail, TopBar, type ShellProps } from './components/ui/Shell';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
+import {
+  computeSyncDateFrom,
+  extractProviderAccountIdentifiers,
+  mapEnableBankingTransaction,
+  matchExistingProviderAccount,
+  matchKnownBrand,
+  resolveEnableBankingBalance,
+} from './utils/enableBankingMapper';
+import { normalizeMerchantKey } from './utils/brandfetch';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
 import { fetchEcbRates } from './src/services/exchangeRates';
 import { currenciesInUse } from './utils/currencies';
@@ -2086,7 +2095,16 @@ const App: React.FC = () => {
     const data = await response.json();
     const items: any[] = Array.isArray(data) ? data : data?.aspsps || [];
     if (items.length === 0) throw new Error('No banks returned.');
-    return items.map((item: any, index: number) => ({ id: item.id || item.aspsp_id || item.bank_id || item.name || `aspsp-${index}`, name: item.name || item.full_name || item.fullName || 'Bank', country: item.country || payload.countryCode, }));
+    return items.map((item: any, index: number) => ({
+      id: item.id || item.aspsp_id || item.bank_id || item.name || `aspsp-${index}`,
+      name: item.name || item.full_name || item.fullName || 'Bank',
+      country: item.country || payload.countryCode,
+      logo: typeof item.logo === 'string' ? item.logo : undefined,
+      psuTypes: Array.isArray(item.psu_types || item.psuTypes) ? (item.psu_types || item.psuTypes) : undefined,
+      maximumConsentValidity: Number.isFinite(Number(item.maximum_consent_validity ?? item.maximumConsentValidity))
+        ? Number(item.maximum_consent_validity ?? item.maximumConsentValidity)
+        : undefined,
+    }));
   }, [fetchWithAuth, isAuthenticated]);
 
   const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string; }) => {
@@ -2094,10 +2112,16 @@ const App: React.FC = () => {
 
     let selectedBankId = '';
     let selectedBankName = '';
+    let bankLogoUrl: string | undefined;
+    let psuType: 'personal' | 'business' | undefined;
+    let maximumConsentValidity: number | undefined;
     try {
       const bankData = JSON.parse(payload.selectedBank);
       selectedBankId = bankData.id;
       selectedBankName = bankData.name;
+      if (typeof bankData.logo === 'string') bankLogoUrl = bankData.logo;
+      if (bankData.psuType === 'personal' || bankData.psuType === 'business') psuType = bankData.psuType;
+      if (Number.isFinite(Number(bankData.maximumConsentValidity))) maximumConsentValidity = Number(bankData.maximumConsentValidity);
     } catch (e) {
       selectedBankName = payload.selectedBank;
     }
@@ -2105,14 +2129,17 @@ const App: React.FC = () => {
     const connectionId = payload.connectionId || `eb-${uuidv4()}`;
     const existingConnection = payload.connectionId ? enableBankingConnections.find(conn => conn.id === payload.connectionId) : undefined;
     const baseConnection: EnableBankingConnection = {
+      ...(existingConnection && { ...existingConnection }),
       id: connectionId,
       applicationId: (payload.applicationId || '').trim(),
       countryCode: (payload.countryCode || '').trim().toUpperCase(),
       status: 'pending',
-      selectedBank: selectedBankName,
-      selectedBankId: selectedBankId,
+      selectedBank: selectedBankName || existingConnection?.selectedBank,
+      selectedBankId: selectedBankId || existingConnection?.selectedBankId,
+      bankLogoUrl: bankLogoUrl || existingConnection?.bankLogoUrl,
+      psuType: psuType || existingConnection?.psuType || 'personal',
+      maximumConsentValidity: maximumConsentValidity ?? existingConnection?.maximumConsentValidity,
       accounts: existingConnection?.accounts || [],
-      ...(existingConnection && { ...existingConnection })
     };
     let nextConnections: EnableBankingConnection[] = [];
     setEnableBankingConnections(prev => { nextConnections = existingConnection ? prev.map(conn => (conn.id === connectionId ? baseConnection : conn)) : [...prev, baseConnection]; return nextConnections; });
@@ -2125,7 +2152,19 @@ const App: React.FC = () => {
     });
     if (!isDemoMode && isDataLoaded) { void savePartialDataWithRetry({ enableBankingConnections: nextConnections }); }
     try {
-      const response = await fetchWithAuth('/api/enable-banking/authorize', { method: 'POST', body: JSON.stringify({ applicationId: baseConnection.applicationId, clientCertificate: (payload.clientCertificate || '').trim() || undefined, countryCode: baseConnection.countryCode, aspspName: baseConnection.selectedBank, aspspId: baseConnection.selectedBankId, state: connectionId, }), });
+      const response = await fetchWithAuth('/api/enable-banking/authorize', {
+        method: 'POST',
+        body: JSON.stringify({
+          applicationId: baseConnection.applicationId,
+          clientCertificate: (payload.clientCertificate || '').trim() || undefined,
+          countryCode: baseConnection.countryCode,
+          aspspName: baseConnection.selectedBank,
+          aspspId: baseConnection.selectedBankId,
+          psuType: baseConnection.psuType,
+          maximumConsentValidity: baseConnection.maximumConsentValidity,
+          state: connectionId,
+        }),
+      });
       const data = await response.json();
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, authorizationId: data.authorizationId, lastError: undefined, } : conn));
       if (data.authorizationUrl) { window.location.href = data.authorizationUrl; }
@@ -2133,504 +2172,6 @@ const App: React.FC = () => {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Unable to start authorization', } : conn));
     }
   }, [enableBankingConnections, fetchWithAuth, isDataLoaded, isDemoMode, savePartialDataWithRetry, isAuthenticated]);
-
-  const resolveProviderAccountId = useCallback((account: any) => {
-    if (typeof account === 'string') return account;
-    if (!account) return undefined;
-    if (typeof account.account_id === 'string') return account.account_id;
-    return account?.account_id?.id
-      || account?.accountId
-      || account?.account?.id
-      || account?.resource_id
-      || account?.uid
-      || account?.id;
-  }, []);
-
-  const resolveBalanceAmount = useCallback((balances: any) => {
-    const balanceEntries: any[] = Array.isArray(balances)
-      ? balances
-      : balances?.balances || balances?.account?.balances || [];
-    if (!Array.isArray(balanceEntries) || balanceEntries.length === 0) {
-      return { amount: 0, currency: undefined as string | undefined };
-    }
-
-    const prioritizedBalance =
-      balanceEntries.find(entry => entry?.balanceType === 'closingBooked')
-      || balanceEntries.find(entry => entry?.balance_type === 'closingBooked')
-      || balanceEntries.find(entry => entry?.balanceType === 'expected')
-      || balanceEntries.find(entry => entry?.balance_type === 'expected')
-      || balanceEntries[0];
-
-    const amountRaw = prioritizedBalance?.balanceAmount?.amount
-      ?? prioritizedBalance?.balance_amount?.amount
-      ?? prioritizedBalance?.amount?.amount
-      ?? prioritizedBalance?.amount;
-    const parsedAmount = Number(amountRaw);
-    const currency = prioritizedBalance?.balanceAmount?.currency
-      ?? prioritizedBalance?.balance_amount?.currency
-      ?? prioritizedBalance?.amount?.currency;
-
-    return {
-      amount: Number.isFinite(parsedAmount) ? parsedAmount : 0,
-      currency: typeof currency === 'string' ? currency : undefined,
-    };
-  }, []);
-
-  const pickFirstText = useCallback((...values: any[]): string | undefined => {
-    for (const value of values) {
-      if (typeof value === 'string') {
-        const trimmed = value.trim();
-        if (trimmed) return trimmed;
-      }
-      if (Array.isArray(value)) {
-        const nested = pickFirstText(...value);
-        if (nested) return nested;
-      }
-    }
-    return undefined;
-  }, []);
-
-  const mapProviderTransaction = useCallback((
-    providerTx: any,
-    linkedAccountId: string | undefined,
-    providerAccountId: string,
-    currency: Currency,
-    connectionId: string,
-    accountDisplayName?: string,
-    ownerName?: string,
-  ): Transaction | null => {
-    const amountRaw =
-      providerTx?.transaction_amount?.amount ??
-      providerTx?.transaction_amount?.value ??
-      providerTx?.amount?.amount ??
-      providerTx?.amount?.value ??
-      providerTx?.transactionAmount?.amount ??
-      providerTx?.transactionAmount?.value;
-    if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
-
-    const creditDebit = providerTx?.credit_debit_indicator || providerTx?.creditDebitIndicator;
-    const isCredit = creditDebit === 'CRDT' || (typeof amountRaw === 'string' && !amountRaw.startsWith('-') && creditDebit !== 'DBIT');
-    const signedAmount = Math.abs(Number(amountRaw)) * (isCredit ? 1 : -1);
-    // Support negative strings directly if no indicator
-    const rawSignedAmount = (signedAmount === Math.abs(Number(amountRaw)) && typeof amountRaw === 'string' && amountRaw.startsWith('-'))
-      ? Number(amountRaw)
-      : signedAmount;
-    const finalAmount = safeRound(rawSignedAmount, currency === 'BTC' ? 8 : 2);
-
-    if (Number.isNaN(finalAmount)) return null;
-
-    const resolveTransactionDate = () => {
-      const todayStr = toLocalISOString(new Date());
-
-      // Helper to format ISO timestamps or YYYY-MM-DD strings into a clean YYYY-MM-DD string in local time
-      const normalizeDateStr = (val: any): string | undefined => {
-        if (!val || typeof val !== 'string') return undefined;
-        const trimmed = val.trim();
-        if (!trimmed) return undefined;
-
-        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-          return trimmed;
-        }
-
-        if (trimmed.includes('T') || trimmed.includes(':')) {
-          try {
-            const parsed = new Date(trimmed);
-            if (!isNaN(parsed.getTime())) {
-              return toLocalISOString(parsed);
-            }
-          } catch (e) { /* not a parseable date: try the next candidate */ }
-          const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
-          if (match) return match[1];
-        }
-
-        return undefined;
-      };
-
-      // 1. Gather reference booking date (bank's ledger posting date)
-      const rawBookingDate = pickFirstText(
-        providerTx?.booking_date,
-        providerTx?.bookingDate,
-        providerTx?.booking_date_time,
-        providerTx?.bookingDateTime,
-        providerTx?.book_date,
-        providerTx?.bookDate,
-        providerTx?.entry_date,
-        providerTx?.entryDate,
-        providerTx?.entry_date_time,
-        providerTx?.entryDateTime,
-      );
-      const bookingDateStr = normalizeDateStr(rawBookingDate);
-      const maxAllowedDateStr = bookingDateStr && bookingDateStr <= todayStr ? bookingDateStr : todayStr;
-
-      // 2. Priority candidate 1: Direct transaction/authorization/purchase date fields
-      const rawExplicitDate = pickFirstText(
-        providerTx?.transaction_date,
-        providerTx?.transactionDate,
-        providerTx?.transaction_date_time,
-        providerTx?.transactionDateTime,
-        providerTx?.authorized_date,
-        providerTx?.authorizedDate,
-        providerTx?.authorized_date_time,
-        providerTx?.authorizedDateTime,
-        providerTx?.purchase_date,
-        providerTx?.purchaseDate,
-        providerTx?.purchase_date_time,
-        providerTx?.purchaseDateTime,
-        providerTx?.origination_date,
-        providerTx?.originationDate,
-        providerTx?.origination_date_time,
-        providerTx?.originationDateTime,
-        providerTx?.user_transaction_date,
-        providerTx?.userTransactionDate,
-        providerTx?.card_transaction?.transaction_date,
-        providerTx?.card_transaction?.transaction_date_time,
-        providerTx?.card_transaction?.authorized_date,
-        providerTx?.card_transaction?.authorized_date_time,
-        providerTx?.card_transaction_details?.transaction_date,
-        providerTx?.card_transaction_details?.transaction_date_time,
-        providerTx?.card_acceptor?.transaction_date,
-      );
-
-      const explicitDateStr = normalizeDateStr(rawExplicitDate);
-      if (explicitDateStr && explicitDateStr <= maxAllowedDateStr) {
-        return explicitDateStr;
-      }
-
-      // 3. Priority candidate 2: Embedded transaction date in remittance info / booking text / description
-      // European banks (e.g. KBC Brussels) embed the real purchase date in payment text (e.g. "08/08/2026", "08.08.2026", "08-08-2026")
-      const combinedText = [
-        providerTx?.remittance_information_unstructured,
-        providerTx?.remittanceInformationUnstructured,
-        providerTx?.remittance_information,
-        providerTx?.remittanceInformation,
-        providerTx?.booking_text,
-        providerTx?.bookingText,
-        providerTx?.additional_information,
-        providerTx?.additionalInformation,
-        providerTx?.description,
-      ]
-        .flatMap(item => (Array.isArray(item) ? item : [item]))
-        .filter(Boolean)
-        .join(' ');
-
-      if (combinedText) {
-        // Try DD/MM/YYYY or DD.MM.YYYY or DD-MM-YYYY (European standard)
-        const dmyMatch = combinedText.match(/\b(0[1-9]|[12]\d|3[01])[/.-](0[1-9]|1[0-2])[/.-](20\d{2})\b/);
-        if (dmyMatch) {
-          const day = dmyMatch[1];
-          const month = dmyMatch[2];
-          const year = dmyMatch[3];
-          const extractedStr = `${year}-${month}-${day}`;
-          if (extractedStr <= maxAllowedDateStr) {
-            try {
-              const candMs = parseLocalDate(extractedStr).getTime();
-              const maxMs = parseLocalDate(maxAllowedDateStr).getTime();
-              const diffDays = (maxMs - candMs) / (1000 * 60 * 60 * 24);
-              if (diffDays >= 0 && diffDays <= 90) {
-                return extractedStr;
-              }
-            } catch (e) { /* not a parseable date: try the next candidate */ }
-          }
-        }
-
-        // Try YYYY-MM-DD
-        const ymdMatch = combinedText.match(/\b(20\d{2})[-/.](0[1-9]|1[0-2])[-/.](0[1-9]|[12]\d|3[01])\b/);
-        if (ymdMatch) {
-          const extractedStr = `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
-          if (extractedStr <= maxAllowedDateStr) {
-            try {
-              const candMs = parseLocalDate(extractedStr).getTime();
-              const maxMs = parseLocalDate(maxAllowedDateStr).getTime();
-              const diffDays = (maxMs - candMs) / (1000 * 60 * 60 * 24);
-              if (diffDays >= 0 && diffDays <= 90) {
-                return extractedStr;
-              }
-            } catch (e) { /* not a parseable date: try the next candidate */ }
-          }
-        }
-
-        // Try DD/MM/YY or DD.MM.YY or DD-MM-YY
-        const dmyShortMatch = combinedText.match(/\b(0[1-9]|[12]\d|3[01])[/.-](0[1-9]|1[0-2])[/.-](2[0-9])\b/);
-        if (dmyShortMatch) {
-          const day = dmyShortMatch[1];
-          const month = dmyShortMatch[2];
-          const year = `20${dmyShortMatch[3]}`;
-          const extractedStr = `${year}-${month}-${day}`;
-          if (extractedStr <= maxAllowedDateStr) {
-            try {
-              const candMs = parseLocalDate(extractedStr).getTime();
-              const maxMs = parseLocalDate(maxAllowedDateStr).getTime();
-              const diffDays = (maxMs - candMs) / (1000 * 60 * 60 * 24);
-              if (diffDays >= 0 && diffDays <= 90) {
-                return extractedStr;
-              }
-            } catch (e) { /* not a parseable date: try the next candidate */ }
-          }
-        }
-      }
-
-      // 4. Priority candidate 3: Booking date (bank's ledger posting date)
-      if (bookingDateStr && bookingDateStr <= todayStr) {
-        return bookingDateStr;
-      }
-
-      // 5. Priority candidate 4: Value date (ONLY if <= todayStr, preventing future settlement dates from showing as tomorrow)
-      const rawValueDate = pickFirstText(
-        providerTx?.value_date,
-        providerTx?.valueDate,
-        providerTx?.value_date_time,
-        providerTx?.valueDateTime,
-      );
-      const valueDateStr = normalizeDateStr(rawValueDate);
-      if (valueDateStr && valueDateStr <= todayStr) {
-        return valueDateStr;
-      }
-
-      // 6. Last resort fallback
-      const fallback = normalizeDateStr(providerTx?.date) || todayStr;
-      return fallback > todayStr ? todayStr : fallback;
-    };
-
-    const stableIdFromFallback = (...parts: (string | number | undefined)[]) => {
-      const input = parts.filter(Boolean).join('|');
-      let hash = 0;
-      for (let i = 0; i < input.length; i += 1) {
-        hash = ((hash << 5) - hash) + input.charCodeAt(i);
-        hash |= 0;
-      }
-      return `fallback-${Math.abs(hash)}`;
-    };
-
-    const sanitizeMerchant = (candidate?: string) => {
-      if (!candidate) return undefined;
-      const trimmed = candidate.trim();
-      if (!trimmed) return undefined;
-
-      // Filter out raw IBANs and numeric IDs
-      const cleanedForIbanCheck = trimmed.replace(/\s+/g, '');
-      if (/^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(cleanedForIbanCheck)) return undefined;
-
-      const normalized = trimmed.toLowerCase();
-
-      const identities = [
-        accountDisplayName?.trim().toLowerCase(),
-        ownerName?.trim().toLowerCase(),
-        user ? `${user.firstName} ${user.lastName}`.trim().toLowerCase() : undefined,
-        demoUser ? `${demoUser.firstName} ${demoUser.lastName}`.trim().toLowerCase() : undefined,
-      ].filter(Boolean) as string[];
-
-      for (const identity of identities) {
-        if (normalized === identity) return undefined;
-        // If candidate is explicitly an account transfer to/from the user identity
-        if (identity.length > 3 && (normalized.startsWith(`transfer to ${identity}`) || normalized.startsWith(`transfer from ${identity}`) || normalized === `payment to ${identity}`)) {
-          return undefined;
-        }
-
-        const nameParts = identity.split(/\s+/).filter(p => p.length > 2);
-        if (nameParts.length >= 2) {
-          const hasAllParts = nameParts.every(part => normalized.includes(part));
-          if (hasAllParts && normalized.length < identity.length + 8) {
-            return undefined;
-          }
-        }
-      }
-
-      // Clean the Name: Remove junk strings like "BE-", "PURCHASE", "WWW.", transaction IDs, or date stamps
-      let cleaned = trimmed;
-
-      // Clean prefix clutter iteratively (e.g. "CARD PAYMENT - SEPA DIRECT DEBIT GOOGLE AI PRO")
-      let prev = '';
-      while (cleaned !== prev) {
-        prev = cleaned;
-        cleaned = cleaned.replace(/^(BE-|PURCHASE\s*|AANKOOP\s*|PAIEMENT\s*|WWW\.|HTTP[S]?:\/\/)/i, '');
-        cleaned = cleaned.replace(/^(CARD\s+PAYMENT|CARD\s+PURCHASE|CARD|POS|DIRECT\s+DEBIT|SEPA\s+DIRECT\s+DEBIT|SEPA|SOFORT|RECURRING\s+PAYMENT|RECURRING|SUBSCRIPTION|BILL\s+PAYMENT|PAYMENT\s+TO|PAYMENT|STATEMENT)\s*[-:\/]?\s*/i, '');
-        cleaned = cleaned.replace(/^(PAYPAL\s*\*?|SQ\s*\*|TST\s*\*|APPLE\s+BILL|GOOGLE\s*\*|AMZN\s*\*|AMAZON\s*\*|G\.CO\/HELPPAY#?)\s*/i, '');
-      }
-
-      // Remove specific bank routing text like "RETAIL BRUSSELS BE "
-      cleaned = cleaned.replace(/RETAIL\s+[a-zA-Z\s]+\s+[A-Z]{2}\s+/i, '');
-      // Remove trailing helpline/web URLs like "G.CO/HELPPAY" or "G.CO/PAYHELP"
-      cleaned = cleaned.replace(/\s+G\.CO\/(HELPPAY|PAYHELP|BILL).*/i, '');
-      cleaned = cleaned.replace(/\s+AMZN\.COM\/(BILL|PAY).*/i, '');
-      // Remove trailing info separated by * (e.g., AMZN MKTP*29384 -> AMZN MKTP)
-      cleaned = cleaned.replace(/\*[A-Z0-9_\-\s]+$/i, '');
-      // Remove generic TLDs at the end
-      cleaned = cleaned.replace(/\.(COM|NET|ORG|BE|EU|CO\.UK|FR|DE|IT|ES)$/i, '');
-      // Remove generic dates and times
-      cleaned = cleaned.replace(/\b\d{4}-\d{2}-\d{2}\b/g, '');
-      cleaned = cleaned.replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, '');
-      cleaned = cleaned.replace(/\b\d{2}\.\d{2}\.\d{4}\b/g, '');
-      // Remove obvious reference IDs or hashes (e.g. #123456 or 10+ character alphanumerics)
-      cleaned = cleaned.replace(/#\d+/g, '');
-      cleaned = cleaned.replace(/\b(?:[A-Z0-9]{10,})\b/g, '');
-
-      // Normalize whitespace, hyphens, underscores
-      cleaned = cleaned.replace(/[_]/g, ' ').replace(/\s+/g, ' ').trim();
-
-      // Special merchant normalizations & enhancements
-      if (/^AMZN\s*MKTP/i.test(cleaned) || /^AMAZON/i.test(cleaned)) {
-        cleaned = 'Amazon';
-      } else if (/^GOOGLE\s*AI\s*PRO/i.test(cleaned) || /^GOOGLE\s*\*?\s*AI\s*PRO/i.test(cleaned)) {
-        cleaned = 'Google AI Pro';
-      } else if (/^FITLIFE\s*GYM/i.test(cleaned) || /^GYM\s*SUBSCRIPTION/i.test(cleaned) || /^FITNESS\s*GYM/i.test(cleaned)) {
-        cleaned = cleaned.match(/^FITLIFE/i) ? 'FitLife Gym' : 'Gym Subscription';
-      }
-
-      return cleaned || undefined;
-    };
-
-    const pickJoinedText = (...values: any[]): string | undefined => {
-      const segments: string[] = [];
-      const visit = (value: any) => {
-        if (!value) return;
-        if (typeof value === 'string') {
-          const trimmed = value.trim();
-          if (trimmed && !segments.includes(trimmed)) segments.push(trimmed);
-          return;
-        }
-        if (Array.isArray(value)) {
-          value.forEach(visit);
-          return;
-        }
-        if (typeof value === 'object') {
-          visit(value?.remittance_line);
-          visit(value?.remittanceLine);
-          visit(value?.reference);
-        }
-      };
-      values.forEach(visit);
-      return segments.length > 0 ? segments.join(' / ') : undefined;
-    };
-
-    const pickFirstValidMerchant = (...values: any[]): string | undefined => {
-      for (const value of values) {
-        if (!value) continue;
-        if (typeof value === 'string') {
-          const sanitized = sanitizeMerchant(value);
-          if (sanitized) return sanitized;
-        }
-        if (Array.isArray(value)) {
-          const nested = pickFirstValidMerchant(...value);
-          if (nested) return nested;
-        }
-      }
-      return undefined;
-    };
-
-    // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
-    // for incoming payments (income/refunds) prefer debtor-side fields.
-
-    // Try to extract a clean merchant from unstructured remittance first
-    const extractMerchantFromRemittance = (remStr: any): string | undefined => {
-      if (!remStr) return undefined;
-      const actualStr = Array.isArray(remStr) ? remStr[0] : remStr;
-      if (typeof actualStr !== 'string') return undefined;
-      return sanitizeMerchant(actualStr);
-    };
-
-    const unstructuredMerchant =
-      extractMerchantFromRemittance(providerTx?.remittance_information_unstructured) ||
-      extractMerchantFromRemittance(providerTx?.remittanceInformationUnstructured) ||
-      extractMerchantFromRemittance(providerTx?.remittance_information);
-
-    const merchant = pickFirstValidMerchant(
-      unstructuredMerchant,
-      providerTx?.merchant_name,
-      providerTx?.merchantName,
-      providerTx?.merchant?.name,
-      providerTx?.merchant?.display_name,
-      providerTx?.merchant?.displayName,
-      providerTx?.card_acceptor?.name,
-      providerTx?.cardAcceptor?.name,
-      providerTx?.counterparty_name,
-      providerTx?.counterpartyName,
-      providerTx?.counterparty?.name,
-      ...(isCredit
-        ? [
-          providerTx?.debtor_name,
-          providerTx?.debtorName,
-          providerTx?.debtor?.name,
-          providerTx?.debtor?.account?.name,
-          providerTx?.debtorAccount?.name,
-          providerTx?.ultimate_debtor,
-          providerTx?.ultimateDebtor,
-          // Fallbacks in case debtor is empty
-          providerTx?.creditor_name,
-          providerTx?.creditorName,
-          providerTx?.creditor?.name,
-        ]
-        : [
-          providerTx?.creditor_name,
-          providerTx?.creditorName,
-          providerTx?.creditor?.name,
-          providerTx?.creditor?.account?.name,
-          providerTx?.creditorAccount?.name,
-          providerTx?.ultimate_creditor,
-          providerTx?.ultimateCreditor,
-          // Fallbacks in case creditor is empty
-          providerTx?.debtor_name,
-          providerTx?.debtorName,
-          providerTx?.debtor?.name,
-        ]),
-      providerTx?.remittance_information_unstructured,
-      providerTx?.remittanceInformationUnstructured,
-      providerTx?.remittance_information,
-      providerTx?.remittance_information_unstructured_array,
-      providerTx?.remittanceInformationUnstructuredArray,
-      providerTx?.remittance_information_structured,
-      providerTx?.remittanceInformationStructured,
-    );
-
-    const desc = pickFirstText(
-      pickJoinedText(
-        providerTx?.remittance_information_unstructured,
-        providerTx?.remittanceInformationUnstructured,
-        providerTx?.remittance_information,
-        providerTx?.remittance_information_unstructured_array,
-        providerTx?.remittanceInformationUnstructuredArray,
-        providerTx?.remittance_information_structured,
-        providerTx?.remittanceInformationStructured,
-        providerTx?.remittance_information_structured_array,
-        providerTx?.remittanceInformationStructuredArray,
-        providerTx?.remittance_information_reference,
-        providerTx?.remittanceInformationReference,
-      ),
-      providerTx?.additional_information,
-      providerTx?.additionalInformation,
-      providerTx?.booking_text,
-      providerTx?.bookingText,
-      providerTx?.description,
-      providerTx?.proprietary_bank_transaction_code?.description,
-      providerTx?.proprietaryBankTransactionCode?.description,
-      merchant,
-    ) || 'Transaction';
-
-    const date = resolveTransactionDate();
-    const providerTransactionId = pickFirstText(
-      providerTx?.transaction_id,
-      providerTx?.transactionId,
-      providerTx?.entry_reference,
-      providerTx?.entryReference,
-      providerTx?.end_to_end_id,
-      providerTx?.endToEndId,
-      providerTx?.internal_transaction_id,
-      providerTx?.internalTransactionId,
-    ) || stableIdFromFallback(providerAccountId, amountRaw, creditDebit, date, desc, merchant);
-
-    return {
-      id: `eb-${connectionId}-${providerAccountId}-${providerTransactionId}`,
-      sureId: providerTransactionId,
-      accountId: linkedAccountId,
-      date,
-      description: desc,
-      merchant,
-      amount: finalAmount,
-      category: 'Uncategorized',
-      type: finalAmount >= 0 ? 'income' : 'expense',
-      currency,
-      importId: `enable-banking-${connectionId}-${linkedAccountId}`,
-    };
-  }, [pickFirstText, user, demoUser]);
 
   const handleSyncEnableBankingConnection = useCallback(async (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => {
     if (!isAuthenticated) return;
@@ -2648,28 +2189,77 @@ const App: React.FC = () => {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, lastError: undefined } : conn));
       const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, }), }).then(res => res.json());
       const accountsFromSession: any[] = session?.accounts || [];
-      const existingAccountsById = new Map(connection.accounts.map(account => [account.id, account]));
       const updatedAccounts: EnableBankingAccount[] = [];
       const importedTransactions: Transaction[] = [];
       const shouldSyncTransactions = (syncOptions?.transactionMode || 'full') !== 'none';
       const shouldUpdateLinkedAccountBalances = syncOptions?.updateBalance ?? true;
       const linkedAccountBalanceUpdates = new Map<string, { balance: number; currency: Currency }>();
+
+      const existingMerchantNames = Array.from(
+        new Set([
+          ...Object.keys(preferences.merchantRules || {}),
+          ...transactions.map(t => t.merchant).filter((m): m is string => Boolean(m && m.trim())),
+        ])
+      );
+      const linkedIbanToAccountName: Record<string, string> = {};
+      for (const acc of accounts) {
+        if (acc.accountNumber) {
+          const clean = acc.accountNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+          if (clean) linkedIbanToAccountName[clean] = acc.name;
+        }
+      }
+      for (const conn of enableBankingConnections) {
+        for (const ebAcc of conn.accounts || []) {
+          if (ebAcc.accountNumber) {
+            const clean = ebAcc.accountNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+            const linkedCrystal = ebAcc.linkedAccountId ? accounts.find(a => a.id === ebAcc.linkedAccountId) : undefined;
+            if (clean) linkedIbanToAccountName[clean] = linkedCrystal?.name || ebAcc.name;
+          }
+        }
+      }
+
+      const userIdentities = [
+        user ? `${user.firstName} ${user.lastName}`.trim() : undefined,
+        demoUser ? `${demoUser.firstName} ${demoUser.lastName}`.trim() : undefined,
+      ].filter((v): v is string => Boolean(v));
+
       for (const account of accountsFromSession) {
-        const providerAccountId = resolveProviderAccountId(account);
-        if (!providerAccountId) {
+        const initialIds = extractProviderAccountIdentifiers(account);
+        if (!initialIds.uid) {
           console.warn('Enable Banking account missing provider account id. Skipping.', account);
           continue;
         }
-        const existingAccount = existingAccountsById.get(providerAccountId);
+        const providerAccountId = initialIds.uid;
         const [details, balances] = await Promise.all([
           fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
           fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, }), }).then(res => res.json()),
         ]);
-        const resolvedBalance = resolveBalanceAmount(balances);
-        const currency = (account?.currency || details?.currency || resolvedBalance.currency || 'EUR') as Currency;
-        const existingLinkedAccount = connection.accounts?.find(a => a.id === providerAccountId);
+        const identifiers = extractProviderAccountIdentifiers(account, details);
+        const existingLinkedAccount = matchExistingProviderAccount(connection.accounts || [], identifiers);
+        const resolvedBalance = resolveEnableBankingBalance(balances);
+        const currency = (account?.currency || details?.currency || resolvedBalance.currency || existingLinkedAccount?.currency || 'EUR') as Currency;
         const linkedAccountId = existingLinkedAccount?.linkedAccountId;
-        updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: resolvedBalance.amount, linkedAccountId, syncStartDate: existingLinkedAccount?.syncStartDate, deletedTransactionIds: existingLinkedAccount?.deletedTransactionIds, lastSyncedAt: toLocalDateTimeString(new Date()) });
+        const accountName = details?.name || details?.product || account?.name || account?.product || existingLinkedAccount?.name || 'Bank account';
+
+        if (identifiers.accountNumber) {
+          const cleanOwn = identifiers.accountNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+          const linkedCrystal = linkedAccountId ? accounts.find(a => a.id === linkedAccountId) : undefined;
+          if (cleanOwn) linkedIbanToAccountName[cleanOwn] = linkedCrystal?.name || accountName;
+        }
+
+        updatedAccounts.push({
+          id: providerAccountId,
+          identificationHash: identifiers.identificationHash || existingLinkedAccount?.identificationHash,
+          accountNumber: identifiers.accountNumber || existingLinkedAccount?.accountNumber,
+          name: accountName,
+          bankName: connection.selectedBank || 'Enable Banking',
+          currency,
+          balance: resolvedBalance.amount,
+          linkedAccountId,
+          syncStartDate: existingLinkedAccount?.syncStartDate,
+          deletedTransactionIds: existingLinkedAccount?.deletedTransactionIds,
+          lastSyncedAt: toLocalDateTimeString(new Date()),
+        });
 
         if (shouldUpdateLinkedAccountBalances && linkedAccountId && Number.isFinite(resolvedBalance.amount)) {
           linkedAccountBalanceUpdates.set(linkedAccountId, {
@@ -2678,14 +2268,20 @@ const App: React.FC = () => {
           });
         }
 
-        const accountTargeted = !syncOptions?.targetAccountIds?.length || syncOptions.targetAccountIds.includes(providerAccountId);
+        const accountTargeted = !syncOptions?.targetAccountIds?.length
+          || syncOptions.targetAccountIds.includes(providerAccountId)
+          || (existingLinkedAccount?.id ? syncOptions.targetAccountIds.includes(existingLinkedAccount.id) : false);
         if (!shouldSyncTransactions || !linkedAccountId || !accountTargeted) {
           continue;
         }
 
-        const dateFrom = syncOptions?.transactionMode === 'incremental'
-          ? (existingLinkedAccount?.lastSyncedAt ? existingLinkedAccount.lastSyncedAt.slice(0, 10) : existingLinkedAccount?.syncStartDate)
-          : (syncOptions?.syncStartDate || existingLinkedAccount?.syncStartDate);
+        const dateFrom = computeSyncDateFrom({
+          transactionMode: syncOptions?.transactionMode,
+          syncStartDate: syncOptions?.syncStartDate,
+          accountSyncStartDate: existingLinkedAccount?.syncStartDate,
+          accountLastSyncedAt: existingLinkedAccount?.lastSyncedAt,
+        });
+        const strategy = syncOptions?.transactionMode === 'incremental' ? 'default' : 'longest';
 
         let continuationKey: string | undefined;
         const seenPageKeys = new Set<string>();
@@ -2698,20 +2294,24 @@ const App: React.FC = () => {
               sessionId: connection.sessionId,
               dateFrom,
               continuationKey,
+              strategy,
             }),
           }).then(res => res.json());
 
           const bookedTransactions = txResponse?.transactions?.booked || txResponse?.booked || txResponse?.transactions || [];
           bookedTransactions.forEach((providerTx: any) => {
-            const mappedTx = mapProviderTransaction(
-              providerTx,
+            const mappedTx = mapEnableBankingTransaction(providerTx, {
               linkedAccountId,
               providerAccountId,
               currency,
               connectionId,
-              details?.name || account?.name,
-              details?.owner_name || details?.ownerName,
-            );
+              accountDisplayName: accountName,
+              ownerName: details?.owner_name || details?.ownerName || account?.owner_name,
+              userIdentities,
+              existingMerchantNames,
+              linkedIbanToAccountName,
+              ownAccountNumbers: identifiers.accountNumber ? [identifiers.accountNumber] : [],
+            });
             if (mappedTx) importedTransactions.push(mappedTx);
           });
 
@@ -2788,7 +2388,28 @@ const App: React.FC = () => {
         newTransactionCount = deduped.length;
         updatedTransactionCount = toUpdate.length;
 
-        const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
+        // Auto-populate brand domain logos for newly detected known merchants
+        const brandUpdates: Record<string, string> = {};
+        for (const tx of [...deduped, ...toUpdate]) {
+          if (!tx.merchant) continue;
+          const known = matchKnownBrand(tx.merchant);
+          if (!known?.domain) continue;
+          const logoKey = normalizeMerchantKey(tx.merchant);
+          if (logoKey && !preferences.merchantRules?.[logoKey]?.logo) {
+            brandUpdates[logoKey] = known.domain;
+          }
+        }
+        if (Object.keys(brandUpdates).length > 0) {
+          setPreferences(prev => {
+            const nextRules = { ...(prev.merchantRules || {}) };
+            for (const [logoKey, domain] of Object.entries(brandUpdates)) {
+              if (!nextRules[logoKey]?.logo) {
+                nextRules[logoKey] = { ...(nextRules[logoKey] || {}), logo: domain };
+              }
+            }
+            return { ...prev, merchantRules: nextRules };
+          });
+        }
 
         if (deduped.length > 0) {
           handleSaveTransaction(deduped, [], { autoSpareChange: true, isNew: true });
@@ -2811,7 +2432,20 @@ const App: React.FC = () => {
         }));
       }
 
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', accounts: updatedAccounts.map(account => ({ ...account, deletedTransactionIds: conn.accounts?.find(a => a.id === account.id)?.deletedTransactionIds ?? account.deletedTransactionIds })), lastSyncedAt: toLocalDateTimeString(new Date()) } : conn));
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
+        ...conn,
+        status: 'ready',
+        sessionExpiresAt: session?.access?.valid_until || conn.sessionExpiresAt,
+        accounts: updatedAccounts.map(account => ({
+          ...account,
+          deletedTransactionIds: matchExistingProviderAccount(conn.accounts || [], {
+            uid: account.id,
+            identificationHash: account.identificationHash,
+            accountNumber: account.accountNumber,
+          })?.deletedTransactionIds ?? account.deletedTransactionIds,
+        })),
+        lastSyncedAt: toLocalDateTimeString(new Date()),
+      } : conn));
       const bankName = connection.selectedBank || 'your bank';
       if (truncatedAccountNames.length > 0) {
         toast.warning(`${bankName}: sync incomplete`, { description: `Very long history for ${truncatedAccountNames.join(', ')}. Sync again to fetch the rest.` });
@@ -2821,13 +2455,24 @@ const App: React.FC = () => {
         });
       }
     } catch (error: any) {
-      const message = error?.message || 'Sync failed';
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: message } : conn));
-      toast.error(`${connection.selectedBank || 'Bank'} sync failed`, { description: message.length > 160 ? message.slice(0, 157) + '…' : message });
+      const rawMessage = error?.message || 'Sync failed';
+      let cleanMessage = rawMessage;
+      let requiresReauth = true;
+      try {
+        const parsed = JSON.parse(rawMessage);
+        if (typeof parsed?.message === 'string') cleanMessage = parsed.message;
+        if (typeof parsed?.requiresReauth === 'boolean') requiresReauth = parsed.requiresReauth;
+      } catch { /* raw string message */ }
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
+        ...conn,
+        status: requiresReauth ? 'requires_update' : conn.status,
+        lastError: cleanMessage,
+      } : conn));
+      toast.error(`${connection.selectedBank || 'Bank'} sync failed`, { description: cleanMessage.length > 160 ? cleanMessage.slice(0, 157) + '…' : cleanMessage });
     } finally {
       syncingConnectionIdsRef.current.delete(connectionId);
     }
-  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, isAuthenticated, transactions, user, demoUser, incomeCategories, expenseCategories]);
+  }, [accounts, enableBankingConnections, fetchWithAuth, handleSaveTransaction, isAuthenticated, preferences.merchantRules, transactions, user, demoUser]);
 
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
@@ -2853,15 +2498,29 @@ const App: React.FC = () => {
   }, []);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
+    const existing = enableBankingConnections.find(conn => conn.id === connectionId);
+    if (existing?.sessionId) {
+      fetchWithAuth(`/api/enable-banking/session/${encodeURIComponent(existing.sessionId)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ applicationId: existing.applicationId }),
+      }).catch(() => { /* best-effort upstream consent revocation */ });
+    }
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
     removePendingConnection(connectionId);
-  }, []);
+  }, [enableBankingConnections, fetchWithAuth]);
 
   const handleLinkEnableBankingAccount = useCallback((connectionId: string, providerAccountId: string, payload: EnableBankingLinkPayload) => {
+    const connection = enableBankingConnections.find(conn => conn.id === connectionId);
+    const providerAccount = connection?.accounts.find(a => a.id === providerAccountId);
     let finalLinkedAccountId: string | undefined = 'linkedAccountId' in payload ? payload.linkedAccountId : undefined;
     if ('newAccount' in payload) {
       const generatedId = `acc-${uuidv4()}`;
-      handleSaveAccount({ ...payload.newAccount, id: generatedId });
+      handleSaveAccount({
+        ...payload.newAccount,
+        id: generatedId,
+        accountNumber: providerAccount?.accountNumber || payload.newAccount.accountNumber,
+        financialInstitution: connection?.selectedBank || providerAccount?.bankName || payload.newAccount.financialInstitution,
+      });
       finalLinkedAccountId = generatedId;
     }
     if (!finalLinkedAccountId) return;
@@ -2869,7 +2528,7 @@ const App: React.FC = () => {
       if (conn.id !== connectionId) return conn;
       return { ...conn, accounts: conn.accounts.map(a => a.id === providerAccountId ? { ...a, linkedAccountId: finalLinkedAccountId, syncStartDate: payload.syncStartDate } : a) };
     }));
-  }, [handleSaveAccount]);
+  }, [enableBankingConnections, handleSaveAccount]);
 
   const handlePublishImport = async (items: any[], dataType: ImportDataType, fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccountsArg?: Account[]) => {
     const importId = `imp-${uuidv4()}`;

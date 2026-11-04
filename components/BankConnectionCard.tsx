@@ -31,25 +31,31 @@ const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, acc
   const heldBack = countDeleted(connection);
   const status = STATUS[connection.status] ?? STATUS.disconnected;
   const name = connection.selectedBank || 'Bank';
-  const needsReconnect = connection.status === 'requires_update' || !connection.sessionId;
+  const expiresMs = connection.sessionExpiresAt ? new Date(connection.sessionExpiresAt).getTime() : NaN;
+  const daysUntilExpiry = Number.isFinite(expiresMs) ? Math.ceil((expiresMs - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+  const isExpired = daysUntilExpiry !== null && daysUntilExpiry <= 0;
+  const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry > 0 && daysUntilExpiry <= 7;
+  const needsReconnect = connection.status === 'requires_update' || !connection.sessionId || isExpired;
   const facts = [
     connection.lastSyncedAt ? `Synced ${shortDate(connection.lastSyncedAt)}` : 'Never synced',
-    connection.sessionExpiresAt && `Access ends ${shortDate(connection.sessionExpiresAt)}`,
+    connection.sessionExpiresAt && (isExpired ? `Access expired ${shortDate(connection.sessionExpiresAt)}` : `Access ends ${shortDate(connection.sessionExpiresAt)}`),
+    connection.psuType === 'business' && 'Business',
   ].filter(Boolean);
 
   return (
     <article className="surface-card min-w-0 rounded-[var(--radius-xl)] p-5">
       <header className="flex flex-wrap items-center gap-3">
-        <BrandMark name={name} />
+        <BrandMark name={name} logoUrl={connection.bankLogoUrl} />
         <div className="min-w-0 flex-1 basis-40">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="type-body-strong truncate text-ink">{name}</h3>
-            <Badge tone={status.tone}>{status.label}</Badge>
+            <Badge tone={isExpired ? 'negative' : status.tone}>{isExpired ? 'Consent expired' : status.label}</Badge>
+            {isExpiringSoon && <Badge tone="attention">Expires in {daysUntilExpiry}d</Badge>}
           </div>
           <p className="type-caption mt-0.5 text-muted">{facts.join(' · ')}</p>
         </div>
         <div className="flex items-center gap-2">
-          {needsReconnect && <Button size="sm" onPress={onReconnect}>Reconnect</Button>}
+          {(needsReconnect || isExpiringSoon) && <Button size="sm" variant={needsReconnect ? 'primary' : 'secondary'} onPress={onReconnect}>{isExpiringSoon && !needsReconnect ? 'Renew access' : 'Reconnect'}</Button>}
           <Button size="sm" variant="secondary" icon="sync" onPress={() => onSync()}>Sync all</Button>
           <Menu
             title={name}

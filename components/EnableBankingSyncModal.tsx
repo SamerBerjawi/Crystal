@@ -74,7 +74,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({ isOpen,
         <div className="mt-4 flex items-end gap-2">
           <DateInput
             label="Import from"
-            help="Up to 90 days back."
+            help="Up to 2 years back (subject to bank history limits)."
             className="min-w-0 flex-1"
             value={startDate}
             onChange={value => setStartDate(clampDate(value, minDate, maxDate) || '')}

@@ -80,11 +80,15 @@ export function applyRules(tx: { description: string; merchant: string; category
   const locked = new Set<RuleFieldAction>();
   const setField = (field: RuleFieldAction, value: string) => { result[field] = value; };
 
-  const filing = rules.find(rule => isAlwaysFile(rule) && rule.isActive && ruleMatches(tx, rule));
-  if (filing) {
-    filing.actions.forEach(action => { setField(action.field, action.value); locked.add(action.field); });
-    result.filingRuleId = filing.id;
-  }
+  const applyFilingFor = (merchantName: string) => {
+    const filing = rules.find(rule => isAlwaysFile(rule) && rule.isActive && ruleMatches({ ...tx, merchant: merchantName }, rule));
+    if (filing) {
+      filing.actions.forEach(action => { setField(action.field, action.value); locked.add(action.field); });
+      result.filingRuleId = filing.id;
+    }
+  };
+
+  applyFilingFor(tx.merchant);
 
   for (const rule of ordinaryRules(rules).filter(item => item.isActive)) {
     const open = rule.actions.filter(action => !locked.has(action.field));
@@ -93,6 +97,22 @@ export function applyRules(tx: { description: string; merchant: string; category
     result.appliedRuleId = rule.id;
     break;
   }
+
+  // If an ordinary keyword rule detected or changed the merchant, run the new merchant's always-file rule
+  // for any fields not already set by the keyword rule itself.
+  if (!result.filingRuleId && result.merchant && normalizeMerchantKey(result.merchant) !== normalizeMerchantKey(tx.merchant)) {
+    const filing = rules.find(rule => isAlwaysFile(rule) && rule.isActive && ruleMatches({ ...tx, merchant: result.merchant }, rule));
+    if (filing) {
+      const ruleSetFields = new Set(rules.find(r => r.id === result.appliedRuleId)?.actions.map(a => a.field) ?? []);
+      filing.actions.forEach(action => {
+        if (!ruleSetFields.has(action.field)) {
+          setField(action.field, action.value);
+        }
+      });
+      result.filingRuleId = filing.id;
+    }
+  }
+
   return result;
 }
 

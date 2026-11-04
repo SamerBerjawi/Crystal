@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from './ui/Actions';
 import { TextInput, Textarea } from './ui/Fields';
 import { Dialog } from './ui/Overlays';
-import { Combobox } from './ui/Pickers';
+import { Combobox, Select } from './ui/Pickers';
 import { Banner } from './ui/States';
 
 export interface BankForm {
@@ -10,7 +10,22 @@ export interface BankForm {
   countryCode: string;
   clientCertificate: string;
   selectedBank: string;
+  psuType?: 'personal' | 'business';
 }
+
+export interface BankOption {
+  id: string;
+  name: string;
+  country?: string;
+  logo?: string;
+  psuTypes?: string[];
+  maximumConsentValidity?: number;
+}
+
+const PSU_TYPE_OPTIONS = [
+  { id: 'personal', label: 'Personal' },
+  { id: 'business', label: 'Business' },
+];
 
 interface BankConnectDialogProps {
   isOpen: boolean;
@@ -18,7 +33,7 @@ interface BankConnectDialogProps {
   form: BankForm;
   onChange: (updates: Partial<BankForm>) => void;
   hasStoredKey: boolean;
-  banks: { id: string; name: string; country?: string }[];
+  banks: BankOption[];
   isLoadingBanks: boolean;
   banksError: string | null;
   onFindBanks: () => void;
@@ -29,6 +44,10 @@ interface BankConnectDialogProps {
 const BankConnectDialog: React.FC<BankConnectDialogProps> = ({ isOpen, onClose, form, onChange, hasStoredKey, banks, isLoadingBanks, banksError, onFindBanks, onConnect }) => {
   const [isEditingCredentials, setEditingCredentials] = useState(false);
   const showCredentials = !hasStoredKey || !form.applicationId || isEditingCredentials;
+  const currentBank = banks.find(b => b.id === form.selectedBank);
+  const availablePsuTypes = currentBank?.psuTypes?.length
+    ? PSU_TYPE_OPTIONS.filter(opt => currentBank.psuTypes!.includes(opt.id))
+    : PSU_TYPE_OPTIONS;
 
   return (
     <Dialog
@@ -72,12 +91,22 @@ const BankConnectDialog: React.FC<BankConnectDialogProps> = ({ isOpen, onClose, 
         </div>
         {banksError && <Banner tone="error">{banksError}</Banner>}
         {banks.length > 0 && (
-          <Combobox
-            label="Bank"
-            options={banks.map(bank => ({ id: bank.id, label: bank.name, description: bank.country }))}
-            value={form.selectedBank || null}
-            onChange={id => onChange({ selectedBank: id ?? '' })}
-          />
+          <>
+            <Combobox
+              label="Bank"
+              options={banks.map(bank => ({ id: bank.id, label: bank.name, description: bank.country }))}
+              value={form.selectedBank || null}
+              onChange={id => onChange({ selectedBank: id ?? '' })}
+            />
+            {availablePsuTypes.length > 1 && (
+              <Select
+                label="Account holder type"
+                options={availablePsuTypes}
+                value={form.psuType || 'personal'}
+                onChange={id => onChange({ psuType: (id as 'personal' | 'business') || 'personal' })}
+              />
+            )}
+          </>
         )}
       </div>
     </Dialog>

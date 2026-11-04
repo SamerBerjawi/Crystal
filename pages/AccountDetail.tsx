@@ -37,19 +37,20 @@ const AccountDetail: React.FC<{
     const conversionRates = usePreferencesSelector(p => p.conversionRates);
     const { loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
     const ninetyDaysAgoStr = useMemo(() => toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)), []);
+    const twoYearsAgoStr = useMemo(() => toLocalISOString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000)), []);
     const todayStr = useMemo(() => toLocalISOString(new Date()), []);
     const clampSyncDate = useMemo(
       () => (value?: string) => {
         if (!value) return value;
         const parsed = parseLocalDate(value);
-        const min = parseLocalDate(ninetyDaysAgoStr);
+        const min = parseLocalDate(twoYearsAgoStr);
         const max = parseLocalDate(todayStr);
 
-        if (parsed < min) return ninetyDaysAgoStr;
+        if (parsed < min) return twoYearsAgoStr;
         if (parsed > max) return todayStr;
         return toLocalISOString(parsed);
       },
-      [ninetyDaysAgoStr, todayStr]
+      [twoYearsAgoStr, todayStr]
     );
 
     const allCategories = useMemo(
@@ -403,7 +404,7 @@ const AccountDetail: React.FC<{
                     isOpen={!!syncPrompt}
                     title={`Sync ${account.name}`}
                     description="Import transactions from your chosen start date or refresh balances only."
-                    minDate={ninetyDaysAgoStr}
+                    minDate={twoYearsAgoStr}
                     maxDate={todayStr}
                     initialState={{
                         transactionMode: syncPrompt.transactionMode,

@@ -24,6 +24,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../lib/utils';
 import { branchesOf, branchName, googleMapsUrl, hasCoordinates, keywordOf, keywordRulesFor } from '../utils/merchantModel';
 import { computeSpendTrends } from '../utils/merchantTrends';
+import { guessBrandDomain } from '../utils/enableBankingMapper';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -44,63 +45,7 @@ interface EntityItem {
     rule?: MerchantRule;
 }
 
-// --- Custom Guess Helper & Sparkline Mini charts ---
-const guessDomainName = (name: string): string | null => {
-    const cleanName = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (!cleanName || cleanName.length < 2) return null;
-    
-    const commonMap: Record<string, string> = {
-        netflix: 'netflix.com',
-        spotify: 'spotify.com',
-        uber: 'uber.com',
-        apple: 'apple.com',
-        amazon: 'amazon.com',
-        google: 'google.com',
-        youtube: 'youtube.com',
-        microsoft: 'microsoft.com',
-        steam: 'steampowered.com',
-        github: 'github.com',
-        paypal: 'paypal.com',
-        stripe: 'stripe.com',
-        revolut: 'revolut.com',
-        mcdonalds: 'mcdonalds.com',
-        starbucks: 'starbucks.com',
-        shell: 'shell.com',
-        total: 'totalenergies.com',
-        bp: 'bp.com',
-        airbnb: 'airbnb.com',
-        booking: 'booking.com',
-        lidl: 'lidl.com',
-        aldi: 'aldi.com',
-        ikea: 'ikea.com',
-        hm: 'hm.com',
-        zara: 'zara.com',
-        nike: 'nike.com',
-        adidas: 'adidas.com',
-        patreon: 'patreon.com',
-        substack: 'substack.com',
-        target: 'target.com',
-        walmart: 'walmart.com',
-        costco: 'costco.com',
-        chevron: 'chevron.com',
-        exxon: 'exxon.com',
-        starlink: 'starlink.com',
-        tesla: 'tesla.com',
-        openai: 'openai.com',
-        adobe: 'adobe.com',
-        figma: 'figma.com',
-        slack: 'slack.com',
-        zoom: 'zoom.us',
-        discord: 'discord.com',
-        trello: 'trello.com',
-        notion: 'notion.so'
-    };
-    
-    for (const [key, domain] of Object.entries(commonMap)) {
-        if (cleanName.includes(key)) return domain;
-    }
-    return `${cleanName}.com`;
-};
+const guessDomainName = guessBrandDomain;
 
 const MERCHANT_SORTS = [
   { id: 'recent', label: 'Recently active' },

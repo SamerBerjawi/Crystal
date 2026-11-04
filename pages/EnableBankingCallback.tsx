@@ -21,7 +21,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const hasProcessed = useRef(false);
-  const callbackParamsRef = useRef<{ code: string | null; state: string | null } | null>(null);
+  const callbackParamsRef = useRef<{ code: string | null; state: string | null; error: string | null; errorDescription: string | null } | null>(null);
 
   useEffect(() => {
     if (hasProcessed.current) return;
@@ -42,10 +42,37 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           || hashParams.get('state')
           || hashParams.get('connection_id')
           || hashParams.get('connectionId'),
+        error:
+          params.get('error')
+          || hashParams.get('error'),
+        errorDescription:
+          params.get('error_description')
+          || params.get('message')
+          || hashParams.get('error_description')
+          || hashParams.get('message'),
       };
     }
 
-    const { code, state } = callbackParamsRef.current;
+    const { code, state, error: oauthError, errorDescription } = callbackParamsRef.current;
+
+    if (oauthError && !code) {
+      hasProcessed.current = true;
+      const errMsg = errorDescription || `Bank authorization failed (${oauthError}).`;
+      if (state) {
+        removePendingConnection(state);
+        fetch(`/api/enable-banking/pending/${encodeURIComponent(state)}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        }).catch(() => {});
+        setConnections(prev => prev.map(conn => conn.id === state ? {
+          ...conn,
+          status: 'requires_update',
+          lastError: errMsg,
+        } : conn));
+      }
+      setError(errMsg);
+      return;
+    }
 
     if (!code) {
       setError('Missing authorization code in callback.');

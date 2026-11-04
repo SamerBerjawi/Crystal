@@ -10,16 +10,19 @@ const DEFAULT_REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL || 'http://loca
 
 /** Error whose message is safe to show to the user; upstream details stay in the server log. */
 class EnableBankingError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public code?: string) { super(message); }
 }
 
 const publicMessageFor = (status: number): string => {
   if (status === 401 || status === 403) return `Enable Banking rejected the request (HTTP ${status}). Check the application ID and private key.`;
   if (status === 404) return 'Enable Banking could not find the requested resource (HTTP 404).';
+  if (status === 422) return 'Enable Banking could not process the bank request (HTTP 422). The bank may require reauthorization or updated consent parameters.';
   if (status === 429) return 'Enable Banking is rate limiting requests (HTTP 429). Try again in a few minutes.';
   if (status >= 500) return `Enable Banking is currently unavailable (HTTP ${status}). Try again later.`;
   return `Enable Banking request failed (HTTP ${status}).`;
 };
+
+const isAuthFailureStatus = (status: number): boolean => status === 401 || status === 403 || status === 404;
 
 /** Maps any thrown error to a client-safe message (never upstream bodies or internal error text). */
 const toPublicMessage = (error: any, fallback: string): string => {
@@ -29,8 +32,28 @@ const toPublicMessage = (error: any, fallback: string): string => {
   return fallback;
 };
 
+/** Extracts client IP and User-Agent so banks requiring PSU context headers (HTTP 422 PSU_HEADER_NOT_PROVIDED) succeed. */
+const extractPsuHeaders = (req: express.Request): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  const ua = req.headers['user-agent'];
+  if (typeof ua === 'string' && ua.trim()) {
+    headers['Psu-User-Agent'] = ua.trim().slice(0, 512);
+  }
+  const rawIp = (req.ip || '').replace(/^::ffff:/, '').trim();
+  if (rawIp && rawIp !== '127.0.0.1' && rawIp !== '::1') {
+    headers['Psu-Ip-Address'] = rawIp;
+  }
+  return headers;
+};
+
+const jwtCache = new Map<string, { token: string; expiresAt: number }>();
+
 class EnableBankingClient {
-  constructor(private applicationId: string, private clientCertificate: string) {}
+  constructor(
+    private applicationId: string,
+    private clientCertificate: string,
+    private psuHeaders: Record<string, string> = {},
+  ) {}
 
   private getFormattedKey() {
     let key = this.clientCertificate.trim();
@@ -48,8 +71,13 @@ class EnableBankingClient {
   private generateJwt() {
     const now = Math.floor(Date.now() / 1000);
     const key = this.getFormattedKey();
-    
-    return jwt.sign(
+    const cacheKey = `${this.applicationId}:${key.slice(-32)}`;
+    const cached = jwtCache.get(cacheKey);
+    if (cached && cached.expiresAt > now + 60) {
+      return cached.token;
+    }
+
+    const token = jwt.sign(
       {
         iss: 'enablebanking.com',
         aud: 'api.enablebanking.com',
@@ -62,6 +90,8 @@ class EnableBankingClient {
         keyid: this.applicationId,
       },
     );
+    jwtCache.set(cacheKey, { token, expiresAt: now + 3600 });
+    return token;
   }
 
   private async request<T>(
@@ -77,6 +107,7 @@ class EnableBankingClient {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
         ...(init.sessionId ? { 'Session-ID': init.sessionId } : {}),
+        ...this.psuHeaders,
         ...(init.headers || {}),
       },
     });
@@ -87,13 +118,21 @@ class EnableBankingClient {
       throw new EnableBankingError(response.status, publicMessageFor(response.status));
     }
 
-    return (await response.json()) as T;
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    const text = await response.text();
+    return (text ? JSON.parse(text) : {}) as T;
   }
 
-  getAspsps(countryCode: string) {
+  getAspsps(countryCode?: string) {
     const params = new URLSearchParams();
-    params.set('country', countryCode);
-    return this.request(`/aspsps?${params.toString()}`);
+    if (countryCode && countryCode.toUpperCase() !== 'ALL') {
+      params.set('country', countryCode.toUpperCase());
+    }
+    const query = params.toString();
+    return this.request(`/aspsps${query ? `?${query}` : ''}`);
   }
 
   startAuthorization({
@@ -102,21 +141,47 @@ class EnableBankingClient {
     countryCode,
     redirectUrl,
     state,
-  }: { aspspId?: string; aspspName?: string; countryCode: string; redirectUrl: string; state?: string }) {
-    if (!aspspId && !aspspName) {
-      throw new Error('aspspId or aspspName is required');
+    psuType,
+    maximumConsentValidity,
+    language,
+  }: {
+    aspspId?: string;
+    aspspName?: string;
+    countryCode: string;
+    redirectUrl: string;
+    state?: string;
+    psuType?: 'personal' | 'business';
+    maximumConsentValidity?: number;
+    language?: string;
+  }) {
+    const resolvedName = (aspspName || aspspId || '').trim();
+    if (!resolvedName) {
+      throw new Error('aspspName or aspspId is required');
     }
-    return this.request<{ url: string; authorization_id: string }>(`/auth`, {
+
+    // Default to 180 days (PSD2 standard), capped at the bank's `maximum_consent_validity` minus a 60s safety margin.
+    const defaultSeconds = 180 * 24 * 60 * 60;
+    const maxSeconds = typeof maximumConsentValidity === 'number' && maximumConsentValidity > 120
+      ? Math.min(defaultSeconds, maximumConsentValidity - 60)
+      : 90 * 24 * 60 * 60;
+    const validUntil = new Date(Date.now() + maxSeconds * 1000).toISOString();
+
+    return this.request<{ url: string; authorization_id?: string }>(`/auth`, {
       method: 'POST',
       body: JSON.stringify({
-        aspsp: {
-          country: countryCode,
-          ...(aspspId ? { id: aspspId } : {}),
-          ...(aspspName ? { name: aspspName } : {}),
+        access: {
+          balances: true,
+          transactions: true,
+          valid_until: validUntil,
         },
+        aspsp: {
+          name: resolvedName,
+          country: countryCode.toUpperCase(),
+        },
+        psu_type: psuType === 'business' ? 'business' : 'personal',
         redirect_url: redirectUrl,
-        access: { valid_until: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString() },
-        state,
+        state: state || `eb-${Date.now()}`,
+        ...(language ? { language: language.slice(0, 2).toLowerCase() } : {}),
       }),
     });
   }
@@ -132,6 +197,12 @@ class EnableBankingClient {
     return this.request(`/sessions/${encodeURIComponent(sessionId)}`);
   }
 
+  deleteSession(sessionId: string) {
+    return this.request(`/sessions/${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE',
+    });
+  }
+
   getAccountBalances(accountId: string, sessionId: string) {
     return this.request(`/accounts/${encodeURIComponent(accountId)}/balances`, { sessionId });
   }
@@ -143,17 +214,25 @@ class EnableBankingClient {
   getAccountTransactions({
     accountId,
     dateFrom,
+    dateTo,
     continuationKey,
     sessionId,
+    strategy,
+    transactionStatus,
   }: {
     accountId: string;
     dateFrom?: string;
+    dateTo?: string;
     continuationKey?: string;
     sessionId?: string;
+    strategy?: 'default' | 'longest';
+    transactionStatus?: 'BOOK' | 'PDNG';
   }) {
     const params = new URLSearchParams();
-    params.set('transaction_status', 'BOOK');
+    params.set('transaction_status', transactionStatus || 'BOOK');
     if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    if (strategy) params.set('strategy', strategy);
     if (continuationKey) params.set('continuation_key', continuationKey);
 
     return this.request(`/accounts/${encodeURIComponent(accountId)}/transactions?${params.toString()}`, { sessionId });
@@ -202,6 +281,16 @@ router.delete('/credentials', authenticateToken, async (req: AuthRequest, res) =
   }
 });
 
+const sendUpstreamError = (res: express.Response, error: any, fallback: string) => {
+  const upstreamStatus = error instanceof EnableBankingError ? error.status : undefined;
+  const requiresReauth = upstreamStatus ? isAuthFailureStatus(upstreamStatus) : false;
+  res.status(upstreamStatus && upstreamStatus >= 400 && upstreamStatus < 500 ? 502 : 500).json({
+    message: toPublicMessage(error, fallback),
+    upstreamStatus,
+    requiresReauth,
+  });
+};
+
 router.post('/aspsps', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { countryCode } = req.body;
@@ -209,13 +298,13 @@ router.post('/aspsps', authenticateToken, async (req: AuthRequest, res) => {
     if (!creds || !creds.applicationId || !countryCode) {
       return res.status(400).json({ message: creds ? 'applicationId and countryCode are required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate);
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
     const data = await client.getAspsps(countryCode);
     if (creds.isNew) await saveCredentials(creds.userId, creds.applicationId, creds.clientCertificate);
     res.json(data);
   } catch (error: any) {
     console.error('Failed to fetch ASPSPs', error);
-    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch banks') });
+    sendUpstreamError(res, error, 'Unable to fetch banks');
   }
 });
 
@@ -228,23 +317,23 @@ router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthR
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
 
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate);
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
     const details = await client.getAccountDetails(accountId, sessionId);
     res.json(details);
   } catch (error: any) {
     console.error('Failed to fetch account details', error);
-    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch account details') });
+    sendUpstreamError(res, error, 'Unable to fetch account details');
   }
 });
 
 router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { countryCode, aspspName, aspspId, state } = req.body;
+    const { countryCode, aspspName, aspspId, state, psuType, maximumConsentValidity, language } = req.body;
     const creds = await resolveCredentials(req);
     if (!creds || !creds.applicationId || !countryCode || (!aspspName && !aspspId)) {
       return res.status(400).json({ message: creds ? 'countryCode and aspspId/aspspName are required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate);
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
     const forwardedProto = (Array.isArray(req.headers['x-forwarded-proto']) ? req.headers['x-forwarded-proto'][0] : req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim();
     const protocol = forwardedProto || req.protocol;
     const forwardedHost = (Array.isArray(req.headers['x-forwarded-host']) ? req.headers['x-forwarded-host'][0] : req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
@@ -255,12 +344,21 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
     if (!process.env.ENABLE_BANKING_REDIRECT_URL && !host) {
       console.warn('Enable Banking redirect URL falling back to default because host is missing');
     }
-    const data = await client.startAuthorization({ aspspId, aspspName, countryCode, redirectUrl, state });
+    const data = await client.startAuthorization({
+      aspspId,
+      aspspName,
+      countryCode,
+      redirectUrl,
+      state,
+      psuType,
+      maximumConsentValidity: typeof maximumConsentValidity === 'number' ? maximumConsentValidity : undefined,
+      language: typeof language === 'string' ? language : undefined,
+    });
     if (creds.isNew) await saveCredentials(creds.userId, creds.applicationId, creds.clientCertificate);
     res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id, redirectUrl });
   } catch (error: any) {
     console.error('Failed to start authorization', error);
-    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to start authorization') });
+    sendUpstreamError(res, error, 'Unable to start authorization');
   }
 });
 
@@ -271,12 +369,12 @@ router.post('/session', authenticateToken, async (req: AuthRequest, res) => {
     if (!creds || !creds.applicationId || !code) {
       return res.status(400).json({ message: creds ? 'code is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate);
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
     const session = await client.createSession(code);
     res.json(session);
   } catch (error: any) {
     console.error('Failed to create session', error);
-    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to create session') });
+    sendUpstreamError(res, error, 'Unable to create session');
   }
 });
 
@@ -287,12 +385,28 @@ router.post('/session/fetch', authenticateToken, async (req: AuthRequest, res) =
     if (!creds || !creds.applicationId || !sessionId) {
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate);
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
     const session = await client.getSession(sessionId);
     res.json(session);
   } catch (error: any) {
     console.error('Failed to fetch session', error);
-    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch session') });
+    sendUpstreamError(res, error, 'Unable to fetch session');
+  }
+});
+
+router.delete('/session/:sessionId', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { sessionId } = req.params as { sessionId: string };
+    const creds = await resolveCredentials(req);
+    if (!creds || !creds.applicationId || !sessionId) {
+      return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
+    }
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
+    await client.deleteSession(sessionId);
+    res.json({ message: 'Session revoked' });
+  } catch (error: any) {
+    console.error('Failed to revoke Enable Banking session', error);
+    sendUpstreamError(res, error, 'Unable to revoke session');
   }
 });
 
@@ -304,33 +418,44 @@ router.post('/accounts/:accountId/balances', authenticateToken, async (req: Auth
     if (!creds || !creds.applicationId || !sessionId) {
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate);
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
     const balances = await client.getAccountBalances(accountId, sessionId);
     res.json(balances);
   } catch (error: any) {
     console.error('Failed to fetch balances', error);
-    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch balances') });
+    sendUpstreamError(res, error, 'Unable to fetch balances');
   }
 });
 
 router.post('/accounts/:accountId/transactions', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { dateFrom, continuationKey, sessionId } = req.body as {
+    const { dateFrom, dateTo, continuationKey, sessionId, strategy, transactionStatus } = req.body as {
       dateFrom?: string;
+      dateTo?: string;
       continuationKey?: string;
       sessionId?: string;
+      strategy?: 'default' | 'longest';
+      transactionStatus?: 'BOOK' | 'PDNG';
     };
     const { accountId } = req.params as { accountId: string };
     const creds = await resolveCredentials(req);
     if (!creds || !creds.applicationId || !sessionId) {
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate);
-    const transactions = await client.getAccountTransactions({ accountId, dateFrom, continuationKey, sessionId });
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
+    const transactions = await client.getAccountTransactions({
+      accountId,
+      dateFrom,
+      dateTo,
+      continuationKey,
+      sessionId,
+      strategy,
+      transactionStatus,
+    });
     res.json(transactions);
   } catch (error: any) {
     console.error('Failed to fetch transactions', error);
-    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch transactions') });
+    sendUpstreamError(res, error, 'Unable to fetch transactions');
   }
 });
 

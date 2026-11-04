@@ -15,7 +15,7 @@ interface IntegrationsProps {
   accounts: Account[];
   onCreateConnection: (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string }) => void;
   onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
-    { id: string; name: string; country?: string }[]
+    { id: string; name: string; country?: string; logo?: string; psuTypes?: string[]; maximumConsentValidity?: number }[]
   >;
   onDeleteConnection: (connectionId: string) => void;
   onResetDeletedTransactions: (connectionId: string) => void;

@@ -9,7 +9,7 @@ import {
 } from '../types';
 import { toLocalISOString } from '../utils';
 import { fetchCredentialStatus, loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
-import BankConnectDialog, { BankForm } from './BankConnectDialog';
+import BankConnectDialog, { BankForm, BankOption } from './BankConnectDialog';
 import BankConnectionCard from './BankConnectionCard';
 import BankLinkDialog from './BankLinkDialog';
 import EnableBankingSyncModal from './EnableBankingSyncModal';
@@ -29,7 +29,7 @@ interface EnableBankingIntegrationCardProps {
     connectionId?: string;
   }) => void;
   onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
-    { id: string; name: string; country?: string }[]
+    BankOption[]
   >;
   onDeleteConnection: (connectionId: string) => void;
   onResetDeletedTransactions: (connectionId: string) => void;
@@ -58,6 +58,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
     countryCode: 'FI',
     clientCertificate: '',
     selectedBank: '',
+    psuType: 'personal',
   });
 
   const updateFormState = (updater: React.SetStateAction<typeof formState>) => {
@@ -75,7 +76,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
   const [deleting, setDeleting] = useState<EnableBankingConnection | null>(null);
   const [resetting, setResetting] = useState<EnableBankingConnection | null>(null);
   const autoSyncedConnections = React.useRef<Set<string>>(new Set());
-  const [bankOptions, setBankOptions] = useState<{ id: string; name: string; country?: string }[]>([]);
+  const [bankOptions, setBankOptions] = useState<BankOption[]>([]);
   const [banksLoading, setBanksLoading] = useState(false);
   const [banksError, setBanksError] = useState<string | null>(null);
 
@@ -89,6 +90,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
 
   const todayStr = useMemo(() => toLocalISOString(new Date()), []);
   const ninetyDaysAgoStr = useMemo(() => toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)), []);
+  const twoYearsAgoStr = useMemo(() => toLocalISOString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000)), []);
 
   const linkedAccounts = useMemo(
     () => new Set(connections.flatMap(conn => conn.accounts.map(acc => acc.linkedAccountId).filter(Boolean) as string[])),
@@ -112,10 +114,10 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
   const clampSyncDate = (value?: string) => {
     if (!value) return value;
     const parsed = new Date(value);
-    const min = new Date(ninetyDaysAgoStr);
+    const min = new Date(twoYearsAgoStr);
     const max = new Date(todayStr);
 
-    if (parsed < min) return ninetyDaysAgoStr;
+    if (parsed < min) return twoYearsAgoStr;
     if (parsed > max) return todayStr;
     return value;
   };
@@ -199,13 +201,17 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
       return;
     }
 
+    const selectedOption = bankOptions.find(option => option.id === formState.selectedBank);
     onCreateConnection({
       applicationId: formState.applicationId,
       countryCode: formState.countryCode,
       clientCertificate: formState.clientCertificate,
       selectedBank: JSON.stringify({
         id: formState.selectedBank,
-        name: bankOptions.find(option => option.id === formState.selectedBank)?.name || formState.selectedBank,
+        name: selectedOption?.name || formState.selectedBank,
+        logo: selectedOption?.logo,
+        psuType: formState.psuType || 'personal',
+        maximumConsentValidity: selectedOption?.maximumConsentValidity,
       }),
     });
   };
@@ -215,7 +221,8 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
     const resolvedCertificate = (formState.clientCertificate || '').trim();
     const resolvedCountry = (connection.countryCode || formState.countryCode || '').trim().toUpperCase();
     const resolvedBankId = (connection.selectedBankId || formState.selectedBank || '').trim();
-    const resolvedBankName = connection.selectedBank || bankOptions.find(option => option.id === resolvedBankId)?.name || '';
+    const matchedBank = bankOptions.find(option => option.id === resolvedBankId);
+    const resolvedBankName = connection.selectedBank || matchedBank?.name || '';
 
     if (!resolvedApplicationId || !(resolvedCertificate || hasStoredKey)) {
       toast.error('Application ID and certificate are required to reauthorize.');
@@ -230,6 +237,9 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
       selectedBank: JSON.stringify({
         id: resolvedBankId,
         name: resolvedBankName || connection.selectedBank || 'Enable Banking',
+        logo: connection.bankLogoUrl || matchedBank?.logo,
+        psuType: connection.psuType || formState.psuType || 'personal',
+        maximumConsentValidity: connection.maximumConsentValidity || matchedBank?.maximumConsentValidity,
       }),
       connectionId: connection.id,
     });
@@ -257,7 +267,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
           isOpen={!!syncPrompt}
           title="Sync bank"
           description="Choose what to bring in."
-          minDate={ninetyDaysAgoStr}
+          minDate={twoYearsAgoStr}
           maxDate={todayStr}
           initialState={{
             transactionMode: syncPrompt.transactionMode,
@@ -284,7 +294,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
         account={linking?.account ?? null}
         accounts={accounts}
         takenAccountIds={linkedAccounts}
-        minDate={ninetyDaysAgoStr}
+        minDate={twoYearsAgoStr}
         maxDate={todayStr}
         onClose={() => setLinking(null)}
         onSave={payload => {

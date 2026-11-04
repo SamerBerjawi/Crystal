@@ -124,3 +124,19 @@ test('round-ups go to the next whole unit', () => {
   assert.equal(spareChangeFor(-3), 0);
   assert.equal(spareChangeFor(-0.99), 0.01);
 });
+
+test('when a keyword rule detects a merchant, that merchant always-file rule supplies category and description', () => {
+  const detectColruyt = rule('detect-colruyt', {
+    conditions: [{ field: 'description', operator: 'contains', value: 'ETABLISSEMENTS FRANZ COLRUYT' }],
+    actions: [{ field: 'merchant', value: 'Colruyt' }],
+  });
+  const result = applyRules(
+    tx({ description: 'CARD PAYMENT ETABLISSEMENTS FRANZ COLRUYT HALLE', merchant: '' }),
+    [detectColruyt, colruyt],
+  );
+  assert.equal(result.merchant, 'Colruyt');
+  assert.equal(result.category, 'Groceries');
+  assert.equal(result.description, 'Food shop');
+  assert.equal(result.appliedRuleId, 'detect-colruyt');
+  assert.equal(result.filingRuleId, colruyt.id);
+});

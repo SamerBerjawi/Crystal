@@ -13,7 +13,7 @@ const BANK_LINK_MODES: SwipeTabItem[] = [
 ];
 
 const ACCOUNT_TYPES: AccountType[] = ['Checking', 'Savings', 'Credit Card', 'Investment', 'Loan', 'Property', 'Vehicle', 'Other Assets', 'Other Liabilities', 'Lending'];
-const PRESETS = [30, 60, 90];
+const PRESETS = [30, 60, 90, 365];
 
 interface BankLinkDialogProps {
   account: EnableBankingAccount | null;
@@ -38,7 +38,8 @@ const BankLinkDialog: React.FC<BankLinkDialogProps> = ({ account, accounts, take
   const [accountId, setAccountId] = useState('');
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('Checking');
-  const [startDate, setStartDate] = useState(minDate);
+  const defaultStart = daysAgo(90) >= minDate ? daysAgo(90) : minDate;
+  const [startDate, setStartDate] = useState(defaultStart);
 
   useEffect(() => {
     if (!account) return;
@@ -46,7 +47,8 @@ const BankLinkDialog: React.FC<BankLinkDialogProps> = ({ account, accounts, take
     setAccountId(account.linkedAccountId ?? '');
     setName(account.name);
     setType('Checking');
-    setStartDate(account.syncStartDate && account.syncStartDate >= minDate ? account.syncStartDate : minDate);
+    const fallbackStart = daysAgo(90) >= minDate ? daysAgo(90) : minDate;
+    setStartDate(account.syncStartDate && account.syncStartDate >= minDate ? account.syncStartDate : fallbackStart);
   }, [account, minDate]);
 
   const accountOptions = useMemo(
@@ -100,10 +102,10 @@ const BankLinkDialog: React.FC<BankLinkDialogProps> = ({ account, accounts, take
           </div>
         )}
         <div>
-          <DateInput label="Sync from" help="Up to 90 days back." value={startDate} onChange={pickDate} />
+          <DateInput label="Sync from" help="Up to 2 years back." value={startDate} onChange={pickDate} />
           <div className="mt-2 flex flex-wrap gap-2">
             {PRESETS.map(days => (
-              <Button key={days} variant="secondary" size="sm" onPress={() => pickDate(daysAgo(days))}>{days} days</Button>
+              <Button key={days} variant="secondary" size="sm" onPress={() => pickDate(daysAgo(days))}>{days === 365 ? '1 year' : `${days} days`}</Button>
             ))}
           </div>
         </div>

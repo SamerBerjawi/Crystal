@@ -13,12 +13,25 @@ import { Amount } from './ui/Money';
 const FREQUENCY_SUFFIX: Record<string, string> = { daily: '/day', weekly: '/week', biweekly: '/2 weeks', monthly: '/month', yearly: '/year' };
 const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
+const sanitizeLogoSrc = (url?: string): string | null => {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (/^data:image\/(png|jpe?g|gif|webp|avif|svg\+xml)[;,]/i.test(trimmed)) return trimmed;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
 /** The merchant's logo, or its first letter. */
-export const BrandMark: React.FC<{ name: string; fallback?: string }> = ({ name }) => {
+export const BrandMark: React.FC<{ name: string; logoUrl?: string; fallback?: string }> = ({ name, logoUrl }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const logoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const [hasFailed, setFailed] = useState(false);
-  const logo = getMerchantLogoUrl(name, brandfetchClientId, logoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
+  const directLogo = sanitizeLogoSrc(logoUrl);
+  const logo = directLogo || getMerchantLogoUrl(name, brandfetchClientId, logoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
   return (
     <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-inset text-[.9375rem] font-bold text-ink">
       {logo && !hasFailed ? <img src={logo} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} className="size-full object-cover" /> : name.charAt(0).toUpperCase()}
