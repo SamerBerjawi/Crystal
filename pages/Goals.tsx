@@ -125,7 +125,7 @@ const Goals: React.FC = () => {
   };
 
   const pageStats: PageStat[] = [
-    { label: 'Saved so far', icon: 'piggy-bank', value: savings.saved, format: 'money' },
+    { label: 'Saved so far', icon: 'coins-01', value: savings.saved, format: 'money' },
     { label: 'Still to save', icon: 'target-01', value: Math.max(0, savings.target - savings.saved), format: 'money' },
     { label: 'Needed a month', icon: 'calendar-03', value: need, format: 'money' },
   ];
