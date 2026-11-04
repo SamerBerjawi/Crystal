@@ -98,3 +98,8 @@ To ensure financial metrics communicate urgency and direction consistently:
 - **Success / Positive (Apple Green):** `STATUS_SUCCESS_TEXT` (`text-emerald-600 dark:text-emerald-400`), `STATUS_SUCCESS_BG` (`bg-emerald-500/10 dark:bg-emerald-500/20`), `STATUS_SUCCESS_BADGE`.
 - **Warning / Attention (Apple Amber):** `STATUS_WARNING_TEXT` (`text-amber-600 dark:text-amber-400`), `STATUS_WARNING_BG` (`bg-amber-500/10 dark:bg-amber-500/20`), `STATUS_WARNING_BADGE`.
 - **Informational / Neutral (Apple Blue):** `STATUS_INFO_TEXT` (`text-blue-600 dark:text-blue-400`), `STATUS_INFO_BG` (`bg-blue-500/10 dark:bg-blue-500/20`), `STATUS_INFO_BADGE`.
+
+## Icon System
+
+All icons are standardized on `@hugeicons/core-free-icons` (`^4.3.5`) in the **Stroke Rounded** style (1.5px stroke width). Pro variants (`solid`, `twotone`, `bulk`, `sharp`) are strictly excluded.
+See [`docs/ICON_SYSTEM.md`](docs/ICON_SYSTEM.md) for the complete icon catalog, the Hub-vs-Tab matrix, and registration guides.
