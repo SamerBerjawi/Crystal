@@ -1,4 +1,4 @@
-import { validatePassword } from './validation';
+import { validatePassword, validateProfileUpdates } from './validation';
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from './database';
@@ -20,7 +20,15 @@ const passwordChangeRateLimiter = createRateLimiter({
 // Update current user's profile
 router.put('/me', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
-    const { firstName, lastName, profilePictureUrl, phone, address, defaultCity } = req.body;
+    const { firstName, lastName, profilePictureUrl, phone, address, defaultCity } = req.body || {};
+
+    const validationError = validateProfileUpdates({ firstName, lastName, profilePictureUrl, phone, address, defaultCity });
+    if (validationError) {
+        return res.status(400).json({ message: validationError });
+    }
+
+    const cleanFirstName = typeof firstName === 'string' ? firstName.trim() : null;
+    const cleanLastName = typeof lastName === 'string' ? lastName.trim() : null;
 
     const sql = `
         UPDATE users
@@ -34,7 +42,7 @@ router.put('/me', authenticateToken, async (req: AuthRequest, res) => {
         WHERE id = $7`;
 
     try {
-        await db.query(sql, [firstName, lastName, profilePictureUrl, phone, address, defaultCity, userId]);
+        await db.query(sql, [cleanFirstName, cleanLastName, profilePictureUrl ?? null, phone ?? null, address ?? null, defaultCity ?? null, userId]);
         res.json({ message: 'Profile updated successfully' });
     } catch (err) {
         console.error(err);

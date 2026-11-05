@@ -11,6 +11,8 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { PrivacyContext } from './components/ui/Money';
 import { ReviewProvider } from './contexts/ReviewContext';
 import { applyAppFont } from './hooks/useFont';
+import { collectCategorySubtreeNames, reassignDeletedCategoryAcrossEntities, renameCategoryAcrossEntities } from './utils/categoryRefactor';
+import { updateActivityStreak } from './utils/challengesModel';
 function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>
 ): React.LazyExoticComponent<T> {
@@ -269,6 +271,8 @@ const MATERIAL_DATA_OBJECT_KEYS: (keyof FinancialData)[] = [
   'loanPaymentOverrides',
   'manualWarrantPrices',
   'priceHistory',
+  'userStats',
+  'preferences',
 ];
 
 /**
@@ -380,20 +384,22 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     if (this.state.hasError) {
       return (
         <div role="alert" className="flex items-center justify-center min-h-[50vh] px-6">
-          <div className="bg-white dark:bg-dark-card shadow-2xl rounded-2xl p-6 max-w-lg w-full border border-black/5 dark:border-white/10">
-            <h1 className="text-xl font-semibold text-light-text dark:text-dark-text mb-2">Something went wrong</h1>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-4">
+          <div className="surface-card rounded-[var(--radius-xl)] p-6 max-w-lg w-full border border-line shadow-lg">
+            <h1 className="type-card-title text-ink mb-2">Something went wrong</h1>
+            <p className="type-body text-muted mb-4">
               {this.state.message || 'An unexpected error occurred while rendering this page.'}
             </p>
             <div className="flex gap-3">
               <button
-                className="px-4 py-2 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 transition"
+                type="button"
+                className="px-4 py-2 rounded-full bg-primary text-on-primary text-sm font-bold hover:bg-primary-hover transition cursor-pointer"
                 onClick={() => this.setState({ hasError: false, message: undefined })}
               >
                 Try again
               </button>
               <button
-                className="px-4 py-2 rounded-lg bg-black/5 dark:bg-white/10 text-light-text dark:text-dark-text font-medium hover:bg-black/10 dark:hover:bg-white/15 transition"
+                type="button"
+                className="px-4 py-2 rounded-full bg-inset text-ink text-sm font-bold hover:opacity-85 transition cursor-pointer"
                 onClick={() => window.location.reload()}
               >
                 Reload
@@ -416,7 +422,7 @@ const App: React.FC = () => {
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || Boolean((import.meta as any)?.env?.DEV);
+      const isDev = Boolean((import.meta as any)?.env?.DEV);
       if (isDev && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
         return true;
       }
@@ -435,7 +441,7 @@ const App: React.FC = () => {
 
   const [demoUser, setDemoUser] = useState<User | null>(() => {
     if (typeof window !== 'undefined') {
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || Boolean((import.meta as any)?.env?.DEV);
+      const isDev = Boolean((import.meta as any)?.env?.DEV);
       if (isDev && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
         try {
           const cached = safeLocalStorage.getItem('crystal_dev_financial_data_cache');
@@ -509,6 +515,8 @@ const App: React.FC = () => {
       setIsShortcutsModalOpen(false);
       lockRef.current();
     } : undefined,
+    onTogglePrivacyMode: () => setIsPrivacyMode(prev => !prev),
+    isDisabled: (!isAuthenticated && !isDemoMode) || isLocked || !isDataLoaded,
   });
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
@@ -522,6 +530,7 @@ const App: React.FC = () => {
   const baselinePendingRef = useRef(true);   // true until the freshly loaded data has been captured as the baseline
   const saveInFlightRef = useRef(false);
   const saveAgainRef = useRef(false);
+  const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const syncingConnectionIdsRef = useRef<Set<string>>(new Set());
   const lastSaveFailureRef = useRef<{ ok: boolean; status?: number } | null>(null);
   const retryDelayRef = useRef(5000);
@@ -798,13 +807,15 @@ const App: React.FC = () => {
   }, [investmentTransactions, warrants]);
 
   useEffect(() => {
+    if (!isDataLoaded) return;
     setAccounts(prevAccounts => {
       let hasChanges = false;
       const updatedAccounts = prevAccounts.map(account => {
         if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
           const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
+          if (typeof price !== 'number') return account;
           const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
-          const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
+          const calculatedBalance = quantity * price;
           if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
             hasChanges = true;
             return { ...account, balance: calculatedBalance };
@@ -814,7 +825,7 @@ const App: React.FC = () => {
       });
       return hasChanges ? updatedAccounts : prevAccounts;
     });
-  }, [assetPrices, warrantHoldingsBySymbol]);
+  }, [assetPrices, isDataLoaded, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data ?? emptyFinancialData;
@@ -1256,12 +1267,14 @@ const App: React.FC = () => {
 
     if (isDevEnvironment) {
       void saveDevCache(dataWithHistory);
-      if (data.userProfile) {
-        setDemoUser(data.userProfile);
-      } else if (!demoUser) {
-        setDemoUser(createDemoUser());
+      if (!isAuthenticated) {
+        if (data.userProfile) {
+          setDemoUser(data.userProfile);
+        } else if (!demoUser) {
+          setDemoUser(createDemoUser());
+        }
+        setIsDemoMode(true);
       }
-      setIsDemoMode(true);
     }
 
     if (!isDemoMode && isAuthenticated) {
@@ -1310,9 +1323,13 @@ const App: React.FC = () => {
       for (const key of PERSISTED_SLICE_KEYS) baseline[key] = dataToSave[key];
       savedSlicesRef.current = baseline;
       baselinePendingRef.current = false;
+      setSyncStatus('saved');
       return;
     }
-    if (getDirtyKeys(dataToSave).length > 0) setDirtySignal(signal => signal + 1);
+    if (getDirtyKeys(dataToSave).length > 0) {
+      setSyncStatus('unsaved');
+      setDirtySignal(signal => signal + 1);
+    }
   }, [dataToSave, loadGeneration, isDataLoaded, getDirtyKeys]);
 
   useEffect(() => {
@@ -1324,16 +1341,21 @@ const App: React.FC = () => {
 
       const currentData = latestDataRef.current;
       const dirtyKeys = getDirtyKeys(currentData);
-      if (dirtyKeys.length === 0) return;
+      if (dirtyKeys.length === 0) {
+        setSyncStatus('saved');
+        return;
+      }
 
       const allowEmpty = allowEmptySaveRef.current;
       if (!allowEmpty && !hasMaterialData(currentData)) {
         // Never overwrite server data with an empty state; treat it as already saved.
         for (const key of dirtyKeys) savedSlicesRef.current[key] = currentData[key];
+        setSyncStatus('saved');
         return;
       }
 
       saveInFlightRef.current = true;
+      setSyncStatus('saving');
       let succeeded = false;
       try {
         if (allowEmpty || dirtyKeys.length >= PERSISTED_SLICE_KEYS.length) {
@@ -1352,11 +1374,15 @@ const App: React.FC = () => {
         for (const key of dirtyKeys) savedSlicesRef.current[key] = currentData[key];
         if (allowEmpty) allowEmptySaveRef.current = false;
         retryDelayRef.current = 5000;
+        if (getDirtyKeys(latestDataRef.current).length === 0) {
+          setSyncStatus('saved');
+        }
         if (mergedFromOtherDeviceRef.current) {
           mergedFromOtherDeviceRef.current = false;
           await refreshFromServer();
         }
       } else {
+        setSyncStatus('unsaved');
         // Keep the slices dirty and try again with a growing delay. Expired sessions and permanent
         // conflicts need the user, so those are not retried blindly.
         const status = lastSaveFailureRef.current?.status;
@@ -2223,19 +2249,31 @@ const App: React.FC = () => {
         demoUser ? `${demoUser.firstName} ${demoUser.lastName}`.trim() : undefined,
       ].filter((v): v is string => Boolean(v));
 
-      for (const account of accountsFromSession) {
-        const initialIds = extractProviderAccountIdentifiers(account);
-        if (!initialIds.uid) {
-          console.warn('Enable Banking account missing provider account id. Skipping.', account);
-          continue;
-        }
-        const providerAccountId = initialIds.uid;
-        const [details, balances] = await Promise.all([
-          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
-          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, }), }).then(res => res.json()),
-        ]);
+      const prefetchedAccounts = await Promise.all(
+        accountsFromSession.map(async (account: any) => {
+          const initialIds = extractProviderAccountIdentifiers(account);
+          if (!initialIds.uid) {
+            console.warn('Enable Banking account missing provider account id. Skipping.', account);
+            return null;
+          }
+          const providerAccountId = initialIds.uid;
+          const preMatchedAccount = matchExistingProviderAccount(connection.accounts || [], initialIds);
+          const needsDetailsFetch = !preMatchedAccount || (!preMatchedAccount.accountNumber && !initialIds.accountNumber);
+          const [details, balances] = await Promise.all([
+            needsDetailsFetch
+              ? fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId }) }).then(res => res.json()).catch(() => null)
+              : Promise.resolve(null),
+            fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId }) }).then(res => res.json()),
+          ]);
+          return { account, providerAccountId, preMatchedAccount, details, balances };
+        })
+      );
+
+      for (const prefetched of prefetchedAccounts) {
+        if (!prefetched) continue;
+        const { account, providerAccountId, preMatchedAccount, details, balances } = prefetched;
         const identifiers = extractProviderAccountIdentifiers(account, details);
-        const existingLinkedAccount = matchExistingProviderAccount(connection.accounts || [], identifiers);
+        const existingLinkedAccount = matchExistingProviderAccount(connection.accounts || [], identifiers) || preMatchedAccount;
         const resolvedBalance = resolveEnableBankingBalance(balances);
         const currency = (account?.currency || details?.currency || resolvedBalance.currency || existingLinkedAccount?.currency || 'EUR') as Currency;
         const linkedAccountId = existingLinkedAccount?.linkedAccountId;
@@ -2530,15 +2568,89 @@ const App: React.FC = () => {
     }));
   }, [enableBankingConnections, handleSaveAccount]);
 
+  const handleRenameCategory = useCallback((oldName: string, newName: string) => {
+    const updated = renameCategoryAcrossEntities(oldName, newName, {
+      transactions,
+      recurringTransactions,
+      budgets,
+      merchantRules: preferences.merchantRules,
+      transactionRules: preferences.transactionRules,
+    });
+    setTransactions(updated.transactions);
+    setRecurringTransactions(updated.recurringTransactions);
+    setBudgets(updated.budgets);
+    if (updated.merchantRules !== preferences.merchantRules || updated.transactionRules !== preferences.transactionRules) {
+      setPreferences(prev => ({
+        ...prev,
+        ...(updated.merchantRules ? { merchantRules: updated.merchantRules } : {}),
+        ...(updated.transactionRules ? { transactionRules: updated.transactionRules } : {}),
+      }));
+    }
+  }, [transactions, recurringTransactions, budgets, preferences.merchantRules, preferences.transactionRules]);
+
+  const handleDeleteCategoryCascade = useCallback((deletedCategory: Category, fallbackName: string) => {
+    const updated = reassignDeletedCategoryAcrossEntities(deletedCategory, fallbackName, {
+      transactions,
+      recurringTransactions,
+      budgets,
+      merchantRules: preferences.merchantRules,
+      transactionRules: preferences.transactionRules,
+    });
+    setTransactions(updated.transactions);
+    setRecurringTransactions(updated.recurringTransactions);
+    setBudgets(updated.budgets);
+    if (updated.merchantRules !== preferences.merchantRules || updated.transactionRules !== preferences.transactionRules) {
+      setPreferences(prev => ({
+        ...prev,
+        ...(updated.merchantRules ? { merchantRules: updated.merchantRules } : {}),
+        ...(updated.transactionRules ? { transactionRules: updated.transactionRules } : {}),
+      }));
+    }
+  }, [transactions, recurringTransactions, budgets, preferences.merchantRules, preferences.transactionRules]);
+
   const handlePublishImport = async (items: any[], dataType: ImportDataType, fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccountsArg?: Account[]) => {
     const importId = `imp-${uuidv4()}`;
-    if (newAccountsArg) { newAccountsArg.forEach(acc => handleSaveAccount(acc)); }
+    if (newAccountsArg && newAccountsArg.length > 0) {
+      newAccountsArg.forEach(acc => {
+        const netForAccount = dataType === 'transactions'
+          ? items
+              .filter(t => t.accountId === acc.id)
+              .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+          : 0;
+        handleSaveAccount({ ...acc, balance: safeRound((acc.balance || 0) + netForAccount, 2) });
+      });
+    }
     if (dataType === 'accounts') { items.forEach(acc => handleSaveAccount(acc)); }
     else if (dataType === 'transactions') {
-      const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
+      const existingNames = new Set<string>(['Uncategorized', 'Transfer']);
+      [...incomeCategories, ...expenseCategories].forEach(cat => {
+        collectCategorySubtreeNames(cat).forEach(name => existingNames.add(name));
+      });
+      const newIncomeCats: Category[] = [];
+      const newExpenseCats: Category[] = [];
+      items.forEach(t => {
+        const catName = (t.category || '').trim();
+        if (catName && !existingNames.has(catName)) {
+          existingNames.add(catName);
+          const newCat: Category = {
+            id: `cat-${uuidv4()}`,
+            name: catName,
+            color: '#6366f1',
+            icon: t.type === 'income' ? 'arrow-down-left-01' : 'receipt',
+            classification: t.type === 'income' ? 'income' : 'expense',
+            subCategories: [],
+          };
+          if (t.type === 'income') newIncomeCats.push(newCat);
+          else newExpenseCats.push(newCat);
+        }
+      });
+      if (newIncomeCats.length > 0) setIncomeCategories(prev => [...prev, ...newIncomeCats]);
+      if (newExpenseCats.length > 0) setExpenseCategories(prev => [...prev, ...newExpenseCats]);
+
       const txsWithImportId = items.map(t => ({ ...t, importId }));
       handleSaveTransaction(txsWithImportId, [], { autoSpareChange: true });
     }
+    setUserStats(prev => updateActivityStreak(prev, toLocalISOString(new Date())));
 
     const details = `Imported ${items.length} ${dataType}${newAccountsArg?.length ? ` and created ${newAccountsArg.length} new accounts` : ''}.`;
 
@@ -2622,16 +2734,25 @@ const App: React.FC = () => {
   } = useBillNotifications({
     recurringTransactions,
     billsAndPayments,
+    tasks,
     dismissedIds: dismissedBillNotifications,
     onDismiss: ids => setPreferences(prev => ({ ...prev, dismissedBillNotifications: [...(prev.dismissedBillNotifications ?? []), ...ids] })),
   });
 
-  const handleNotificationProcessItem = useCallback((item: RecurringTransaction | BillPayment) => {
+  const handleNotificationProcessItem = useCallback((item: RecurringTransaction | BillPayment | Task) => {
+    if ('title' in item) {
+      handleSaveTask({ ...item, status: 'Done' });
+      const targetStr = item.reminderDate || item.dueDate;
+      if (targetStr) dismissNotification(`task-${item.id}-${targetStr}`);
+      toast.success(`Completed task "${item.title}"!`);
+      return;
+    }
     const defaultAccount = cashAccounts[0] || accounts[0];
     const todayStr = toLocalISOString(new Date());
 
     if ('status' in item) {
       handleMarkBillAsPaid(item.id, item.accountId || defaultAccount?.id || '', todayStr);
+      dismissNotification(`bill-${item.id}-${item.dueDate}`);
       toast.success(`Marked bill "${item.description}" as paid!`);
     } else {
       handleSaveTransaction([{
@@ -2642,10 +2763,15 @@ const App: React.FC = () => {
         category: item.category || 'Bills & Utilities',
         type: item.type === 'income' ? 'income' : 'expense',
         currency: item.currency || defaultAccount?.currency || 'EUR',
+        recurringSourceId: item.id,
+        recurringOccurrenceDate: item.nextDueDate,
       }]);
+      if (item.nextDueDate) {
+        dismissNotification(`recurring-${item.id}-${item.nextDueDate}`);
+      }
       toast.success(`Recorded payment for "${item.description}"!`);
     }
-  }, [accounts, cashAccounts, handleMarkBillAsPaid, handleSaveTransaction]);
+  }, [accounts, cashAccounts, dismissNotification, handleMarkBillAsPaid, handleSaveTask, handleSaveTransaction]);
 
   const linkedEnableBankingAccountIds = useMemo(() => new Set(enableBankingConnections.flatMap(c => (c.accounts || []).map(a => a.linkedAccountId).filter(Boolean))), [enableBankingConnections]);
   const enableBankingLinkMap = useMemo(() => {
@@ -2683,7 +2809,7 @@ const App: React.FC = () => {
       case 'Goals': return <GoalsPage />;
       case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
       case 'Schedule & Bills': return <SchedulePage />;
-      case 'Categories': return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
+      case 'Categories': return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} onRenameCategory={handleRenameCategory} onDeleteCategory={handleDeleteCategoryCascade} />;
       case 'Tags': return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
       case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} lock={isAuthenticated && !isDemoMode ? { hasPin, fetcher: authorizedFetch, onChanged: setHasPin } : undefined} />;
       case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} onLogExport={handleLogExport} fullFinancialData={dataToSave} />;
@@ -2702,8 +2828,9 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    if ((!isAuthenticated && !isDemoMode) || isLocked || !isDataLoaded) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsShortcutsModalOpen(false);
         setIsCommandCenterOpen(prev => !prev);
@@ -2711,7 +2838,7 @@ const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isAuthenticated, isDataLoaded, isDemoMode, isLocked]);
 
   const preferencesContextValue = useMemo(() => ({ preferences, setPreferences }), [preferences]);
   const accountsContextValue = useMemo(() => ({ accounts, accountOrder, setAccountOrder, saveAccount: handleSaveAccount }), [accounts, accountOrder, handleSaveAccount]);
@@ -2747,13 +2874,40 @@ const App: React.FC = () => {
   if (isAuthLoading || !isDataLoaded) return <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]"><svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>;
 
   if (!isAuthenticated && !isDemoMode) {
-    return <Suspense fallback={<PageLoader label="Preparing sign-in experience..." />}>{authPage === 'signIn' ? <SignIn onSignIn={handleSignIn} onNavigateToSignUp={() => setAuthPage('signUp')} onEnterDemoMode={handleEnterDemoMode} isLoading={isAuthLoading} error={authError} /> : <SignUp onSignUp={handleSignUp} onNavigateToSignIn={() => setAuthPage('signIn')} isLoading={isAuthLoading} error={authError} />}</Suspense>;
+    return (
+      <Suspense fallback={<PageLoader label="Preparing sign-in experience..." />}>
+        {authPage === 'signIn' ? (
+          <SignIn
+            onSignIn={handleSignIn}
+            onNavigateToSignUp={() => { setAuthError(null); setAuthPage('signUp'); }}
+            onEnterDemoMode={() => { setAuthError(null); void handleEnterDemoMode(); }}
+            isLoading={isAuthLoading}
+            error={authError}
+          />
+        ) : (
+          <SignUp
+            onSignUp={handleSignUp}
+            onNavigateToSignIn={() => { setAuthError(null); setAuthPage('signIn'); }}
+            isLoading={isAuthLoading}
+            error={authError}
+          />
+        )}
+      </Suspense>
+    );
   }
 
   if (!currentUser) return <PageLoader label="Loading user profile..." />;
 
+  const lockAction = isAuthenticated && !isDemoMode
+    ? () => {
+        if (hasPin) void handleLock();
+        else { toast.info('Set a PIN first'); setCurrentPage('Personal Info'); }
+      }
+    : undefined;
+
   const shellProps: ShellProps = {
-    onLock: isAuthenticated && !isDemoMode ? () => { if (hasPin) void handleLock(); else { toast.info('Set a PIN first'); setCurrentPage('Personal Info'); } } : undefined,
+    onLock: lockAction,
+    syncStatus: isAuthenticated && !isDemoMode ? syncStatus : undefined,
     currentPage,
     setCurrentPage,
     user: currentUser,
@@ -2850,6 +3004,11 @@ const App: React.FC = () => {
             isPrivacyMode={isPrivacyMode}
             theme={theme}
             setTheme={setTheme}
+            onCreateTransaction={() => setIsQuickAddTxModalOpen(true)}
+            onSyncBanks={handleSyncAllEnableBankingConnections}
+            onLock={lockAction}
+            onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+            onOpenSetupWizard={() => setIsOnboardingOpen(true)}
           />
           <KeyboardShortcutsModal
             isOpen={isShortcutsModalOpen}

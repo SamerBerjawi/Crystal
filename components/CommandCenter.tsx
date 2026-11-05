@@ -1,14 +1,15 @@
 import React, { useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { Page, Account, Transaction } from '../types';
-import { NAV_ITEMS } from '../constants';
+import { HUBS } from '../utils/navigation';
+import { formatCurrency } from '../utils';
 import Icon from './ui/Icon';
 import ActionSearchBar, { type CommandItem } from './ui/action-search-bar';
 
 interface CommandCenterProps {
   isOpen: boolean;
   onClose: () => void;
-  setCurrentPage: (page: Page) => void;
+  setCurrentPage: (page: Page, tab?: string | null) => void;
   accounts: Account[];
   transactions: Transaction[];
   onOpenAccount: (id: string) => void;
@@ -16,6 +17,11 @@ interface CommandCenterProps {
   isPrivacyMode: boolean;
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  onCreateTransaction?: () => void;
+  onSyncBanks?: () => void;
+  onLock?: () => void;
+  onOpenShortcuts?: () => void;
+  onOpenSetupWizard?: () => void;
 }
 
 const CommandCenter: React.FC<CommandCenterProps> = ({
@@ -29,33 +35,65 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
   isPrivacyMode,
   theme,
   setTheme,
+  onCreateTransaction,
+  onSyncBanks,
+  onLock,
+  onOpenShortcuts,
+  onOpenSetupWizard,
 }) => {
   const items: CommandItem[] = useMemo(() => {
     const list: CommandItem[] = [];
+    const seenPages = new Set<string>();
 
-    // Pages
-    NAV_ITEMS.forEach(nav => {
-      list.push({
-        id: `page-${nav.name}`,
-        label: nav.name,
-        group: 'Pages',
-        icon: <Icon name={nav.icon} size={16} />,
-        keywords: ['navigate', 'page', 'go to', nav.name.toLowerCase()],
-      });
+    // Pages from all 7 navigation hubs (including Goals, Profile, Preferences, etc.)
+    HUBS.forEach(hub => {
+      if (hub.tabs.length === 0) {
+        seenPages.add(hub.home);
+        list.push({
+          id: `page-${hub.home}`,
+          label: hub.label,
+          group: 'Pages',
+          icon: <Icon name={hub.icon} size={16} />,
+          keywords: ['navigate', 'page', 'go to', hub.label.toLowerCase(), hub.home.toLowerCase()],
+        });
+      } else {
+        hub.tabs.forEach(tab => {
+          const key = tab.tab ? `${tab.page}?tab=${tab.tab}` : tab.page;
+          if (seenPages.has(key)) return;
+          seenPages.add(key);
+          list.push({
+            id: `page-${key}`,
+            label: `${hub.label} › ${tab.label}`,
+            group: 'Pages',
+            icon: <Icon name={tab.icon || hub.icon} size={16} />,
+            keywords: ['navigate', 'page', 'go to', hub.label.toLowerCase(), tab.label.toLowerCase(), tab.page.toLowerCase()],
+          });
+        });
+      }
     });
 
-    // Accounts
-    accounts.forEach(acc => {
+    // Quick Actions
+    if (onCreateTransaction) {
       list.push({
-        id: `acc-${acc.id}`,
-        label: acc.name,
-        group: 'Accounts',
-        icon: <Icon name="account_balance" size={16} />,
-        keywords: ['account', acc.type, acc.financialInstitution || '', acc.currency || ''],
+        id: 'action-new-tx',
+        label: 'Add Transaction',
+        group: 'Actions',
+        icon: <Icon name="add-01" size={16} />,
+        keywords: ['create', 'add', 'new', 'transaction', 'expense', 'income', 'transfer'],
+        shortcut: ['N'],
       });
-    });
+    }
 
-    // Actions
+    if (onSyncBanks) {
+      list.push({
+        id: 'action-sync-banks',
+        label: 'Sync Connected Banks',
+        group: 'Actions',
+        icon: <Icon name="sync_banks" size={16} />,
+        keywords: ['sync', 'bank', 'refresh', 'enable banking', 'fetch'],
+      });
+    }
+
     list.push({
       id: 'action-privacy',
       label: isPrivacyMode ? 'Disable Privacy Mode' : 'Enable Privacy Mode',
@@ -64,6 +102,38 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
       keywords: ['privacy', 'incognito', 'hide', 'show', 'amounts'],
       shortcut: ['⇧', 'P'],
     });
+
+    if (onLock) {
+      list.push({
+        id: 'action-lock',
+        label: 'Lock Crystal',
+        group: 'Actions',
+        icon: <Icon name="lock" size={16} />,
+        keywords: ['lock', 'pin', 'security', 'screen'],
+        shortcut: ['L'],
+      });
+    }
+
+    if (onOpenShortcuts) {
+      list.push({
+        id: 'action-shortcuts',
+        label: 'Keyboard Shortcuts',
+        group: 'Actions',
+        icon: <Icon name="keyboard" size={16} />,
+        keywords: ['shortcuts', 'hotkeys', 'keys', 'help'],
+        shortcut: ['?'],
+      });
+    }
+
+    if (onOpenSetupWizard) {
+      list.push({
+        id: 'action-onboarding',
+        label: 'Run Setup Wizard',
+        group: 'Actions',
+        icon: <Icon name="compass-01" size={16} />,
+        keywords: ['onboarding', 'setup', 'wizard', 'getting started', 'currency'],
+      });
+    }
 
     list.push({
       id: 'action-theme',
@@ -79,12 +149,27 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
       ],
     });
 
+    // Accounts
+    accounts.forEach(acc => {
+      list.push({
+        id: `acc-${acc.id}`,
+        label: acc.name,
+        group: 'Accounts',
+        icon: <Icon name="bank" size={16} />,
+        keywords: ['account', acc.type, acc.financialInstitution || '', acc.currency || ''],
+      });
+    });
+
     // Recent Transactions
     transactions.slice(0, 8).forEach(tx => {
       const title = tx.merchant || tx.description || 'Transaction';
+      const isOutflow = tx.type === 'expense' || tx.amount < 0;
+      const formattedAmount = isPrivacyMode
+        ? '••••'
+        : `${isOutflow ? '−' : '+'}${formatCurrency(Math.abs(tx.amount), tx.currency || 'EUR')}`;
       list.push({
         id: `tx-${tx.id}`,
-        label: `${title} (${tx.amount < 0 ? '−' : '+'}${Math.abs(tx.amount)} ${tx.currency})`,
+        label: `${title} (${formattedAmount})`,
         group: 'Recent Transactions',
         icon: <Icon name="receipt" size={16} />,
         keywords: ['transaction', tx.merchant || '', tx.description || '', tx.category || ''],
@@ -92,13 +177,39 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
     });
 
     return list;
-  }, [accounts, isPrivacyMode, theme, transactions]);
+  }, [accounts, isPrivacyMode, onCreateTransaction, onLock, onOpenSetupWizard, onOpenShortcuts, onSyncBanks, theme, transactions]);
 
   const handleSelect = (item: CommandItem) => {
     if (item.id.startsWith('page-')) {
-      const pageName = item.id.replace('page-', '') as Page;
-      setCurrentPage(pageName);
+      const raw = item.id.replace('page-', '');
+      const [pageName, queryPart] = raw.split('?tab=');
+      setCurrentPage(pageName as Page, queryPart ?? null);
       onClose();
+      return;
+    }
+    if (item.id === 'action-new-tx') {
+      onClose();
+      onCreateTransaction?.();
+      return;
+    }
+    if (item.id === 'action-sync-banks') {
+      onClose();
+      onSyncBanks?.();
+      return;
+    }
+    if (item.id === 'action-lock') {
+      onClose();
+      onLock?.();
+      return;
+    }
+    if (item.id === 'action-shortcuts') {
+      onClose();
+      onOpenShortcuts?.();
+      return;
+    }
+    if (item.id === 'action-onboarding') {
+      onClose();
+      onOpenSetupWizard?.();
       return;
     }
     if (item.id.startsWith('acc-')) {

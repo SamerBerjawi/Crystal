@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { looksLikeAmount } from '../../utils/privacyMask';
 
 test('recognises amounts with symbols and ISO codes on either side', () => {
-    for (const t of ['€1,234.50', '-€12.00', '$ 9', '£3.20', '1.234,56 €', '120 CHF', 'CHF 120', '¥5000', '−€4', '0.5 BTC']) {
+    for (const t of ['€1,234.50', '-€12.00', '$ 9', '£3.20', '1.234,56 €', '120 CHF', 'CHF 120', '¥5000', '−€4', '0.5 BTC', '150 EGP', '₪45.00', 'CLP -2500']) {
         assert.equal(looksLikeAmount(t), true, t);
     }
 });

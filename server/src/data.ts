@@ -48,9 +48,9 @@ const MATERIAL_ARRAY_KEYS = [
     'accounts', 'transactions', 'investmentTransactions', 'recurringTransactions', 'recurringTransactionOverrides',
     'financialGoals', 'budgets', 'tasks', 'warrants', 'memberships', 'importExportHistory', 'billsAndPayments',
     'invoices', 'tags', 'predictions', 'enableBankingConnections', 'incomeCategories', 'expenseCategories',
-    'accountOrder', 'taskOrder',
+    'accountOrder', 'taskOrder', 'goalOrder',
 ];
-const MATERIAL_OBJECT_KEYS = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats'];
+const MATERIAL_OBJECT_KEYS = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats', 'preferences'];
 
 const payloadHasMaterialData = (data: Record<string, any>) =>
     MATERIAL_ARRAY_KEYS.some(key => Array.isArray(data[key]) && data[key].length > 0) ||

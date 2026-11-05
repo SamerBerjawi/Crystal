@@ -47,6 +47,7 @@ export interface ShellProps {
   /** Unset in demo mode, which has no server to hold a lock. */
   onLock?: () => void;
   notifications: React.ReactNode;
+  syncStatus?: 'saved' | 'saving' | 'unsaved';
 }
 
 const isDarkNow = (theme: Theme) =>
@@ -416,6 +417,25 @@ export const TopBar: React.FC<ShellProps> = props => (
       <TopPills currentPage={props.currentPage} setCurrentPage={props.setCurrentPage} />
     </div>
     <div className="flex flex-1 shrink-0 items-center justify-end gap-1.5">
+      {props.syncStatus && props.syncStatus !== 'saved' && (
+        <span
+          role="status"
+          aria-live="polite"
+          className="inline-flex items-center gap-1.5 rounded-full bg-inset px-2.5 py-1 text-xs font-medium text-muted"
+        >
+          {props.syncStatus === 'saving' ? (
+            <>
+              <Spinner className="size-3" />
+              <span>Saving…</span>
+            </>
+          ) : (
+            <>
+              <span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />
+              <span>Unsaved</span>
+            </>
+          )}
+        </span>
+      )}
       {props.notifications}
       <ProfileMenu {...props} />
     </div>

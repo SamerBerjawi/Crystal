@@ -10,6 +10,7 @@
  */
 const isPlainObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const hasId = (v: unknown): v is { id: string } => isPlainObject(v) && typeof v.id === 'string';
+const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every(item => typeof item === 'string');
 const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
 export function threeWayMerge(base: unknown, mine: unknown, theirs: unknown): unknown {
@@ -19,8 +20,13 @@ export function threeWayMerge(base: unknown, mine: unknown, theirs: unknown): un
 
   const baseList = base == null ? [] : base;
   if (Array.isArray(mine) && Array.isArray(theirs) && Array.isArray(baseList)
+      && mine.length + theirs.length > 0
       && mine.every(hasId) && theirs.every(hasId) && baseList.every(hasId)) {
     return mergeById(baseList as { id: string }[], mine as { id: string }[], theirs as { id: string }[]);
+  }
+
+  if (isStringArray(mine) && isStringArray(theirs) && isStringArray(baseList)) {
+    return mergeStringOrder(baseList, mine, theirs);
   }
 
   if (isPlainObject(mine) && isPlainObject(theirs) && (base == null || isPlainObject(base))) {
@@ -34,6 +40,29 @@ export function threeWayMerge(base: unknown, mine: unknown, theirs: unknown): un
   }
 
   return mine;
+}
+
+/**
+ * Merges ordered string-ID lists (accountOrder, taskOrder, goalOrder):
+ * keeps `mine` ordering, drops IDs removed by `theirs` (present in `base` but not `theirs`),
+ * and appends any new IDs added in `theirs` that aren't already in `mine`.
+ */
+function mergeStringOrder(base: string[], mine: string[], theirs: string[]): string[] {
+  const baseSet = new Set(base);
+  const theirsSet = new Set(theirs);
+  const deletedInTheirs = new Set(base.filter(id => !theirsSet.has(id)));
+  const deletedInMine = new Set(base.filter(id => !mine.includes(id)));
+
+  const keptFromMine = mine.filter(id => !deletedInTheirs.has(id));
+  const keptSet = new Set(keptFromMine);
+
+  for (const id of theirs) {
+    if (!keptSet.has(id) && !deletedInMine.has(id) && !baseSet.has(id)) {
+      keptFromMine.push(id);
+      keptSet.add(id);
+    }
+  }
+  return keptFromMine;
 }
 
 function mergeById(base: { id: string }[], mine: { id: string }[], theirs: { id: string }[]) {

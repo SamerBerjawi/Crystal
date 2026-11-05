@@ -34,10 +34,11 @@ test('the same field changed on both sides: this device wins', () => {
   assert.deepEqual(threeWayMerge(base, { a: 2 }, { a: 3 }), { a: 2 });
 });
 
-test('untouched here -> take theirs; untouched there -> take mine; plain lists -> mine', () => {
+test('untouched here -> take theirs; untouched there -> take mine; plain lists -> mine; string ID order lists merge additions and deletions', () => {
   assert.deepEqual(threeWayMerge([1], [1], [2]), [2]);
   assert.deepEqual(threeWayMerge([1], [3], [1]), [3]);
-  assert.deepEqual(threeWayMerge(['a'], ['a', 'b'], ['a', 'c']), ['a', 'b']);
+  assert.deepEqual(threeWayMerge(['a'], ['a', 'b'], ['a', 'c']), ['a', 'b', 'c']);
+  assert.deepEqual(threeWayMerge(['a', 'b', 'c'], ['b', 'a', 'c'], ['a', 'c', 'd']), ['a', 'c', 'd']);
 });
 
 test('a missing base is treated as empty', () => {

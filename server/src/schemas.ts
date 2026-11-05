@@ -69,6 +69,7 @@ export const financialDataSchema = z.object({
     expenseCategories: z.array(z.any()).optional(),
     accountOrder: z.array(z.string()).optional(),
     taskOrder: z.array(z.string()).optional(),
+    goalOrder: z.array(z.string()).optional(),
     loanPaymentOverrides: z.record(z.string(), z.any()).optional(),
     manualWarrantPrices: z.record(z.string(), z.any()).optional(),
     priceHistory: z.record(z.string(), z.any()).optional(),

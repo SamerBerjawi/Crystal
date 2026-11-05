@@ -7,6 +7,7 @@ type Entry = {
 };
 
 const stores = new Map<string, Map<string, Entry>>();
+const MAX_ENTRIES_PER_STORE = 10_000;
 
 type RateLimitOptions = {
     namespace: string;
@@ -41,10 +42,19 @@ export const createRateLimiter = ({
         const entry = store.get(entryKey);
 
         if (entry?.blockedUntil && entry.blockedUntil > now) {
+            const retryAfterSec = Math.max(1, Math.ceil((entry.blockedUntil - now) / 1000));
+            res.setHeader?.('Retry-After', String(retryAfterSec));
             return res.status(429).json({ message });
         }
 
         if (!entry || entry.resetAt <= now) {
+            if (!entry && store.size >= MAX_ENTRIES_PER_STORE) {
+                sweepExpiredEntries(now);
+                if (store.size >= MAX_ENTRIES_PER_STORE) {
+                    const oldestKey = store.keys().next().value;
+                    if (oldestKey !== undefined) store.delete(oldestKey);
+                }
+            }
             store.set(entryKey, { count: 1, resetAt: now + windowMs });
             return next();
         }
@@ -52,6 +62,8 @@ export const createRateLimiter = ({
         entry.count += 1;
         if (entry.count > maxAttempts) {
             entry.blockedUntil = now + blockMs;
+            const retryAfterSec = Math.max(1, Math.ceil(blockMs / 1000));
+            res.setHeader?.('Retry-After', String(retryAfterSec));
             return res.status(429).json({ message });
         }
 

@@ -44,6 +44,16 @@ const loginClientLimiter = createRateLimiter({
     key: req => `${req.ip}`,
 });
 
+// 4) Registration rate limiter so anonymous clients cannot spam expensive bcrypt hashes.
+const registerRateLimiter = createRateLimiter({
+    namespace: 'register',
+    windowMs: 15 * 60 * 1000,
+    maxAttempts: 10,
+    blockMs: 15 * 60 * 1000,
+    message: 'Too many registration attempts. Please wait 15 minutes and try again.',
+    key: req => `${req.ip}`,
+});
+
 const loginRateLimiters = [loginClientLimiter, loginAccountLimiter, loginAttemptLimiter];
 
 async function performLogin(userId: number, email: string) {
@@ -85,7 +95,7 @@ async function performLogin(userId: number, email: string) {
 
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync('crystal-timing-equaliser', PASSWORD_HASH_ROUNDS);
 
-router.post('/register', async (req, res) => {
+router.post('/register', registerRateLimiter, async (req, res) => {
     if (!isRegistrationEnabled()) {
         return res.status(403).json({ message: 'Registration is disabled on this server. Ask the administrator for an account.' });
     }
@@ -143,8 +153,9 @@ router.post('/login', ...loginRateLimiters, async (req, res) => {
     }
 
     try {
+        const normalizedEmail = email.trim().toLowerCase();
         const userSql = `SELECT id, email, password FROM users WHERE email = $1`;
-        const userResult = await db.query(userSql, [email.toLowerCase()]);
+        const userResult = await db.query(userSql, [normalizedEmail]);
         const user = userResult.rows[0];
 
         // Always run one bcrypt comparison so an unknown email costs the same as a wrong password (no timing oracle).
@@ -213,6 +224,53 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Failed to fetch user profile.' });
+    }
+});
+
+router.get('/sessions', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    const currentSessionId = req.user?.sessionId;
+    try {
+        const result = await db.query(
+            `SELECT id,
+                    created_at AS "createdAt",
+                    last_seen_at AS "lastSeenAt",
+                    expires_at AS "expiresAt",
+                    locked_at IS NOT NULL AS "isLocked"
+             FROM user_sessions
+             WHERE user_id = $1
+               AND revoked_at IS NULL
+               AND expires_at > NOW()
+             ORDER BY last_seen_at DESC`,
+            [userId]
+        );
+        const sessions = result.rows.map((row: any) => ({
+            ...row,
+            isCurrent: row.id === currentSessionId,
+        }));
+        res.json({ sessions });
+    } catch (err) {
+        console.error('Failed to list sessions:', err);
+        res.status(500).json({ message: 'Failed to list active sessions.' });
+    }
+});
+
+router.post('/sessions/revoke-others', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    const currentSessionId = req.user?.sessionId;
+    try {
+        const result = await db.query(
+            `UPDATE user_sessions
+             SET revoked_at = NOW()
+             WHERE user_id = $1
+               AND id <> $2
+               AND revoked_at IS NULL`,
+            [userId, currentSessionId]
+        );
+        res.json({ revokedCount: result.rowCount ?? 0, message: 'Signed out of all other sessions.' });
+    } catch (err) {
+        console.error('Failed to revoke other sessions:', err);
+        res.status(500).json({ message: 'Failed to revoke other sessions.' });
     }
 });
 

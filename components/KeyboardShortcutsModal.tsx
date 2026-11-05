@@ -9,12 +9,17 @@ interface KeyboardShortcutsModalProps {
 const shortcuts = [
   { key: '⌘ K / Ctrl K', description: 'Open Command Center' },
   { key: 'N', description: 'Create new transaction' },
+  { key: '⇧ P', description: 'Toggle Privacy Mode' },
   { key: 'L', description: 'Lock Crystal' },
-  { key: 'G then D', description: 'Go to Dashboard' },
+  { key: 'G then D', description: 'Go to Overview (Dashboard)' },
   { key: 'G then A', description: 'Go to Accounts' },
   { key: 'G then T', description: 'Go to Transactions' },
+  { key: 'G then F', description: 'Go to Forecasting' },
+  { key: 'G then B', description: 'Go to Budget' },
+  { key: 'G then G', description: 'Go to Goals' },
+  { key: 'G then C', description: 'Go to Schedule & Calendar' },
   { key: 'G then I', description: 'Go to Investments' },
-  { key: 'G then B', description: 'Go to Budgeting' },
+  { key: 'G then R', description: 'Go to Reports' },
   { key: 'G then S', description: 'Go to Settings' },
   { key: '?', description: 'Open Keyboard Shortcuts' },
   { key: 'Esc', description: 'Close modal or overlay' },
@@ -25,16 +30,16 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
 
   return (
     <Modal onClose={onClose} title="Keyboard Shortcuts" size="lg">
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         {shortcuts.map((s) => (
           <div
             key={s.key}
-            className="flex items-center justify-between p-3.5 rounded-2xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5"
+            className="flex items-center justify-between rounded-[var(--radius-md)] border border-line bg-inset px-3.5 py-2.5"
           >
-            <span className="text-xs font-bold text-light-text dark:text-dark-text">
+            <span className="type-body-strong text-ink">
               {s.description}
             </span>
-            <kbd className="px-2.5 py-1 rounded-xl bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 text-xs font-mono font-bold text-primary-600 dark:text-primary-400 shadow-sm">
+            <kbd className="rounded-lg border border-line-strong bg-solid px-2.5 py-1 font-mono text-xs font-bold text-primary shadow-2xs">
               {s.key}
             </kbd>
           </div>

@@ -111,6 +111,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, user
   const parsedGoal = parseAmountInput(goalAmount);
   const parsedRt = parseAmountInput(rtAmount);
   const repeatAccountId = rtAccountId ?? ids.account;
+  const repeatAccountCurrency = accounts.find(account => account.id === repeatAccountId)?.currency || accountCurrency;
 
   const isGoalStarted = !!goalName || !!goalAmount;
   const isRtStarted = !!rtDescription || !!rtAmount || !!rtCategory;
@@ -193,7 +194,18 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, user
         <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-end">
           {step === 1 && <Button variant="ghost" onPress={close}>Skip for now</Button>}
           {step > 1 && step < LAST_STEP && <Button variant="ghost" className="md:mr-auto" onPress={() => setStep(step - 1)}>Back</Button>}
-          {(step === 4 || step === 5) && <Button variant="secondary" onPress={() => setStep(step + 1)}>Skip</Button>}
+          {(step === 4 || step === 5) && (
+            <Button
+              variant="secondary"
+              onPress={() => {
+                if (step === 4) setSavedGoal(false);
+                if (step === 5) setSavedRt(false);
+                setStep(step + 1);
+              }}
+            >
+              Skip
+            </Button>
+          )}
           <Button isDisabled={isBlocked} onPress={next}>{step === 1 ? 'Get started' : step === LAST_STEP ? 'Go to Overview' : 'Next'}</Button>
         </div>
       )}
@@ -237,7 +249,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, user
               label="Transaction flow type"
             />
             <TextInput autoFocus label="Description" placeholder={rtType === 'income' ? 'Salary' : 'Rent'} value={rtDescription} onChange={setRtDescription} />
-            <AmountInput label="Amount each month" currency={currencySign(accountCurrency)} value={rtAmount} onChange={setRtAmount} />
+            <AmountInput label="Amount each month" currency={currencySign(repeatAccountCurrency)} value={rtAmount} onChange={setRtAmount} />
             <Combobox label="Category" options={categoryOptions} value={rtCategory} onChange={setRtCategory} placeholder="Search categories" />
             <Combobox label="Account" options={accountOptions} value={repeatAccountId} onChange={setRtAccountId} placeholder="Search accounts" />
           </>

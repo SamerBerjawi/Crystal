@@ -20,7 +20,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    onSignIn(email, password);
+    onSignIn(email.trim(), password);
   };
 
   return (

@@ -872,6 +872,7 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   reminderDate?: string;
+  linkedPage?: Page;
 }
 
 export interface Warrant {

@@ -40,6 +40,8 @@ export const useAuth = () => {
     if (!payload) return null;
 
     const mappedUser = mapApiUserToUser(extractApiUser(payload));
+    lockedOnLoadRef.current = false;
+    setIsLocked(false);
     setUserState(mappedUser);
     setIsAuthenticated(true);
     setError(null);
@@ -48,13 +50,15 @@ export const useAuth = () => {
   }, []);
 
   const signOut = useCallback(() => {
-    fetch('/api/auth/logout', {
+    fetchWithTimeout('/api/auth/logout', {
       method: 'POST',
       credentials: 'include',
     }).catch(error => {
       console.warn('Sign-out request failed:', error);
     });
 
+    lockedOnLoadRef.current = false;
+    setIsLocked(false);
     setUserState(null);
     setIsAuthenticated(false);
     setError(null);
@@ -74,10 +78,10 @@ export const useAuth = () => {
       setError(null);
 
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetchWithTimeout('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email: email.trim(), password }),
           credentials: 'include',
         });
 
@@ -110,7 +114,7 @@ export const useAuth = () => {
       setError(null);
 
       try {
-        const response = await fetch('/api/auth/register', {
+        const response = await fetchWithTimeout('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newUserData),
@@ -142,8 +146,8 @@ export const useAuth = () => {
 
     try {
       const [userRes, dataRes] = await Promise.all([
-        fetch('/api/auth/me', { credentials: 'include' }),
-        fetch('/api/data', { credentials: 'include' }),
+        fetchWithTimeout('/api/auth/me', { credentials: 'include' }),
+        fetchWithTimeout('/api/data', { credentials: 'include' }),
       ]);
 
       if (userRes.status === 401 || userRes.status === 403) {

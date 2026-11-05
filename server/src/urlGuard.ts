@@ -24,7 +24,12 @@ export const isPrivateIp = (ip: string): boolean => {
         );
     }
     if (net.isIPv6(ip)) {
-        const v6 = ip.toLowerCase();
+        let v6 = ip.toLowerCase();
+        // Canonicalize expanded/shorthand IPv6 via WHATWG URL parser (e.g. 0:0:0:0:0:0:0:1 -> ::1)
+        try {
+            const canonical = new URL(`http://[${v6}]/`).hostname.replace(/^\[|\]$/g, '').toLowerCase();
+            if (canonical) v6 = canonical;
+        } catch { /* keep v6 */ }
         if (v6 === '::' || v6 === '::1') return true;
         const mapped = v6.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
         if (mapped) return isPrivateIp(mapped[1]);
@@ -33,6 +38,14 @@ export const isPrivateIp = (ip: string): boolean => {
             const hi = parseInt(mappedHex[1], 16), lo = parseInt(mappedHex[2], 16);
             return isPrivateIp(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
         }
+        // 6to4 (2002::/16) embeds an IPv4 address in the next 32 bits
+        const sixToFour = v6.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})(?::|$)/);
+        if (sixToFour) {
+            const hi = parseInt(sixToFour[1], 16), lo = parseInt(sixToFour[2], 16);
+            if (isPrivateIp(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`)) return true;
+        }
+        // NAT64 (64:ff9b::/96 and 64:ff9b:1::/48), discard (100::/64), documentation (2001:db8::/32)
+        if (/^64:ff9b(?::|$)/.test(v6) || /^100::/.test(v6) || /^2001:db8(?::|$)/.test(v6)) return true;
         return /^f[cd]/.test(v6) || /^fe[89ab]/.test(v6) || v6.startsWith('ff');   // ULA, link-local, multicast
     }
     return true; // not an IP at all: treat as unsafe

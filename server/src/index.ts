@@ -77,6 +77,9 @@ const startServer = async () => {
             if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
             const site = req.headers['sec-fetch-site'];
             const origin = req.headers.origin;
+            if (site === 'cross-site' && !origin) {
+                return res.status(403).json({ message: 'Cross-site request blocked.' });
+            }
             if ((site === 'cross-site' || site === 'same-site') && origin) {
                 let originHost = '';
                 try { originHost = new URL(origin).host; } catch { /* malformed Origin is treated as foreign */ }
@@ -109,9 +112,17 @@ const startServer = async () => {
         });
 
         app.get(['/health', '/api/health'], async (req, res) => {
+            const start = Date.now();
             try {
                 await db.query('SELECT 1');
-                res.status(200).json({ status: 'healthy', uptime: process.uptime(), timestamp: new Date().toISOString() });
+                const dbLatencyMs = Date.now() - start;
+                res.status(200).json({
+                    status: 'healthy',
+                    uptime: process.uptime(),
+                    dbLatencyMs,
+                    memoryRssMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+                    timestamp: new Date().toISOString(),
+                });
             } catch (err: any) {
                 console.error('Health check failed:', err?.message || err);
                 res.status(503).json({ status: 'unhealthy' });

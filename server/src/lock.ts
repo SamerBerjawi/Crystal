@@ -88,11 +88,22 @@ router.post('/lock', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 router.post('/unlock', authenticateToken, async (req: AuthRequest, res) => {
-    const { pin } = req.body;
+    const { pin } = req.body || {};
     try {
-        const result = await db.query(`SELECT pin_hash FROM users WHERE id = $1`, [req.user?.id]);
-        const pinHash = result.rows[0]?.pin_hash;
-        if (typeof pin === 'string' && pinHash && (await bcrypt.compare(pin, pinHash))) {
+        const result = await db.query(
+            `SELECT u.pin_hash, s.locked_at
+             FROM users u
+             LEFT JOIN user_sessions s ON s.user_id = u.id AND s.id = $2
+             WHERE u.id = $1`,
+            [req.user?.id, req.user?.sessionId]
+        );
+        const row = result.rows[0];
+        const pinHash = row?.pin_hash;
+        if (!pinHash || (row && row.locked_at === null)) {
+            await db.query(`UPDATE user_sessions SET locked_at = NULL, pin_failures = 0 WHERE id = $1`, [req.user?.sessionId]);
+            return res.json({ isLocked: false });
+        }
+        if (typeof pin === 'string' && PIN_PATTERN.test(pin) && (await bcrypt.compare(pin, pinHash))) {
             await db.query(`UPDATE user_sessions SET locked_at = NULL, pin_failures = 0 WHERE id = $1`, [req.user?.sessionId]);
             return res.json({ isLocked: false });
         }

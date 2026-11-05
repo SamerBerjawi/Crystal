@@ -1,11 +1,14 @@
+import { CURRENCY_CODES } from './currencies';
+
 /**
  * Privacy mode blurs elements carrying `.privacy-blur`. Most amounts are marked at their source, but there are
  * hundreds of formatCurrency() call sites (tables, chart labels, cards) and new ones appear all the time, so while
  * privacy mode is on this marks any element whose own text is a currency amount.
  */
-const CODES = 'EUR|USD|GBP|CHF|JPY|CNY|CAD|AUD|NZD|SEK|NOK|DKK|PLN|CZK|HUF|RON|BGN|TRY|INR|BRL|MXN|ZAR|AED|SAR|HKD|SGD|KRW|BTC|ETH';
+const CODES = [...new Set([...CURRENCY_CODES, 'BTC', 'ETH'])].join('|');
+const SYMBOLS = '€$£¥₹₩₺₪₫฿₱₴₦₡₲₵₸₼₾₿';
 const AMOUNT = new RegExp(
-  `(?:[€$£¥₹₩₺]\\s?[-+−]?\\s?\\d|\\d[\\d.,\\s]*\\s?(?:[€£¥₹₩₺]|(?:${CODES})\\b)|(?:${CODES})\\s?[-+−]?\\d|[-+−]\\s?[€$£¥₹₩₺]\\s?\\d)`
+  `(?:[${SYMBOLS}]\\s?[-+−]?\\s?\\d|[-+−]?\\s?\\d[\\d.,\\s]*\\s?(?:[${SYMBOLS}]|(?:${CODES})\\b)|(?:${CODES})\\s?[-+−]?\\s?\\d|[-+−]\\s?[${SYMBOLS}]\\s?\\d)`
 );
 
 export const looksLikeAmount = (text: string) => text.length <= 60 && AMOUNT.test(text);
@@ -14,7 +17,10 @@ const markNode = (node: Node) => {
   const text = node.textContent || '';
   if (text.length > 60 || !AMOUNT.test(text)) return;
   const el = node.parentElement;
-  if (el && !el.classList.contains('privacy-blur')) el.classList.add('privacy-blur');
+  if (el && !el.classList.contains('privacy-blur')) {
+    el.classList.add('privacy-blur');
+    el.setAttribute('data-privacy-auto', 'true');
+  }
 };
 
 const scan = (root: Node) => {
@@ -29,8 +35,10 @@ export const startPrivacyMask = (root: HTMLElement = document.body): (() => void
   scan(root);
   let pending: Node[] = [];
   let scheduled = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
   const flush = () => {
     scheduled = false;
+    timer = null;
     const batch = pending;
     pending = [];
     batch.forEach(scan);
@@ -40,8 +48,17 @@ export const startPrivacyMask = (root: HTMLElement = document.body): (() => void
       if (m.type === 'characterData') pending.push(m.target);
       else m.addedNodes.forEach(n => pending.push(n));
     }
-    if (!scheduled) { scheduled = true; setTimeout(flush, 50); }
+    if (!scheduled) { scheduled = true; timer = setTimeout(flush, 50); }
   });
   observer.observe(root, { childList: true, subtree: true, characterData: true });
-  return () => observer.disconnect();
+  return () => {
+    observer.disconnect();
+    if (timer) clearTimeout(timer);
+    if (typeof root.querySelectorAll === 'function') {
+      root.querySelectorAll('[data-privacy-auto="true"]').forEach(el => {
+        el.classList.remove('privacy-blur');
+        el.removeAttribute('data-privacy-auto');
+      });
+    }
+  };
 };

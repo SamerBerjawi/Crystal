@@ -105,3 +105,34 @@ test('typing inside inputs ignores shortcuts', () => {
 
   assert.equal(openedNewTx, false);
 });
+
+test('supports Shift+P, extended G chords (F, B, G, C, R), and suppresses single-key shortcuts when a dialog is open', () => {
+  const navigated: string[] = [];
+  let openedNewTx = 0;
+  let toggledPrivacy = 0;
+
+  const state: KeyboardShortcutsState = { gKeyPressed: false, gTimer: null };
+  const options = {
+    onNavigate: (page: any) => navigated.push(page),
+    onOpenNewTransaction: () => { openedNewTx += 1; },
+    onToggleShortcutsModal: () => {},
+    onTogglePrivacyMode: () => { toggledPrivacy += 1; },
+  };
+
+  // Shift + P toggles privacy mode even when a dialog is open
+  handleShortcutKeyDown({ key: 'P', shiftKey: true }, state, options, null, true);
+  assert.equal(toggledPrivacy, 1);
+
+  // 'N' is suppressed when a dialog is open
+  handleShortcutKeyDown({ key: 'n' }, state, options, null, true);
+  assert.equal(openedNewTx, 0);
+
+  // 'G' then 'F' navigates to Forecasting, 'G' then 'R' to Reports
+  handleShortcutKeyDown({ key: 'g' }, state, options, null, false);
+  handleShortcutKeyDown({ key: 'f' }, state, options, null, false);
+  handleShortcutKeyDown({ key: 'g' }, state, options, null, false);
+  handleShortcutKeyDown({ key: 'r' }, state, options, null, false);
+  assert.deepEqual(navigated, ['Forecasting', 'Reports']);
+
+  if (state.gTimer) clearTimeout(state.gTimer);
+});

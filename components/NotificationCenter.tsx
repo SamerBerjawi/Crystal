@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BillNotificationItem } from '../hooks/useBillNotifications';
 import { formatCurrency } from '../utils';
-import { Page, RecurringTransaction, BillPayment } from '../types';
+import { Page, RecurringTransaction, BillPayment, Task } from '../types';
 import { Button, IconButton } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { EmptyState } from './ui/States';
@@ -12,7 +12,7 @@ interface NotificationCenterProps {
   notificationCount: number;
   onDismiss: (id: string) => void;
   onClearAll: () => void;
-  onProcessItem?: (item: RecurringTransaction | BillPayment) => void;
+  onProcessItem?: (item: RecurringTransaction | BillPayment | Task) => void;
   setCurrentPage?: (page: Page) => void;
 }
 
@@ -70,11 +70,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 interface NotificationCardProps {
   item: BillNotificationItem;
   onDismiss: (id: string) => void;
-  onProcessItem?: (item: RecurringTransaction | BillPayment) => void;
+  onProcessItem?: (item: RecurringTransaction | BillPayment | Task) => void;
 }
 
 const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, onProcessItem }) => {
   const isUrgent = item.daysUntilDue <= 0;
+  const isTask = item.sourceType === 'task';
 
   return (
     <article className="rounded-[var(--radius-lg)] border border-line p-3">
@@ -86,9 +87,15 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
         <IconButton icon="cancel-01" label={`Dismiss ${item.description}`} onPress={() => onDismiss(item.id)} />
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-line pt-2">
-        <span className="type-figure-row privacy-blur text-ink">{formatCurrency(item.amount, item.currency)}</span>
+        {isTask ? (
+          <span className="type-caption text-muted">Task</span>
+        ) : (
+          <span className="type-figure-row privacy-blur text-ink">{formatCurrency(item.amount, item.currency)}</span>
+        )}
         {onProcessItem && (
-          <Button size="sm" variant={isUrgent ? 'primary' : 'soft'} onPress={() => onProcessItem(item.originalItem)}>Pay or record</Button>
+          <Button size="sm" variant={isUrgent ? 'primary' : 'soft'} onPress={() => onProcessItem(item.originalItem)}>
+            {isTask ? 'Mark done' : 'Pay or record'}
+          </Button>
         )}
       </div>
     </article>
