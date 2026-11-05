@@ -129,6 +129,45 @@ export const accountCoverage = (
 };
 
 export interface MonthlyTarget { key: string; label: string; income: number; savings: number; expense: number }
+export interface TargetGroup { key: string; label: string; items: MonthlyTarget[] }
+
+const monthName = (ym: string) => parseLocalDate(`${ym}-01`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+/** The months a goal asks for money in, and how much each: a dated goal's remainder, or a recurring goal's contribution. */
+const goalEntries = (g: FinancialGoal, today: Date, months: number): { ym: string; amount: number }[] => {
+  const remaining = round2(g.amount - (g.currentAmount ?? 0));
+  if (remaining <= 0) return [];
+  const limit = iso(new Date(today.getFullYear(), today.getMonth() + months, 0));
+  const entries: { ym: string; amount: number }[] = [];
+  if (g.monthlyContribution && g.monthlyContribution > 0) {
+    let left = remaining;
+    for (let i = 0; i < months && left > 0.005; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const ym = iso(d).slice(0, 7);
+      const monthEnd = iso(new Date(today.getFullYear(), today.getMonth() + i + 1, 0));
+      if (g.startDate && g.startDate > monthEnd) continue;
+      const end = g.type === 'one-time' ? g.date : g.endDate;
+      if (end && `${ym}-01` > end) break;
+      const monthlyAmt = round2((g.monthlyContribution * perYear(g.frequency)) / 12);
+      const amt = round2(Math.min(left, monthlyAmt));
+      entries.push({ ym, amount: amt });
+      left = round2(left - amt);
+    }
+  } else if (g.type === 'one-time' && g.date && g.date >= iso(today) && g.date <= limit) {
+    entries.push({ ym: g.date.slice(0, 7), amount: remaining });
+  }
+  return entries;
+};
+
+const targetGoals = (goals: FinancialGoal[], activeIds: string[]) => {
+  const active = new Set(activeIds);
+  return goals.filter(g => !g.isBucket && !g.disabled && !g.completed && active.has(g.id));
+};
+
+const addTo = (t: MonthlyTarget, category: GoalCategory, amount: number) => {
+  const field = category === 'income' ? 'income' : category === 'expense' ? 'expense' : 'savings';
+  t[field] = round2(t[field] + amount);
+};
 
 /**
  * What goals ask of each month for the next `months` months (F9): a dated goal's remainder in its month, a recurring
@@ -137,47 +176,49 @@ export interface MonthlyTarget { key: string; label: string; income: number; sav
 export const monthlyTargets = (
   goals: FinancialGoal[], activeIds: string[], accountName: (id?: string) => string, today: Date, convert: Converter, by: 'account' | 'month', months = 6,
 ): MonthlyTarget[] => {
-  const active = new Set(activeIds);
-  const limit = iso(new Date(today.getFullYear(), today.getMonth() + months, 0));
   const map = new Map<string, MonthlyTarget>();
-  const add = (key: string, label: string, category: GoalCategory, amount: number) => {
-    const t = map.get(key) ?? { key, label, income: 0, savings: 0, expense: 0 };
-    t[category === 'income' ? 'income' : category === 'expense' ? 'expense' : 'savings'] = round2(t[category === 'income' ? 'income' : category === 'expense' ? 'expense' : 'savings'] + amount);
-    map.set(key, t);
-  };
-  const monthLabel = (ym: string) => parseLocalDate(`${ym}-01`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-  for (const g of goals) {
-    if (g.isBucket || g.disabled || g.completed || !active.has(g.id)) continue;
-    const remaining = round2(g.amount - (g.currentAmount ?? 0));
-    if (remaining <= 0) continue;
+  for (const g of targetGoals(goals, activeIds)) {
     const category = goalCategoryOf(g);
-    const accountKey = g.paymentAccountId || 'none';
-    const accountLabel = accountName(g.paymentAccountId) || 'No account';
-    const entries: { ym: string; amount: number }[] = [];
-    if (g.monthlyContribution && g.monthlyContribution > 0) {
-      let left = remaining;
-      for (let i = 0; i < months && left > 0.005; i++) {
-        const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
-        const ym = iso(d).slice(0, 7);
-        const monthEnd = iso(new Date(today.getFullYear(), today.getMonth() + i + 1, 0));
-        if (g.startDate && g.startDate > monthEnd) continue;
-        const end = g.type === 'one-time' ? g.date : g.endDate;
-        if (end && `${ym}-01` > end) break;
-        const monthlyAmt = round2((g.monthlyContribution * perYear(g.frequency)) / 12);
-        const amt = round2(Math.min(left, monthlyAmt));
-        entries.push({ ym, amount: amt });
-        left = round2(left - amt);
-      }
-    } else if (g.type === 'one-time' && g.date && g.date >= iso(today) && g.date <= limit) {
-      entries.push({ ym: g.date.slice(0, 7), amount: remaining });
-    }
-    for (const e of entries) {
-      const amount = convert(e.amount, g.currency);
-      if (by === 'account') add(accountKey, accountLabel, category, amount);
-      else add(e.ym, monthLabel(e.ym), category, amount);
+    for (const e of goalEntries(g, today, months)) {
+      const [key, label] = by === 'account' ? [g.paymentAccountId || 'none', accountName(g.paymentAccountId) || 'No account'] : [e.ym, monthName(e.ym)];
+      const t = map.get(key) ?? { key, label, income: 0, savings: 0, expense: 0 };
+      addTo(t, category, convert(e.amount, g.currency));
+      map.set(key, t);
     }
   }
   return [...map.values()].sort((a, b) => (by === 'month' ? (a.key < b.key ? -1 : 1) : a.label.localeCompare(b.label)));
+};
+
+/**
+ * The same figures one level deeper: by account, each account's months; by month, each month's accounts. Every cell is
+ * one account in one month, so nothing is lost to a total.
+ */
+export const monthlyTargetGroups = (
+  goals: FinancialGoal[], activeIds: string[], accountName: (id?: string) => string, today: Date, convert: Converter, by: 'account' | 'month', months = 12,
+): TargetGroup[] => {
+  const cells = new Map<string, { account: string; accountLabel: string; ym: string; target: MonthlyTarget }>();
+  for (const g of targetGoals(goals, activeIds)) {
+    const category = goalCategoryOf(g);
+    const account = g.paymentAccountId || 'none';
+    const accountLabel = accountName(g.paymentAccountId) || 'No account';
+    for (const e of goalEntries(g, today, months)) {
+      const id = `${account}|${e.ym}`;
+      const cell = cells.get(id) ?? { account, accountLabel, ym: e.ym, target: { key: id, label: '', income: 0, savings: 0, expense: 0 } };
+      addTo(cell.target, category, convert(e.amount, g.currency));
+      cells.set(id, cell);
+    }
+  }
+  const groups = new Map<string, TargetGroup>();
+  for (const cell of cells.values()) {
+    const [groupKey, groupLabel, label] = by === 'account' ? [cell.account, cell.accountLabel, monthName(cell.ym)] : [cell.ym, monthName(cell.ym), cell.accountLabel];
+    const group = groups.get(groupKey) ?? { key: groupKey, label: groupLabel, items: [] };
+    group.items.push({ ...cell.target, key: `${groupKey}|${by === 'account' ? cell.ym : cell.account}`, label });
+    groups.set(groupKey, group);
+  }
+  const itemOrder = (x: MonthlyTarget, y: MonthlyTarget) => (by === 'account' ? (x.key < y.key ? -1 : 1) : x.label.localeCompare(y.label));
+  return [...groups.values()]
+    .map(group => ({ ...group, items: group.items.sort(itemOrder) }))
+    .sort((x, y) => (by === 'month' ? (x.key < y.key ? -1 : 1) : x.label.localeCompare(y.label)));
 };
 
 // ---------------------------------------------------------------------------------------------------------------
