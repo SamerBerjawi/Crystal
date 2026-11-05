@@ -283,8 +283,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       />
 
       {attentionItems.length > 0 && (
-        <section aria-label="Attention" className="surface-card rounded-[var(--radius-xl)] border border-[var(--amber-bg)] bg-[var(--amber-bg)]/30 p-4">
-          <p className="type-label text-[var(--amber)]">Needs attention</p>
+        <section aria-label="Attention" className="surface-card rounded-[var(--radius-xl)] border border-amber/40 bg-amber-soft p-4">
+          <p className="type-label text-attention-text">Needs attention</p>
           <ul className="mt-1.5 divide-y divide-line">
             {attentionItems.map(item => (
               <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">

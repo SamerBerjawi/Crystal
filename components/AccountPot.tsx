@@ -123,7 +123,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
             crosshair="gradient"
             springConfig={{ damping: 60 }}
             animationDuration={1500}
-            color={isPositiveTrend ? '#10b981' : '#f43f5e'}
+            color={isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'}
             {...hover.sparklineProps}
           />
         </div>

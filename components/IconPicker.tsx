@@ -29,7 +29,7 @@ const IconTile: React.FC<{ item: PhosphorIconItem; isCurrent: boolean; onPick: (
     title={`${item.label}, ${item.category}`}
     onClick={() => onPick(item.name)}
     className={cn(
-      'flex min-h-[5.5rem] flex-col items-center justify-start gap-1.5 rounded-[var(--radius-md)] border p-2 text-ink outline-none transition-colors duration-[var(--duration-fast)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] pointer-coarse:min-h-24',
+      'flex min-h-[5.5rem] flex-col items-center justify-start gap-1.5 rounded-[var(--radius-md)] border p-2 text-ink outline-hidden transition-colors duration-[var(--duration-fast)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] pointer-coarse:min-h-24',
       isCurrent ? 'border-primary bg-primary-soft' : 'border-line bg-surface hover:bg-inset'
     )}
   >

@@ -10,8 +10,8 @@ import { transitionWithDelay } from "./motion-utils";
 const DEFAULT_POSITIVE = "url(#candlestick-positive)";
 const DEFAULT_NEGATIVE = "url(#candlestick-negative)";
 
-const SOLID_POSITIVE = "var(--color-emerald-500)";
-const SOLID_NEGATIVE = "var(--color-red-500)";
+const SOLID_POSITIVE = "var(--money-in)";
+const SOLID_NEGATIVE = "var(--money-out)";
 const WICK_WIDTH = 1.5;
 
 export interface CandlestickProps {

@@ -60,7 +60,7 @@ const CustomTooltipContent: React.FC<{ markers: ChartMarker[] }> = ({ markers })
 
 const NetWorthChart: React.FC<NetWorthChartProps> = ({
   data,
-  lineColor = '#6366F1',
+  lineColor = 'var(--chart-1)',
   showForecast = true,
   showGoals = true,
   goals = [],
@@ -118,12 +118,12 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     const maxBound = currentActualValue + margin;
 
     if (finalProjectedValue >= minBound && finalProjectedValue <= maxBound) {
-      return '#10B981'; // Green (+/- 10% of today's value)
+      return 'var(--money-in)'; // within 10% of today's value
     }
     if (finalProjectedValue > maxBound) {
-      return '#3B82F6'; // Blue (higher than today's value)
+      return 'var(--chart-1)'; // higher than today's value
     }
-    return '#EF4444'; // Red (lower than today's value)
+    return 'var(--money-out)'; // lower than today's value
   }, [currentActualValue, finalProjectedValue]);
 
   const markers = useMemo<ChartMarker[]>(() => {
@@ -134,7 +134,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
       items.push({
         date: todayDate,
         title: 'Today',
-        color: '#6366F1',
+        color: 'var(--chart-1)',
       });
     }
 
@@ -151,7 +151,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             date: gDate,
             title: goal.name,
             description: `Target: ${formatCurrency(goal.amount, getMainCurrency())}`,
-            color: '#F59E0B',
+            color: 'var(--chart-4)',
           });
         }
       });
@@ -163,7 +163,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         items.push({
           date: parseLocalDate(ann.date),
           title: ann.label,
-          color: '#3B82F6',
+          color: 'var(--chart-2)',
         });
       });
     }
@@ -203,7 +203,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         {/* Combined Historic & Projection Line */}
         <Line
           dataKey="netWorth"
-          stroke="#10B981"
+          stroke="var(--money-in)"
           dashStroke={projectionColor}
           strokeWidth={3}
           dashFromIndex={isDashedProjection ? lastActualIndex : undefined}
@@ -213,7 +213,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
 
         <Line
           dataKey="trend"
-          stroke="#8B5CF6"
+          stroke="var(--chart-3)"
           strokeWidth={2}
           strokeDasharray="4,4"
         />
@@ -229,7 +229,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             const isProjected = Boolean(point.isProjected);
             const label = isProjected ? 'Projected Net Worth' : 'Actual Net Worth';
             const val = typeof point.netWorth === 'number' ? point.netWorth : 0;
-            const strokeColor = isProjected ? projectionColor : '#10B981';
+            const strokeColor = isProjected ? projectionColor : 'var(--money-in)';
             const rowsList = [
               {
                 color: strokeColor,
@@ -239,7 +239,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             ];
             if (typeof point.trend === 'number') {
               rowsList.push({
-                color: '#8B5CF6',
+                color: 'var(--chart-3)',
                 label: 'Trend Line',
                 value: formatCurrency(point.trend, getMainCurrency()),
               });

@@ -38,7 +38,7 @@ import { currencySign } from '../../utils';
 import { getLocaleForDateFormat } from '../../contexts/DomainProviders';
 
 export const controlStyles =
-  'w-full rounded-[var(--radius-md)] border border-line-strong bg-inset text-ink outline-none transition-colors duration-[var(--duration-fast)] placeholder:text-muted data-[invalid]:border-money-out data-[disabled]:opacity-50 data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus';
+  'w-full rounded-[var(--radius-md)] border border-line-strong bg-inset text-ink outline-hidden transition-colors duration-[var(--duration-fast)] placeholder:text-muted data-[invalid]:border-money-out data-[disabled]:opacity-50 data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
 
 const inputSize = 'h-11 px-3 text-[.9375rem] font-medium max-md:h-12 max-md:text-base';
 
@@ -120,7 +120,7 @@ export const Textarea: React.FC<AreaProps> = ({ label, help, error, autofill, cl
 );
 
 const dayCell =
-  'flex size-10 cursor-pointer items-center justify-center rounded-full text-sm font-semibold text-ink outline-none data-[outside-month]:invisible data-[hovered]:bg-inset data-[disabled]:opacity-40 data-[selected]:bg-pill data-[selected]:text-on-pill data-[focus-visible]:outline-2 data-[focus-visible]:outline-focus';
+  'flex size-10 cursor-pointer items-center justify-center rounded-full text-sm font-semibold text-ink outline-hidden data-[outside-month]:invisible data-[hovered]:bg-inset data-[disabled]:opacity-40 data-[selected]:bg-pill data-[selected]:text-on-pill data-[focus-visible]:outline-2 data-[focus-visible]:outline-focus';
 
 const CalendarHeader = () => (
   <header className="mb-2 flex items-center justify-between">
@@ -184,7 +184,7 @@ export const DateInput: React.FC<DateInputProps> = ({ label, help, error, autofi
             {segment => (
               <DateSegment
                 segment={segment}
-                className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill"
+                className="rounded-sm px-0.5 tabular-nums outline-hidden data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill"
               />
             )}
           </AriaDateInput>
@@ -192,7 +192,7 @@ export const DateInput: React.FC<DateInputProps> = ({ label, help, error, autofi
         </Group>
       </FieldShell>
       <AriaPopover placement="bottom start" offset={8} className={cn(popoverStyles, 'p-3')}>
-        <AriaDialog className="outline-none">
+        <AriaDialog className="outline-hidden">
           <Calendar>
             <CalendarHeader />
             <CalendarGrid>{date => <CalendarCell date={date} className={dayCell} />}</CalendarGrid>
@@ -238,17 +238,17 @@ export const DateRangeInput: React.FC<Omit<DateInputProps, 'value' | 'onChange'>
       <FieldShell label={label} help={help} error={error}>
         <Group className={cn(controlStyles, inputSize, 'flex items-center gap-1')}>
           <AriaDateInput slot="start" className="flex items-center gap-px">
-            {segment => <DateSegment segment={segment} className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill" />}
+            {segment => <DateSegment segment={segment} className="rounded-sm px-0.5 tabular-nums outline-hidden data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill" />}
           </AriaDateInput>
           <span aria-hidden="true" className="text-muted">to</span>
           <AriaDateInput slot="end" className="flex flex-1 items-center gap-px">
-            {segment => <DateSegment segment={segment} className="rounded-sm px-0.5 tabular-nums outline-none data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill" />}
+            {segment => <DateSegment segment={segment} className="rounded-sm px-0.5 tabular-nums outline-hidden data-[placeholder]:text-muted data-[focused]:bg-pill data-[focused]:text-on-pill" />}
           </AriaDateInput>
           <CalendarButton />
         </Group>
       </FieldShell>
       <AriaPopover placement="bottom start" offset={8} className={cn(popoverStyles, 'p-3')}>
-        <AriaDialog className="outline-none">
+        <AriaDialog className="outline-hidden">
           <RangeCalendar>
             <CalendarHeader />
             <CalendarGrid>{date => <CalendarCell date={date} className={cn(dayCell, 'data-[selection-start]:rounded-full')} />}</CalendarGrid>
