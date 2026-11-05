@@ -155,11 +155,18 @@ export const monthlyTargets = (
     const accountLabel = accountName(g.paymentAccountId) || 'No account';
     const entries: { ym: string; amount: number }[] = [];
     if (g.monthlyContribution && g.monthlyContribution > 0) {
-      for (let i = 0; i < months; i++) {
+      let left = remaining;
+      for (let i = 0; i < months && left > 0.005; i++) {
         const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
         const ym = iso(d).slice(0, 7);
-        if (g.type === 'one-time' && g.date && `${ym}-01` > g.date) break;
-        entries.push({ ym, amount: (g.monthlyContribution * perYear(g.frequency)) / 12 });
+        const monthEnd = iso(new Date(today.getFullYear(), today.getMonth() + i + 1, 0));
+        if (g.startDate && g.startDate > monthEnd) continue;
+        const end = g.type === 'one-time' ? g.date : g.endDate;
+        if (end && `${ym}-01` > end) break;
+        const monthlyAmt = round2((g.monthlyContribution * perYear(g.frequency)) / 12);
+        const amt = round2(Math.min(left, monthlyAmt));
+        entries.push({ ym, amount: amt });
+        left = round2(left - amt);
       }
     } else if (g.type === 'one-time' && g.date && g.date >= iso(today) && g.date <= limit) {
       entries.push({ ym: g.date.slice(0, 7), amount: remaining });
@@ -289,26 +296,28 @@ const worstStatus = (views: GoalProjectionView[]): GoalProjectionView['status'] 
   return 'on-track';
 };
 
-export const goalCardView = (goal: FinancialGoal, children: FinancialGoal[], today: Date): GoalCardView => {
+export const goalCardView = (goal: FinancialGoal, children: FinancialGoal[], today: Date, convert: Converter = a => a): GoalCardView => {
   if (!goal.isBucket) {
     const view = projectGoal(goal, today);
-    const target = goal.amount;
-    const saved = goal.currentAmount ?? 0;
-    return { ...view, target, saved, pct: target > 0 ? Math.min(100, (saved / target) * 100) : 0, date: goal.type === 'one-time' ? goal.date : goal.endDate, done: isGoalDone(goal) };
+    const target = round2(convert(goal.amount, goal.currency));
+    const saved = round2(convert(goal.currentAmount ?? 0, goal.currency));
+    const remaining = round2(convert(view.remaining, goal.currency));
+    const neededMonthly = view.neededMonthly !== undefined ? round2(convert(view.neededMonthly, goal.currency)) : undefined;
+    return { ...view, target, saved, remaining, neededMonthly, pct: target > 0 ? Math.min(100, (saved / target) * 100) : 0, date: goal.type === 'one-time' ? goal.date : goal.endDate, done: isGoalDone(goal) };
   }
-  const views = children.map(child => projectGoal(child, today));
-  const target = round2(children.reduce((sum, child) => safeAdd(sum, child.amount), 0));
-  const saved = round2(children.reduce((sum, child) => safeAdd(sum, child.currentAmount ?? 0), 0));
-  const status = goal.completed ? 'done' : worstStatus(views);
+  const views = children.map(child => ({ child, view: projectGoal(child, today) }));
+  const target = round2(children.reduce((sum, child) => safeAdd(sum, convert(child.amount, child.currency)), 0));
+  const saved = round2(children.reduce((sum, child) => safeAdd(sum, convert(child.currentAmount ?? 0, child.currency)), 0));
+  const status = goal.completed ? 'done' : worstStatus(views.map(v => v.view));
   return {
     target,
     saved,
     pct: target > 0 ? Math.min(100, (saved / target) * 100) : 0,
     remaining: Math.max(0, round2(target - saved)),
     status,
-    projectedDate: views.map(v => v.projectedDate).filter(Boolean).sort().pop(),
+    projectedDate: views.map(v => v.view.projectedDate).filter(Boolean).sort().pop(),
     date: children.map(child => child.date).filter(Boolean).sort().pop(),
-    neededMonthly: views.some(v => v.neededMonthly) ? round2(views.reduce((sum, v) => sum + (v.neededMonthly ?? 0), 0)) : undefined,
+    neededMonthly: views.some(v => v.view.neededMonthly) ? round2(views.reduce((sum, { child, view }) => sum + (view.neededMonthly ? convert(view.neededMonthly, child.currency) : 0), 0)) : undefined,
     done: status === 'done',
   };
 };
@@ -322,10 +331,11 @@ export type PlanLine =
   | { kind: 'short'; need: number; contribution: number; date: string; projectedDate?: string };
 
 /** The sentence under a goal: what a month gets you there, or what falls short. */
-export const planLine = (goal: FinancialGoal, view: GoalCardView, today: Date): PlanLine => {
+export const planLine = (goal: FinancialGoal, view: GoalCardView, today: Date, convert: Converter = a => a): PlanLine => {
   if (view.done) return { kind: 'done' };
   const date = view.date;
-  const contribution = goal.monthlyContribution && goal.monthlyContribution > 0 ? (goal.monthlyContribution * perYear(goal.frequency)) / 12 : 0;
+  const rawContribution = goal.monthlyContribution && goal.monthlyContribution > 0 ? (goal.monthlyContribution * perYear(goal.frequency)) / 12 : 0;
+  const contribution = rawContribution > 0 ? round2(convert(rawContribution, goal.currency)) : 0;
   if (date && date < iso(today) && goal.type === 'one-time') return { kind: 'late', date };
   if (!contribution) return { kind: 'no-plan', need: view.neededMonthly, date };
   if (!date) return { kind: 'ongoing', contribution, projectedDate: view.projectedDate };
@@ -335,10 +345,13 @@ export const planLine = (goal: FinancialGoal, view: GoalCardView, today: Date): 
 };
 
 /** What the unfinished goals ask for each month: their contribution, or the amount needed by their date. */
-export const monthlyNeed = (goals: FinancialGoal[], today: Date) => round2(goals.reduce((total, goal) => {
+export const monthlyNeed = (goals: FinancialGoal[], today: Date, convert: Converter = a => a) => round2(goals.reduce((total, goal) => {
   if (goal.isBucket || goal.disabled || isGoalDone(goal)) return total;
-  if (goal.monthlyContribution && goal.monthlyContribution > 0) return total + (goal.monthlyContribution * perYear(goal.frequency)) / 12;
-  return total + (projectGoal(goal, today).neededMonthly ?? 0);
+  if (goal.monthlyContribution && goal.monthlyContribution > 0) {
+    return total + convert((goal.monthlyContribution * perYear(goal.frequency)) / 12, goal.currency);
+  }
+  const needed = projectGoal(goal, today).neededMonthly ?? 0;
+  return total + convert(needed, goal.currency);
 }, 0));
 
 /** The goals to save when one is ticked: a bucket's items follow it, and a bucket follows its last item. */

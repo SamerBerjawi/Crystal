@@ -1,5 +1,5 @@
 import type { Currency, Membership, RecurrenceFrequency, RecurringTransaction, Transaction } from '../types';
-import { advanceRecurrenceDate, parseLocalDate, round2, safeAdd, toLocalISOString } from '../utils';
+import { advanceRecurrenceDate, convertCurrency, parseLocalDate, round2, safeAdd, toLocalISOString } from '../utils';
 import { addDays, iso, monthlyEquivalent, nextDates, type Converter } from './scheduleModel';
 
 /*
@@ -78,7 +78,7 @@ const calculateFrequency = (intervals: number[]): RecurrenceFrequency | null => 
 /** Finds repeating payments that aren't tracked or ignored yet (SUB-02). */
 export const detectSubscriptions = (transactions: Transaction[], recurring: RecurringTransaction[], ignored: string[], today: Date): DetectedSubscription[] => {
   const groups: Record<string, Transaction[]> = {};
-  const expenseTransactions = transactions.filter(t => t.type === 'expense' && !t.transferId);
+  const expenseTransactions = transactions.filter(t => t.type === 'expense' && !t.transferId && !t.isBalanceAdjustment && !t.isSplitParent && !t.isCombinedParent);
 
   // Group by normalized merchant/description
   expenseTransactions.forEach(tx => {
@@ -129,8 +129,13 @@ export const detectSubscriptions = (transactions: Transaction[], recurring: Recu
       const frequency = calculateFrequency(intervals);
       
       if (frequency) {
-          // Calculate amounts
-          const amounts = groupTxs.map(t => Math.abs(t.amount));
+          const lastTx = groupTxs[groupTxs.length - 1];
+          const targetCurrency = (lastTx.currency || 'EUR') as Currency;
+          // Calculate amounts normalized to the latest transaction's currency
+          const amounts = groupTxs.map(t => {
+            const raw = Math.abs(t.amount);
+            return t.currency && t.currency !== targetCurrency ? convertCurrency(raw, t.currency, targetCurrency) : raw;
+          });
           const totalAmount = amounts.reduce((sum, a) => sum + a, 0);
           const avgAmount = totalAmount / amounts.length;
           
@@ -147,7 +152,6 @@ export const detectSubscriptions = (transactions: Transaction[], recurring: Recu
 
           // Recency check: only detect actively ongoing subscriptions.
           // If the service hasn't billed in > 2.5 cycles, it was likely cancelled/abandoned.
-          const lastTx = groupTxs[groupTxs.length - 1];
           const lastTxDate = parseLocalDate(lastTx.date);
           const daysSinceLast = Math.round((today.getTime() - lastTxDate.getTime()) / (1000 * 60 * 60 * 24));
           
@@ -266,11 +270,53 @@ export const serviceTotals = (active: RecurringTransaction[], today: Date, conve
 export const savedByPausing = (paused: RecurringTransaction[], convert: Converter) =>
   round2(paused.reduce((sum, rt) => safeAdd(sum, convert(monthlyEquivalent(rt), rt.currency)), 0));
 
-/** Cards that run out within `days` days. */
+/** Cards that run out within `days` days (including today). */
 export const expiringCards = (cards: Membership[], today: Date, days = 30) => {
   const from = iso(today);
   const to = iso(addDays(today, days));
-  return cards.filter(card => !!card.expiryDate && card.expiryDate.slice(0, 10) > from && card.expiryDate.slice(0, 10) <= to);
+  return cards.filter(card => !!card.expiryDate && card.expiryDate.slice(0, 10) >= from && card.expiryDate.slice(0, 10) <= to);
+};
+
+export interface SubscriptionPriceChange {
+  key: string;
+  service: RecurringTransaction;
+  previousAmount: number;
+  newAmount: number;
+  date: string;
+}
+
+/** Detects active recurring services whose latest matching transaction differs in price (converted to the service's currency). */
+export const priceChanges = (active: RecurringTransaction[], transactions: Transaction[], dismissedKeys: string[] = []): SubscriptionPriceChange[] => {
+  const changes: SubscriptionPriceChange[] = [];
+  for (const rt of active) {
+    const rtName = normalizeString(rt.merchant || rt.description);
+    if (rtName.length < 3) continue;
+    const matching = transactions
+      .filter(tx => tx.type === 'expense' && !tx.transferId && !tx.isBalanceAdjustment && !tx.isSplitParent && !tx.isCombinedParent)
+      .filter(tx => {
+        if (tx.recurringSourceId === rt.id) return true;
+        const txName = normalizeString(tx.merchant || tx.description);
+        return txName.length >= 3 && (txName === rtName || txName.includes(rtName) || rtName.includes(txName));
+      })
+      .sort((a, b) => b.date.localeCompare(a.date));
+    const latest = matching[0];
+    if (!latest) continue;
+    const rtCurrency = (rt.currency || 'EUR') as Currency;
+    const latestInRtCurrency = round2(
+      latest.currency && latest.currency !== rtCurrency
+        ? convertCurrency(Math.abs(latest.amount), latest.currency, rtCurrency)
+        : Math.abs(latest.amount)
+    );
+    const expected = round2(Math.abs(rt.amount));
+    const diff = Math.abs(latestInRtCurrency - expected);
+    if (expected > 0 && diff >= 0.5 && diff / expected >= 0.03 && diff / expected <= 1.5) {
+      const key = `${rt.id}:${latest.id}:${latestInRtCurrency}`;
+      if (!dismissedKeys.includes(key)) {
+        changes.push({ key, service: rt, previousAmount: expected, newAmount: latestInRtCurrency, date: latest.date });
+      }
+    }
+  }
+  return changes;
 };
 
 /**

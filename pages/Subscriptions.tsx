@@ -19,16 +19,24 @@ import { useCategoryContext, useScheduleContext } from '../contexts/FinancialDat
 import { useIsMobile } from '../hooks/useIsMobile';
 import { nextDates } from '../utils/scheduleModel';
 import {
-  cancelService, detectSubscriptions, expiringCards, pauseService, renewals, resumeService, savedByPausing, seriesFromDetected, serviceStatus, serviceTotals, services,
+  cancelService, detectSubscriptions, expiringCards, pauseService, priceChanges, renewals, resumeService, savedByPausing, seriesFromDetected, serviceStatus, serviceTotals, services,
   type DetectedSubscription,
 } from '../utils/subscriptionsModel';
 
 type Tab = 'active' | 'stopped' | 'wallet';
+type Scope = 'all' | 'services';
 type SeriesDraft = Omit<RecurringTransaction, 'id'> & { id?: string };
 
 const convert = (amount: number, currency: Parameters<typeof convertToMain>[1]) => convertToMain(amount, currency);
 const FREQUENCY_LABEL: Record<string, string> = { daily: 'Daily', weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', yearly: 'Yearly' };
 const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const NON_SERVICE_CATEGORIES = new Set(['housing', 'rent', 'mortgage', 'loan', 'loans', 'taxes', 'tax', 'alimony']);
+const isDigitalOrService = (item: RecurringTransaction) => {
+  const cat = (item.category || '').trim().toLowerCase();
+  if (!cat) return true;
+  if (cat.includes('subscription') || cat.includes('streaming') || cat.includes('software') || cat.includes('membership')) return true;
+  return !NON_SERVICE_CATEGORIES.has(cat);
+};
 
 /** Services and cards in one place (D-028). Pausing changes what Crystal counts, and cancels nothing with the provider (D-093). */
 const Subscriptions: React.FC = () => {
@@ -40,6 +48,7 @@ const Subscriptions: React.FC = () => {
 
   const today = useMemo(() => new Date(), []);
   const [tab, setTab] = useState<Tab>('active');
+  const [scope, setScope] = useState<Scope>('all');
   const { preferences, setPreferences } = usePreferencesContext();
   const ignored = useMemo(() => preferences.ignoredSubscriptions ?? [], [preferences.ignoredSubscriptions]);
   const [editing, setEditing] = useState<SeriesDraft | null>(null);
@@ -51,7 +60,10 @@ const Subscriptions: React.FC = () => {
 
   const detected = useMemo(() => detectSubscriptions(transactions, recurringTransactions, ignored, today), [transactions, recurringTransactions, ignored, today]);
 
-  const allServices = useMemo(() => services(recurringTransactions), [recurringTransactions]);
+  const allServices = useMemo(() => {
+    const base = services(recurringTransactions);
+    return scope === 'services' ? base.filter(isDigitalOrService) : base;
+  }, [recurringTransactions, scope]);
   const active = useMemo(() => allServices.filter(item => serviceStatus(item, today) === 'active'), [allServices, today]);
   const paused = useMemo(() => allServices.filter(item => serviceStatus(item, today) === 'paused'), [allServices, today]);
   const cancelled = useMemo(() => allServices.filter(item => serviceStatus(item, today) === 'cancelled'), [allServices, today]);
@@ -61,6 +73,7 @@ const Subscriptions: React.FC = () => {
   const coming = useMemo(() => renewals(active, today, convert), [active, today]);
   const saved = useMemo(() => savedByPausing(paused, convert), [paused]);
   const expiring = useMemo(() => expiringCards(memberships, today), [memberships, today]);
+  const changes = useMemo(() => priceChanges(active, transactions, ignored), [active, transactions, ignored]);
 
   const cardGroups = useMemo(() => {
     const groups = new Map<string, Membership[]>();
@@ -114,10 +127,68 @@ const Subscriptions: React.FC = () => {
           : <Button icon="add-01" onPress={() => openForm(null)}>Add a service</Button>}
       />
 
-      <SegmentedControl items={tabs} activeId={tab} onChange={id => setTab(id as Tab)} scrollable />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SegmentedControl items={tabs} activeId={tab} onChange={id => setTab(id as Tab)} scrollable />
+        {tab !== 'wallet' && (
+          <SegmentedControl
+            items={[
+              { id: 'all', label: 'All recurring' },
+              { id: 'services', label: 'Services only' },
+            ]}
+            activeId={scope}
+            onChange={id => setScope(id as Scope)}
+          />
+        )}
+      </div>
 
       {tab === 'active' && (
         <>
+          {changes.length > 0 && (
+            <section aria-label="Price changes" className="surface-card rounded-[var(--radius-xl)] p-5">
+              <h2 className="type-card-title text-ink">Price changes spotted</h2>
+              <p className="type-caption text-muted">The latest payment differed from the amount on file.</p>
+              <ul className="mt-2 divide-y divide-line">
+                {changes.map(change => {
+                  const name = change.service.merchant || change.service.description;
+                  const increased = change.newAmount > change.previousAmount;
+                  return (
+                    <li key={change.key} className="flex flex-wrap items-center gap-3 py-2">
+                      <BrandMark name={name} />
+                      <div className="min-w-0 flex-1">
+                        <p className="flex min-w-0 items-center gap-2">
+                          <span className="type-body-strong truncate text-ink">{name}</span>
+                          <Badge tone={increased ? 'attention' : 'positive'}>{increased ? 'Increased' : 'Decreased'}</Badge>
+                        </p>
+                        <p className="type-caption truncate text-muted">
+                          Was <Amount value={change.previousAmount} currency={change.service.currency} /> · paid <Amount value={change.newAmount} currency={change.service.currency} /> on {shortDay(change.date)}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => setPreferences(prev => ({ ...prev, ignoredSubscriptions: [...(prev.ignoredSubscriptions ?? []), change.key] }))}
+                        >
+                          Dismiss
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onPress={() => {
+                            saveRecurringTransaction({ ...change.service, amount: change.newAmount });
+                            setPreferences(prev => ({ ...prev, ignoredSubscriptions: [...(prev.ignoredSubscriptions ?? []), change.key] }));
+                            toast.success(`Updated ${name} to ${change.newAmount}`);
+                          }}
+                        >
+                          Update amount
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
           {detected.length > 0 && (
             <section aria-label="Found in your transactions" className="surface-card rounded-[var(--radius-xl)] p-5">
               <h2 className="type-card-title text-ink">Found in your transactions</h2>

@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect } from 'react';
-import { RecurringTransaction, BillPayment, Currency } from '../types';
-import { parseLocalDate, toLocalISOString, formatCurrency } from '../utils';
+import { RecurringTransaction, BillPayment, Currency, Task } from '../types';
+import { parseLocalDate, toLocalISOString } from '../utils';
 
 export interface BillNotificationItem {
   id: string;
-  sourceType: 'recurring' | 'bill';
+  sourceType: 'recurring' | 'bill' | 'task';
   description: string;
   amount: number;
   currency: Currency;
@@ -13,12 +13,13 @@ export interface BillNotificationItem {
   daysUntilDue: number; // <= 3
   statusText: string;
   urgency: 'overdue' | 'today' | 'soon';
-  originalItem: RecurringTransaction | BillPayment;
+  originalItem: RecurringTransaction | BillPayment | Task;
 }
 
 export interface UseBillNotificationsProps {
   recurringTransactions: RecurringTransaction[];
   billsAndPayments: BillPayment[];
+  tasks?: Task[];
   dismissedIds: string[];
   onDismiss?: (ids: string[]) => void;
 }
@@ -26,6 +27,7 @@ export interface UseBillNotificationsProps {
 export function useBillNotifications({
   recurringTransactions = [],
   billsAndPayments = [],
+  tasks = [],
   dismissedIds,
   onDismiss,
 }: UseBillNotificationsProps) {
@@ -114,11 +116,55 @@ export function useBillNotifications({
       }
     });
 
+    // Process Tasks (reminderDate or dueDate)
+    tasks.forEach((task) => {
+      if (task.status === 'Done') return;
+      const targetStr = task.reminderDate || task.dueDate;
+      if (!targetStr) return;
+
+      const targetDate = parseLocalDate(targetStr);
+      const diffTime = targetDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const isReminder = Boolean(task.reminderDate);
+
+      if ((isReminder && diffDays <= 0 && diffDays >= -7) || (!isReminder && diffDays <= 3 && diffDays >= -7)) {
+        let urgency: 'overdue' | 'today' | 'soon' = 'soon';
+        let statusText = isReminder ? 'Task reminder' : `Task due in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+
+        if (diffDays < 0) {
+          urgency = 'overdue';
+          statusText = isReminder
+            ? `Reminder from ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''} ago`
+            : `Task overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''}`;
+        } else if (diffDays === 0) {
+          urgency = 'today';
+          statusText = isReminder ? 'Task reminder today!' : 'Task due today!';
+        } else if (diffDays === 1) {
+          urgency = 'soon';
+          statusText = 'Task due tomorrow!';
+        }
+
+        notifications.push({
+          id: `task-${task.id}-${targetStr}`,
+          sourceType: 'task',
+          description: task.title,
+          amount: 0,
+          currency: 'EUR',
+          dueDateStr: targetStr,
+          dueDate: targetDate,
+          daysUntilDue: diffDays,
+          statusText,
+          urgency,
+          originalItem: task,
+        });
+      }
+    });
+
     // Sort by urgency and date (overdue first, then today, then upcoming)
     return notifications
       .filter((item) => !dismissedIds.includes(item.id))
       .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
-  }, [recurringTransactions, billsAndPayments, dismissedIds]);
+  }, [recurringTransactions, billsAndPayments, tasks, dismissedIds]);
 
   const dismissNotification = (id: string) => {
     onDismiss?.([id]);

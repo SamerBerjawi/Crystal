@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { FinancialGoal } from '../types';
-import { parseLocalDate, getMainCurrency } from '../utils';
+import { convertToMain, parseLocalDate, getMainCurrency } from '../utils';
 import { goalCardView, planLine, type GoalCardView, type PlanLine } from '../utils/goalsModel';
 import { cn } from '../lib/utils';
 import { Button, IconButton } from './ui/Actions';
@@ -48,6 +48,7 @@ interface GoalCardProps {
   onToggleIncluded: (goal: FinancialGoal) => void;
   onToggleComplete: (goal: FinancialGoal) => void;
   onEdit: (goal: FinancialGoal) => void;
+  onContribute?: (goal: FinancialGoal) => void;
   onDuplicate: (goal: FinancialGoal) => void;
   onDelete: (goal: FinancialGoal) => void;
   onAddItem: (bucketId: string) => void;
@@ -56,6 +57,7 @@ interface GoalCardProps {
 }
 
 const goalMenu = (goal: FinancialGoal, view: GoalCardView, props: GoalCardProps): MenuAction[] => [
+  ...(!goal.isBucket && !view.done && props.onContribute ? [{ id: 'contribute', label: 'Record contribution', icon: 'add-01', onAction: () => props.onContribute!(goal) }] : []),
   { id: 'complete', label: view.done ? 'Mark as not reached' : 'Mark as reached', icon: 'checkmark-circle-02', onAction: () => props.onToggleComplete(goal) },
   ...(goal.isBucket ? [{ id: 'add', label: 'Add an item', icon: 'add-01', onAction: () => props.onAddItem(goal.id) }] : []),
   { id: 'duplicate', label: 'Duplicate', icon: 'copy-01', onAction: () => props.onDuplicate(goal) },
@@ -63,7 +65,7 @@ const goalMenu = (goal: FinancialGoal, view: GoalCardView, props: GoalCardProps)
 ];
 
 const ItemRow: React.FC<{ item: FinancialGoal; today: Date; card: GoalCardProps }> = ({ item, today, card }) => {
-  const view = goalCardView(item, [], today);
+  const view = goalCardView(item, [], today, convertToMain);
   const status = GOAL_STATUS[view.status];
   return (
     <li className="flex items-center gap-2 py-2">
@@ -84,9 +86,9 @@ const ItemRow: React.FC<{ item: FinancialGoal; today: Date; card: GoalCardProps 
 const GoalCard: React.FC<GoalCardProps> = props => {
   const { goal, items, isIncluded, today, onToggleIncluded, onEdit, reorder } = props;
   const [isOpen, setOpen] = useState(false);
-  const view = goalCardView(goal, items, today);
+  const view = goalCardView(goal, items, today, convertToMain);
   const status = GOAL_STATUS[view.status];
-  const line = planLine(goal, view, today);
+  const line = planLine(goal, view, today, convertToMain);
   const months = monthsLeft(view.date, today);
   const ringTone = view.status === 'off-track' ? 'loss' : view.status === 'at-risk' ? 'amber' : 'pine';
 
@@ -119,7 +121,7 @@ const GoalCard: React.FC<GoalCardProps> = props => {
         <div className="border-t border-line pt-1">
           <button type="button" aria-expanded={isOpen} onClick={() => setOpen(open => !open)} className="flex min-h-11 w-full cursor-pointer items-center justify-between text-left">
             <span className="type-label text-ink">{isOpen ? 'Hide items' : 'Show items'}</span>
-            <Icon name="expand_more" size={20} className={cn('text-muted transition-transform duration-[var(--duration-base)]', isOpen && 'rotate-180')} />
+            <Icon name="arrow-down-01" size={20} className={cn('text-muted transition-transform duration-[var(--duration-base)]', isOpen && 'rotate-180')} />
           </button>
           {isOpen && (
             <>
@@ -133,6 +135,9 @@ const GoalCard: React.FC<GoalCardProps> = props => {
       <footer className="mt-auto flex items-center justify-between gap-2">
         <Switch isSelected={isIncluded} onChange={() => onToggleIncluded(goal)} className="min-w-0 flex-1">In forecast</Switch>
         <div className="flex shrink-0 items-center gap-1">
+          {!goal.isBucket && !view.done && props.onContribute && (
+            <Button variant="ghost" size="sm" onPress={() => props.onContribute!(goal)}>+ Save</Button>
+          )}
           <Button variant="secondary" size="sm" onPress={() => onEdit(goal)}>Edit</Button>
           <Menu title={goal.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${goal.name}`} tooltipPlacement="left" />} items={goalMenu(goal, view, props)} />
         </div>

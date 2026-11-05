@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Budget, Category } from '../types';
 import { formatCurrency, getMainCurrency } from '../utils';
+import { parseAmount } from '../utils/budgetModel';
 import { Button } from './ui/Actions';
 import { AmountInput } from './ui/Fields';
 import { Dialog } from './ui/Overlays';
@@ -16,12 +17,13 @@ interface BudgetModalProps {
   categoryNameToCreate?: string;
   existingBudgets: Budget[];
   expenseCategories: Category[];
+  historyByCategory?: Map<string, { label: string; spent: number }[]>;
 }
 
 const WEEKS_IN_MONTH = 4.33;
 const DAYS_IN_MONTH = 30;
 
-const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit, onDelete, categoryNameToCreate, existingBudgets, expenseCategories }) => {
+const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit, onDelete, categoryNameToCreate, existingBudgets, expenseCategories, historyByCategory }) => {
   const isEditing = !!budgetToEdit;
   const startCategory = budgetToEdit?.categoryName ?? categoryNameToCreate ?? '';
   const startAmount = budgetToEdit ? String(budgetToEdit.amount) : '';
@@ -32,7 +34,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
     .filter(category => category.name === startCategory || !existingBudgets.some(budget => budget.categoryName === category.name))
     .map(category => ({ id: category.name, label: category.name, icon: category.icon })), [expenseCategories, existingBudgets, startCategory]);
 
-  const cap = parseFloat(amount);
+  const cap = parseAmount(amount);
   const isValid = !isNaN(cap) && cap > 0;
 
   const handleSave = () => {
@@ -44,7 +46,15 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
       toast.error('Enter an amount');
       return;
     }
-    onSave({ id: budgetToEdit?.id, categoryName, amount: cap, period: 'monthly', currency: getMainCurrency() });
+    const matchedCategory = expenseCategories.find(c => c.name === categoryName);
+    onSave({
+      id: budgetToEdit?.id,
+      categoryId: matchedCategory?.id ?? budgetToEdit?.categoryId,
+      categoryName,
+      amount: cap,
+      period: 'monthly',
+      currency: getMainCurrency(),
+    });
     onClose();
   };
 
@@ -73,6 +83,19 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
           onChange={setAmount}
           help={isValid ? `About ${formatCurrency(cap / DAYS_IN_MONTH, getMainCurrency())} a day, or ${formatCurrency(cap / WEEKS_IN_MONTH, getMainCurrency())} a week.` : undefined}
         />
+        {categoryName && historyByCategory?.get(categoryName) && (
+          <div className="rounded-[var(--radius-md)] border border-line bg-inset p-3">
+            <p className="type-caption font-medium text-muted">Past 3 months in {categoryName}</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {historyByCategory.get(categoryName)!.map(entry => (
+                <div key={entry.label} className="rounded-[var(--radius-sm)] bg-surface px-2.5 py-1.5">
+                  <span className="type-caption block text-muted">{entry.label}</span>
+                  <span className="type-figure-row text-ink">{formatCurrency(entry.spent, getMainCurrency())}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
     </Dialog>
   );

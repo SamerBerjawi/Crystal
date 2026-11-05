@@ -3,10 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import type { Account, Currency, HoldingSummary, InvestmentSubType, InvestmentTransaction, PaymentTerm, Transaction, Warrant } from '../types';
 import { CURRENCY_OPTIONS } from '../constants';
-import { formatCurrency, toLocalISOString, getMainCurrency } from '../utils';
+import { convertCurrency, formatCurrency, toLocalISOString, getMainCurrency } from '../utils';
+import { parseAmountInput } from '../utils/scheduleModel';
 import { usePreferencesContext } from '../contexts/DomainProviders';
 import { useDebounce } from '../hooks/useDebounce';
-import { fetchSymbolMetadata } from '../src/services/twelveDataService';
+import { fetchSymbolMetadata, searchSymbols, type SymbolMetadata } from '../src/services/twelveDataService';
 import { Button, IconButton } from './ui/Actions';
 import { AmountInput, DateInput, Switch, TextInput } from './ui/Fields';
 import { ConfirmDialog, SidePanel } from './ui/Overlays';
@@ -95,6 +96,8 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
     return investmentAccounts.filter(account => account.symbol?.toLowerCase().includes(text) || account.name.toLowerCase().includes(text)).slice(0, 5);
   }, [draft.symbol, investmentAccounts, existingAccount]);
 
+  const [remoteSuggestions, setRemoteSuggestions] = useState<SymbolMetadata[]>([]);
+
   const fillFromTicker = useCallback(async (symbol: string) => {
     if (!symbol || !twelveDataApiKey) return;
     const metadata = await fetchSymbolMetadata(symbol, twelveDataApiKey);
@@ -110,8 +113,13 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
   }, [twelveDataApiKey]);
 
   useEffect(() => {
-    if (debouncedSymbol && isNewSymbol) void fillFromTicker(debouncedSymbol);
-  }, [debouncedSymbol, isNewSymbol, fillFromTicker]);
+    if (debouncedSymbol && isNewSymbol) {
+      void fillFromTicker(debouncedSymbol);
+      void searchSymbols(debouncedSymbol, twelveDataApiKey).then(setRemoteSuggestions);
+    } else {
+      setRemoteSuggestions([]);
+    }
+  }, [debouncedSymbol, isNewSymbol, fillFromTicker, twelveDataApiKey]);
 
   useEffect(() => {
     if (isEditingTrade || !existingAccount) return;
@@ -119,9 +127,10 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
     update({ name: existingAccount.name, subType: (existingAccount.subType as InvestmentSubType) || 'Stock', currency: saved?.currency ?? 'EUR', exchange: saved?.exchange ?? '' });
   }, [existingAccount?.id]);
 
-  const total = (parseFloat(draft.quantity) || 0) * (parseFloat(draft.price) || 0);
-  const grantTotal = (parseFloat(draft.grantQuantity) || 0) * (parseFloat(draft.grantPrice) || 0);
-  const taxAmount = draft.taxType === 'percentage' ? (grantTotal * (parseFloat(draft.taxValue) || 0)) / 100 : parseFloat(draft.taxValue) || 0;
+  const num = (v: string) => { const n = parseAmountInput(v); return Number.isFinite(n) ? n : 0; };
+  const total = num(draft.quantity) * num(draft.price);
+  const grantTotal = num(draft.grantQuantity) * num(draft.grantPrice);
+  const taxAmount = draft.taxType === 'percentage' ? (grantTotal * num(draft.taxValue)) / 100 : num(draft.taxValue);
   const taxLeft = taxAmount - taxPayments.reduce((sum, payment) => sum + payment.amount, 0);
 
   const save = (data: unknown, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>, isGrant = false) => {
@@ -136,8 +145,8 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
   };
 
   const saveTrade = () => {
-    const quantity = parseFloat(draft.quantity);
-    const price = parseFloat(draft.price);
+    const quantity = num(draft.quantity);
+    const price = num(draft.price);
     const name = draft.name.trim() || upperSymbol;
     const saved = configs[upperSymbol];
     // Only a new holding takes the trade's currency: changing an existing one would misread its whole price log.
@@ -147,10 +156,11 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
     }
     const cashAccount = cashAccounts.find(account => account.id === draft.cashAccountId);
     const value = quantity * price;
+    const cashAmount = cashAccount ? convertCurrency(value, draft.currency, cashAccount.currency, preferences.conversionRates) : value;
     const cashTx: Omit<Transaction, 'id'> | undefined = draft.createCash && !isEditingTrade && cashAccount ? {
       date: draft.date,
-      amount: draft.side === 'buy' ? -value : value,
-      currency: draft.currency,
+      amount: draft.side === 'buy' ? -cashAmount : cashAmount,
+      currency: cashAccount.currency,
       description: `${draft.side === 'buy' ? 'Buy' : 'Sell'} ${quantity} ${upperSymbol}`,
       category: 'Investments',
       accountId: cashAccount.id,
@@ -166,11 +176,11 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
         toast.error('Add a ticker');
         return;
       }
-      if (!(parseFloat(draft.quantity) > 0) || !(parseFloat(draft.price) > 0)) {
+      if (!(num(draft.quantity) > 0) || !(num(draft.price) > 0)) {
         toast.error('Enter a quantity and a price');
         return;
       }
-      if (draft.side === 'sell' && holding && parseFloat(draft.quantity) > held) {
+      if (draft.side === 'sell' && holding && num(draft.quantity) > held) {
         setCheckingSale(true);
         return;
       }
@@ -182,17 +192,17 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
       toast.error('Add a ticker or ISIN');
       return;
     }
-    if (!(parseFloat(draft.grantQuantity) > 0) || !(parseFloat(draft.grantPrice) > 0)) {
+    if (!(num(draft.grantQuantity) > 0) || !(num(draft.grantPrice) > 0)) {
       toast.error('Enter a quantity and a grant price');
       return;
     }
     if (taxPayments.length > 0 && Math.abs(taxLeft) >= 0.01) {
-      toast.error(`Tax instalments are ${formatCurrency(Math.abs(taxLeft), draft.currency)} ${taxLeft > 0 ? 'short' : 'over'}`);
+      toast.error(`Tax instalments are ${formatCurrency(Math.abs(taxLeft), getMainCurrency())} ${taxLeft > 0 ? 'short' : 'over'}`);
       return;
     }
     save({
-      id: warrantToEdit?.id, isin, name: draft.grantName.trim() || isin, grantDate: draft.grantDate, quantity: parseFloat(draft.grantQuantity), grantPrice: parseFloat(draft.grantPrice),
-      taxType: draft.taxType, taxValue: parseFloat(draft.taxValue) || 0, taxAmount, taxPayments,
+      id: warrantToEdit?.id, isin, name: draft.grantName.trim() || isin, grantDate: draft.grantDate, quantity: num(draft.grantQuantity), grantPrice: num(draft.grantPrice),
+      taxType: draft.taxType, taxValue: num(draft.taxValue), taxAmount, taxPayments,
     }, undefined, undefined, true);
   };
 
@@ -211,7 +221,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
         footer={close => (
           <div className="flex items-center justify-between gap-3">
             <span className="type-caption min-w-0 text-muted">
-              {draft.mode === 'trade' ? (total > 0 ? `Total ${formatCurrency(total, draft.currency)}` : '') : grantTotal > 0 ? `Total ${formatCurrency(grantTotal, draft.currency)}` : ''}
+              {draft.mode === 'trade' ? (total > 0 ? `Total ${formatCurrency(total, draft.currency)}` : '') : grantTotal > 0 ? `Total ${formatCurrency(grantTotal, getMainCurrency())}` : ''}
             </span>
             <div className="flex shrink-0 gap-2">
               <Button variant="ghost" onPress={close}>Cancel</Button>
@@ -228,9 +238,31 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
               <SmoothTab fullWidth className="w-full" items={SIDES} value={draft.side} onChange={side => update({ side: side as 'buy' | 'sell' })} label="Order side" />
               <div>
                 <TextInput label="Ticker" value={draft.symbol} onChange={symbol => update({ symbol })} isDisabled={isEditingTrade} autoFocus={!startSymbol} />
-                {suggestions.length > 0 && (
+                {(suggestions.length > 0 || remoteSuggestions.length > 0) && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {suggestions.map(account => <Button key={account.id} variant="secondary" size="sm" onPress={() => update({ symbol: account.symbol ?? '' })}>{account.symbol}</Button>)}
+                    {remoteSuggestions.map(item => {
+                      const isKnown = CURRENCIES.some(option => option.id === item.currency);
+                      return (
+                        <Button
+                          key={`${item.symbol}:${item.exchange}`}
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => {
+                            update({
+                              symbol: item.symbol,
+                              name: item.name,
+                              subType: subTypeFrom(item.type),
+                              exchange: item.exchange,
+                              ...(isKnown ? { currency: item.currency as Currency } : {}),
+                            });
+                            setRemoteSuggestions([]);
+                          }}
+                        >
+                          {item.symbol}{item.exchange ? ` (${item.exchange})` : ''} · {item.name}
+                        </Button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -265,7 +297,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
                 <p className="type-label mb-1.5 text-ink">Tax</p>
                 <SmoothTab fullWidth className="w-full" items={TAX_TYPES} value={draft.taxType} onChange={taxType => update({ taxType: taxType as 'amount' | 'percentage' })} label="Tax calculation type" />
               </div>
-              <TextInput label={draft.taxType === 'percentage' ? 'Tax rate (%)' : 'Tax amount'} inputMode="decimal" value={draft.taxValue} onChange={taxValue => update({ taxValue })} help={`Tax comes to ${formatCurrency(taxAmount, draft.currency)}.`} />
+              <TextInput label={draft.taxType === 'percentage' ? 'Tax rate (%)' : 'Tax amount'} inputMode="decimal" value={draft.taxValue} onChange={taxValue => update({ taxValue })} help={`Tax comes to ${formatCurrency(taxAmount, getMainCurrency())}.`} />
               <section aria-label="Tax instalments" className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-4">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="type-label text-ink">Instalments</h3>
@@ -278,13 +310,13 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
                       <IconButton icon="delete-02" label={`Remove ${payment.label}`} onPress={() => setTaxPayments(items => items.filter(item => item.id !== payment.id))} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <AmountInput label="Amount" currency={getMainCurrency()} value={String(payment.amount)} onChange={value => updatePayment(payment.id, { amount: parseFloat(value) || 0 })} />
+                      <AmountInput label="Amount" currency={getMainCurrency()} value={String(payment.amount)} onChange={value => updatePayment(payment.id, { amount: num(value) })} />
                       <DateInput label="Due" value={payment.dueDate} onChange={dueDate => updatePayment(payment.id, { dueDate })} />
                     </div>
                     <Switch isSelected={payment.status === 'paid'} onChange={isPaid => updatePayment(payment.id, { status: isPaid ? 'paid' : 'pending' })}>Paid</Switch>
                   </div>
                 ))}
-                {taxPayments.length > 0 && <p className="type-caption text-muted">{Math.abs(taxLeft) < 0.01 ? 'Instalments match the tax.' : `${formatCurrency(Math.abs(taxLeft), draft.currency)} ${taxLeft > 0 ? 'still to schedule' : 'too much scheduled'}.`}</p>}
+                {taxPayments.length > 0 && <p className="type-caption text-muted">{Math.abs(taxLeft) < 0.01 ? 'Instalments match the tax.' : `${formatCurrency(Math.abs(taxLeft), getMainCurrency())} ${taxLeft > 0 ? 'still to schedule' : 'too much scheduled'}.`}</p>}
               </section>
             </>
           )}

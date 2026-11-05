@@ -10,8 +10,9 @@ import GoalScenarioModal from '../components/GoalScenarioModal';
 import GoalTable from '../components/GoalTable';
 import PageHeader, { type PageStat } from '../components/PageHeader';
 import { Button, IconButton } from '../components/ui/Actions';
+import { AmountInput } from '../components/ui/Fields';
 import { Amount } from '../components/ui/Money';
-import { ConfirmDialog } from '../components/ui/Overlays';
+import { ConfirmDialog, Dialog } from '../components/ui/Overlays';
 import { Select, type PickerOption } from '../components/ui/Pickers';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
@@ -19,7 +20,8 @@ import { useInsightsView } from '../contexts/InsightsViewContext';
 import { useAccountsContext } from '../contexts/DomainProviders';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 import { goalCategoryOf } from '../utils/forecastModel';
-import { completionChanges, goalTree, isGoalDone, monthlyNeed, monthlyTargets, moveGoal, summaryRings, type GoalNode } from '../utils/goalsModel';
+import { parseAmountInput } from '../utils/scheduleModel';
+import { accountCoverage, completionChanges, goalTree, isGoalDone, monthlyNeed, monthlyTargets, moveGoal, summaryRings, type GoalNode } from '../utils/goalsModel';
 
 const VIEWS = [{ id: 'cards', label: 'Cards' }, { id: 'table', label: 'Table' }];
 const SCHEDULES = [{ id: 'account', label: 'By account' }, { id: 'month', label: 'By month' }];
@@ -47,6 +49,8 @@ const Goals: React.FC = () => {
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
   const [parentForNew, setParentForNew] = useState<string | undefined>();
   const [deletingGoal, setDeletingGoal] = useState<FinancialGoal | null>(null);
+  const [contributingGoal, setContributingGoal] = useState<FinancialGoal | null>(null);
+  const [contributionAmount, setContributionAmount] = useState('');
   const [view, setView] = useState('cards');
   const [schedule, setSchedule] = useState<'account' | 'month'>('account');
   const [accountFilter, setAccountFilter] = useState(ALL);
@@ -62,7 +66,12 @@ const Goals: React.FC = () => {
   const tree = useMemo(() => goalTree(visibleGoals, goalOrder || []), [visibleGoals, goalOrder]);
   const rings = useMemo(() => summaryRings(visibleGoals, convertToMain), [visibleGoals]);
   const savings = rings[0];
-  const need = useMemo(() => monthlyNeed(visibleGoals, today), [visibleGoals, today]);
+  const need = useMemo(() => monthlyNeed(visibleGoals, today, convertToMain), [visibleGoals, today]);
+  const coverageWarnings = useMemo(() => {
+    const todayBalances: Record<string, number> = {};
+    for (const acc of accounts) todayBalances[acc.id] = convertToMain(acc.balance, acc.currency);
+    return accountCoverage(visibleGoals, [], todayBalances, convertToMain);
+  }, [visibleGoals, accounts]);
   const targets = useMemo(() => {
     const nameOf = (id?: string) => accounts.find(account => account.id === id)?.name ?? '';
     return monthlyTargets(visibleGoals, activeGoalIds, nameOf, today, convertToMain, schedule);
@@ -170,6 +179,22 @@ const Goals: React.FC = () => {
             )}
           </section>
 
+          {coverageWarnings.length > 0 && (
+            <section aria-label="Account coverage warnings" className="surface-card rounded-[var(--radius-xl)] border border-[var(--amber-bg)] bg-[var(--amber-bg)]/40 p-4">
+              <p className="type-label text-[var(--amber)]">Account coverage</p>
+              <ul className="mt-1.5 space-y-1">
+                {coverageWarnings.map(warning => {
+                  const accountName = accounts.find(a => a.id === warning.accountId)?.name || 'Linked account';
+                  return (
+                    <li key={warning.accountId} className="type-body text-ink">
+                      Savings goals on <span className="font-semibold">{accountName}</span> total <Amount value={warning.goalsTotal} currency={getMainCurrency()} />, which exceeds its current balance of <Amount value={warning.projected} currency={getMainCurrency()} />.
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
           <div className="flex flex-wrap items-end justify-between gap-3">
             <Select className="w-56 max-sm:w-full" label="Show goals for" options={accountOptions} value={accountFilter} onChange={setAccountFilter} />
             <div className="flex flex-wrap items-center gap-2">
@@ -206,6 +231,10 @@ const Goals: React.FC = () => {
                           onToggleIncluded={toggleIncluded}
                           onToggleComplete={toggleComplete}
                           onEdit={openForm}
+                          onContribute={goal => {
+                            setContributingGoal(goal);
+                            setContributionAmount(goal.monthlyContribution ? String(goal.monthlyContribution) : '');
+                          }}
                           onDuplicate={duplicate}
                           onDelete={setDeletingGoal}
                           onAddItem={id => openForm(undefined, id)}
@@ -272,6 +301,42 @@ const Goals: React.FC = () => {
         confirmLabel="Delete goal"
         isDestructive
       />
+
+      <Dialog
+        isOpen={!!contributingGoal}
+        onClose={() => setContributingGoal(null)}
+        title={contributingGoal ? `Add to ${contributingGoal.name}` : 'Record contribution'}
+        footer={close => (
+          <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
+            <Button variant="ghost" onPress={close}>Cancel</Button>
+            <Button
+              onPress={() => {
+                const add = parseAmountInput(contributionAmount);
+                if (!contributingGoal || !Number.isFinite(add) || add <= 0) return;
+                const nextSaved = (contributingGoal.currentAmount ?? 0) + add;
+                saveFinancialGoal({
+                  ...contributingGoal,
+                  currentAmount: nextSaved,
+                  completed: nextSaved >= contributingGoal.amount ? true : contributingGoal.completed,
+                });
+                setContributingGoal(null);
+              }}
+            >
+              Add contribution
+            </Button>
+          </div>
+        )}
+      >
+        <div className="space-y-3">
+          <AmountInput
+            label="Contribution amount"
+            currency={contributingGoal?.currency || getMainCurrency()}
+            value={contributionAmount}
+            onChange={setContributionAmount}
+            autoFocus
+          />
+        </div>
+      </Dialog>
     </div>
   );
 };

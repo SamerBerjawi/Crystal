@@ -12,27 +12,36 @@ import RecurringOverrideModal from '../components/RecurringOverrideModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Badge, DayGroup } from '../components/ui/Display';
-import { TextInput } from '../components/ui/Fields';
+import { TextInput, Switch } from '../components/ui/Fields';
 import { Menu } from '../components/ui/Menu';
 import { Amount } from '../components/ui/Money';
 import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 import { useInsightsView } from '../contexts/InsightsViewContext';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { goalMovements } from '../utils/forecastModel';
 import {
   addDays, buildOccurrences, cadenceLabel, dailyCommitted, emptyFilters, filterOccurrences, groupUpcoming, iso, moveFuture, monthGrid, nextDueAfterPosting, oldUnpaidBills,
-  postDetails, scheduledItemOf, seriesGroups, summarize, syntheticSeries, type Flow, type Occurrence, type SeriesRow,
+  postDetails, scheduledItemOf, seriesGroups, summarize, syntheticSeries, type Flow, type Occurrence, type OccurrenceSource, type SeriesRow,
 } from '../utils/scheduleModel';
+import { Select } from '../components/ui/Pickers';
 
 type Tab = 'calendar' | 'upcoming' | 'scheduled' | 'archive';
 type OverdueFilter = 'all' | 'recurring' | 'one-time';
 
 const TABS = [{ id: 'calendar', label: 'Calendar' }, { id: 'upcoming', label: 'Upcoming' }, { id: 'scheduled', label: 'Scheduled' }, { id: 'archive', label: 'Archive' }];
 const FLOWS = [{ id: 'all', label: 'All' }, { id: 'in', label: 'In' }, { id: 'out', label: 'Out' }, { id: 'move', label: 'Transfers' }];
+const SOURCE_OPTIONS = [
+  { id: 'all', label: 'All sources' },
+  { id: 'recurring', label: 'Recurring' },
+  { id: 'bill', label: 'One-time & Tax' },
+  { id: 'loan', label: 'Loans' },
+  { id: 'card', label: 'Cards' },
+  { id: 'property', label: 'Property' },
+];
 const OVERDUE_FILTERS = [{ id: 'all', label: 'All' }, { id: 'recurring', label: 'Recurring' }, { id: 'one-time', label: 'One-time' }];
 const HORIZON_DAYS = 365;
 const OVERDUE_DAYS = 7;
@@ -47,6 +56,7 @@ type Confirm = { title: string; message: string; label: string; isDestructive?: 
 const SchedulePage: React.FC = () => {
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction } = useTransactionsContext();
+  const { warrants } = useWarrantsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { tags } = useTagsContext();
   const { financialGoals } = useGoalsContext();
@@ -64,10 +74,13 @@ const SchedulePage: React.FC = () => {
   const [selected, setSelected] = useState(todayStr);
   const [search, setSearch] = useState('');
   const [flow, setFlow] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [showSkipped, setShowSkipped] = useState(false);
   const [overdueFilter, setOverdueFilter] = useState<OverdueFilter>('all');
   const [formMode, setFormMode] = useState<'recurring' | 'one-time' | null>(null);
   const [formDate, setFormDate] = useState<string | undefined>();
   const [editingSeries, setEditingSeries] = useState<RecurringTransaction | null>(null);
+  const [pendingEndedSeries, setPendingEndedSeries] = useState<RecurringTransaction | null>(null);
   const [editingBill, setEditingBill] = useState<BillPayment | null>(null);
   const [editChoice, setEditChoice] = useState<Occurrence | null>(null);
   const [overrideItem, setOverrideItem] = useState<Occurrence | null>(null);
@@ -86,10 +99,29 @@ const SchedulePage: React.FC = () => {
     return monthStart < today ? monthStart : today;
   }, [month, today]);
 
+  const allBills = useMemo<BillPayment[]>(() => {
+    const primaryAccountId = accounts.find(a => a.isPrimary)?.id || accounts[0]?.id || '';
+    const warrantTaxBills: BillPayment[] = warrants.flatMap(w =>
+      (w.taxPayments || [])
+        .filter(tp => tp.status === 'pending' && tp.amount > 0 && tp.dueDate)
+        .map(tp => ({
+          id: `warrant-tax-${w.id}-${tp.id}`,
+          description: `${w.name || w.isin} tax instalment`,
+          amount: -Math.abs(tp.amount),
+          type: 'payment' as const,
+          dueDate: tp.dueDate,
+          status: 'unpaid' as const,
+          accountId: primaryAccountId,
+          currency: getMainCurrency() as BillPayment['currency'],
+        }))
+    );
+    return [...billsAndPayments, ...warrantTaxBills];
+  }, [billsAndPayments, warrants, accounts]);
+
   const occurrences = useMemo(() => buildOccurrences({
-    recurring: recurringTransactions, overrides: recurringTransactionOverrides, bills: billsAndPayments, accounts, transactions, loanPaymentOverrides,
+    recurring: recurringTransactions, overrides: recurringTransactionOverrides, bills: allBills, accounts, transactions, loanPaymentOverrides,
     from: rangeStart, to: rangeEnd, today, overdueDays: OVERDUE_DAYS,
-  }), [recurringTransactions, recurringTransactionOverrides, billsAndPayments, accounts, transactions, loanPaymentOverrides, rangeStart, rangeEnd, today]);
+  }), [recurringTransactions, recurringTransactionOverrides, allBills, accounts, transactions, loanPaymentOverrides, rangeStart, rangeEnd, today]);
 
   const summary = useMemo(() => summarize(occurrences, today, convert), [occurrences, today]);
   const days = useMemo(() => dailyCommitted(occurrences, today, convert), [occurrences, today]);
@@ -106,13 +138,18 @@ const SchedulePage: React.FC = () => {
   }, [financialGoals, activeGoalIds, today, rangeEnd]);
 
   const groups = useMemo(() => {
-    const filters = { ...emptyFilters(), flows: flow === 'all' ? [] : [flow as Flow] };
+    const filters = {
+      ...emptyFilters(),
+      flows: flow === 'all' ? [] : [flow as Flow],
+      sources: sourceFilter === 'all' ? [] : [sourceFilter as OccurrenceSource],
+      showSkipped,
+    };
     const shown = filterOccurrences(occurrences, filters, search, accountName);
     return groupUpcoming(shown, today, convert).map(group => {
       if (group.id !== 'overdue' || overdueFilter === 'all') return group;
       return { ...group, items: group.items.filter(item => (overdueFilter === 'recurring' ? item.source === 'recurring' : item.source === 'bill')) };
     });
-  }, [occurrences, flow, search, overdueFilter, today]);
+  }, [occurrences, flow, sourceFilter, showSkipped, search, overdueFilter, today]);
 
   const selectedDay = useMemo(() => {
     const inGrid = grid.find(day => day.date === selected);
@@ -189,7 +226,7 @@ const SchedulePage: React.FC = () => {
   const editFuture = () => {
     if (!editChoice?.series) return;
     const { ended, started } = moveFuture(editChoice.series, editChoice.originalDate, editChoice.originalDate);
-    saveRecurringTransaction(ended);
+    setPendingEndedSeries(ended);
     setEditingSeries({ ...started, id: '' } as RecurringTransaction);
     setFormMode('recurring');
     setEditChoice(null);
@@ -291,8 +328,14 @@ const SchedulePage: React.FC = () => {
       {tab === 'upcoming' && (
         <section aria-label="Upcoming" className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-            <TextInput className="w-72 max-sm:w-full" label="Search" value={search} onChange={setSearch} />
-            <SegmentedControl items={FLOWS} activeId={flow} onChange={setFlow} />
+            <div className="flex flex-wrap items-end gap-3 max-sm:w-full">
+              <TextInput className="w-64 max-sm:w-full" label="Search" value={search} onChange={setSearch} />
+              <Select className="w-44 max-sm:w-full" label="Source" options={SOURCE_OPTIONS} value={sourceFilter} onChange={setSourceFilter} />
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Switch isSelected={showSkipped} onChange={setShowSkipped}>Show skipped</Switch>
+              <SegmentedControl items={FLOWS} activeId={flow} onChange={setFlow} />
+            </div>
           </div>
           {groups.length === 0 ? <p className="type-body text-muted">Nothing matches.</p> : (
             <div className="space-y-3">
@@ -379,9 +422,16 @@ const SchedulePage: React.FC = () => {
 
       {formMode && (
         <RecurringTransactionModal
-          onClose={() => { setFormMode(null); setEditingSeries(null); setEditingBill(null); }}
-          onSave={saveRecurringTransaction}
-          onSaveBill={saveBillPayment}
+          onClose={() => { setFormMode(null); setEditingSeries(null); setPendingEndedSeries(null); setEditingBill(null); }}
+          onSave={data => {
+            if (pendingEndedSeries) saveRecurringTransaction(pendingEndedSeries);
+            saveRecurringTransaction(data);
+            setPendingEndedSeries(null);
+          }}
+          onSaveBill={data => {
+            saveBillPayment(data);
+            setPendingEndedSeries(null);
+          }}
           accounts={accounts}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}

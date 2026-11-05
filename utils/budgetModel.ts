@@ -99,11 +99,15 @@ export const forecastMonthEnd = (
 
 /* ── Spending ───────────────────────────────────────────────────────────── */
 
+const hasDescendantCategory = (cat: Category, targetName: string): boolean => {
+  if (cat.name === targetName) return true;
+  return (cat.subCategories ?? []).some(sub => hasDescendantCategory(sub, targetName));
+};
+
 /** The top-level expense category a transaction's category belongs to (budgets are set on those). */
 export const parentCategoryName = (name: string, categories: Category[]): string | undefined => {
   for (const parent of categories) {
-    if (parent.name === name) return parent.name;
-    if ((parent.subCategories ?? []).some(sub => sub.name === name)) return parent.name;
+    if (hasDescendantCategory(parent, name)) return parent.name;
   }
   return undefined;
 };

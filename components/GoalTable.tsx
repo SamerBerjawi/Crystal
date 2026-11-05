@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Account, FinancialGoal } from '../types';
-import { parseLocalDate, getMainCurrency } from '../utils';
+import { convertToMain, parseLocalDate, getMainCurrency } from '../utils';
 import { goalCategoryOf } from '../utils/forecastModel';
 import { goalCardView, isGoalDone } from '../utils/goalsModel';
 import { cn } from '../lib/utils';
@@ -44,8 +44,8 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, o
     const value = (goal: FinancialGoal, view: ReturnType<typeof goalCardView>): string | number => {
       switch (sortField) {
         case 'name': return goal.name.toLowerCase();
-        case 'amount': return goal.amount;
-        case 'currentAmount': return goal.currentAmount;
+        case 'amount': return view.target;
+        case 'currentAmount': return view.saved;
         case 'progress': return view.pct;
         case 'status': return view.status;
         default: return goal.date ? parseLocalDate(goal.date).getTime() : Infinity;
@@ -54,7 +54,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, o
     const direction = isAscending ? 1 : -1;
     return goals
       .filter(goal => !goal.isBucket)
-      .map(goal => ({ goal, view: goalCardView(goal, [], today) }))
+      .map(goal => ({ goal, view: goalCardView(goal, [], today, convertToMain) }))
       .sort((a, b) => {
         const left = value(a.goal, a.view);
         const right = value(b.goal, b.view);
@@ -80,7 +80,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, o
     <th key={column.id} scope="col" aria-sort={sortField === column.id ? (isAscending ? 'ascending' : 'descending') : 'none'} className={cn('px-3 py-2', column.end && 'text-right')}>
       <button type="button" onClick={() => sortBy(column.id)} className={cn('type-label inline-flex min-h-11 cursor-pointer items-center gap-1 text-muted hover:text-ink', column.end && 'flex-row-reverse')}>
         {column.label}
-        {sortField === column.id && <Icon name={isAscending ? 'arrow_upward' : 'arrow_downward'} size={14} />}
+        {sortField === column.id && <Icon name={isAscending ? 'arrow-up-01' : 'arrow-down-01'} size={14} />}
       </button>
     </th>
   );

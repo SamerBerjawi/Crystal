@@ -1,6 +1,6 @@
 import { BRAND_COLORS } from '../constants';
 import { Account, Currency, HoldingDistribution, HoldingSummary, HoldingsOverview, InvestmentSubType, InvestmentTransaction, PriceHistoryEntry, Warrant } from '../types';
-import { parseLocalDate } from '../utils';
+import { parseLocalDate, toLocalISOString } from '../utils';
 
 const getTypeLabel = (holding: HoldingSummary) =>
     holding.type === 'Warrant' ? 'Warrants' : (holding.subType || 'Other');
@@ -80,7 +80,12 @@ export const buildHoldingsOverview = (
             
             const q = Number(tx.quantity) || 0;
             const p = Number(tx.price) || 0;
-            if (p > 0) lastTradePrice[tx.symbol] = p;
+            if (p > 0) {
+                const txCurr = tx.currency ?? currencyOf(tx.symbol);
+                const holdCurr = currencyOf(tx.symbol);
+                const holdRate = Math.max(toEur(1, holdCurr), 1e-9);
+                lastTradePrice[tx.symbol] = txCurr === holdCurr ? p : toEur(p, txCurr) / holdRate;
+            }
 
             if (tx.type?.toLowerCase() === 'buy') {
                 holding.quantity += q;
@@ -208,10 +213,15 @@ export const portfolioBySegment = (
             }
         }
     };
+    const positionedSymbols = new Set(
+        overview.holdings
+            .filter(holding => holding.quantity > 0.000001 || holding.type === 'Warrant')
+            .map(holding => holding.symbol)
+    );
     overview.holdings
         .filter(holding => holding.quantity > 0.000001 || holding.type === 'Warrant')
         .forEach(holding => add(segmentOf(holding), holding.currentValue, holding.totalCost, !!holding.priceUnavailable));
-    accounts.filter(account => !account.symbol).forEach(account => {
+    accounts.filter(account => !account.symbol || (!positionedSymbols.has(account.symbol) && account.balance > 0)).forEach(account => {
         const value = toEur(account.balance, account.currency);
         const cost = toEur(account.purchasePrice && account.purchasePrice > 0 ? account.purchasePrice : account.balance, account.currency);
         add(segmentOf({ type: 'Standard', subType: account.subType }), value, cost, false);
@@ -223,10 +233,15 @@ export interface RealizedSale { id: string; symbol: string; date: string; quanti
 export interface RealizedGains { sales: RealizedSale[]; total: number; wins: number; losses: number; biggestWin?: RealizedSale; biggestLoss?: RealizedSale }
 
 /** Closed trades against the average cost so far. Grants count as buys at their grant price. */
-export const realizedGains = (transactions: InvestmentTransaction[], warrants: Warrant[] = []): RealizedGains => {
+export const realizedGains = (
+    transactions: InvestmentTransaction[],
+    warrants: Warrant[] = [],
+    toEur: (amount: number, currency: Currency) => number = amount => amount,
+    currencyOf: (symbol: string) => Currency = () => 'EUR' as Currency,
+): RealizedGains => {
     const events = [
-        ...warrants.map(w => ({ id: w.id, symbol: w.isin, date: w.grantDate, quantity: Number(w.quantity) || 0, price: Number(w.grantPrice) || 0, type: 'buy' })),
-        ...transactions.map(tx => ({ ...tx, quantity: Number(tx.quantity) || 0, price: Number(tx.price) || 0 })),
+        ...warrants.map(w => ({ id: w.id, symbol: w.isin, date: w.grantDate, quantity: Number(w.quantity) || 0, price: Number(w.grantPrice) || 0, type: 'buy', currency: currencyOf(w.isin) })),
+        ...transactions.map(tx => ({ ...tx, quantity: Number(tx.quantity) || 0, price: Number(tx.price) || 0, currency: tx.currency ?? currencyOf(tx.symbol) })),
     ].filter(event => event.symbol).sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
 
     const positions: Record<string, { quantity: number; average: number }> = {};
@@ -234,15 +249,16 @@ export const realizedGains = (transactions: InvestmentTransaction[], warrants: W
     events.forEach(event => {
         const symbol = event.symbol.toUpperCase();
         const position = (positions[symbol] ||= { quantity: 0, average: 0 });
+        const priceEur = toEur(event.price, event.currency);
         if (event.type?.toLowerCase() === 'buy') {
-            const total = position.quantity * position.average + event.quantity * event.price;
+            const total = position.quantity * position.average + event.quantity * priceEur;
             position.quantity += event.quantity;
             position.average = position.quantity > 0 ? total / position.quantity : 0;
         } else {
-            const gain = event.quantity * (event.price - position.average);
+            const gain = event.quantity * (priceEur - position.average);
             sales.push({
-                id: event.id, symbol, date: event.date, quantity: event.quantity, buyPrice: position.average, sellPrice: event.price, gain,
-                gainPercent: position.average > 0 ? ((event.price - position.average) / position.average) * 100 : 0,
+                id: event.id, symbol, date: event.date, quantity: event.quantity, buyPrice: position.average, sellPrice: priceEur, gain,
+                gainPercent: position.average > 0 ? ((priceEur - position.average) / position.average) * 100 : 0,
             });
             position.quantity = Math.max(0, position.quantity - event.quantity);
         }
@@ -284,7 +300,7 @@ export const CANDLE_MIN_POINTS = 20;
 
 /** A chart window, oldest first, with the change across it. The last value before the window starts it, so a quiet stretch stays a flat line. */
 export const historyWindow = (history: { date: string; price: number }[], days: number | null, today: Date) => {
-    const from = days === null ? '' : new Date(today.getFullYear(), today.getMonth(), today.getDate() - days).toISOString().slice(0, 10);
+    const from = days === null ? '' : toLocalISOString(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
     const inside = history.filter(point => point.date.slice(0, 10) >= from);
     const before = history[history.length - inside.length - 1];
     const startsLate = !!before && inside[0]?.date.slice(0, 10) !== from;

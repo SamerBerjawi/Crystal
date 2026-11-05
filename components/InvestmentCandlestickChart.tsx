@@ -380,6 +380,17 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
       {/* Main Candlestick Chart Area */}
       <div className="w-full relative h-[180px] min-h-[175px] max-h-[180px]">
+        {ohlcData.length > 0 && costBasis && costBasis > 0 && stats.high > stats.low && costBasis >= stats.low && costBasis <= stats.high && (
+          <div
+            aria-label={`Average cost ${formatCurrency(costBasis, currency)}`}
+            style={{ top: `${12 + ((stats.high - costBasis) / (stats.high - stats.low)) * (180 - 12 - 28)}px` }}
+            className="pointer-events-none absolute inset-x-4 z-10 border-t border-dashed border-muted/60"
+          >
+            <span className="type-caption absolute -top-4 right-0 rounded bg-surface/90 px-1 text-[10px] text-muted">
+              Cost {formatCurrency(costBasis, currency)}
+            </span>
+          </div>
+        )}
         {ohlcData.length > 0 ? (
           <CandlestickChart
             key={`${timeframe}-${granularity}`}

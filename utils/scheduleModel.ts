@@ -226,6 +226,41 @@ export const matchPaid = (
       used.add(p.txId);
     }
   }
+
+  // Fallback for bank-synced / unlinked transactions: match by accountId, normalized merchant/description, date window, and amount.
+  const norm = (s?: string) => (s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const unlinked = transactions.filter(tx => !tx.recurringSourceId && !tx.transferId && !tx.isBalanceAdjustment && !tx.isSplitParent && !tx.isCombinedParent);
+  const usedUnlinked = new Set<string>();
+  for (const [seriesId, occs] of occBySeries) {
+    const rt = series.get(seriesId);
+    if (!rt) continue;
+    const rtLabel = norm(rt.merchant || rt.description);
+    if (!rtLabel) continue;
+    const windowDays = Math.min(4.5, periodDays(rt.frequency, rt.frequencyInterval) / 2);
+    const expectedSign = rt.type === 'income' ? 1 : -1;
+    const expectedAbs = Math.abs(rt.amount);
+    const fallbackPairs: { key: string; txId: string; distance: number }[] = [];
+    for (const o of occs) {
+      if (paid.has(o.key)) continue;
+      for (const tx of unlinked) {
+        if (usedUnlinked.has(tx.id)) continue;
+        if (rt.accountId && rt.accountId !== 'external' && tx.accountId !== rt.accountId) continue;
+        if ((tx.amount >= 0 ? 1 : -1) !== expectedSign) continue;
+        const txLabel = norm(tx.merchant || tx.description);
+        if (!txLabel || (txLabel !== rtLabel && !txLabel.includes(rtLabel) && !rtLabel.includes(txLabel))) continue;
+        const txAbs = Math.abs(tx.amount);
+        if (Math.abs(txAbs - expectedAbs) > Math.max(2, expectedAbs * 0.1)) continue;
+        const distance = Math.min(Math.abs(daysBetween(o.date, tx.date)), Math.abs(daysBetween(o.originalDate, tx.date)));
+        if (distance <= windowDays) fallbackPairs.push({ key: o.key, txId: tx.id, distance });
+      }
+    }
+    fallbackPairs.sort((a, b) => a.distance - b.distance);
+    for (const p of fallbackPairs) {
+      if (paid.has(p.key) || usedUnlinked.has(p.txId)) continue;
+      paid.set(p.key, p.txId);
+      usedUnlinked.add(p.txId);
+    }
+  }
   return paid;
 };
 

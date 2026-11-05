@@ -89,10 +89,10 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         lines.forEach(line => {
             const trimmed = line.trim();
             if (!trimmed) return;
-            const parts = trimmed.split(/[\t, ]+/);
+            const parts = trimmed.split(/\t|\s{2,}|\s+/);
             if (parts.length >= 2) {
                 const d = parts[0].trim();
-                const p = parseFloat(parts[1].trim());
+                const p = parseFloat(normalizeDecimalString(parts[1].trim()));
                 if (/^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(p)) {
                     parsed.push({ date: d, price: p });
                 }

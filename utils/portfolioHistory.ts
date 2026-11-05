@@ -103,10 +103,9 @@ export function buildPortfolioHistory(args: PortfolioHistoryArgs): { date: strin
             if (held <= 0) return;
             const log = priceHistoryFor(isin);
             const first = warrants.find(w => w.isin === isin)!;
-            const latest = log.length > 0 ? log[log.length - 1].price : first.grantPrice;
-            const current = prices[isin] && prices[isin]! > 0 ? prices[isin]! : latest;
             const past = log.filter(e => dayOf(e.date) <= date);
-            total += toEur(held * (past.length > 0 ? past[past.length - 1].price : current), currencyOf(isin));
+            const fallback = first.grantPrice > 0 ? first.grantPrice : (prices[isin] && prices[isin]! > 0 ? prices[isin]! : (log[0]?.price ?? 0));
+            total += toEur(held * (past.length > 0 ? past[past.length - 1].price : fallback), currencyOf(isin));
         });
 
         nonSymbolAccounts.forEach(acc => {

@@ -56,7 +56,7 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, isPhone, onOpen }) 
                 <GainCell holding={holding} />
               </span>
             </button>
-            <Menu title={holding.symbol} trigger={<IconButton icon="more_horiz" label={`Actions for ${holding.symbol}`} tooltipPlacement="left" />} items={menu} />
+            <Menu title={holding.symbol} trigger={<IconButton icon="more-horizontal" label={`Actions for ${holding.symbol}`} tooltipPlacement="left" />} items={menu} />
           </li>
         ))}
       </ul>
@@ -91,7 +91,7 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, isPhone, onOpen }) 
               <td className="px-3 py-2"><Sparkline data={trend} isPositive={trend.length < 2 || trend[trend.length - 1].value >= trend[0].value} /></td>
               <td className="type-figure-row px-3 py-2 text-right text-ink"><Amount value={holding.currentValue} currency={getMainCurrency()} /></td>
               <td className="px-3 py-2 text-right"><GainCell holding={holding} /></td>
-              <td className="py-2 text-right"><Menu title={holding.symbol} trigger={<IconButton icon="more_horiz" label={`Actions for ${holding.symbol}`} tooltipPlacement="left" />} items={menu} /></td>
+              <td className="py-2 text-right"><Menu title={holding.symbol} trigger={<IconButton icon="more-horizontal" label={`Actions for ${holding.symbol}`} tooltipPlacement="left" />} items={menu} /></td>
             </tr>
           ))}
         </tbody>

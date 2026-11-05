@@ -16,6 +16,7 @@ export interface SyncedBillMatchSuggestion {
   daysDiff: number; // difference in days (e.g. 0, 1, 2)
   matchedDate: string; // planned date YYYY-MM-DD
   matchedAmount: number; // planned amount
+  matchedCurrency?: Currency; // currency of the planned item
   matchedName: string; // planned description or merchant
 }
 
@@ -308,6 +309,7 @@ export const useSyncedBillMatcher = (
             daysDiff: Math.round(daysDiff),
             matchedDate: bill.dueDate,
             matchedAmount: billAmountAbs,
+            matchedCurrency: billCurrency,
             matchedName: bill.description,
           };
         }
@@ -380,6 +382,7 @@ export const useSyncedBillMatcher = (
             daysDiff: Math.round(daysDiff),
             matchedDate: toLocalISOString(rtClosestDate),
             matchedAmount: rtAmountAbs,
+            matchedCurrency: rtCurrency,
             matchedName: rt.merchant || rt.description,
           };
         }

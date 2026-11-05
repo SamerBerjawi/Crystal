@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Account, HoldingSummary, InvestmentTransaction, PriceHistoryEntry, Warrant } from '../types';
-import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
+import { convertCurrency, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { CANDLE_MIN_POINTS, formatHoldingType } from '../utils/investments';
 import { ValueChart } from './AccountFrame';
 import InvestmentCandlestickChart from './InvestmentCandlestickChart';
@@ -36,6 +36,7 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
   const gain = holding.priceUnavailable ? null : holding.currentValue - holding.totalCost;
   const gainPct = gain !== null && holding.totalCost > 0 ? (gain / holding.totalCost) * 100 : null;
   const averageCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
+  const nativeAverageCost = holding.quantity > 0 ? convertCurrency(averageCost, getMainCurrency(), currency) : 0;
   const lastLogged = priceLog[priceLog.length - 1];
   const chartData = useMemo(() => priceLog.map(entry => ({ date: fullDate(entry.date), value: entry.price })), [priceLog]);
 
@@ -87,7 +88,7 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
           <p className="type-body text-muted">Log at least two prices to see a chart.</p>
         ) : chartMode === 'candle' && canShowCandles ? (
           <>
-            <InvestmentCandlestickChart currentValue={holding.currentPrice} costBasis={holding.quantity > 0 ? averageCost : undefined} priceHistory={priceLog} currency={currency} />
+            <InvestmentCandlestickChart currentValue={holding.currentPrice} costBasis={holding.quantity > 0 ? nativeAverageCost : undefined} priceHistory={priceLog} currency={currency} />
             <p className="type-caption mt-1 text-muted">Candles come from the prices logged in each period, not from market trading data.</p>
           </>
         ) : (

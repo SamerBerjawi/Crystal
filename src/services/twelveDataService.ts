@@ -68,6 +68,38 @@ export async function fetchSymbolMetadata(symbol: string, apiKey: string): Promi
     }
 }
 
+export async function searchSymbols(query: string, apiKey?: string): Promise<SymbolMetadata[]> {
+    const clean = query.trim();
+    if (clean.length < 2) return [];
+    const params = new URLSearchParams({ symbol: clean, outputsize: '6' });
+    if (apiKey) params.set('apikey', apiKey);
+    try {
+        const response = await fetchWithTimeout(`https://api.twelvedata.com/symbol_search?${params.toString()}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        if (!Array.isArray(data?.data)) return [];
+        const seen = new Set<string>();
+        const results: SymbolMetadata[] = [];
+        for (const item of data.data) {
+            const sym = String(item.symbol || '').trim();
+            const exch = String(item.exchange || '').trim();
+            const key = `${sym}:${exch}`;
+            if (!sym || seen.has(key)) continue;
+            seen.add(key);
+            results.push({
+                symbol: sym,
+                name: String(item.instrument_name || sym),
+                type: String(item.instrument_type || 'Common Stock'),
+                currency: String(item.currency || 'EUR').toUpperCase(),
+                exchange: exch,
+            });
+        }
+        return results;
+    } catch {
+        return [];
+    }
+}
+
 export interface Quote { price: number; currency: Currency; exchange?: string }
 
 /** A quote's price and currency. Refuses a quote with no currency, because guessing is how a USD price gets valued as EUR (DEF-04). */

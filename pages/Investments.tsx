@@ -170,6 +170,24 @@ const Investments: React.FC<InvestmentsProps> = ({
   }), [heldHoldings, activeSegment, warrants, investmentTransactions, logFor, prices, accountRows, transactionsByAccount, toEur, currencyOf, current.value]);
   const chartWindow = useMemo(() => historyWindow(portfolioHistory, range === 'all' ? null : Number(range), new Date()), [portfolioHistory, range]);
   const chartData = useMemo(() => chartWindow.points.map(point => ({ date: shortDate(point.date), value: point.price })), [chartWindow]);
+  const [allocationView, setAllocationView] = useState<'type' | 'currency'>('type');
+
+  const currencyAllocation = useMemo(() => {
+    const byCurr = new Map<string, number>();
+    heldHoldings.forEach(holding => {
+      const c = holding.currency || getMainCurrency();
+      byCurr.set(c, (byCurr.get(c) || 0) + holding.currentValue);
+    });
+    accountRows.forEach(account => {
+      const c = account.currency || getMainCurrency();
+      byCurr.set(c, (byCurr.get(c) || 0) + toEur(account.balance, account.currency));
+    });
+    const palette = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
+    return [...byCurr.entries()]
+      .filter(([, val]) => val > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([curr, val], i) => ({ id: curr, label: curr, value: val, color: palette[i % palette.length] }));
+  }, [heldHoldings, accountRows, toEur]);
 
   const allocation = useMemo(() => {
     if (activeSegment === 'all') return presentSegments.map(name => ({ id: name, label: SEGMENT_LABELS[name], value: figures[name].value, color: SEGMENT_COLORS[name] })).filter(row => row.value > 0).sort((a, b) => b.value - a.value);
@@ -196,7 +214,7 @@ const Investments: React.FC<InvestmentsProps> = ({
   const symbolsInView = useMemo(() => new Set(holdingsInSegment(everything.holdings, activeSegment).map(holding => holding.symbol)), [everything, activeSegment]);
   const tradesInView = useMemo(() => investmentTransactions.filter(trade => activeSegment === 'all' || symbolsInView.has(trade.symbol)), [investmentTransactions, activeSegment, symbolsInView]);
   const grantsInView = useMemo(() => warrants.filter(grant => activeSegment === 'all' || symbolsInView.has(grant.isin)), [warrants, activeSegment, symbolsInView]);
-  const realized = useMemo(() => realizedGains(tradesInView, grantsInView), [tradesInView, grantsInView]);
+  const realized = useMemo(() => realizedGains(tradesInView, grantsInView, toEur, currencyOf), [tradesInView, grantsInView, toEur, currencyOf]);
   const activity = useMemo(() => [
     ...tradesInView.map(trade => ({
       id: trade.id, date: trade.date, kind: trade.type?.toLowerCase() === 'buy' ? 'Buy' : 'Sell', symbol: trade.symbol, name: trade.name, quantity: trade.quantity, price: trade.price, currency: (trade.currency ?? 'EUR') as Currency, trade, grant: undefined as Warrant | undefined,
@@ -314,16 +332,36 @@ const Investments: React.FC<InvestmentsProps> = ({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="type-card-title text-ink">Performance</h2>
-                    {chartData.length > 1 && <Change value={chartWindow.change} currency={getMainCurrency()} period={RANGE_WORDS[range]} className="type-caption text-muted" />}
+                    {chartData.length > 1 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Change value={chartWindow.change} currency={getMainCurrency()} period={RANGE_WORDS[range]} className="type-caption text-muted" />
+                        {chartWindow.points[0]?.price > 0 && (
+                          <Badge tone={chartWindow.change >= 0 ? 'positive' : 'negative'}>
+                            {chartWindow.change >= 0 ? '+' : '−'}{Math.abs(percentOf(chartWindow.change, chartWindow.points[0].price)).toFixed(1)}%
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <SegmentedControl items={RANGES} activeId={range} onChange={setRange} />
                 </div>
                 {chartData.length > 1 ? <ValueChart data={chartData} currency={getMainCurrency()} dataKey="value" fitValues /> : <p className="type-body py-10 text-center text-muted">Log prices or add trades to see this over time.</p>}
               </section>
               <section aria-label="Allocation" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
-                <h2 className="type-card-title text-ink">Allocation</h2>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="type-card-title text-ink">Allocation</h2>
+                  {currencyAllocation.length > 1 && (
+                    <SegmentedControl
+                      items={[{ id: 'type', label: 'By type' }, { id: 'currency', label: 'By currency' }]}
+                      activeId={allocationView}
+                      onChange={id => setAllocationView(id as 'type' | 'currency')}
+                    />
+                  )}
+                </div>
                 <ul className="mt-3 space-y-3">
-                  {allocation.map(row => <AllocationRow key={row.id} label={row.label} value={row.value} total={current.value} color={row.color} />)}
+                  {(allocationView === 'currency' && currencyAllocation.length > 1 ? currencyAllocation : allocation).map(row => (
+                    <AllocationRow key={row.id} label={row.label} value={row.value} total={current.value} color={row.color} />
+                  ))}
                 </ul>
                 {biggest && biggest.value > 0 && <p className="type-caption mt-4 border-t border-line pt-3 text-muted">Biggest single position: {biggest.label}, {percentOf(biggest.value, current.value).toFixed(1)}% of this view.</p>}
               </section>
