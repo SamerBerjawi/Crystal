@@ -92,4 +92,4 @@ npm test
 npm run build
 ```
 
-Then open it in the browser at the three widths. `/?ui-kit` shows every component in development.
+Then open it in the browser at the three widths.

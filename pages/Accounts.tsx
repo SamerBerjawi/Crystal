@@ -61,8 +61,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const { loanPaymentOverrides } = useScheduleContext();
   const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as any);
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
-  const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId);
-  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides);
   
   const urlTab = useUrlTab();
   const activeTab = (['accounts', 'loans', 'assets'].includes(urlTab ?? '') ? urlTab : 'cards') as AccountsTab;

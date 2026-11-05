@@ -10,9 +10,6 @@ interface MortgageAmortizationChartProps {
 }
 
 const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ schedule, currency, accountType = 'Loan' }) => {
-  const isLending = accountType === 'Lending';
-  const principalName = isLending ? "Principal Received" : "Principal Paid";
-  const interestName = isLending ? "Interest Earned" : "Interest Paid";
 
   // aggregate data by year to make the chart readable if the loan is long
   const yearlyData = React.useMemo(() => {

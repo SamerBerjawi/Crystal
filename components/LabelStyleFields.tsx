@@ -37,7 +37,7 @@ const LabelStyleFields: React.FC<LabelStyleFieldsProps> = ({ icon, color, onIcon
               aria-label={`Colour ${preset}`}
               aria-pressed={preset === color}
               onClick={() => onColorChange(preset)}
-              className={cn('size-8 cursor-pointer rounded-full outline-none ring-offset-2 ring-offset-solid focus-visible:ring-2 focus-visible:ring-primary', preset === color && 'ring-2 ring-ink')}
+              className={cn('size-8 pointer-coarse:size-11 cursor-pointer rounded-full outline-none ring-offset-2 ring-offset-solid focus-visible:ring-2 focus-visible:ring-primary', preset === color && 'ring-2 ring-ink')}
               style={{ backgroundColor: preset }}
             />
           ))}
