@@ -461,6 +461,51 @@ export const moveSuggestion = (projection: Projection, cushion: number): MoveSug
   return candidates[0] ? { event: candidates[0], toDate: iso(addDays(parseLocalDate(income.date), 1)) } : null;
 };
 
+export interface BufferSuggestion {
+  id: string;
+  /** Move a bill or recurring payment past the next income, or stop a goal's contributions counting. */
+  action: 'move' | 'pause-goal';
+  event: ForecastEvent;
+  toDate?: string;
+  goalId?: string;
+  /** 0 goals and one-time bills, 1 recurring payments, 2 anything that looks like a tax. Lower is suggested first. */
+  tier: 0 | 1 | 2;
+  /** What it frees before the dip, positive. */
+  frees: number;
+}
+
+const isTaxEvent = (event: ForecastEvent) => /\btax\b/i.test(event.description);
+/** Tax instalments made from a warrant aren't saved as bills, so they can't be moved from here. */
+export const isDerivedBill = (event: ForecastEvent) => !!event.occurrence?.bill?.id?.startsWith('warrant-tax-');
+
+/**
+ * Ways to stay above the buffer, best first: goals and one-time bills, then recurring payments, then taxes. Within a
+ * group, the one that frees the most comes first. One per goal or series, at most `limit`.
+ */
+export const bufferSuggestions = (projection: Projection, cushion: number, limit = 4): BufferSuggestion[] => {
+  const { first } = daysBelow(projection.days, cushion);
+  if (!first) return [];
+  const income = nextIncomeAfter(projection.events, first);
+  const earliest = iso(addDays(parseLocalDate(first), -21));
+  const found = new Map<string, BufferSuggestion>();
+
+  for (const event of projection.events) {
+    if (event.amount >= 0 || event.date > first) continue;
+    if (event.kind === 'goal' && event.goalId) {
+      const id = `goal:${event.goalId}`;
+      const frees = (found.get(id)?.frees ?? 0) + Math.abs(event.amount);
+      found.set(id, { id, action: 'pause-goal', event: found.get(id)?.event ?? event, goalId: event.goalId, tier: 0, frees });
+    } else if (income && canMove(event) && event.date >= earliest && !isDerivedBill(event)) {
+      const id = `move:${event.seriesKey}`;
+      const frees = Math.abs(event.amount);
+      if (frees <= (found.get(id)?.frees ?? 0)) continue;
+      const tier = isTaxEvent(event) ? 2 : event.kind === 'bill' ? 0 : 1;
+      found.set(id, { id, action: 'move', event, toDate: iso(addDays(parseLocalDate(income.date), 1)), tier, frees });
+    }
+  }
+  return [...found.values()].sort((a, b) => a.tier - b.tier || b.frees - a.frees).slice(0, limit);
+};
+
 /**
  * Pending warrant tax instalments as one-off bills, so every forecast counts them. They're paid from the first selected
  * account, else the primary account, else the first account.
