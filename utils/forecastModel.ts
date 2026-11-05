@@ -5,7 +5,7 @@ import { addDays, buildOccurrences, iso, isOpen, owningAccountId, type Converter
 /*
  * Forecast model. Projects the selected accounts'
  * balance day by day from today's balances (future-dated transactions excluded, E-01), the Schedule engine's
- * occurrences (overdue ones land on today, E-02) and active goals (contributions once, E-03; savings goals as a
+ * occurrences from today onwards, and active goals (contributions once, E-03; savings goals as a
  * transfer, F-08). Everything in the display currency. Pure, so it is unit tested (tests/unit/forecastModel.test.ts).
  */
 
@@ -173,16 +173,16 @@ export const projectBalances = (input: ProjectInput): Projection => {
     return value;
   };
 
-  // Occurrences from the Schedule engine.
+  // Occurrences from the Schedule engine (only today onwards; overdue past occurrences are not stacked on today).
   for (const o of occurrences) {
     if (!isOpen(o)) continue;
-    const date = o.date < todayStr ? todayStr : o.date;
-    if (date > endStr) continue;
+    if (o.date < todayStr || o.date > endStr) continue;
+    const date = o.date;
     const base = convert(o.amount, o.currency);
     const legs: { accountId: string | null; amount: number }[] = [];
     const isTransfer = o.type === 'transfer';
     if (isTransfer) {
-      if (o.accountId && selected.has(o.accountId)) legs.push({ accountId: o.accountId, amount: -round2(scale(base, -1, date)) });
+      if (o.accountId && selected.has(o.accountId)) legs.push({ accountId: o.accountId, amount: -round2(base) });
       if (o.toAccountId && selected.has(o.toAccountId)) legs.push({ accountId: o.toAccountId, amount: round2(base) });
     } else {
       const sign: 1 | -1 = o.flow === 'in' ? 1 : -1;
@@ -464,17 +464,32 @@ export const moveSuggestion = (projection: Projection, cushion: number): MoveSug
 export type ForecastData = Pick<OccurrenceInput, 'recurring' | 'overrides' | 'bills' | 'accounts' | 'transactions' | 'loanPaymentOverrides'>;
 
 /** The one way a forecast is worked out from saved data, so Overview and Forecast can't disagree. */
-export const forecastFromData = (data: ForecastData, selected: Account[], goals: FinancialGoal[], activeGoalIds: string[], today: Date, end: Date, convert: Converter): Projection =>
-  projectBalances({
+export const forecastFromData = (data: ForecastData, selected: Account[], goals: FinancialGoal[], activeGoalIds: string[], today: Date, end: Date, convert: Converter, assumptions?: Assumptions): Projection => {
+  const todayStr = iso(today);
+  const startBalances: Record<string, number> = {};
+  for (const account of selected) {
+    let realToday = convert(account.balance, account.currency);
+    for (const tx of data.transactions ?? []) {
+      if (tx.accountId !== account.id) continue;
+      if (tx.isSplitParent || tx.isCombinedParent) continue;
+      if (tx.date.slice(0, 10) > todayStr) {
+        realToday -= convert(tx.amount, tx.currency || account.currency);
+      }
+    }
+    startBalances[account.id] = round2(realToday);
+  }
+  return projectBalances({
     accounts: selected,
-    startBalances: Object.fromEntries(selected.map(account => [account.id, convert(account.balance, account.currency)])),
-    occurrences: buildOccurrences({ ...data, from: today, to: end, today }),
+    startBalances,
+    occurrences: buildOccurrences({ ...data, from: today, to: end, today, overdueDays: 0 }),
     goals,
     activeGoalIds,
     today,
     end,
     convert,
+    assumptions,
   });
+};
 
 export interface HorizonTile { period: string; lowestBalance: number; date: string }
 

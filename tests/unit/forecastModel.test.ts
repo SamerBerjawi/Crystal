@@ -48,11 +48,12 @@ test('the projection starts from today\'s balances and applies payments on their
   assert.equal(on(p, '2026-12-01'), 0);
 });
 
-test('an overdue unpaid bill lands on today (E-02)', () => {
+test('overdue unpaid bills and past occurrences do not stack onto today', () => {
   const bills: BillPayment[] = [{ id: 'b', description: 'Tax', amount: -200, type: 'payment', currency: 'EUR', dueDate: '2026-09-01', status: 'unpaid', accountId: 'chk' }];
-  const p = project({ bills });
-  assert.equal(p.days[0].total, 800);
-  assert.equal(p.days[0].events[0].overdue, true);
+  const overdueSeries = series({ id: 'old-rt', nextDueDate: '2026-10-15' });
+  const p = project({ bills, recurring: [overdueSeries] });
+  assert.equal(p.days[0].total, 1000);
+  assert.equal(p.days[0].events.length, 0);
 });
 
 test('a one-time goal with contributions is not counted twice (E-03)', () => {

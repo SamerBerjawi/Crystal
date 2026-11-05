@@ -20,15 +20,15 @@ import { MultiSelect } from '../components/ui/Pickers';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 import { useInsightsView } from '../contexts/InsightsViewContext';
-import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesContext, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../lib/utils';
 import {
-  FORECAST_RANGES, WEEKLY_AFTER_DAYS, biggestAhead, drivers, forecastBubbles, forecastFromData, horizonSummary, lowestPoints, moveSuggestion, projectBalances, rangeEnd, rangeFromDuration,
-  type Bubble, type ForecastEvent, type ForecastRange,
+  FORECAST_RANGES, NO_ASSUMPTIONS, WEEKLY_AFTER_DAYS, biggestAhead, drivers, forecastBubbles, forecastFromData, hasAssumptions, horizonSummary, lowestPoints, moveSuggestion, rangeEnd, rangeFromDuration,
+  type Assumptions, type Bubble, type ForecastEvent, type ForecastRange,
 } from '../utils/forecastModel';
-import { iso, moveFuture, moveSeries, scheduledItemOf } from '../utils/scheduleModel';
+import { iso, moveFuture, moveSeries, parseAmountInput, scheduledItemOf } from '../utils/scheduleModel';
 
 const VIEWS = [{ id: 'chart', label: 'Chart' }, { id: 'list', label: 'List' }];
 const LEGEND = [
@@ -47,6 +47,7 @@ type Pending = { event: ForecastEvent; toDate: string };
 const Forecasting: React.FC = () => {
   const { accounts } = useAccountsContext();
   const { transactions } = useTransactionsContext();
+  const { warrants } = useWarrantsContext();
   const { financialGoals, saveFinancialGoal } = useGoalsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { activeGoalIds } = useInsightsView();
@@ -65,15 +66,18 @@ const Forecasting: React.FC = () => {
   const [view, setView] = useState('chart');
   const [showGoals, setShowGoals] = useState(true);
   const [splitAccounts, setSplitAccounts] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [panel, setPanel] = useState<{ date: string; events: ForecastEvent[]; title?: string } | null>(null);
   const [pendingMove, setPendingMove] = useState<Pending | null>(null);
   const [editChoice, setEditChoice] = useState<ForecastEvent | null>(null);
   const [overrideItem, setOverrideItem] = useState<ScheduledItem | null>(null);
   const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null);
+  const [pendingEndedRecurring, setPendingEndedRecurring] = useState<RecurringTransaction | null>(null);
   const [editingBill, setEditingBill] = useState<BillPayment | null>(null);
   const [formMode, setFormMode] = useState<'recurring' | 'one-time' | null>(null);
   const [formDate, setFormDate] = useState<string | undefined>();
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
+  const [assumptions, setAssumptions] = useState<Assumptions>(NO_ASSUMPTIONS);
 
   useEffect(() => setRange(rangeFromDuration(preferences.defaultForecastPeriod)), [preferences.defaultForecastPeriod]);
 
@@ -84,12 +88,31 @@ const Forecasting: React.FC = () => {
   const selectedAccounts = useMemo(() => accounts.filter(account => selectedAccountIds.includes(account.id)), [accounts, selectedAccountIds]);
   const end = useMemo(() => rangeEnd(range, today), [range, today]);
 
+  const allBills = useMemo<BillPayment[]>(() => {
+    const primaryAccountId = selectedAccounts[0]?.id || accounts.find(a => a.isPrimary)?.id || accounts[0]?.id || '';
+    const warrantTaxBills: BillPayment[] = warrants.flatMap(w =>
+      (w.taxPayments || [])
+        .filter(tp => tp.status === 'pending' && tp.amount > 0 && tp.dueDate)
+        .map(tp => ({
+          id: `warrant-tax-${w.id}-${tp.id}`,
+          description: `${w.name || w.isin} tax instalment`,
+          amount: -Math.abs(tp.amount),
+          type: 'payment' as const,
+          dueDate: tp.dueDate,
+          status: 'unpaid' as const,
+          accountId: primaryAccountId,
+          currency: getMainCurrency() as BillPayment['currency'],
+        }))
+    );
+    return [...billsAndPayments, ...warrantTaxBills];
+  }, [billsAndPayments, warrants, selectedAccounts, accounts]);
+
   const projection = useMemo(() => {
     return forecastFromData(
-      { recurring: recurringTransactions, overrides: recurringTransactionOverrides, bills: billsAndPayments, accounts, transactions, loanPaymentOverrides },
-      selectedAccounts, financialGoals, activeGoalIds, today, end, convertToMain,
+      { recurring: recurringTransactions, overrides: recurringTransactionOverrides, bills: allBills, accounts, transactions, loanPaymentOverrides },
+      selectedAccounts, financialGoals, activeGoalIds, today, end, convertToMain, assumptions,
     );
-  }, [recurringTransactions, recurringTransactionOverrides, billsAndPayments, accounts, transactions, loanPaymentOverrides, today, end, selectedAccounts, financialGoals, activeGoalIds]);
+  }, [recurringTransactions, recurringTransactionOverrides, allBills, accounts, transactions, loanPaymentOverrides, today, end, selectedAccounts, financialGoals, activeGoalIds, assumptions]);
 
   const summary = useMemo(() => horizonSummary(projection, cushion), [projection, cushion]);
   const isWeekly = projection.days.length > WEEKLY_AFTER_DAYS;
@@ -103,15 +126,57 @@ const Forecasting: React.FC = () => {
     .filter(goal => !goal.isBucket && goal.date && !goal.completed && !goal.disabled && activeGoalIds.includes(goal.id))
     .map(goal => ({ date: goal.date!, label: goal.name })) : []), [showGoals, financialGoals, activeGoalIds]);
 
+  const chartDays = useMemo(() => {
+    if (!showHistory || projection.days.length === 0) return projection.days;
+    const todayDay = projection.days[0];
+    const selectedSet = new Set(selectedAccounts.map(a => a.id));
+    const txByDateAndAccount = new Map<string, Map<string, number>>();
+    for (const tx of transactions) {
+      if (tx.isSplitParent || tx.isCombinedParent) continue;
+      if (!selectedSet.has(tx.accountId)) continue;
+      const d = tx.date.slice(0, 10);
+      if (d > todayDay.date) continue;
+      const acctMap = txByDateAndAccount.get(d) || new Map<string, number>();
+      acctMap.set(tx.accountId, (acctMap.get(tx.accountId) || 0) + convertToMain(tx.amount, tx.currency));
+      txByDateAndAccount.set(d, acctMap);
+    }
+
+    const runningByAccount: Record<string, number> = { ...todayDay.byAccount };
+    const historyDays: typeof projection.days = [];
+    const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    for (let step = 1; step <= 30; step += 1) {
+      const dateAtCursor = iso(cursor);
+      const deltasOnCursor = txByDateAndAccount.get(dateAtCursor);
+      if (deltasOnCursor) {
+        for (const [acctId, delta] of deltasOnCursor.entries()) {
+          runningByAccount[acctId] = round2((runningByAccount[acctId] ?? 0) - delta);
+        }
+      }
+      cursor.setDate(cursor.getDate() - 1);
+      const prevIso = iso(cursor);
+      const byAccountSnap = { ...runningByAccount };
+      const total = round2(Object.values(byAccountSnap).reduce((s, v) => s + v, 0));
+      historyDays.unshift({
+        date: prevIso,
+        total,
+        byAccount: byAccountSnap,
+        net: 0,
+        events: [],
+      });
+    }
+    return [...historyDays, ...projection.days];
+  }, [showHistory, projection.days, selectedAccounts, transactions, today]);
+
   const accountLines = useMemo<ChartLine[] | undefined>(() => {
     if (!splitAccounts || selectedAccounts.length < 2) return undefined;
     return selectedAccounts.map((account, index) => ({
       id: account.id,
       name: account.name,
       colour: LINE_COLOURS[index % LINE_COLOURS.length],
-      values: projection.days.map(day => day.byAccount[account.id] ?? 0),
+      values: chartDays.map(day => day.byAccount[account.id] ?? 0),
     }));
-  }, [splitAccounts, selectedAccounts, projection.days]);
+  }, [splitAccounts, selectedAccounts, chartDays]);
 
   const accountName = (id?: string) => accounts.find(account => account.id === id)?.name;
   const dayOf = (date: string) => projection.days.find(day => day.date === date);
@@ -202,7 +267,7 @@ const Forecasting: React.FC = () => {
     if (editChoice && series) {
       const start = editChoice.occurrence!.originalDate;
       const { ended, started } = moveFuture(series, start, start);
-      saveRecurringTransaction(ended);
+      setPendingEndedRecurring(ended);
       setEditingRecurring({ ...started, id: '' } as RecurringTransaction);
       setFormMode('recurring');
     }
@@ -263,16 +328,17 @@ const Forecasting: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-x-4">
+                    <Switch isSelected={showHistory} onChange={setShowHistory}>Past 30d</Switch>
                     <Switch isSelected={showGoals} onChange={setShowGoals}>Goals</Switch>
                     {selectedAccounts.length > 1 && <Switch isSelected={splitAccounts} onChange={setSplitAccounts}>By account</Switch>}
                   </div>
                 </div>
                 <ForecastHorizonChart
-                  days={projection.days}
+                  days={chartDays}
                   bubbles={bubbles}
                   cushion={cushion}
                   lowest={summary.lowest}
-                  revealKey={`${range}-${selectedAccountIds.join()}-${splitAccounts}`}
+                  revealKey={`${range}-${selectedAccountIds.join()}-${splitAccounts}-${showHistory}`}
                   showBubbles={!isPhone}
                   markers={markers}
                   lines={accountLines}
@@ -350,8 +416,50 @@ const Forecasting: React.FC = () => {
               <p className="type-caption text-muted">The least you want to keep. Safe to spend uses the same number.</p>
               <div className="mt-3 flex items-end gap-1">
                 <IconButton icon="minus-sign" label="Lower the buffer" isDisabled={cushion <= 0} onPress={() => setCushion(cushion - BUFFER_STEP)} />
-                <AmountInput key={cushion} className="min-w-0 flex-1" label="Buffer" currency={getMainCurrency()} defaultValue={cushion ? String(cushion) : ''} onBlur={e => setCushion(parseFloat((e.target as HTMLInputElement).value) || 0)} />
+                <AmountInput key={cushion} className="min-w-0 flex-1" label="Buffer" currency={getMainCurrency()} defaultValue={cushion ? String(cushion) : ''} onBlur={e => { const v = parseAmountInput((e.target as HTMLInputElement).value); setCushion(Number.isFinite(v) ? v : 0); }} />
                 <IconButton icon="add-01" label="Raise the buffer" onPress={() => setCushion(cushion + BUFFER_STEP)} />
+              </div>
+            </section>
+
+            <section aria-label="What-if assumptions" className="surface-card rounded-[var(--radius-xl)] p-5">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="type-card-title text-ink">Assumptions</h2>
+                {hasAssumptions(assumptions) && (
+                  <Button variant="ghost" size="sm" onPress={() => setAssumptions(NO_ASSUMPTIONS)}>Reset</Button>
+                )}
+              </div>
+              <p className="type-caption text-muted">Test how income changes, inflation, or market returns affect your horizon.</p>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <label className="block">
+                  <span className="type-caption text-muted">Income %</span>
+                  <input
+                    type="number"
+                    step="1"
+                    value={assumptions.incomeChange}
+                    onChange={e => setAssumptions(prev => ({ ...prev, incomeChange: Number(e.target.value) || 0 }))}
+                    className="mt-1 h-9 w-full rounded-[var(--radius-md)] border border-line bg-inset px-2.5 text-sm text-ink"
+                  />
+                </label>
+                <label className="block">
+                  <span className="type-caption text-muted">Inflation %</span>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={assumptions.inflation}
+                    onChange={e => setAssumptions(prev => ({ ...prev, inflation: Number(e.target.value) || 0 }))}
+                    className="mt-1 h-9 w-full rounded-[var(--radius-md)] border border-line bg-inset px-2.5 text-sm text-ink"
+                  />
+                </label>
+                <label className="block">
+                  <span className="type-caption text-muted">Market %</span>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={assumptions.marketReturn}
+                    onChange={e => setAssumptions(prev => ({ ...prev, marketReturn: Number(e.target.value) || 0 }))}
+                    className="mt-1 h-9 w-full rounded-[var(--radius-md)] border border-line bg-inset px-2.5 text-sm text-ink"
+                  />
+                </label>
               </div>
             </section>
 
@@ -435,9 +543,15 @@ const Forecasting: React.FC = () => {
       {formMode && (
         <RecurringTransactionModal
           isOpen
-          onClose={() => { setFormMode(null); setEditingRecurring(null); setEditingBill(null); }}
-          onSave={data => { saveRecurringTransaction(data); setFormMode(null); setEditingRecurring(null); }}
-          onSaveBill={data => { saveBillPayment(data); setFormMode(null); setEditingBill(null); }}
+          onClose={() => { setFormMode(null); setEditingRecurring(null); setPendingEndedRecurring(null); setEditingBill(null); }}
+          onSave={data => {
+            if (pendingEndedRecurring) saveRecurringTransaction(pendingEndedRecurring);
+            saveRecurringTransaction(data);
+            setFormMode(null);
+            setEditingRecurring(null);
+            setPendingEndedRecurring(null);
+          }}
+          onSaveBill={data => { saveBillPayment(data); setFormMode(null); setEditingBill(null); setPendingEndedRecurring(null); }}
           accounts={accounts}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}
