@@ -6,7 +6,7 @@ import {
   accountForecast, warrantTaxBills, chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, bufferSuggestions, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
 } from '../../utils/forecastModel';
 import {
-  accountCoverage, goalTree, monthlyTargets, moveGoal, planGoal, projectGoal, summaryRings, emptyGoalDraft,
+  accountCoverage, goalTree, monthlyTargetGroups, monthlyTargets, moveGoal, planGoal, projectGoal, summaryRings, emptyGoalDraft,
 } from '../../utils/goalsModel';
 
 /* Forecast and goals models. */
@@ -163,6 +163,20 @@ test('monthly targets by month and by account', () => {
   assert.equal(byMonth.find(t => t.key === '2026-12')?.savings, 1200 + 433.33);
   const byAccount = monthlyTargets(goals, ['g', 'h'], id => (id === 'chk' ? 'Checking' : 'Savings'), TODAY, eur, 'account');
   assert.equal(byAccount.find(t => t.label === 'Checking')?.savings, 1200);
+});
+
+test('monthly targets go one level deeper: each account by month, and each month by account', () => {
+  const goals = [goal({ id: 'g', date: '2026-12-15', paymentAccountId: 'chk' }), goal({ id: 'h', type: 'recurring', monthlyContribution: 100, frequency: 'weekly', paymentAccountId: 'sav', amount: 5000 })];
+  const name = (id?: string) => (id === 'chk' ? 'Checking' : 'Savings');
+  const byAccount = monthlyTargetGroups(goals, ['g', 'h'], name, TODAY, eur, 'account');
+  assert.deepEqual(byAccount.map(group => group.label), ['Checking', 'Savings']);
+  assert.deepEqual(byAccount[0].items.map(item => [item.label, item.savings]), [['December 2026', 1200]]);
+  assert.ok(byAccount[1].items.length > 1);
+  assert.equal(byAccount[1].items[0].savings, 433.33);
+  const byMonth = monthlyTargetGroups(goals, ['g', 'h'], name, TODAY, eur, 'month');
+  const december = byMonth.find(group => group.key === '2026-12')!;
+  assert.deepEqual(december.items.map(item => [item.label, item.savings]), [['Checking', 1200], ['Savings', 433.33]]);
+  assert.deepEqual(byMonth.map(group => group.key), [...byMonth.map(group => group.key)].sort());
 });
 
 test('goal order moves and the goal form', () => {

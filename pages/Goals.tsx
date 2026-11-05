@@ -21,10 +21,11 @@ import { useAccountsContext } from '../contexts/DomainProviders';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 import { goalCategoryOf } from '../utils/forecastModel';
 import { parseAmountInput } from '../utils/scheduleModel';
-import { accountCoverage, completionChanges, goalTree, isGoalDone, monthlyNeed, monthlyTargets, moveGoal, summaryRings, type GoalNode } from '../utils/goalsModel';
+import { accountCoverage, completionChanges, goalTree, isGoalDone, monthlyNeed, monthlyTargetGroups, moveGoal, summaryRings, type GoalNode } from '../utils/goalsModel';
 
 const VIEWS = [{ id: 'cards', label: 'Cards' }, { id: 'table', label: 'Table' }];
 const SCHEDULES = [{ id: 'account', label: 'By account' }, { id: 'month', label: 'By month' }];
+const DOTS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 const ALL = 'all';
 const SHARE_COLOURS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 
@@ -74,7 +75,7 @@ const Goals: React.FC = () => {
   }, [visibleGoals, accounts]);
   const targets = useMemo(() => {
     const nameOf = (id?: string) => accounts.find(account => account.id === id)?.name ?? '';
-    return monthlyTargets(visibleGoals, activeGoalIds, nameOf, today, convertToMain, schedule);
+    return monthlyTargetGroups(visibleGoals, activeGoalIds, nameOf, today, convertToMain, schedule);
   }, [visibleGoals, activeGoalIds, accounts, today, schedule]);
 
   const shares = useMemo(() => {
@@ -254,25 +255,35 @@ const Goals: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="type-card-title text-ink">What your goals ask for</h2>
-                <p className="type-caption text-muted">The next six months, for goals included in the forecast.</p>
+                <p className="type-caption text-muted">Every account in every month for the next twelve months, for goals included in the forecast.</p>
               </div>
               <SegmentedControl items={SCHEDULES} activeId={schedule} onChange={id => setSchedule(id as 'account' | 'month')} />
             </div>
             {targets.length > 0 ? (
-              <ul className="mt-3 divide-y divide-line">
-                {targets.map(target => (
-                  <li key={target.key} className="flex min-h-11 flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2">
-                    <span className="type-body-strong text-ink">{target.label}</span>
-                    <span className="flex flex-wrap gap-x-5">
-                      {target.savings > 0 && <span className="type-caption text-muted">Saving <span className="type-figure-row text-ink"><Amount value={target.savings} currency={getMainCurrency()} /></span></span>}
-                      {target.expense > 0 && <span className="type-caption text-muted">Spending <span className="type-figure-row text-ink"><Amount value={target.expense} currency={getMainCurrency()} /></span></span>}
-                      {target.income > 0 && <span className="type-caption text-muted">Income <span className="type-figure-row text-ink"><Amount value={target.income} currency={getMainCurrency()} /></span></span>}
-                    </span>
-                  </li>
+              <div className="mt-4 md:columns-2 md:gap-x-8">
+                {targets.map((group, index) => (
+                  <section key={group.key} aria-label={group.label} className="mb-6 min-w-0 break-inside-avoid">
+                    <h3 className="type-body-strong flex items-center gap-2 text-ink">
+                      {schedule === 'account' && <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: DOTS[index % DOTS.length] }} />}
+                      <span className="truncate">{group.label}</span>
+                    </h3>
+                    <ul className="mt-1 divide-y divide-line border-l-2 border-line pl-3">
+                      {group.items.map(item => (
+                        <li key={item.key} className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
+                          <span className="type-body min-w-0 truncate text-muted">{item.label}</span>
+                          <span className="flex flex-wrap justify-end gap-x-4">
+                            {item.savings > 0 && <span className="type-caption text-muted">Saving <span className="type-figure-row whitespace-nowrap text-ink"><Amount value={item.savings} currency={getMainCurrency()} /></span></span>}
+                            {item.expense > 0 && <span className="type-caption text-muted">Spending <span className="type-figure-row whitespace-nowrap text-ink"><Amount value={item.expense} currency={getMainCurrency()} /></span></span>}
+                            {item.income > 0 && <span className="type-caption text-muted">Income <span className="type-figure-row whitespace-nowrap text-ink"><Amount value={item.income} currency={getMainCurrency()} /></span></span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <p className="type-body mt-3 text-muted">Nothing is due in the next six months.</p>
+              <p className="type-body mt-3 text-muted">Nothing is due in the next twelve months.</p>
             )}
           </section>
         </>
