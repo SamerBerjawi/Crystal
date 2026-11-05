@@ -170,7 +170,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
           <TextInput label="Phone" type="tel" autoComplete="tel" value={form.phone ?? ''} onChange={set('phone')} />
           <div className="min-w-0 md:col-span-2">
             <p className="type-label mb-1.5 text-ink">Default city</p>
-            <LocationAutocomplete value={form.defaultCity ?? ''} onChange={set('defaultCity')} placeholder="Brussels, Belgium" />
+            <LocationAutocomplete label="Default city" value={form.defaultCity ?? ''} onChange={set('defaultCity')} placeholder="Brussels, Belgium" />
           </div>
           <Textarea label="Address" rows={3} className="md:col-span-2" value={form.address ?? ''} onChange={set('address')} />
         </div>

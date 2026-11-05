@@ -55,7 +55,7 @@ The structure is fine. These swap to shared dialogs, fields and tokens.
 5. **Account dialogs and transaction tools**, as one batch. Done (`D-118`).
 6. **Bulk edit, split and mileage.** Done (`D-120`).
 7. **Sign-in and onboarding.** Done (`D-121`).
-8. **Overview widgets and shared bits**, plus the forecast engine move.
+8. **Overview widgets and shared bits**, plus the forecast engine move. Done (`D-129`).
 9. **Contrast check** on anything restyled.
 10. **Module 13**: the bridge styles, `@base-ui/react`, `DESIGN.md`, then Phase 10. Also decide on map credits: `index.css` hides them on every map, and OpenStreetMap's licence requires them.
 

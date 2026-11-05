@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Account, Category, Transaction } from '../../types';
-import { generateAmortizationSchedule, generateBalanceForecast } from '../../utils';
+import { generateAmortizationSchedule } from '../../utils';
+import { accountForecast } from '../../utils/forecastModel';
 import {
   computeCashAccountMetrics,
   computeCompoundingProjection,
@@ -138,7 +139,7 @@ test('Savings Interest Fix #3, #4, #5 & #6: matches nested interest subcategorie
   assert.equal(metrics.growthIndexLabel, '+0.3%');
 });
 
-test('Forecast APY Compounding: generateBalanceForecast compounds APY on Savings accounts', () => {
+test('Forecast APY Compounding: the shared forecast compounds APY on Savings accounts', () => {
   const savingsAcc: Account = {
     id: 'sav-forecast',
     name: 'Compound Vault',
@@ -150,8 +151,8 @@ test('Forecast APY Compounding: generateBalanceForecast compounds APY on Savings
   const end = new Date();
   end.setFullYear(end.getFullYear() + 1);
 
-  const { chartData } = generateBalanceForecast([savingsAcc], [], [], [], end, []);
-  const finalBalance = chartData[chartData.length - 1].value;
+  const days = accountForecast({ recurring: [], overrides: [], bills: [], accounts: [savingsAcc], transactions: [] }, savingsAcc, 10000, [], [], new Date(), end);
+  const finalBalance = days[days.length - 1].value;
   // 10,000 at 5% APY over 1 year should grow to ~10,500
   assert.ok(finalBalance > 10480 && finalBalance < 10520, `Expected ${finalBalance} around 10500`);
 });

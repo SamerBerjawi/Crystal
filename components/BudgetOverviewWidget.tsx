@@ -4,6 +4,7 @@ import { getDateRange, convertToMain, getMainCurrency, toLocalISOString } from '
 import { budgetAccountIds, spendByCategory } from '../utils/budgetModel';
 import { monthsInPeriod } from '../utils/reportsModel';
 import BudgetProgressBar from './BudgetProgressBar';
+import { EmptyState } from './ui/States';
 
 interface BudgetOverviewWidgetProps {
   budgets: Budget[];
@@ -52,34 +53,23 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
     }, [budgets, spendingByCategory, periodMonths]);
 
     if (budgetData.length === 0) {
-        return (
-            <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">
-                <p>No budgets set up.</p>
-            </div>
-        );
+        return <EmptyState icon="pie-chart-01" title="No budgets yet" description="Set one up in Budget to track it here." actionLabel="Go to Budget" onAction={onBudgetClick} className="h-full py-6" />;
     }
 
     return (
-        <div className="space-y-2 h-full overflow-y-auto pr-1">
+        <ul className="no-scrollbar -mx-2 h-full space-y-1 overflow-y-auto">
             {budgetData.slice(0, 4).map(budget => (
-                <div
-                    key={budget.id}
-                    onClick={() => (onCategoryClick ? onCategoryClick(budget.categoryName) : onBudgetClick())}
-                    className="cursor-pointer group p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-all duration-200"
-                >
-                    <BudgetProgressBar
-                        spent={budget.spent}
-                        budgeted={budget.limit}
-                        currency={getMainCurrency()}
-                        categoryName={budget.categoryName}
-                        variant="compact"
-                        showLabels={true}
-                        showValues={true}
-                        showPercentage={true}
-                    />
-                </div>
+                <li key={budget.id}>
+                    <button
+                        type="button"
+                        onClick={() => (onCategoryClick ? onCategoryClick(budget.categoryName) : onBudgetClick())}
+                        className="w-full rounded-[var(--radius-md)] px-2 py-2 text-left transition-colors hover:bg-inset focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
+                    >
+                        <BudgetProgressBar spent={budget.spent} budgeted={budget.limit} currency={getMainCurrency()} categoryName={budget.categoryName} />
+                    </button>
+                </li>
             ))}
-        </div>
+        </ul>
     );
 };
 

@@ -1,10 +1,13 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { countries, type TCountryCode } from 'countries-list';
-import { Transaction, Currency } from '../types';
-import { formatCurrency, safeRound } from '../utils';
+import { Transaction } from '../types';
+import { convertToMain, getMainCurrency, safeRound } from '../utils';
 import L from 'leaflet';
-import Icon from './ui/Icon';
+import { useIsDark } from '../hooks/useIsDark';
+import { IconButton } from './ui/Actions';
+import { Amount } from './ui/Money';
+import { EmptyState } from './ui/States';
 import { VectorBasemap } from './VectorBasemap';
 
 type CountryCode = Lowercase<TCountryCode>;
@@ -113,286 +116,140 @@ const CircleMarkerAny = CircleMarker as any;
 const TooltipAny = Tooltip as any;
 
 const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transactions }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const isDarkMode = useIsDark();
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [hoveredLocationId, setHoveredLocationId] = useState<string | null>(null);
+  const currency = getMainCurrency();
 
-  useEffect(() => {
-    const checkDarkMode = () => document.documentElement.classList.contains('dark');
-    setIsDarkMode(checkDarkMode());
-
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  // Consolidate transactions by unique city & coordinates
   const locations = useMemo(() => {
-    type GroupedLocation = {
-      key: string;
-      lat: number;
-      lon: number;
-      count: number;
-      amountTotal: number;
-      transactions: Transaction[];
-    };
+    type GroupedLocation = { key: string; lat: number; lon: number; count: number; total: number; transactions: Transaction[] };
 
+    // Totals convert each transaction to the main currency, so places with mixed currencies add up (D-109).
     const grouped = transactions
       .filter(tx => tx.latitude !== undefined && tx.latitude !== null && tx.longitude !== undefined && tx.longitude !== null)
       .reduce((map: Map<string, GroupedLocation>, tx) => {
         const key = tx.city && tx.country
           ? `${tx.city.trim().toLowerCase()}|${tx.country.trim().toLowerCase()}`
           : `${Number(tx.latitude!.toFixed(2))},${Number(tx.longitude!.toFixed(2))}`;
-
+        const amount = convertToMain(tx.amount, tx.currency);
         const current = map.get(key);
         if (current) {
           current.count += 1;
-          current.amountTotal = safeRound(current.amountTotal + tx.amount, 2);
+          current.total = safeRound(current.total + amount, 2);
           current.transactions.push(tx);
         } else {
-          map.set(key, {
-            key,
-            lat: Number(tx.latitude!.toFixed(4)),
-            lon: Number(tx.longitude!.toFixed(4)),
-            count: 1,
-            amountTotal: safeRound(tx.amount, 2),
-            transactions: [tx],
-          });
+          map.set(key, { key, lat: Number(tx.latitude!.toFixed(4)), lon: Number(tx.longitude!.toFixed(4)), count: 1, total: safeRound(amount, 2), transactions: [tx] });
         }
         return map;
       }, new Map<string, GroupedLocation>());
 
     return Array.from(grouped.values())
-      .map((group: GroupedLocation) => {
-        const representative = group.transactions[0];
-        const meta = getCountryMeta(representative.country);
-        const cityName = representative.city || 'Unknown City';
-        const label = representative.locationLabel || representative.placeName || cityName;
-        const countryName = meta.countryName || representative.country || '';
-
-
+      .map(group => {
+        const first = group.transactions[0];
+        const meta = getCountryMeta(first.country);
+        const city = first.city || 'Unknown city';
         return {
           id: group.key,
           lat: group.lat,
           lon: group.lon,
           count: group.count,
-          amountTotal: group.amountTotal,
-          currency: representative.currency,
-          description: representative.description,
-          date: representative.date,
-          label,
-          address: representative.address,
-          city: cityName,
-          country: countryName,
+          total: group.total,
+          label: first.locationLabel || first.placeName || city,
+          address: first.address,
+          city,
+          country: meta.countryName || first.country || '',
           flagEmoji: meta.flagEmoji,
-          transactions: group.transactions,
         };
       })
       .sort((a, b) => b.count - a.count);
   }, [transactions]);
 
-
-  // Center coordinate calculation
-  const focalCenter = useMemo((): [number, number] => {
-    if (locations.length === 0) return [20, 0];
-    return [locations[0].lat, locations[0].lon];
-  }, [locations]);
-
+  const focalCenter = useMemo((): [number, number] => (locations.length === 0 ? [20, 0] : [locations[0].lat, locations[0].lon]), [locations]);
+  const coords: [number, number][] = useMemo(() => locations.map(l => [l.lat, l.lon]), [locations]);
   const [tileZoom, setTileZoom] = useState<number>(3);
 
-  const handleZoomIn = () => setTileZoom(prev => Math.min(prev + 1, 18));
-
-  const handleZoomOut = () => setTileZoom(prev => Math.max(prev - 1, 1));
-
-  const handleResetZoom = () => {
-    setTileZoom(3);
-    setSelectedLocationId(null);
-  };
-
-
-  const coords: [number, number][] = useMemo(() => locations.map(l => [l.lat, l.lon]), [locations]);
-
   if (locations.length === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary min-h-[320px] p-6 text-center">
-        <div className="size-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center mb-3">
-          <Icon name="public_off" className="text-2xl opacity-50" />
-        </div>
-        <p className="text-sm font-semibold text-primary">No Geotagged Transactions</p>
-        <p className="text-xs text-tertiary mt-1 max-w-xs">Add a geographic location to transactions to view spending hotspots across the world.</p>
-      </div>
-    );
+    return <EmptyState icon="location-01" title="No places yet" description="Transactions with a location show up on this map." className="h-full py-6" />;
   }
 
-  const activeHoveredLocation = locations.find(l => l.id === (hoveredLocationId || selectedLocationId));
-  const totalTransactionsCount = locations.reduce((sum, l) => sum + l.count, 0);
+  const active = locations.find(l => l.id === (hoveredLocationId || selectedLocationId));
+  const totalCount = locations.reduce((sum, l) => sum + l.count, 0);
+  const floating = 'border border-line bg-solid/90 backdrop-blur-md';
+  const placeLine = (loc: { city: string; country: string }) => [loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown place';
 
   return (
-    <div className="h-full w-full overflow-hidden relative z-0 rounded-2xl border border-black/5 dark:border-white/10 group min-h-[360px] bg-slate-50/50 dark:bg-gray-950/40 flex flex-col justify-between">
-
-      {/* Top Header Controls Bar */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex items-center justify-between pointer-events-none">
-        {/* Active Locations Summary Badge */}
-        <div className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-black/70 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="text-xs font-semibold text-primary">
-            {locations.length} {locations.length === 1 ? 'City' : 'Cities'}
-          </span>
-          <span className="text-xs text-tertiary">•</span>
-          <span className="text-xs text-secondary font-medium">
-            {totalTransactionsCount} {totalTransactionsCount === 1 ? 'transaction' : 'transactions'}
-          </span>
-        </div>
+    <div className="relative isolate flex h-full min-h-[360px] w-full flex-col overflow-hidden rounded-[var(--radius-lg)] bg-inset">
+      <div className={`type-caption absolute left-3 top-3 z-[1000] rounded-full px-3 py-1 text-ink ${floating}`}>
+        {locations.length} {locations.length === 1 ? 'place' : 'places'} · {totalCount} {totalCount === 1 ? 'transaction' : 'transactions'}
       </div>
 
-      {/* Main Map Canvas */}
-      <div className="relative flex-1 w-full h-full min-h-[260px] overflow-hidden">
-        <MapContainerAny
-          center={focalCenter}
-          zoom={tileZoom}
-          style={{ height: '100%', width: '100%' }}
-          className="z-0 bg-light-bg dark:bg-dark-bg"
-          zoomControl={false}
-          attributionControl={false}
-        >
+      <div className="relative min-h-[260px] w-full flex-1 overflow-hidden">
+        <MapContainerAny center={focalCenter} zoom={tileZoom} style={{ height: '100%', width: '100%' }} className="!z-0" zoomControl={false} attributionControl={false}>
           <VectorBasemap dark={isDarkMode} />
           <BoundsFitter coords={coords} center={focalCenter} />
           <LeafletZoomController zoomLevel={tileZoom} />
-          {locations.map(loc => {
-            const radius = Math.min(Math.max(6 + Math.log1p(loc.count) * 2.5, 7), 16);
-            const locationLabel = [loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown location';
-
-            return (
-              <CircleMarkerAny
-                key={loc.id}
-                center={[loc.lat, loc.lon]}
-                radius={radius}
-                pathOptions={{
-                  color: '#3b82f6',
-                  weight: 2,
-                  fillColor: '#60a5fa',
-                  fillOpacity: 0.85,
-                }}
-              >
-                <TooltipAny direction="top" offset={[0, -8]} opacity={1} className="custom-map-tooltip">
-                  <div className="p-1 space-y-0.5 min-w-[120px] text-center">
-                    <p className="font-bold text-xs flex items-center justify-center gap-1">
-                      <span>{loc.flagEmoji}</span>
-                      <span>{locationLabel}</span>
-                    </p>
-                    <p className="text-xs text-tertiary">{loc.count} transactions</p>
-                    <p className="font-mono font-semibold text-xs text-green-700 dark:text-green-400">
-                      {formatCurrency(Math.abs(loc.amountTotal), loc.currency as Currency)}
-                    </p>
-                  </div>
-                </TooltipAny>
-              </CircleMarkerAny>
-            );
-          })}
+          {locations.map(loc => (
+            <CircleMarkerAny
+              key={loc.id}
+              center={[loc.lat, loc.lon]}
+              radius={Math.min(Math.max(6 + Math.log1p(loc.count) * 2.5, 7), 16)}
+              pathOptions={{ color: 'var(--solid)', weight: 2, fillColor: 'var(--primary)', fillOpacity: 0.9 }}
+              eventHandlers={{ click: () => setSelectedLocationId(prev => (prev === loc.id ? null : loc.id)) }}
+            >
+              <TooltipAny direction="top" offset={[0, -8]} opacity={1} className="custom-map-tooltip">
+                <span className="type-caption block text-center">
+                  <span className="type-body-strong block">{loc.flagEmoji} {placeLine(loc)}</span>
+                  {loc.count} {loc.count === 1 ? 'transaction' : 'transactions'} · <Amount value={loc.total} currency={currency} tone="flow" />
+                </span>
+              </TooltipAny>
+            </CircleMarkerAny>
+          ))}
         </MapContainerAny>
       </div>
 
-      {/* Floating Detail Card for Active / Hovered City */}
-      {activeHoveredLocation && (
-        <div className="absolute top-14 left-3 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-3 rounded-xl shadow-xl border border-black/10 dark:border-white/10 flex flex-col gap-1 min-w-[190px] animate-fade-in-up">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-lg leading-none">{activeHoveredLocation.flagEmoji}</span>
+      {active && (
+        <div className={`absolute left-3 top-12 z-[1000] w-[220px] rounded-[var(--radius-lg)] p-3 ${floating}`}>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 gap-2">
+              <span aria-hidden>{active.flagEmoji}</span>
               <div className="min-w-0">
-                <h4 className="font-bold text-xs leading-tight text-primary truncate">
-                  {activeHoveredLocation.label || activeHoveredLocation.city}
-                </h4>
-                <p className="text-xs text-tertiary truncate">
-                  {activeHoveredLocation.address || [activeHoveredLocation.city, activeHoveredLocation.country].filter(Boolean).join(', ')}
-                </p>
+                <h4 className="type-body-strong truncate text-ink">{active.label}</h4>
+                <p className="type-caption truncate text-muted">{active.address || placeLine(active)}</p>
               </div>
             </div>
-            {selectedLocationId === activeHoveredLocation.id && (
-              <button
-                type="button"
-                onClick={() => setSelectedLocationId(null)}
-                className="text-tertiary hover:text-primary p-0.5 rounded-full cursor-pointer"
-                title="Close"
-              >
-                <Icon name="close" className="text-xs" />
-              </button>
-            )}
+            {selectedLocationId === active.id && <IconButton icon="cancel-01" label="Close" iconSize={16} className="size-8" onPress={() => setSelectedLocationId(null)} />}
           </div>
-          <div className="border-t border-black/5 dark:border-white/5 my-0.5 pt-1 flex justify-between items-center text-xs">
-            <span className="text-tertiary">Transactions</span>
-            <span className="font-bold font-mono text-primary">{activeHoveredLocation.count}</span>
-          </div>
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-tertiary">Total Spend</span>
-            <span className="font-bold font-mono text-green-700 dark:text-green-400">
-              {formatCurrency(Math.abs(activeHoveredLocation.amountTotal), activeHoveredLocation.currency as Currency)}
-            </span>
-          </div>
+          <dl className="type-caption mt-2 space-y-1 border-t border-line pt-2">
+            <div className="flex justify-between"><dt className="text-muted">Transactions</dt><dd className="tabular-nums text-ink">{active.count}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Total</dt><dd className="text-ink"><Amount value={active.total} currency={currency} tone="flow" /></dd></div>
+          </dl>
         </div>
       )}
 
-      {/* Bottom Locations Carousel / Chips Bar */}
-      <div className="relative z-10 px-3 pb-3 pt-1 flex items-center gap-1.5 overflow-x-auto custom-scrollbar no-scrollbar">
+      <div className="no-scrollbar relative z-10 flex items-center gap-1.5 overflow-x-auto px-3 pb-3 pt-2">
         {locations.map(loc => {
-          const isSelected = selectedLocationId === loc.id;
-          const isHovered = hoveredLocationId === loc.id;
-
+          const isOn = selectedLocationId === loc.id || hoveredLocationId === loc.id;
           return (
             <button
               key={loc.id}
               type="button"
               onMouseEnter={() => setHoveredLocationId(loc.id)}
               onMouseLeave={() => setHoveredLocationId(null)}
-              onClick={() => setSelectedLocationId(prev => prev === loc.id ? null : loc.id)}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
-                isSelected || isHovered
-                  ? 'bg-primary-500 text-white border-primary-400/40 shadow-xs'
-                  : 'bg-white/80 dark:bg-black/60 text-primary border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10'
-              }`}
-              title={loc.address || `${loc.city}, ${loc.country}`}
+              onClick={() => setSelectedLocationId(prev => (prev === loc.id ? null : loc.id))}
+              aria-pressed={selectedLocationId === loc.id}
+              className={`type-caption inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${isOn ? 'border-pill bg-pill text-on-pill' : 'border-line bg-solid text-ink hover:bg-inset'}`}
             >
-              <span>{loc.flagEmoji}</span>
-              <span className="max-w-[130px] truncate">{loc.label || loc.city}</span>
-              <span className={`text-xs font-mono font-medium ${
-                isSelected || isHovered ? 'text-white/90' : 'text-tertiary'
-              }`}>
-                {formatCurrency(Math.abs(loc.amountTotal), loc.currency as Currency, { compact: true })}
-              </span>
+              <span aria-hidden>{loc.flagEmoji}</span>
+              <span className="max-w-[130px] truncate">{loc.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Bottom-Right Zoom Controls */}
-      <div className="absolute bottom-3 right-3 z-[1000] flex items-center gap-0.5 p-1 rounded-xl bg-white/85 dark:bg-black/70 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs">
-        <button
-          type="button"
-          onClick={handleZoomIn}
-          className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-primary transition-colors cursor-pointer"
-          title="Zoom In"
-        >
-          <Icon name="add" className="text-sm" />
-        </button>
-        <button
-          type="button"
-          onClick={handleZoomOut}
-          className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-primary transition-colors cursor-pointer"
-          title="Zoom Out"
-        >
-          <Icon name="remove" className="text-sm" />
-        </button>
-        <div className="w-[1px] h-3.5 bg-black/10 dark:bg-white/10 mx-0.5" />
-        <button
-          type="button"
-          onClick={handleResetZoom}
-          className="px-1.5 h-6 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono text-tertiary hover:text-primary transition-colors cursor-pointer"
-          title="Reset Zoom"
-        >
-          {`${Math.round((tileZoom / 3) * 100)}%`}
-        </button>
+      <div className={`absolute bottom-14 right-3 z-[1000] flex items-center gap-0.5 rounded-full p-1 ${floating}`}>
+        <IconButton icon="add-01" label="Zoom in" iconSize={16} className="size-8" onPress={() => setTileZoom(z => Math.min(z + 1, 18))} />
+        <IconButton icon="minus-sign" label="Zoom out" iconSize={16} className="size-8" onPress={() => setTileZoom(z => Math.max(z - 1, 1))} />
+        <IconButton icon="center-focus" label="Show every place" iconSize={16} className="size-8" onPress={() => { setTileZoom(3); setSelectedLocationId(null); }} />
       </div>
     </div>
   );

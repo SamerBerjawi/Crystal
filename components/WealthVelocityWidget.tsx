@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Transaction, Account, Currency } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { LineChart, Line, Grid, XAxis, YAxis, ChartTooltip } from '@/src/components/charts';
+import { Badge } from './ui/Display';
 import { Amount } from './ui/Money';
 
 interface WealthVelocityWidgetProps {
@@ -11,78 +12,56 @@ interface WealthVelocityWidgetProps {
   toDisplay?: (eur: number) => number;
 }
 
+/** Money in minus money out for each of the last six months, against its three-month average. */
 const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({
   transactions,
   currency = getMainCurrency(),
   toDisplay = (val: number) => val,
 }) => {
   const chartData = useMemo(() => {
-    const months = 6;
     const today = new Date();
     const data = [];
-    
-    for (let i = months - 1; i >= 0; i--) {
+    for (let i = 5; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthKey = d.toLocaleString('default', { month: 'short' });
       const start = new Date(d.getFullYear(), d.getMonth(), 1);
       const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
-
-      const monthlyDelta = transactions
+      const delta = transactions
         .filter(t => !t.transferId && !t.isSplitParent && !t.isCombinedParent && !t.isBalanceAdjustment && parseLocalDate(t.date) >= start && parseLocalDate(t.date) <= end)
         .reduce((sum, t) => sum + toDisplay(convertToMain(t.amount, t.currency)), 0);
-
-      data.push({ date: d, month: monthKey, delta: monthlyDelta });
+      data.push({ date: d, delta });
     }
-
-    // Calculate 3-month moving average for the line
     return data.map((item, idx, arr) => {
-      const startIdx = Math.max(0, idx - 2);
-      const window = arr.slice(startIdx, idx + 1);
-      const avg = window.reduce((sum, i) => sum + i.delta, 0) / window.length;
-      return { ...item, avg };
+      const window = arr.slice(Math.max(0, idx - 2), idx + 1);
+      return { ...item, avg: window.reduce((sum, w) => sum + w.delta, 0) / window.length };
     });
   }, [transactions, toDisplay]);
 
-  const currentDelta = chartData[chartData.length - 1]?.delta || 0;
-  const isAccelerating = currentDelta > (chartData[chartData.length - 1]?.avg || 0);
+  const latest = chartData[chartData.length - 1];
+  const isAbove = !!latest && latest.delta > latest.avg;
 
   return (
-    <div className="flex flex-col h-full space-y-4">
-      <div className="flex justify-between items-center px-1">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Growth momentum</p>
-          <div className="flex items-center gap-2 mt-0.5">
-            <h3 className={`text-2xl font-bold tracking-tight ${currentDelta >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-              <Amount value={currentDelta} currency={currency} tone="flow" />
-            </h3>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isAccelerating ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-slate-500/10 text-slate-600 dark:text-slate-400'}`}>
-              {isAccelerating ? 'Accelerating' : 'Stabilizing'}
-            </span>
-          </div>
-        </div>
+    <div className="flex h-full flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="type-figure-lg text-ink"><Amount value={latest?.delta ?? 0} currency={currency} tone="flow" /></p>
+        <Badge tone={isAbove ? 'positive' : 'neutral'}>{isAbove ? 'Above your average' : 'At or below your average'}</Badge>
       </div>
+      <p className="type-caption -mt-2 text-muted">Saved this month, after spending</p>
 
-      <div className="flex-grow w-full h-[180px] min-h-[160px]">
-        <LineChart
-          data={chartData}
-          xDataKey="date"
-          yDomainTween
-          aspectRatio=""
-          className="w-full h-full min-h-[160px]"
-          margin={{ top: 15, right: 15, bottom: 20, left: 15 }}
-        >
-          <Grid horizontal stroke="rgba(255, 255, 255, 0.06)" />
+      <div className="h-[180px] min-h-[160px] w-full flex-grow">
+        <LineChart data={chartData} xDataKey="date" yDomainTween aspectRatio="" className="h-full min-h-[160px] w-full" margin={{ top: 15, right: 15, bottom: 20, left: 15 }}>
+          <Grid horizontal stroke="var(--line)" />
           <XAxis />
           <YAxis />
-          <Line dataKey="avg" stroke="#94A3B8" strokeWidth={2} strokeDasharray="4,4" />
-          <Line dataKey="delta" stroke="#6366F1" strokeWidth={3} fadeEdges />
+          <Line dataKey="avg" stroke="var(--chart-3)" strokeWidth={1.5} strokeDasharray="4,4" />
+          <Line dataKey="delta" stroke="var(--chart-1)" strokeWidth={2} fadeEdges />
           <ChartTooltip valueFormatter={(value) => formatCurrency(Number(value), currency)} />
         </LineChart>
       </div>
-      
-      <p className="text-xs italic text-light-text-secondary dark:text-dark-text-secondary text-center font-normal">
-        Dashed line represents your 3-month trailing growth average.
-      </p>
+
+      <ul className="type-caption flex flex-wrap gap-4 text-muted">
+        <li className="flex items-center gap-2"><span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: 'var(--chart-1)' }} />Each month</li>
+        <li className="flex items-center gap-2"><span className="w-4 border-t-2 border-dashed" style={{ borderColor: 'var(--chart-3)' }} />3-month average</li>
+      </ul>
     </div>
   );
 };

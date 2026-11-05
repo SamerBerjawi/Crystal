@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { EnableBankingConnection, EnableBankingSyncOptions, Page } from '../types';
 import { loadAllPendingConnections, loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 import Icon from '../components/ui/Icon';
+import { Button } from '../components/ui/Actions';
 
 interface EnableBankingCallbackProps {
   connections: EnableBankingConnection[];
@@ -17,7 +18,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   onSync,
   setCurrentPage,
 }) => {
-  const [message, setMessage] = useState('Finalising your Enable Banking connection...');
+  const [message, setMessage] = useState('Finishing the connection…');
   const [error, setError] = useState<string | null>(null);
 
   const hasProcessed = useRef(false);
@@ -131,7 +132,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
 
       const exchangeSession = async () => {
         try {
-          setMessage('Exchanging authorization code for a session...');
+          setMessage('Confirming access with your bank…');
           const response = await fetch('/api/enable-banking/session', {
             method: 'POST',
             credentials: 'include',
@@ -184,17 +185,14 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
             credentials: 'include',
           }).catch(error => console.warn('Failed to remove pending Enable Banking connection from server', error));
 
-          setMessage('Session created. Syncing accounts...');
+          setMessage('Connected. Getting your accounts…');
           await onSync(connection.id, updatedConnection);
 
           if (typeof window !== 'undefined') {
             window.history.replaceState(null, '', window.location.pathname);
           }
-          setMessage('Sync complete. Redirecting...');
-          toast.success("Bank Sync Successful!", {
-            description: "Your financial accounts have been updated in real-time.",
-            duration: 5000,
-          });
+          setMessage('Done. Taking you back to Connections…');
+          toast.success('Bank connected', { description: 'Your accounts are up to date.', duration: 5000 });
           setTimeout(() => setCurrentPage('Integrations'), 800);
         } catch (err: any) {
           console.error(err);
@@ -214,25 +212,22 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   }, [connections, onSync, setConnections, setCurrentPage]);
 
   return (
-    <div className="max-w-lg mx-auto mt-20 p-6 rounded-xl bg-white dark:bg-dark-card shadow-lg text-center animate-fade-in-up">
-      <div className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300 flex items-center justify-center mx-auto mb-4">
-        <Icon name="sync" className="text-3xl" />
-      </div>
-      <h1 className="text-xl font-bold text-light-text dark:text-dark-text mb-2">Enable Banking</h1>
-      {error ? (
-        <>
-          <p className="text-rose-700 dark:text-rose-300 mb-4">{error}</p>
-          <button
-            onClick={() => setCurrentPage('Integrations')}
-            className="px-4 py-2 rounded-lg bg-primary-600 text-white font-semibold"
-          >
-            Back to integrations
-          </button>
-        </>
-      ) : (
-        <p className="text-light-text-secondary dark:text-dark-text-secondary">{message}</p>
-      )}
-    </div>
+    <main className="mx-auto mt-20 max-w-md px-4">
+      <section className="rounded-[var(--radius-xl)] surface-card p-8 text-center max-md:p-5" aria-live="polite">
+        <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-inset text-muted">
+          <Icon name={error ? 'alert-02' : 'bank'} size={24} />
+        </span>
+        <h1 className="type-section-title text-ink">{error ? "Couldn't connect your bank" : 'Connecting your bank'}</h1>
+        {error ? (
+          <>
+            <p className="type-body mt-2 text-muted">{error}</p>
+            <Button className="mt-5" onPress={() => setCurrentPage('Integrations')}>Back to Connections</Button>
+          </>
+        ) : (
+          <p className="type-body mt-2 text-muted">{message}</p>
+        )}
+      </section>
+    </main>
   );
 };
 

@@ -1,6 +1,6 @@
-import type { Account, Currency, FinancialGoal, RecurrenceFrequency } from '../types';
-import { advanceRecurrenceDate, parseLocalDate, round2, safeAdd } from '../utils';
-import { addDays, buildOccurrences, iso, isOpen, owningAccountId, type Converter, type Occurrence, type OccurrenceInput } from './scheduleModel';
+import type { Account, BillPayment, Currency, FinancialGoal, RecurrenceFrequency, Warrant } from '../types';
+import { advanceRecurrenceDate, getMainCurrency, parseLocalDate, round2, safeAdd } from '../utils';
+import { addDays, buildOccurrences, iso, isOpen, makeConverter, owningAccountId, type Converter, type Occurrence, type OccurrenceInput } from './scheduleModel';
 
 /*
  * Forecast model. Projects the selected accounts'
@@ -461,6 +461,28 @@ export const moveSuggestion = (projection: Projection, cushion: number): MoveSug
   return candidates[0] ? { event: candidates[0], toDate: iso(addDays(parseLocalDate(income.date), 1)) } : null;
 };
 
+/**
+ * Pending warrant tax instalments as one-off bills, so every forecast counts them. They're paid from the first selected
+ * account, else the primary account, else the first account.
+ */
+export const warrantTaxBills = (warrants: Warrant[], selected: Account[], accounts: Account[]): BillPayment[] => {
+  const accountId = selected[0]?.id || accounts.find(a => a.isPrimary)?.id || accounts[0]?.id || '';
+  return warrants.flatMap(w =>
+    (w.taxPayments || [])
+      .filter(tp => tp.status === 'pending' && tp.amount > 0 && tp.dueDate)
+      .map(tp => ({
+        id: `warrant-tax-${w.id}-${tp.id}`,
+        description: `${w.name || w.isin} tax instalment`,
+        amount: -Math.abs(tp.amount),
+        type: 'payment' as const,
+        dueDate: tp.dueDate,
+        status: 'unpaid' as const,
+        accountId,
+        currency: getMainCurrency() as BillPayment['currency'],
+      }))
+  );
+};
+
 export type ForecastData = Pick<OccurrenceInput, 'recurring' | 'overrides' | 'bills' | 'accounts' | 'transactions' | 'loanPaymentOverrides'>;
 
 /** The one way a forecast is worked out from saved data, so Overview and Forecast can't disagree. */
@@ -491,27 +513,32 @@ export const forecastFromData = (data: ForecastData, selected: Account[], goals:
   });
 };
 
+/**
+ * One account's forecast in its own currency, for the account page. It starts from `startBalance`, the balance the
+ * page shows for today, and counts only what lands on this account, so a bill with no account doesn't move it.
+ */
+export const accountForecast = (data: ForecastData, account: Account, startBalance: number, goals: FinancialGoal[], activeGoalIds: string[], today: Date, end: Date, rates?: Record<string, number>): { date: string; value: number }[] => {
+  const projection = forecastFromData(data, [account], goals, activeGoalIds, today, end, makeConverter(account.currency, rates));
+  const shift = startBalance - (projection.startByAccount[account.id] ?? 0);
+  return projection.days.map(day => ({ date: day.date, value: round2((day.byAccount[account.id] ?? 0) + shift) }));
+};
+
 export interface HorizonTile { period: string; lowestBalance: number; date: string }
 
-const TILE_PERIODS = [
-  { label: 'This Month', months: 1 },
-  { label: 'Next 3 Months', months: 3 },
-  { label: 'Next 6 Months', months: 6 },
-  { label: 'Next Year', months: 12 },
-];
+const TILE_LABELS: Record<string, string> = {
+  'This month': 'This Month',
+  'Next 3 months': 'Next 3 Months',
+  'Next 6 months': 'Next 6 Months',
+  'Next 12 months': 'Next Year',
+};
 
 /**
- * The lowest balance from today to the end of each period, and the first day it happens. Periods overlap, so a low in
- * March shows on every tile that reaches March: a low balance is a warning, and it mustn't look better than it is.
+ * Overview's tiles: the same periods and lows as Forecast's Low points (D-130), so the two pages always agree. This
+ * month runs from today, and the others start on the 1st of next month.
  */
 export const horizonTiles = (days: { date: string; total: number }[], today: Date): HorizonTile[] => {
-  if (days.length === 0) return [];
   const todayStr = iso(today);
-  return TILE_PERIODS.map(({ label, months }) => {
-    const endStr = iso(new Date(today.getFullYear(), today.getMonth() + months, 0));
-    const inRange = days.filter(day => day.date >= todayStr && day.date <= endStr);
-    const lowest = inRange.reduce((low, day) => (day.total < low.total ? day : low), inRange[0] ?? days[0]);
-    return { period: label, lowestBalance: lowest.total, date: lowest.date };
-  });
+  const ahead = days.filter(day => day.date >= todayStr) as ForecastDay[];
+  return lowestPoints(ahead, today).map(low => ({ period: TILE_LABELS[low.label], lowestBalance: low.value, date: low.date }));
 };
 

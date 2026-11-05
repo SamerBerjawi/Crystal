@@ -6,7 +6,7 @@ import AddTransactionModal from '../components/AddTransactionModal';
 import AccountForm from '../components/AccountForm';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import AddMileageLogModal from '../components/AddMileageLogModal';
-import ConfirmationModal from '../components/ConfirmationModal';
+import { ConfirmDialog } from '../components/ui/Overlays';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import PropertyValuationModal from '../components/PropertyValuationModal';
 import CloseAssetModal from '../components/CloseAssetModal';
@@ -441,13 +441,14 @@ const AccountDetail: React.FC<{
                 />
             )}
             
-            <ConfirmationModal
+            <ConfirmDialog
                 isOpen={!!deletingLogId}
                 onClose={() => setDeletingLogId(null)}
                 onConfirm={confirmDeleteLog}
-                title="Delete Log"
-                message="Are you sure you want to delete this mileage log entry?"
-                confirmButtonText="Delete"
+                title="Delete this reading?"
+                message="Mileage totals and the chart are worked out again without it."
+                confirmLabel="Delete reading"
+                isDestructive
             />
 
             <Suspense fallback={<PageSkeleton variant="detail" />}>

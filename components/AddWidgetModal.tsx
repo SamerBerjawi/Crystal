@@ -1,7 +1,9 @@
 import React from 'react';
-import Modal from './Modal';
 import { Widget } from '../types';
 import Icon from './ui/Icon';
+import { Row } from './ui/Display';
+import { Dialog } from './ui/Overlays';
+import { EmptyState } from './ui/States';
 
 interface AddWidgetModalProps {
   isOpen: boolean;
@@ -10,39 +12,25 @@ interface AddWidgetModalProps {
   onAddWidget: (widgetId: string) => void;
 }
 
-const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, availableWidgets, onAddWidget }) => {
-  if (!isOpen) return null;
-  
-  const handleAdd = (widgetId: string) => {
-    onAddWidget(widgetId);
-    onClose();
-  };
-
-  return (
-    <Modal onClose={onClose} title="Add Dashboard Widget">
-      <div className="space-y-2.5">
-        {availableWidgets.length > 0 ? (
-          availableWidgets.map(widget => (
-            <button
-              key={widget.id}
-              onClick={() => handleAdd(widget.id)}
-              className="w-full text-left p-3.5 rounded-2xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 hover:border-primary-500/30 hover:bg-primary-500/5 transition-all text-xs font-bold flex items-center justify-between group active:scale-98 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Icon name={widget.icon || 'dashboard-square-add'} size={18} className="text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors" />
-                <span className="text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors">{widget.name}</span>
-              </div>
-              <Icon name="add-01" className="text-gray-400 group-hover:text-primary-500 group-hover:scale-110 transition-transform text-lg" />
-            </button>
-          ))
-        ) : (
-          <p className="text-center text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary py-6">
-            All available widgets are already on display.
-          </p>
-        )}
+const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, availableWidgets, onAddWidget }) => (
+  <Dialog isOpen={isOpen} onClose={onClose} title="Add a widget" description="It goes at the end of your Overview, and you can move it from there.">
+    {availableWidgets.length > 0 ? (
+      <div className="-mx-2 divide-y divide-line">
+        {availableWidgets.map(widget => (
+          <Row
+            key={widget.id}
+            title={widget.name}
+            context={widget.description}
+            leading={<span className="flex size-9 items-center justify-center rounded-full bg-inset text-muted"><Icon name={widget.icon || 'dashboard-square-add'} size={18} /></span>}
+            trailing={<Icon name="add-01" size={18} className="text-muted" />}
+            onPress={() => { onAddWidget(widget.id); onClose(); }}
+          />
+        ))}
       </div>
-    </Modal>
-  );
-};
+    ) : (
+      <EmptyState icon="dashboard-square-add" title="Every widget is on show" description="Remove one from Overview to add it again later." className="py-8" />
+    )}
+  </Dialog>
+);
 
 export default AddWidgetModal;

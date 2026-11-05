@@ -1,21 +1,14 @@
 import React, { useMemo } from 'react';
-import { liveSeries } from '../utils/scheduleModel';
 import { Account, Transaction } from '../types';
-import {
-  convertCurrency,
-  formatCurrency,
-  parseLocalDate,
-  toLocalISOString,
-  calculateTrendLine,
-  generateBalanceForecast,
-  generateSyntheticLoanPayments,
-  generateSyntheticCreditCardPayments,
-  generateSyntheticPropertyTransactions, getMainCurrency } from '../utils';
+import { convertCurrency, formatCurrency, parseLocalDate, toLocalISOString, calculateTrendLine } from '../utils';
 import { computeAccountDisplayBalance } from '../utils/accountsModel';
 import { resolveRealTodayBalance } from '../utils/accountDetailModel';
+import { accountForecast, warrantTaxBills } from '../utils/forecastModel';
 import { useScheduleContext, useGoalsContext } from '../contexts/FinancialDataContext';
-import { useAccountsContext, usePreferencesSelector } from '../contexts/DomainProviders';
-import Icon from './ui/Icon';
+import { useAccountsContext, usePreferencesSelector, useWarrantsContext } from '../contexts/DomainProviders';
+import { useInsightsView } from '../contexts/InsightsViewContext';
+import { Panel } from './AccountFrame';
+import { Amount } from './ui/Money';
 import {
   LineChart,
   Line,
@@ -33,11 +26,16 @@ interface HistoricalBalanceTrendProps {
   transactions: Transaction[];
 }
 
+const HISTORY_DAYS = 180;
+const AHEAD_MONTHS = 3;
+
+/** Six months of balance and three months ahead, from the same forecast as Overview and Forecast (D-111). */
 const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account, transactions }) => {
-  const { recurringTransactions: everySeries, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
-  const recurringTransactions = useMemo(() => liveSeries(everySeries), [everySeries]);
+  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
   const { financialGoals } = useGoalsContext();
+  const { activeGoalIds } = useInsightsView();
   const { accounts } = useAccountsContext();
+  const { warrants } = useWarrantsContext();
   const conversionRates = usePreferencesSelector((p) => p.conversionRates);
 
   const accountTransactions = useMemo(
@@ -50,297 +48,134 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
     [account, accountTransactions, loanPaymentOverrides]
   );
 
-  const {
-    combinedData,
-    lastActualIndex,
-    startBalance,
-    todayBalance,
-    endProjectedBalance,
-    netChange,
-    changePercent,
-    isPositiveTrend,
-    projectionColor,
-  } = useMemo(() => {
-    const NUM_DAYS = 180; // Last 6 months
-    const today = new Date();
-    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const todayIso = toLocalISOString(endDate);
+  const { points, todayIndex, startBalance, todayBalance, endBalance } = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayIso = toLocalISOString(today);
 
-    // BUG-02 Fix: Back out future-dated transactions from today's starting balance.
-    // Amortised loan balances come from the schedule, which already ignores future payments.
+    // Future-dated transactions are backed out of today's balance. Amortised loans come from the schedule, which
+    // already ignores future payments.
     const isScheduledLoan =
       (account.type === 'Loan' || account.type === 'Lending') &&
       !!(account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined);
     const currentBal = isScheduledLoan
       ? displayBalance
-      : resolveRealTodayBalance(
-          displayBalance,
-          account.currency,
-          accountTransactions,
-          { conversionRates, referenceDate: endDate, accountId: account.id }
-        );
+      : resolveRealTodayBalance(displayBalance, account.currency, accountTransactions, { conversionRates, referenceDate: today, accountId: account.id });
 
-    const txsByDate: Record<string, number> = {};
-    accountTransactions.forEach((tx) => {
-      if (tx.date > todayIso) return; // Future transactions already backed out above
-      const nativeAmount = convertCurrency(tx.amount, tx.currency, account.currency, conversionRates);
-      txsByDate[tx.date] = (txsByDate[tx.date] || 0) + nativeAmount;
-    });
+    const byDate: Record<string, number> = {};
+    for (const tx of accountTransactions) {
+      if (tx.date > todayIso) continue;
+      byDate[tx.date] = (byDate[tx.date] || 0) + convertCurrency(tx.amount, tx.currency, account.currency, conversionRates);
+    }
 
-    const runningDate = new Date(endDate);
     const history: { date: string; value: number }[] = [];
-    let runningBal = currentBal;
-
-    for (let i = 0; i < NUM_DAYS; i++) {
-      const dateStr = toLocalISOString(runningDate);
-      history.push({
-        date: dateStr,
-        value: Number(runningBal.toFixed(2))
-      });
-      const change = txsByDate[dateStr] || 0;
-      runningBal -= change;
-      runningDate.setDate(runningDate.getDate() - 1);
+    const cursor = new Date(today);
+    let running = currentBal;
+    for (let i = 0; i < HISTORY_DAYS; i++) {
+      const date = toLocalISOString(cursor);
+      history.push({ date, value: Number(running.toFixed(2)) });
+      running -= byDate[date] || 0;
+      cursor.setDate(cursor.getDate() - 1);
     }
+    history.reverse();
 
-    const historyPoints = history.reverse();
-    const lastActualIdx = historyPoints.length - 1;
-    const todayStr = historyPoints[lastActualIdx]?.date;
+    const end = new Date(today);
+    end.setMonth(end.getMonth() + AHEAD_MONTHS);
+    const ahead = accountForecast(
+      {
+        recurring: recurringTransactions,
+        overrides: recurringTransactionOverrides,
+        // Warrant taxes land on the primary account, as on Forecast with nothing selected.
+        bills: [...billsAndPayments, ...warrantTaxBills(warrants, [], accounts)],
+        accounts: accounts.length > 0 ? accounts : [account],
+        transactions,
+        loanPaymentOverrides,
+      },
+      account,
+      currentBal,
+      financialGoals,
+      activeGoalIds,
+      today,
+      end,
+      conversionRates
+    ).filter((day) => day.date > todayIso);
 
-    // --- 3-MONTH FORECAST PROJECTION ---
-    const projectionEndDate = new Date(endDate);
-    projectionEndDate.setMonth(projectionEndDate.getMonth() + 3);
-
-    // BUG-06 Fix: Pass the full accounts list so linked Loan, Credit Card, and Property
-    // payments targeting this account are synthesized into the forecast.
-    const allContextAccounts = accounts && accounts.length > 0 ? accounts : [account];
-    const syntheticLoanPayments = generateSyntheticLoanPayments(allContextAccounts, transactions, loanPaymentOverrides);
-    const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(allContextAccounts, transactions);
-    const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(allContextAccounts);
-
-    const allRecurring = [
-      ...(recurringTransactions || []),
-      ...syntheticLoanPayments,
-      ...syntheticCreditCardPayments,
-      ...syntheticPropertyTransactions,
+    const combined = [
+      ...history.map((h) => ({ date: parseLocalDate(h.date), balance: h.value, isProjected: false })),
+      ...ahead.map((d) => ({ date: parseLocalDate(d.date), balance: d.value, isProjected: true })),
     ];
-
-    const { chartData: rawForecastData } = generateBalanceForecast(
-      [account],
-      allRecurring,
-      financialGoals || [],
-      billsAndPayments || [],
-      projectionEndDate,
-      recurringTransactionOverrides || []
-    );
-
-    const combined: {
-      name: string;
-      date: Date;
-      balance?: number;
-      actual?: number;
-      forecast?: number;
-      isProjected: boolean;
-      trend?: number;
-    }[] = [];
-
-    historyPoints.forEach((hp) => {
-      combined.push({
-        name: hp.date,
-        date: parseLocalDate(hp.date),
-        balance: hp.value,
-        actual: hp.value,
-        forecast: hp.date === todayStr ? hp.value : undefined,
-        isProjected: false,
-      });
-    });
-
-    if (rawForecastData && rawForecastData.length > 0) {
-      const currentForecastBase = rawForecastData[0].value;
-      rawForecastData.forEach((point) => {
-        if (point.date > todayStr) {
-          const predictedChangeEur = point.value - currentForecastBase;
-          // BUG-07 Fix: generateBalanceForecast outputs EUR values; convert delta into account.currency
-          const predictedChangeNative = convertCurrency(
-            predictedChangeEur,
-            getMainCurrency(),
-            account.currency,
-            conversionRates
-          );
-          const projectedVal = Number((currentBal + predictedChangeNative).toFixed(2));
-          combined.push({
-            name: point.date,
-            date: parseLocalDate(point.date),
-            balance: projectedVal,
-            actual: undefined,
-            forecast: projectedVal,
-            isProjected: true,
-          });
-        }
-      });
-    }
-
-    const trendValues = calculateTrendLine(combined, (item) => item.balance ?? 0);
-    const finalCombinedData = combined.map((item, index) => ({
-      ...item,
-      trend: trendValues[index],
-    }));
-
-    const startVal = historyPoints[0]?.value ?? 0;
-    const todayVal = historyPoints[lastActualIdx]?.value ?? 0;
-    const endProjVal = finalCombinedData[finalCombinedData.length - 1]?.balance ?? todayVal;
-
-    const changeVal = todayVal - startVal;
-    const pct = startVal !== 0 ? (changeVal / Math.abs(startVal)) * 100 : 0;
-    const projColor = endProjVal < todayVal ? '#F43F5E' : '#10B981';
+    const trend = calculateTrendLine(combined, (item) => item.balance);
 
     return {
-      combinedData: finalCombinedData,
-      lastActualIndex: lastActualIdx,
-      startBalance: startVal,
-      todayBalance: todayVal,
-      endProjectedBalance: endProjVal,
-      netChange: changeVal,
-      changePercent: pct,
-      isPositiveTrend: changeVal >= 0,
-      projectionColor: projColor,
+      points: combined.map((item, index) => ({ ...item, trend: trend[index] })),
+      todayIndex: history.length - 1,
+      startBalance: history[0]?.value ?? 0,
+      todayBalance: currentBal,
+      endBalance: ahead.at(-1)?.value ?? currentBal,
     };
-  }, [
-    account,
-    accounts,
-    transactions,
-    accountTransactions,
-    displayBalance,
-    conversionRates,
-    loanPaymentOverrides,
-    recurringTransactions,
-    recurringTransactionOverrides,
-    financialGoals,
-    billsAndPayments,
-  ]);
+  }, [account, accounts, transactions, accountTransactions, displayBalance, conversionRates, loanPaymentOverrides, recurringTransactions, recurringTransactionOverrides, financialGoals, activeGoalIds, billsAndPayments, warrants]);
 
-  const chartColor = isPositiveTrend ? '#10B981' : '#F43F5E';
-  const isDashedProjection = lastActualIndex >= 0 && lastActualIndex < combinedData.length - 1;
+  const hasAhead = todayIndex < points.length - 1;
+  const markers = useMemo<ChartMarker[]>(
+    () => (points[todayIndex] ? [{ date: points[todayIndex].date, title: 'Today', color: 'var(--muted)' }] : []),
+    [points, todayIndex]
+  );
 
-  const markers = useMemo<ChartMarker[]>(() => {
-    const items: ChartMarker[] = [];
-    if (combinedData.length > 0 && lastActualIndex >= 0 && lastActualIndex < combinedData.length) {
-      items.push({
-        date: combinedData[lastActualIndex].date,
-        title: 'Today',
-        color: '#6366F1',
-      });
-    }
-    return items;
-  }, [combinedData, lastActualIndex]);
+  const figures = [
+    { label: 'Change in 6 months', value: <Amount value={todayBalance - startBalance} currency={account.currency} tone="flow" /> },
+    { label: 'In 3 months', value: <Amount value={endBalance} currency={account.currency} tone="loss" /> },
+    { label: '6 months ago', value: <Amount value={startBalance} currency={account.currency} tone="loss" /> },
+  ];
 
   return (
-    <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-8 flex flex-col group relative overflow-hidden shadow-sm">
-      <div className="absolute top-0 right-0 p-8 opacity-5">
-        <Icon name="trending_up" className="text-8xl" />
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: chartColor }} />
-            <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">
-              6-Month Trend &amp; 3-Month Projection
-            </h3>
+    <Panel title="Balance" subtitle="Six months back, and three ahead from your schedule and goals.">
+      <dl className="mb-4 grid grid-cols-3 gap-3 max-md:grid-cols-1 max-md:gap-2">
+        {figures.map((figure) => (
+          <div key={figure.label} className="max-md:flex max-md:items-baseline max-md:justify-between">
+            <dt className="type-label text-muted">{figure.label}</dt>
+            <dd className="type-figure-row mt-0.5 text-ink">{figure.value}</dd>
           </div>
-          <p className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/70 tracking-wide">
-            180-day historical progression &amp; 90-day forecast based on scheduled bills and recurring transactions
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 px-5 py-3 rounded-2xl">
-          <div>
-            <p className="text-2xs font-semibold uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/70 tracking-wider">6-Mo Net Change</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <Icon name={isPositiveTrend ? 'arrow_upward' : 'arrow_downward'} className={`text-sm font-bold ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`} />
-              <span className={`text-base font-bold font-mono tracking-tight ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {formatCurrency(Math.abs(netChange), account.currency)}
-              </span>
-              <span className={`text-xs font-bold font-mono opacity-80 ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
-                ({isPositiveTrend ? '+' : ''}{changePercent.toFixed(1)}%)
-              </span>
-            </div>
-          </div>
-
-          <div className="w-px h-8 bg-black/10 dark:bg-white/10 hidden sm:block" />
-
-          <div>
-            <p className="text-2xs font-semibold uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/70 tracking-wider">3-Mo Projected</p>
-            <p className={`text-sm font-bold font-mono mt-0.5 ${endProjectedBalance >= todayBalance ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {formatCurrency(endProjectedBalance, account.currency)}
-            </p>
-          </div>
-
-          <div className="w-px h-8 bg-black/10 dark:bg-white/10 hidden sm:block" />
-
-          <div>
-            <p className="text-2xs font-semibold uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/70 tracking-wider">Start Balance</p>
-            <p className="text-sm font-bold font-mono text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-              {formatCurrency(startBalance, account.currency)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-grow w-full h-[240px] relative z-10">
-        <LineChart
-          data={combinedData}
-          xDataKey="date"
-          yDomainTween
-          aspectRatio=""
-          className="w-full h-[240px]"
-          margin={{ top: 20, right: 20, bottom: 25, left: 55 }}
-        >
-          <Grid horizontal stroke="rgba(255, 255, 255, 0.06)" />
-          <XAxis />
-          <YAxis
-            tickFormatter={(val) => {
-              if (Math.abs(val) >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-              if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(0)}k`;
-              return String(val);
-            }}
-          />
-          <Line
-            dataKey="balance"
-            stroke={chartColor}
-            dashStroke={projectionColor}
-            strokeWidth={3}
-            dashFromIndex={isDashedProjection ? lastActualIndex : undefined}
-            dashArray="6,4"
-            fadeEdges
-          />
-          <Line
-            dataKey="trend"
-            stroke="#6366f1"
-            strokeWidth={1.5}
-            strokeDasharray="4,4"
-          />
-          {isDashedProjection && (
-            <LineSeriesTerminalMarker dataKey="balance" stroke={projectionColor} />
-          )}
-          {markers.length > 0 && <ChartMarkers items={markers} />}
-          <ChartTooltip
-            rows={(point) => {
-              const isProjected = Boolean(point.isProjected);
-              const label = isProjected ? '3-Mo Projected Balance' : 'Historical Balance';
-              const val = typeof point.balance === 'number' ? point.balance : 0;
-              const strokeColor = isProjected ? projectionColor : chartColor;
-              return [
-                {
-                  color: strokeColor,
-                  label,
-                  value: formatCurrency(val, account.currency),
-                },
-              ];
-            }}
-          />
-        </LineChart>
-      </div>
-    </div>
+        ))}
+      </dl>
+      <LineChart
+        data={points}
+        xDataKey="date"
+        yDomainTween
+        aspectRatio=""
+        className="h-[220px] w-full md:h-[260px]"
+        margin={{ top: 16, right: 16, bottom: 24, left: 52 }}
+      >
+        <Grid horizontal stroke="var(--line)" />
+        <XAxis />
+        <YAxis
+          tickFormatter={(val) => {
+            if (Math.abs(val) >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+            if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(0)}k`;
+            return String(val);
+          }}
+        />
+        <Line
+          dataKey="balance"
+          stroke="var(--chart-1)"
+          strokeWidth={2}
+          dashFromIndex={hasAhead ? todayIndex : undefined}
+          dashArray="6,4"
+          fadeEdges
+        />
+        <Line dataKey="trend" stroke="var(--chart-3)" strokeWidth={1.5} strokeDasharray="4,4" />
+        {hasAhead && <LineSeriesTerminalMarker dataKey="balance" stroke="var(--chart-1)" />}
+        {markers.length > 0 && <ChartMarkers items={markers} />}
+        <ChartTooltip
+          rows={(point) => [
+            {
+              color: 'var(--chart-1)',
+              label: point.isProjected ? 'Expected' : 'Balance',
+              value: formatCurrency(typeof point.balance === 'number' ? point.balance : 0, account.currency),
+            },
+          ]}
+        />
+      </LineChart>
+    </Panel>
   );
 };
 

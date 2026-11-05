@@ -16,8 +16,10 @@ import {
   computeVehicleAccountMetrics,
   findLinkedAssetForLoan,
 } from '../utils/accountDetailModel';
-import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesSelector, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
+import { useInsightsView } from '../contexts/InsightsViewContext';
+import { warrantTaxBills } from '../utils/forecastModel';
 import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl } from '../utils/brandfetch';
 import AccountFrame, { AccountTransactions, DetailList, LinkedGoals, MetricRow, MonthlyBars, Panel, ProgressBar, ValueChart, type FrameAction } from './AccountFrame';
 import { CAR_MAKE_DOMAINS, LicensePlate } from './LicensePlate';
@@ -82,6 +84,8 @@ const GeneralPanel: React.FC<AccountPanelProps> = props => {
   const recurringTransactions = useMemo(() => liveSeries(everySeries), [everySeries]);
   const { financialGoals } = useGoalsContext();
   const { transactions: allTransactions } = useTransactionsContext();
+  const { activeGoalIds } = useInsightsView();
+  const { warrants } = useWarrantsContext();
   const { accounts } = useAccountsContext();
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const metrics = useMemo(() => computeOperatingAccountMetrics(account, accounts, allTransactions, {
@@ -89,10 +93,11 @@ const GeneralPanel: React.FC<AccountPanelProps> = props => {
     showBalanceAdjustments: props.showBalanceAdjustments,
     recurringTransactions,
     recurringTransactionOverrides,
-    billsAndPayments,
+    billsAndPayments: [...billsAndPayments, ...warrantTaxBills(warrants, [], accounts)],
     financialGoals,
+    activeGoalIds,
     loanPaymentOverrides,
-  }), [account, accounts, allTransactions, conversionRates, props.showBalanceAdjustments, recurringTransactions, recurringTransactionOverrides, billsAndPayments, financialGoals, loanPaymentOverrides]);
+  }), [account, accounts, allTransactions, conversionRates, props.showBalanceAdjustments, recurringTransactions, recurringTransactionOverrides, billsAndPayments, financialGoals, activeGoalIds, warrants, loanPaymentOverrides]);
 
   return (
     <AccountFrame
