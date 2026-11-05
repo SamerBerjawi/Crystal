@@ -82,7 +82,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
             <p className="type-label mb-1.5 text-ink">Colour</p>
             <div className="flex flex-wrap" role="group" aria-label="Card colour">
               {CATEGORY_TAG_PRESET_COLORS.map(preset => (
-                <button key={preset} type="button" aria-label={`Colour ${preset}`} aria-pressed={draft.color === preset} onClick={() => update({ color: preset })} className="flex size-9 cursor-pointer items-center justify-center pointer-coarse:size-11">
+                <button key={preset} type="button" aria-label={`Colour ${preset}`} aria-pressed={draft.color === preset} onClick={() => update({ color: preset })} className="flex size-9 pointer-coarse:size-11 cursor-pointer items-center justify-center pointer-coarse:size-11">
                   <span aria-hidden="true" className={cn('size-6 rounded-full border-2', draft.color === preset ? 'border-ink' : 'border-transparent')} style={{ backgroundColor: preset }} />
                 </button>
               ))}

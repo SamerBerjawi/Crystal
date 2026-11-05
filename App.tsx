@@ -78,7 +78,6 @@ const DataImportExportPage = lazyWithRetry(pageRegistry['Data Management'].loade
 const PreferencesPage = lazyWithRetry(pageRegistry.Preferences.loader);
 const IntegrationsPage = lazyWithRetry(pageRegistry.Integrations.loader);
 const AccountDetail = lazyWithRetry(pageRegistry.AccountDetail.loader);
-const UiKit = import.meta.env.DEV ? lazyWithRetry(() => import('./pages/dev/UiKit')) : null;
 const EnableBankingCallbackPage = lazyWithRetry(pageRegistry.EnableBankingCallback.loader);
 const InvestmentsPage = lazyWithRetry(pageRegistry.Investments.loader);
 const TasksPage = lazyWithRetry(pageRegistry.Tasks.loader);
@@ -87,8 +86,6 @@ const SubscriptionsPage = lazyWithRetry(pageRegistry.Subscriptions.loader);
 const InvoicesPage = lazyWithRetry(pageRegistry['Quotes & Invoices'].loader);
 const MerchantsPage = lazyWithRetry(pageRegistry.Merchants.loader);
 const RulesPage = lazyWithRetry(pageRegistry.Rules.loader);
-
-const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
@@ -135,63 +132,6 @@ import { saveDevCache, loadDevCache, clearDevCache } from './utils/browserCache'
 import { threeWayMerge } from './utils/threeWayMerge';
 import { warnIgnored } from './utils/logging';
 import { startPrivacyMask } from './utils/privacyMask';
-
-const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
-
-const normalizeIban = (value?: string | null) => {
-  if (!value) return undefined;
-  const cleaned = value.replace(/[^A-Za-z0-9]/g, '');
-  return IBAN_REGEX.test(cleaned) ? cleaned.toUpperCase() : undefined;
-};
-
-const findIbanCandidate = (...sources: any[]): string | undefined => {
-  const visited = new WeakSet<object>();
-
-  const search = (input: any): string | undefined => {
-    if (!input) return undefined;
-
-    if (typeof input === 'string') {
-      return normalizeIban(input);
-    }
-
-    if (typeof input !== 'object') {
-      return undefined;
-    }
-
-    if (visited.has(input)) return undefined;
-    visited.add(input);
-
-    if (Array.isArray(input)) {
-      for (const item of input) {
-        const result = search(item);
-        if (result) return result;
-      }
-      return undefined;
-    }
-
-    for (const [key, value] of Object.entries(input)) {
-      if (/iban/i.test(key)) {
-        const prioritizedValue = typeof value === 'string' ? value : (value as any)?.iban ?? (value as any)?.id ?? value;
-        const normalized = normalizeIban(prioritizedValue as any);
-        if (normalized) return normalized;
-      }
-    }
-
-    for (const value of Object.values(input)) {
-      const result = search(value);
-      if (result) return result;
-    }
-
-    return undefined;
-  };
-
-  for (const source of sources) {
-    const result = search(source);
-    if (result) return result;
-  }
-
-  return undefined;
-};
 
 const LOCK_CHANNEL = 'crystal-lock';
 
@@ -753,12 +693,6 @@ const App: React.FC = () => {
     navigateToPath(pageToPath('AccountDetail', accountId) + tabSuffix, false, { fromAccounts: true });
   }, [navigateToPath]);
 
-  const handleOpenHoldingDetail = useCallback((symbol: string) => {
-    setViewingHoldingSymbol(symbol);
-    setCurrentPageState('HoldingDetail');
-    navigateToPath(pageToPath('HoldingDetail', symbol));
-  }, [navigateToPath]);
-
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
@@ -1206,18 +1140,6 @@ const App: React.FC = () => {
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
-
-  const saveDataWithRetry = useCallback(
-    async (data: FinancialData, options?: { attempts?: number }): Promise<boolean> => {
-      const maxAttempts = Math.max(1, options?.attempts ?? 3);
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        const succeeded = await saveData(data);
-        if (succeeded) return true;
-        if (attempt < maxAttempts) await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-      }
-      return false;
-    }, [saveData]
-  );
 
   const savePartialDataWithRetry = useCallback(
     async (data: Partial<FinancialData>, options?: { attempts?: number }): Promise<boolean> => {
@@ -2789,7 +2711,6 @@ const App: React.FC = () => {
   const renderInvestments = (linkedSymbol?: string) => <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} priceHistory={priceHistory} linkedSymbol={linkedSymbol} onCloseLinkedHolding={() => setCurrentPage('Investments')} />;
 
   const renderPage = () => {
-    if (UiKit && window.location.search.includes('ui-kit')) return <UiKit />;
     if (viewingHoldingSymbol) {
       if (viewingHolding) return renderInvestments(viewingHoldingSymbol);
       return <PageLoader label="Loading holding..." />;

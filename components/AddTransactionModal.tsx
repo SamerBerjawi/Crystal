@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { withFiling } from '../utils/rules';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
@@ -130,7 +130,7 @@ const TagPicker: React.FC<{ tags: Tag[]; selected: string[]; onChange: (ids: str
           </div>
           <div className="flex flex-wrap" role="group" aria-label="Tag colour">
             {CATEGORY_TAG_PRESET_COLORS.slice(0, 6).map(preset => (
-              <button key={preset} type="button" aria-label={`Colour ${preset}`} aria-pressed={color === preset} onClick={() => setColor(preset)} className="flex size-8 cursor-pointer items-center justify-center pointer-coarse:size-11">
+              <button key={preset} type="button" aria-label={`Colour ${preset}`} aria-pressed={color === preset} onClick={() => setColor(preset)} className="flex size-8 pointer-coarse:size-11 cursor-pointer items-center justify-center pointer-coarse:size-11">
                 <span aria-hidden="true" className={cn('size-6 rounded-full border-2', color === preset ? 'border-ink' : 'border-transparent')} style={{ backgroundColor: preset }} />
               </button>
             ))}
@@ -162,6 +162,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     }, { accounts, transactions, ...ruleContext }), accounts);
   }
   const [form, setForm] = useState<TxForm>(initial.current);
+  const [errors, setErrors] = useState<{ amount?: string; account?: string; category?: string; description?: string }>({});
+  useEffect(() => { setErrors({}); }, [form]);
   const [isMerchantOpen, setMerchantOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [showManualLocation, setShowManualLocation] = useState(false);
@@ -244,7 +246,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const handleSave = () => {
     const plan = planTransactionSave(form, transactionToEdit, { accounts, transactions });
     if ('error' in plan) {
-      toast.error(plan.error);
+      const message = plan.error;
+      setErrors({
+        amount: /amount|principal/i.test(message) ? message : undefined,
+        description: /description/i.test(message) ? message : undefined,
+        account: /account/i.test(message) ? message : undefined,
+        category: /category/i.test(message) && !form.category ? 'Pick a category' : undefined,
+      });
+      toast.error(message);
       return;
     }
     if (plan.branch) {
@@ -382,6 +391,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
               return applyAutofill(!isNaN(value) && value > 0 ? { ...prev, amount: value.toFixed(2) } : prev);
             })}
           />
+          {errors.amount && <p role="alert" className="type-caption mt-1.5 text-money-out">{errors.amount}</p>}
         </div>
 
         <div className="relative">
@@ -477,13 +487,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
         {form.type === 'transfer' ? (
           <div className="flex items-end gap-1 max-md:flex-col max-md:items-stretch">
-            <Combobox className="min-w-0 flex-1 max-md:flex-none" label="From" options={accountOptions(form.toAccountId, form.fromAccountId)} value={form.fromAccountId} onChange={id => id && update({ fromAccountId: id })} placeholder="Search accounts" />
+            <Combobox className="min-w-0 flex-1 max-md:flex-none" label="From" error={errors.account} options={accountOptions(form.toAccountId, form.fromAccountId)} value={form.fromAccountId} onChange={id => id && update({ fromAccountId: id })} placeholder="Search accounts" />
             <IconButton className="max-md:self-end" icon="arrow-data-transfer-horizontal" label="Swap accounts" onPress={() => update({ fromAccountId: form.toAccountId, toAccountId: form.fromAccountId })} />
-            <Combobox className="min-w-0 flex-1 max-md:flex-none" label="To" options={accountOptions(form.fromAccountId, form.toAccountId)} value={form.toAccountId} onChange={id => id && update({ toAccountId: id })} placeholder="Search accounts" />
+            <Combobox className="min-w-0 flex-1 max-md:flex-none" label="To" error={errors.account} options={accountOptions(form.fromAccountId, form.toAccountId)} value={form.toAccountId} onChange={id => id && update({ toAccountId: id })} placeholder="Search accounts" />
           </div>
         ) : (
           <Combobox
             label="Account"
+            error={errors.account}
             options={accountOptions(undefined, account?.id)}
             value={account?.id ?? null}
             onChange={id => id && update(form.type === 'income' ? { toAccountId: id } : { fromAccountId: id })}
@@ -497,11 +508,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
           categories={categoryChoices}
           suggestions={suggestions}
           value={form.category || null}
+          error={errors.category}
           onChange={category => update({ category, categoryEdited: true })}
         />
 
         <TextInput
           label="Description"
+          error={errors.description}
           isRequired
           value={form.description}
           placeholder={form.type === 'transfer' ? 'What is this transfer for?' : 'What was this for?'}

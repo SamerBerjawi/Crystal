@@ -442,7 +442,7 @@ export function SmoothTab({
                 aria-controls={hasPanels ? panelId(i) : undefined}
                 aria-selected={isSelected}
                 className={cn(
-                  "relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-medium text-sm select-none cursor-pointer",
+                  "relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 pointer-coarse:min-h-11 font-medium text-sm select-none cursor-pointer",
                   fullWidth ? "flex-1 justify-center shrink min-w-0" : "shrink-0",
                   "text-muted transition-colors duration-150 ease-out hover:text-ink",
                   "outline-hidden focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
@@ -483,7 +483,7 @@ export function SmoothTab({
               return (
                 <span
                   className={cn(
-                    "flex items-center gap-1.5 px-3.5 py-1.5 font-medium text-sm select-none",
+                    "flex items-center gap-1.5 px-3.5 py-1.5 pointer-coarse:min-h-11 font-medium text-sm select-none",
                     fullWidth ? "flex-1 justify-center shrink min-w-0" : "shrink-0",
                     currentActiveTextColor
                   )}

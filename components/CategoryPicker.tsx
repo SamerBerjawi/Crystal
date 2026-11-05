@@ -8,6 +8,7 @@ import { getCategoryDetails } from '../utils/categories';
 import { cn } from '../lib/utils';
 
 interface CategoryPickerProps {
+  error?: string;
   categories: Category[];
   suggestions: string[];
   value: string | null;
@@ -35,7 +36,7 @@ const flatten = (categories: Category[]) => categories.flatMap(category => [
 ]);
 
 /** Three suggestions, a searchable list, and a way to make it stick. */
-const CategoryPicker: React.FC<CategoryPickerProps> = ({ categories, suggestions, value, onChange, alwaysFile }) => {
+const CategoryPicker: React.FC<CategoryPickerProps> = ({ categories, suggestions, value, onChange, alwaysFile, error }) => {
   const options = useMemo(() => {
     const seen = new Set<string>();
     return flatten(categories).filter(option => !seen.has(option.id) && !!seen.add(option.id));
@@ -72,7 +73,7 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({ categories, suggestions
           })}
         </div>
       )}
-      <Combobox label="Category" placeholder="Search categories" options={options} value={value} onChange={id => { if (id) onChange(id); }} />
+      <Combobox label="Category" error={error} placeholder="Search categories" options={options} value={value} onChange={id => { if (id) onChange(id); }} />
       {alwaysFile && (
         <Checkbox isSelected={alwaysFile.isSelected} onChange={alwaysFile.onChange}>
           Always file {alwaysFile.merchant} like this

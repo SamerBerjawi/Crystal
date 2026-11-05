@@ -208,7 +208,6 @@ const BarInner = memo(function BarInner({
     orientation,
     stacked,
     stackOffsets,
-    animationDuration,
     enterTransition,
     revealEpoch = 0,
   } = useChart();

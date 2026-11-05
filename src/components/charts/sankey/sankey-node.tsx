@@ -440,7 +440,6 @@ export function SankeyNode({
   const {
     nodes,
     links,
-    width,
     height,
     margin,
     hoveredNodeIndex,
