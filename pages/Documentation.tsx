@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Page } from '../types';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
+import { Button } from '../components/ui/Actions';
 import { TextInput } from '../components/ui/Fields';
 import { EmptyState } from '../components/ui/States';
 import { HELP_SECTIONS, searchHelp } from '../utils/helpContent';
@@ -14,9 +15,17 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
   const [search, setSearch] = useState('');
   const sections = useMemo(() => searchHelp(HELP_SECTIONS, search), [search]);
 
+  const openCommandPalette = () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true, bubbles: true }));
+  };
+
   return (
     <div className="space-y-6">
-      <SettingsSubpageHeader title="Help" setCurrentPage={setCurrentPage} />
+      <SettingsSubpageHeader
+        title="Help"
+        setCurrentPage={setCurrentPage}
+        actions={<Button variant="secondary" icon="search" onPress={openCommandPalette}>Quick search (⌘K)</Button>}
+      />
       <TextInput label="Search help" className="max-w-xl" value={search} onChange={setSearch} />
       {sections.length > 0 ? sections.map(section => (
         <SettingsGroup key={section.id} id={section.id} title={section.title}>

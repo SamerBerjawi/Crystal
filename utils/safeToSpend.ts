@@ -63,8 +63,10 @@ export function computeSafeToSpend({ accounts, transactions, recurringItems, bil
   const lookahead = new Date(today);
   lookahead.setDate(lookahead.getDate() + INCOME_LOOKAHEAD_DAYS);
 
+  const activeRecurring = recurringItems.filter(item => !item.pausedAt);
+
   const incomeDates = [
-    ...recurringItems
+    ...activeRecurring
       .filter(item => item.type === 'income' && ids.has(item.accountId))
       .flatMap(item => expandRecurringOccurrences(item, tomorrow, lookahead, overrides).map(occurrence => occurrence.date)),
     ...bills
@@ -80,7 +82,7 @@ export function computeSafeToSpend({ accounts, transactions, recurringItems, bil
 
   const payments: SafeToSpendPayment[] = [];
 
-  recurringItems
+  activeRecurring
     .filter(item => (item.type === 'expense' || item.type === 'transfer') && ids.has(item.accountId))
     .filter(item => !(item.type === 'transfer' && item.toAccountId && ids.has(item.toAccountId)))
     .forEach(item => {

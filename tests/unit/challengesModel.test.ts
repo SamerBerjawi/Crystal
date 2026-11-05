@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Account, Budget, FinancialGoal, Prediction, Transaction, UserStats } from '../../types';
-import { budgetMastery, challengeBadges, challengeMetrics, debtsAndGoals, healthScore, personalRecords, predictionState, predictionValue, resolvePredictions, sprintProgress, type ChallengeMetrics } from '../../utils/challengesModel';
+import { budgetMastery, challengeBadges, challengeMetrics, debtsAndGoals, healthScore, personalRecords, predictionState, predictionValue, resolvePredictions, sprintProgress, updateActivityStreak, type ChallengeMetrics } from '../../utils/challengesModel';
 
 const account = (extra: Partial<Account>) => ({ id: 'a', name: 'Main', type: 'Checking', balance: 1000, currency: 'EUR', ...extra }) as Account;
 const tx = (date: string, amount: number, category = 'Restaurants', extra: Partial<Transaction> = {}) => ({ id: `${date}${category}${amount}`, date, amount, currency: 'EUR', category, description: 'x', type: amount < 0 ? 'expense' : 'income', accountId: 'a', ...extra }) as Transaction;
@@ -106,4 +106,23 @@ test('a prediction reads differently for a cap and a goal', () => {
   assert.equal(predictionState(prediction({ type: 'net_worth_goal', targetAmount: 100 }), 90).label, 'Close');
   assert.equal(predictionState(prediction({ type: 'net_worth_goal', targetAmount: 100 }), 120).label, 'Goal met');
   assert.equal(predictionState(prediction({ status: 'won' }), 0).label, 'Won');
+});
+
+test('updateActivityStreak increments on consecutive days and resets after a gap', () => {
+  const initial: UserStats = { currentStreak: 3, longestStreak: 5, lastLogDate: '2026-10-10' };
+  const sameDay = updateActivityStreak(initial, '2026-10-10');
+  assert.equal(sameDay.currentStreak, 3);
+
+  const nextDay = updateActivityStreak(initial, '2026-10-11');
+  assert.equal(nextDay.currentStreak, 4);
+  assert.equal(nextDay.longestStreak, 5);
+  assert.equal(nextDay.lastLogDate, '2026-10-11');
+
+  const newRecord = updateActivityStreak({ currentStreak: 5, longestStreak: 5, lastLogDate: '2026-10-11' }, '2026-10-12');
+  assert.equal(newRecord.currentStreak, 6);
+  assert.equal(newRecord.longestStreak, 6);
+
+  const afterGap = updateActivityStreak(newRecord, '2026-10-15');
+  assert.equal(afterGap.currentStreak, 1);
+  assert.equal(afterGap.longestStreak, 6);
 });

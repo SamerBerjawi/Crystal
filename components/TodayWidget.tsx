@@ -68,6 +68,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         // Recurring Transactions (due in <= 3 days and >= -7 days)
         recurringTransactions.forEach(rt => {
             if (rt.type === 'income') return; // Only process bill/expense/transfer obligations
+            if (rt.pausedAt) return;
             if (!rt.nextDueDate) return;
 
             let nextDue = parseLocalDate(rt.nextDueDate);
@@ -112,12 +113,16 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                     const month = d.getMonth();
                     const daysInMonth = new Date(year, month + 1, 0).getDate();
                     d.setDate(Math.min(targetDay, daysInMonth));
+                } else if (rt.frequency === 'biweekly') {
+                    d.setDate(d.getDate() + (14 * interval));
                 } else if (rt.frequency === 'weekly') {
                     d.setDate(d.getDate() + (7 * interval));
                 } else if (rt.frequency === 'daily') {
                     d.setDate(d.getDate() + interval);
                 } else if (rt.frequency === 'yearly') {
                     d.setFullYear(d.getFullYear() + interval);
+                } else {
+                    break;
                 }
                 nextDue = d;
                 iterations++;

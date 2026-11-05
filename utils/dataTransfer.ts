@@ -70,6 +70,7 @@ export const buildJsonExport = (config: ExportConfig, source: ExportSource): Rec
   if (chosen('goals')) {
     data.financialGoals = full.financialGoals;
     data.predictions = full.predictions;
+    if (full.goalOrder !== undefined) data.goalOrder = full.goalOrder;
   }
   if (chosen('tasks')) data.tasks = full.tasks;
   if (chosen('tags')) data.tags = full.tags;
@@ -78,6 +79,13 @@ export const buildJsonExport = (config: ExportConfig, source: ExportSource): Rec
   return data;
 };
 
+const flattenCategoriesForCsv = (categories: Category[], parentName = ''): Record<string, unknown>[] =>
+  categories.flatMap(category => {
+    const { subCategories, ...rest } = category;
+    const row = { ...rest, parentCategory: parentName || undefined };
+    return [row, ...(subCategories?.length ? flattenCategoriesForCsv(subCategories, category.name) : [])];
+  });
+
 /** One table per data type. Preferences and stats have no table form, and empty tables are left out. */
 export const buildCsvExports = (config: ExportConfig, source: ExportSource): { type: string; rows: any[] }[] => {
   const { accounts, transactions } = filterForExport(config, source);
@@ -85,7 +93,7 @@ export const buildCsvExports = (config: ExportConfig, source: ExportSource): { t
   const tables: Record<string, any[]> = {
     transactions,
     accounts,
-    categories: source.allCategories,
+    categories: flattenCategoriesForCsv(source.allCategories),
     budgets: source.budgets,
     schedule: [...source.recurringTransactions, ...(full.billsAndPayments || [])],
     investments: full.investmentTransactions || [],

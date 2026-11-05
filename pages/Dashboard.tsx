@@ -227,6 +227,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const analyticsSelectedAccounts = useMemo(() => selectedAccounts.filter(acc => acc.includeInAnalytics ?? true), [selectedAccounts]);
   const analyticsSelectedAccountIds = useMemo(() => analyticsSelectedAccounts.map(acc => acc.id), [analyticsSelectedAccounts]);
   const analyticsTransactions = useMemo(() => transactions.filter(tx => {
+    if (tx.isSplitParent || tx.isCombinedParent) return false;
     if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
     const account = accountLookup.get(tx.accountId);
     return account ? (account.includeInAnalytics ?? true) : true;
@@ -258,14 +259,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
   const monthFlow = useMemo(() => {
     const monthPrefix = toLocalISOString(new Date()).slice(0, 7);
-    return transactions.reduce((flow, tx) => {
+    return analyticsTransactions.reduce((flow, tx) => {
       if (tx.transferId || !tx.date.startsWith(monthPrefix)) return flow;
       const eur = convertToMain(tx.amount, tx.currency);
       if (tx.type === 'income') flow.income += eur;
       else flow.spending += Math.abs(eur);
       return flow;
     }, { income: 0, spending: 0 });
-  }, [transactions]);
+  }, [analyticsTransactions]);
 
   const { allRecurringItems } = useMemo(() => {
     const syntheticLoanPayments = generateSyntheticLoanPayments(analyticsAccounts, analyticsTransactions, loanPaymentOverrides);
@@ -337,6 +338,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
           switch (rt.frequency) {
             case 'daily': nextDueDate.setDate(nextDueDate.getDate() + interval); break;
             case 'weekly': nextDueDate.setDate(nextDueDate.getDate() + 7 * interval); break;
+            case 'biweekly': nextDueDate.setDate(nextDueDate.getDate() + 14 * interval); break;
             case 'monthly': {
               const d = rt.dueDateOfMonth || startDateLocal.getDate();
               nextDueDate.setMonth(nextDueDate.getMonth() + interval, 1);
@@ -436,7 +438,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [deleteTransactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
-    const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${analyticsSelectedAccountIds.join(',')}|${duration}`;
+    const ratesKey = JSON.stringify(conversionRates ?? {});
+    const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${analyticsSelectedAccountIds.join(',')}|${duration}|${showBalanceAdjustments}|${Boolean(preferences.excludeTransfersFromAnalytics)}|${preferredCurrency}|${ratesKey}`;
     const cached = aggregateCacheRef.current.get(cacheKey);
     if (cached) return cached;
 
@@ -493,7 +496,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     };
     cacheAggregateResult(cacheKey, result);
     return result;
-  }, [aggregateCacheRef, analyticsSelectedAccountIds, analyticsTransactions, cacheAggregateResult, duration, selectedAccountIds, transactionsKey, transferLookup]);
+  }, [aggregateCacheRef, analyticsSelectedAccountIds, analyticsTransactions, cacheAggregateResult, conversionRates, duration, preferences.excludeTransfersFromAnalytics, preferredCurrency, selectedAccountIds, showBalanceAdjustments, transactionsKey, transferLookup]);
 
   const enrichedTransactions: EnrichedTransaction[] = useMemo(
     () =>
@@ -506,7 +509,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   );
 
   const { incomeChange, expenseChange } = useMemo(() => {
-    const { start, end } = getDateRange(duration, transactions);
+    const { start, end } = getDateRange(duration, analyticsTransactions);
     const diff = end.getTime() - start.getTime();
 
     if (duration === 'ALL' || diff <= 0) {
@@ -516,7 +519,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     const prevStart = new Date(start.getTime() - diff);
     const prevEnd = new Date(start.getTime() - 1);
 
-    const txsInPrevPeriod = transactions.filter(tx => {
+    const txsInPrevPeriod = analyticsTransactions.filter(tx => {
       const txDate = parseLocalDate(tx.date);
       return txDate >= prevStart && txDate <= prevEnd;
     });
@@ -559,7 +562,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       incomeChange: calculateChangeString(income, safeRound(prevIncome, 2)),
       expenseChange: calculateChangeString(expenses, safeRound(prevExpenses, 2)),
     };
-  }, [duration, transactions, analyticsSelectedAccountIds, income, expenses, transferLookup]);
+  }, [duration, analyticsTransactions, analyticsSelectedAccountIds, income, expenses, transferLookup, preferences.excludeTransfersFromAnalytics]);
 
   const outflowsByCategory: CategorySpending[] = useMemo(() => {
     const spending: { [key: string]: CategorySpending } = {};
@@ -843,24 +846,35 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     const currentNetWorth = netWorth;
     const today = parseLocalDate(toLocalISOString(new Date()));
 
-    const transactionsToReverse = transactions.filter(tx => {
+    const signedTxAmount = (tx: Transaction) =>
+      tx.type === 'expense'
+        ? -Math.abs(convertToMain(tx.amount, tx.currency))
+        : Math.abs(convertToMain(tx.amount, tx.currency));
+
+    // Back out future-dated transactions included in account.balance so today's baseline is accurate
+    const futureTransactionsDelta = analyticsTransactions
+      .filter(tx => {
+        if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
+        if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
+        const txDate = parseLocalDate(tx.date);
+        return txDate > today;
+      })
+      .reduce((sum, tx) => sum + signedTxAmount(tx), 0);
+
+    const todayNetWorth = currentNetWorth - futureTransactionsDelta;
+
+    const transactionsToReverse = analyticsTransactions.filter(tx => {
       if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
       if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
       const txDate = parseLocalDate(tx.date);
       return txDate >= start && txDate <= today;
     });
 
-    const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
-      const signedAmount = tx.type === 'expense'
-        ? -Math.abs(convertToMain(tx.amount, tx.currency))
-        : Math.abs(convertToMain(tx.amount, tx.currency));
+    const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => sum + signedTxAmount(tx), 0);
 
-      return sum + signedAmount;
-    }, 0);
+    const startingNetWorth = todayNetWorth - totalChangeSinceStart;
 
-    const startingNetWorth = currentNetWorth - totalChangeSinceStart;
-
-    const transactionsInPeriod = transactions.filter(tx => {
+    const transactionsInPeriod = analyticsTransactions.filter(tx => {
       if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
       if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
       const txDate = parseLocalDate(tx.date);
@@ -870,11 +884,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     const dailyChanges = new Map<string, number>();
     for (const tx of transactionsInPeriod) {
       const dateStr = formatDateKey(parseLocalDate(tx.date));
-      const signedAmount = tx.type === 'expense'
-        ? -Math.abs(convertToMain(tx.amount, tx.currency))
-        : Math.abs(convertToMain(tx.amount, tx.currency));
-
-      dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedAmount);
+      dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedTxAmount(tx));
     }
 
     const data: { name: string, value?: number, forecast?: number }[] = [];
@@ -925,7 +935,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     }
 
     return data;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast]);
+  }, [duration, transactions, analyticsTransactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast]);
 
   const netWorthTrendColor = useMemo(() => {
     // Check trend based on historical data only
@@ -1030,6 +1040,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [analyticsAccounts, analyticsTransactions, duration]);
 
   const eurToDisplay = useCallback((eur: number) => convertCurrency(eur, getMainCurrency(), preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
+  const displayToEur = useCallback((val: number) => convertCurrency(val, preferredCurrency, getMainCurrency(), conversionRates), [preferredCurrency, conversionRates]);
   const toPreferred = useCallback((amount: number, from: Currency) => convertCurrency(amount, from, preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
 
   const setCushion = useCallback((amount: number) => {
@@ -1084,7 +1095,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       defaultW: 2,
       defaultH: 3,
       component: SafeToSpendWidget,
-      props: { data: safeToSpend, currency: preferredCurrency, toDisplay: eurToDisplay, countUp: true, onCushionChange: setCushion }
+      props: { data: safeToSpend, currency: preferredCurrency, toDisplay: eurToDisplay, fromDisplay: displayToEur, countUp: true, onCushionChange: setCushion }
     },
     {
       id: 'accountsSummary',
@@ -1178,15 +1189,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     { id: 'recentActivity', name: 'Recent Activity', icon: 'clock-03', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick, maxItems: 15 } },
     { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'bank', description: 'Categorized asset values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'receipt', description: 'Categorized debt values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
-    { id: 'budgetOverview', name: 'Budget Overview', icon: 'sliders-horizontal', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
+    { id: 'budgetOverview', name: 'Budget Overview', icon: 'sliders-horizontal', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick, onCategoryClick: handleCategoryClick } },
     { id: 'transactionMap', name: 'Transaction Map', icon: 'maps', description: 'Geographic spend patterns', defaultW: 6, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
     { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'hierarchy-square-01', description: 'Money movement visualizer', defaultW: 12, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
 
     // ANALYSIS WIDGETS
     { id: 'financialRunway', name: 'Financial Runway', icon: 'timer-01', description: 'Days until zero balance', defaultW: 6, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
-    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'store-01', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
-    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'flash', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
-  ], [safeToSpend, eurToDisplay, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
+    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'store-01', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions, currency: preferredCurrency, toDisplay: eurToDisplay } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'flash', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts, currency: preferredCurrency, toDisplay: eurToDisplay } }
+  ], [safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const layout = useMemo(() => resolveOverviewLayout(preferences, isMobile), [preferences.dashboardLayouts, preferences.dashboardHiddenWidgets, isMobile]);
   const layoutKey = isMobile ? OVERVIEW_PHONE_LAYOUT_KEY : OVERVIEW_LAYOUT_KEY;

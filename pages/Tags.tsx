@@ -36,6 +36,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
   const [sort, setSort] = useState<TagSort>('count');
 
   const summaries = useMemo(() => summariseTags(tags, transactions), [tags, transactions]);
+  const validTagIds = useMemo(() => new Set(tags.map(t => t.id)), [tags]);
   const visible = useMemo(() => sortTags(summaries.filter(tag => tag.name.toLowerCase().includes(search.toLowerCase())), sort), [search, sort, summaries]);
 
   return (
@@ -45,12 +46,12 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
         setCurrentPage={setCurrentPage}
         stats={[
           { label: 'Tags', icon: 'tag-01', value: tags.length },
-          { label: 'Transactions tagged', icon: 'pie-chart-01', value: taggedShare(transactions), format: 'percent' },
+          { label: 'Transactions tagged', icon: 'pie-chart-01', value: taggedShare(transactions, validTagIds), format: 'percent' },
         ]}
         actions={<Button icon="add-01" onPress={() => setEditing({ tag: null })}>New tag</Button>}
       />
 
-      {editing && <TagModal onClose={() => setEditing(null)} onSave={saveTag} tagToEdit={editing.tag} />}
+      {editing && <TagModal onClose={() => setEditing(null)} onSave={saveTag} tagToEdit={editing.tag} existingTags={tags} />}
       <ConfirmDialog
         isOpen={!!deleting}
         onClose={() => setDeleting(null)}

@@ -100,7 +100,7 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
       <form className="space-y-4" onSubmit={event => { event.preventDefault(); save(); }}>
         <SmoothTab fullWidth className="w-full" items={KINDS} value={type} onChange={id => { setType(id as PredictionType); setTargetId(''); }} label="Prediction target kind" />
         <Select label={TARGET_LABELS[type]} options={options} value={targetId || null} onChange={setTargetId} />
-        <AmountInput label={AMOUNT_LABELS[type]} value={targetAmount} onChange={setTargetAmount} />
+        <AmountInput label={AMOUNT_LABELS[type]} currency="EUR" value={targetAmount} onChange={setTargetAmount} />
         <DateInput label="End date" value={endDate} onChange={setEndDate} />
       </form>
     </Dialog>

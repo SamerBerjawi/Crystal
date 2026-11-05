@@ -31,7 +31,7 @@ export function buildSummaryFacts({ incomeYesterday, billsDue, toReview, tasksDu
 export const defaultCategory = (tx: Pick<Transaction, 'transferId'>) => (tx.transferId ? 'Transfer' : 'Uncategorized');
 
 export const isUncategorised = (tx: Transaction) =>
-  !tx.transferId && !tx.isBalanceAdjustment && (!tx.category?.trim() || tx.category === 'Uncategorized');
+  !tx.transferId && !tx.isBalanceAdjustment && !tx.isSplitParent && !tx.isCombinedParent && (!tx.category?.trim() || tx.category === 'Uncategorized');
 
 /**
  * Up to three likely categories: what this merchant usually gets, then what's most used for this kind of transaction.
@@ -41,7 +41,11 @@ export const suggestCategories = (tx: Transaction, history: Transaction[], ruleC
   const key = (tx.merchant || tx.description || '').trim().toLowerCase();
   const ranked = (list: Transaction[]) => {
     const counts = new Map<string, number>();
-    list.forEach(item => { if (!isUncategorised(item) && !item.transferId && item.category !== 'Transfer') counts.set(item.category, (counts.get(item.category) ?? 0) + 1); });
+    list.forEach(item => {
+      if (!isUncategorised(item) && !item.transferId && !item.isSplitParent && !item.isCombinedParent && item.category !== 'Transfer') {
+        counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+      }
+    });
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
   };
   const sameMerchant = history.filter(item => (item.merchant || item.description || '').trim().toLowerCase() === key);

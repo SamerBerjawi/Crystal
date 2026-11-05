@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Transaction, Account } from '../types';
+import { Transaction, Account, Currency } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { LineChart, Line, Grid, XAxis, YAxis, ChartTooltip } from '@/src/components/charts';
 import { Amount } from './ui/Money';
@@ -7,9 +7,15 @@ import { Amount } from './ui/Money';
 interface WealthVelocityWidgetProps {
   transactions: Transaction[];
   accounts: Account[];
+  currency?: Currency;
+  toDisplay?: (eur: number) => number;
 }
 
-const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transactions }) => {
+const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({
+  transactions,
+  currency = getMainCurrency(),
+  toDisplay = (val: number) => val,
+}) => {
   const chartData = useMemo(() => {
     const months = 6;
     const today = new Date();
@@ -22,8 +28,8 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
       const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
 
       const monthlyDelta = transactions
-        .filter(t => !t.transferId && parseLocalDate(t.date) >= start && parseLocalDate(t.date) <= end)
-        .reduce((sum, t) => sum + convertToMain(t.amount, t.currency), 0);
+        .filter(t => !t.transferId && !t.isSplitParent && !t.isCombinedParent && !t.isBalanceAdjustment && parseLocalDate(t.date) >= start && parseLocalDate(t.date) <= end)
+        .reduce((sum, t) => sum + toDisplay(convertToMain(t.amount, t.currency)), 0);
 
       data.push({ date: d, month: monthKey, delta: monthlyDelta });
     }
@@ -35,7 +41,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
       const avg = window.reduce((sum, i) => sum + i.delta, 0) / window.length;
       return { ...item, avg };
     });
-  }, [transactions]);
+  }, [transactions, toDisplay]);
 
   const currentDelta = chartData[chartData.length - 1]?.delta || 0;
   const isAccelerating = currentDelta > (chartData[chartData.length - 1]?.avg || 0);
@@ -47,7 +53,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Growth momentum</p>
           <div className="flex items-center gap-2 mt-0.5">
             <h3 className={`text-2xl font-bold tracking-tight ${currentDelta >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-              <Amount value={currentDelta} currency={getMainCurrency()} tone="flow" />
+              <Amount value={currentDelta} currency={currency} tone="flow" />
             </h3>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isAccelerating ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-slate-500/10 text-slate-600 dark:text-slate-400'}`}>
               {isAccelerating ? 'Accelerating' : 'Stabilizing'}
@@ -70,7 +76,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
           <YAxis />
           <Line dataKey="avg" stroke="#94A3B8" strokeWidth={2} strokeDasharray="4,4" />
           <Line dataKey="delta" stroke="#6366F1" strokeWidth={3} fadeEdges />
-          <ChartTooltip valueFormatter={(value) => formatCurrency(Number(value), getMainCurrency())} />
+          <ChartTooltip valueFormatter={(value) => formatCurrency(Number(value), currency)} />
         </LineChart>
       </div>
       

@@ -1,5 +1,5 @@
 import { getMainCurrency } from '../utils';
-import type { Budget, Transaction } from '../types';
+import type { Budget, Category, Transaction } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 
 export type GroupBy = 'merchant' | 'category';
@@ -41,18 +41,50 @@ const amountOf = (tx: Transaction) => Math.abs(convertToMain(tx.amount, tx.curre
 const merchantOf = (tx: Transaction, fallback = 'Unknown merchant') => tx.merchant?.trim() || tx.description || fallback;
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 
-const isCounted = (tx: Transaction, showAdjustments: boolean) => (showAdjustments || !tx.isBalanceAdjustment) && !tx.transferId;
+const isCounted = (tx: Transaction, showAdjustments: boolean) =>
+  !tx.isSplitParent && !tx.isCombinedParent && (showAdjustments || !tx.isBalanceAdjustment) && !tx.transferId;
 
-const inScope = (tx: Transaction, filters: ReportFilters) => {
+const collectDescendantNames = (cat: Category, out: Set<string>) => {
+  out.add(cat.name);
+  (cat.subCategories ?? []).forEach(sub => collectDescendantNames(sub, out));
+};
+
+const findCategoryNode = (categories: Category[], name: string): Category | undefined => {
+  for (const cat of categories) {
+    if (cat.name === name) return cat;
+    const found = findCategoryNode(cat.subCategories ?? [], name);
+    if (found) return found;
+  }
+  return undefined;
+};
+
+export const categoryMatches = (txCategory: string, targetCategory: string, categories?: Category[]): boolean => {
+  if (targetCategory === 'all' || txCategory === targetCategory) return true;
+  if (!categories || categories.length === 0) return false;
+  const node = findCategoryNode(categories, targetCategory);
+  if (!node) return false;
+  const descendants = new Set<string>();
+  collectDescendantNames(node, descendants);
+  return descendants.has(txCategory);
+};
+
+export const inScope = (tx: Transaction, filters: ReportFilters, categories?: Category[]) => {
   if (filters.accountId !== 'all' && tx.accountId !== filters.accountId) return false;
-  if (filters.category !== 'all' && tx.category !== filters.category) return false;
+  if (filters.category !== 'all' && !categoryMatches(tx.category, filters.category, categories)) return false;
   const query = filters.merchant.trim().toLowerCase();
   return !query || (tx.merchant || tx.description || '').toLowerCase().includes(query);
 };
 
 /** Spending in a period. Comparisons use this too, so they cover the same accounts, categories and merchants. */
-export const expensesIn = (transactions: Transaction[], filters: ReportFilters, showAdjustments: boolean, startDate = filters.startDate, endDate = filters.endDate) =>
-  transactions.filter(tx => tx.type === 'expense' && isCounted(tx, showAdjustments) && tx.date >= startDate && tx.date <= endDate && inScope(tx, filters));
+export const expensesIn = (
+  transactions: Transaction[],
+  filters: ReportFilters,
+  showAdjustments: boolean,
+  startDate = filters.startDate,
+  endDate = filters.endDate,
+  categories?: Category[],
+) =>
+  transactions.filter(tx => tx.type === 'expense' && isCounted(tx, showAdjustments) && tx.date >= startDate && tx.date <= endDate && inScope(tx, filters, categories));
 
 const totalOf = (rows: Transaction[]) => sum(rows.map(amountOf));
 
@@ -99,11 +131,11 @@ export const spendingVelocity = (rows: Transaction[], previous: Transaction[], s
 };
 
 /** Each category against its average over the three periods before, counting only periods with spending. */
-export const comparedWithUsual = (rows: Transaction[], transactions: Transaction[], filters: ReportFilters, showAdjustments: boolean) => {
+export const comparedWithUsual = (rows: Transaction[], transactions: Transaction[], filters: ReportFilters, showAdjustments: boolean, categories?: Category[]) => {
   const days = daysBetween(filters.startDate, filters.endDate);
   const past = Array.from({ length: USUAL_PERIODS }, (_, index) => {
     const end = addDays(filters.startDate, -(days * index) - 1);
-    return categoryTotals(expensesIn(transactions, filters, showAdjustments, addDays(end, -(days - 1)), end));
+    return categoryTotals(expensesIn(transactions, filters, showAdjustments, addDays(end, -(days - 1)), end, categories));
   }).filter(period => period.size > 0);
   if (past.length === 0) return [];
   const actual = categoryTotals(rows);
@@ -157,12 +189,22 @@ export const monthsInPeriod = (startDate: string, endDate: string) => {
   return daysBetween(startDate, endDate) / AVERAGE_MONTH_DAYS;
 };
 
-export const budgetAgainstActual = (rows: Transaction[], budgets: Budget[], startDate: string, endDate: string) => {
+export const budgetAgainstActual = (rows: Transaction[], budgets: Budget[], startDate: string, endDate: string, categories?: Category[]) => {
   const actual = categoryTotals(rows);
   const months = monthsInPeriod(startDate, endDate);
   return budgets.map(budget => {
-    const budgetEur = Math.abs(convertToMain(budget.amount, budget.currency)) * months;
-    const actualEur = actual.get(budget.categoryName) || 0;
+    const monthlyBudgetEur = Math.abs(convertToMain(budget.amount, budget.currency));
+    const budgetEur = monthlyBudgetEur * months;
+    let actualEur = 0;
+    if (categories && categories.length > 0) {
+      actual.forEach((val, catName) => {
+        if (categoryMatches(catName, budget.categoryName, categories)) {
+          actualEur += val;
+        }
+      });
+    } else {
+      actualEur = actual.get(budget.categoryName) || 0;
+    }
     return { categoryName: budget.categoryName, budgetEur, actualEur, varianceEur: budgetEur - actualEur };
   }).sort((a, b) => a.varianceEur - b.varianceEur);
 };
@@ -204,26 +246,34 @@ export const unusualSpending = (rows: Transaction[]) => {
 };
 
 /** The month of the period's end, projected from its daily average so far. A period ending later than today stops at today. */
-export const monthEndForecast = (transactions: Transaction[], filters: ReportFilters, showAdjustments: boolean, today: string) => {
+export const monthEndForecast = (transactions: Transaction[], filters: ReportFilters, showAdjustments: boolean, today: string, categories?: Category[]) => {
   const last = filters.endDate > today ? today : filters.endDate;
   const end = parseLocalDate(last);
   const monthStart = toLocalISOString(new Date(end.getFullYear(), end.getMonth(), 1));
   const totalDays = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
-  const mtdSpendEur = totalOf(expensesIn(transactions, filters, showAdjustments, monthStart, last));
+  const mtdSpendEur = totalOf(expensesIn(transactions, filters, showAdjustments, monthStart, last, categories));
   const dailyAverage = mtdSpendEur / end.getDate();
   const remainingDays = totalDays - end.getDate();
   return { mtdSpendEur, dailyAverage, projectedMonthEnd: mtdSpendEur + dailyAverage * remainingDays, remainingDays };
 };
 
-export const buildReport = (transactions: Transaction[], budgets: Budget[], filters: ReportFilters, showAdjustments: boolean, groupBy: GroupBy, today: string) => {
+export const buildReport = (
+  transactions: Transaction[],
+  budgets: Budget[],
+  filters: ReportFilters,
+  showAdjustments: boolean,
+  groupBy: GroupBy,
+  today: string,
+  categoriesList?: Category[],
+) => {
   const { startDate, endDate } = filters;
   const days = daysBetween(startDate, endDate);
-  const rows = expensesIn(transactions, filters, showAdjustments);
-  const previousRows = expensesIn(transactions, filters, showAdjustments, addDays(startDate, -days), addDays(startDate, -1));
+  const rows = expensesIn(transactions, filters, showAdjustments, startDate, endDate, categoriesList);
+  const previousRows = expensesIn(transactions, filters, showAdjustments, addDays(startDate, -days), addDays(startDate, -1), categoriesList);
   const totalSpend = totalOf(rows);
   const previousSpend = totalOf(previousRows);
   const income = sum(transactions
-    .filter(tx => tx.type === 'income' && isCounted(tx, showAdjustments) && tx.date >= startDate && tx.date <= endDate && (filters.accountId === 'all' || tx.accountId === filters.accountId))
+    .filter(tx => tx.type === 'income' && isCounted(tx, showAdjustments) && tx.date >= startDate && tx.date <= endDate && inScope(tx, filters, categoriesList))
     .map(amountOf));
   const categories = [...categoryTotals(rows).entries()].map(([category, totalEur]) => ({ category, totalEur })).sort((a, b) => b.totalEur - a.totalEur);
   const recurring = recurringPatterns(rows);
@@ -239,15 +289,37 @@ export const buildReport = (transactions: Transaction[], budgets: Budget[], filt
     recurringImpact: sum(recurring.map(item => item.estimatedMonthlyEur)),
     categories,
     velocity: spendingVelocity(rows, previousRows, startDate, endDate),
-    usual: comparedWithUsual(rows, transactions, filters, showAdjustments),
+    usual: comparedWithUsual(rows, transactions, filters, showAdjustments, categoriesList),
     needs: needsAndWants(rows),
     groups: groupedSpend(rows, groupBy),
     loyalty: merchantLoyalty(rows),
-    budget: budgetAgainstActual(rows, budgets, startDate, endDate),
+    budget: budgetAgainstActual(rows, budgets, startDate, endDate, categoriesList),
     recurring,
     unusual: unusualSpending(rows),
-    forecast: monthEndForecast(transactions, filters, showAdjustments, today),
+    forecast: monthEndForecast(transactions, filters, showAdjustments, today, categoriesList),
   };
+};
+
+export const exportReportCsv = (report: Report, filters: ReportFilters): string => {
+  const escape = (val: string | number) => {
+    const str = String(val ?? '');
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const lines = [
+    ['Period Start', 'Period End', 'Total Spend (EUR)', 'Total Income (EUR)', 'Savings Rate (%)', 'Transactions Count'].map(escape).join(','),
+    [filters.startDate, filters.endDate, report.totalSpend.toFixed(2), report.income.toFixed(2), report.savingsRate.toFixed(1), report.count].map(escape).join(','),
+    '',
+    ['Date', 'Merchant / Description', 'Category', 'Amount', 'Currency', 'Amount (EUR)'].map(escape).join(','),
+    ...report.rows.map(tx => [
+      tx.date,
+      tx.merchant || tx.description,
+      tx.category,
+      tx.amount,
+      tx.currency,
+      amountOf(tx).toFixed(2),
+    ].map(escape).join(',')),
+  ];
+  return lines.join('\n');
 };
 
 export type Report = ReturnType<typeof buildReport>;

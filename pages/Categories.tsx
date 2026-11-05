@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 import { addSubCategory, DropPosition, filterCategories, moveCategory, removeCategory, shiftCategory, updateCategory } from '../utils/categoryTree';
+import { findCategoryWithParent } from '../utils/categoryRefactor';
 
 type Classification = 'income' | 'expense';
 
@@ -26,11 +27,21 @@ interface CategoriesProps {
   expenseCategories: Category[];
   setExpenseCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   setCurrentPage: (page: Page) => void;
+  onRenameCategory?: (oldName: string, newName: string) => void;
+  onDeleteCategory?: (deletedCategory: Category, fallbackName: string) => void;
 }
 
 const countSubCategories = (categories: Category[]) => categories.reduce((sum, category) => sum + (category.subCategories?.length || 0), 0);
 
-const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCategories, expenseCategories, setExpenseCategories, setCurrentPage }) => {
+const Categories: React.FC<CategoriesProps> = ({
+  incomeCategories,
+  setIncomeCategories,
+  expenseCategories,
+  setExpenseCategories,
+  setCurrentPage,
+  onRenameCategory,
+  onDeleteCategory,
+}) => {
   const [activeTab, setActiveTab] = useState<Classification>('expense');
   const [editing, setEditing] = useState<EditState | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -46,12 +57,35 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
   const save = (saved: Category, parentId?: string) => {
     const setCategories = setterFor(saved.classification);
     if (saved.id) {
-      setCategories(prev => updateCategory(prev, saved.id, saved));
+      const oldNode = editing?.category;
+      const oldName = oldNode?.name;
+      const oldClassification = editing?.classification ?? saved.classification;
+      if (oldClassification !== saved.classification) {
+        const setOldCategories = setterFor(oldClassification);
+        setOldCategories(prev => removeCategory(prev, saved.id));
+        setCategories(prev => [...prev, { ...saved, subCategories: oldNode?.subCategories ?? saved.subCategories ?? [] }]);
+      } else {
+        setCategories(prev => updateCategory(prev, saved.id, saved));
+      }
+      if (oldName && oldName !== saved.name) {
+        onRenameCategory?.(oldName, saved.name);
+      }
     } else {
       const created = { ...saved, id: `cat-${uuidv4()}` };
       setCategories(prev => (parentId ? addSubCategory(prev, parentId, created) : [...prev, created]));
     }
     setEditing(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingId) return;
+    const found = findCategoryWithParent(list, deletingId);
+    if (found) {
+      const fallback = found.parent?.name || 'Uncategorized';
+      onDeleteCategory?.(found.category, fallback);
+    }
+    setActive(prev => removeCategory(prev, deletingId));
+    setDeletingId(null);
   };
 
   const endDrag = () => { setDraggedId(null); setDropTarget(null); };
@@ -79,9 +113,9 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
       <ConfirmDialog
         isOpen={!!deletingId}
         onClose={() => setDeletingId(null)}
-        onConfirm={() => { if (deletingId) setActive(prev => removeCategory(prev, deletingId)); setDeletingId(null); }}
+        onConfirm={handleConfirmDelete}
         title="Delete this category?"
-        message="Its sub-categories go too. You can’t undo this."
+        message="Its sub-categories go too, and existing transactions will be reassigned. You can’t undo this."
         confirmLabel="Delete category"
         isDestructive
       />

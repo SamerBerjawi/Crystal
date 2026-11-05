@@ -34,6 +34,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, today, onEdit, onTick, onMove
         {task.description && <span className="type-caption block truncate text-muted">{task.description}</span>}
         <span className="mt-1 flex flex-wrap items-center gap-2">
           <Badge tone={PRIORITY_TONE[task.priority]}>{task.priority}</Badge>
+          {task.linkedPage && <Badge tone="neutral">{task.linkedPage}</Badge>}
           {due && !isDone && <span className={cn('type-caption', due.isLate ? 'text-money-out' : due.isSoon ? 'text-attention-text' : 'text-muted')}>{due.text}</span>}
           {task.reminderDate && <Icon name="notifications" size={14} className="text-muted" aria-label="Has a reminder" />}
         </span>

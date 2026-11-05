@@ -1,20 +1,27 @@
 import type { Account, Budget, Category, FinancialGoal, InvestmentTransaction, LoanPaymentOverrides, Membership, Prediction, RecurringTransaction, BillPayment, Transaction, UserStats } from '../types';
 import { LIQUID_ACCOUNT_TYPES, DEBT_TYPES } from '../constants';
 import { calculateAccountTotals, convertCurrency, convertToEur, formatCurrency, getMainCurrency, generateAmortizationSchedule, parseLocalDate, toLocalISOString } from '../utils';
+import { categoryMatches } from './reportsModel';
 
 const eurOf = (amount: number, currency: Transaction['currency']) => convertToEur(amount, currency);
 const clamp = (value: number, max: number) => Math.min(max, Math.max(0, value));
-const isSpend = (tx: Transaction) => tx.type === 'expense' && !tx.transferId;
+const isSpend = (tx: Transaction) => tx.type === 'expense' && !tx.transferId && !tx.isSplitParent && !tx.isCombinedParent && !tx.isBalanceAdjustment;
 const openAccounts = (accounts: Account[]) => accounts.filter(account => account.status !== 'closed');
 
 export const analyticsOnly = (accounts: Account[], transactions: Transaction[]) => {
   const included = accounts.filter(account => account.includeInAnalytics ?? true);
   const ids = new Set(included.map(account => account.id));
-  return { accounts: included, transactions: transactions.filter(tx => ids.has(tx.accountId)) };
+  return {
+    accounts: included,
+    transactions: transactions.filter(tx => ids.has(tx.accountId) && !tx.isSplitParent && !tx.isCombinedParent && !tx.isBalanceAdjustment),
+  };
 };
 
+const hasDescendant = (cat: Category, name: string): boolean =>
+  cat.name === name || (cat.subCategories ?? []).some(sub => hasDescendant(sub, name));
+
 const parentName = (category: string, expenseCategories: Category[]) =>
-  expenseCategories.find(parent => parent.subCategories?.some(sub => sub.name === category))?.name ?? category;
+  expenseCategories.find(parent => hasDescendant(parent, category))?.name ?? category;
 
 export const challengeMetrics = (accounts: Account[], transactions: Transaction[], budgets: Budget[], expenseCategories: Category[], now: Date) => {
   const analytics = analyticsOnly(accounts, transactions);
@@ -79,14 +86,24 @@ export const healthScore = (metrics: ChallengeMetrics) => {
 /** Net worth at the start of each of the last 60 months, newest first, walked back from today. */
 export const netWorthHistory = (accounts: Account[], transactions: Transaction[], now: Date) => {
   const analytics = analyticsOnly(accounts, transactions);
-  const { netWorth: current } = calculateAccountTotals(openAccounts(analytics.accounts), analytics.transactions);
+  const { netWorth: rawCurrent } = calculateAccountTotals(openAccounts(analytics.accounts), analytics.transactions);
+  const signedEur = (tx: Transaction) => {
+    const val = Math.abs(eurOf(tx.amount, tx.currency));
+    return tx.type === 'expense' ? -val : val;
+  };
+  let futureDelta = 0;
   const changes = new Map<string, number>();
   analytics.transactions.forEach(tx => {
+    if (tx.transferId) return;
     const date = parseLocalDate(tx.date);
-    if (date > now || tx.transferId) return;
+    if (date > now) {
+      futureDelta += signedEur(tx);
+      return;
+    }
     const key = toLocalISOString(date).slice(0, 7);
-    changes.set(key, (changes.get(key) || 0) + eurOf(tx.amount, tx.currency));
+    changes.set(key, (changes.get(key) || 0) + signedEur(tx));
   });
+  const current = rawCurrent - futureDelta;
   const history: { date: string; value: number }[] = [];
   let running = current;
   for (let month = 0; month < 60; month++) {
@@ -124,13 +141,30 @@ export const debtsAndGoals = (accounts: Account[], transactions: Transaction[], 
       total = totalCost;
     } else if (remaining < 1) return;
     const payments = analytics.transactions
-      .filter(tx => tx.accountId === account.id && (tx.type === 'income' || tx.type === 'expense') && !tx.transferId)
+      .filter(tx => tx.accountId === account.id && (tx.type === 'income' || tx.type === 'expense'))
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 5)
-      .map(tx => ({ date: tx.date, amount: Math.abs(tx.amount) }));
-    debts.push({ id: account.id, name: account.name, total: Math.max(total, remaining), remaining, payments, paidPrincipal, paidInterest });
+      .map(tx => ({ date: tx.date, amount: eurOf(Math.abs(tx.amount), tx.currency) }));
+    const remainingEur = eurOf(remaining, account.currency);
+    const totalEur = eurOf(Math.max(total, remaining), account.currency);
+    debts.push({
+      id: account.id,
+      name: account.name,
+      total: totalEur,
+      remaining: remainingEur,
+      payments,
+      paidPrincipal: eurOf(paidPrincipal, account.currency),
+      paidInterest: eurOf(paidInterest, account.currency),
+    });
   });
-  const savings = goals.filter(goal => goal.currentAmount < goal.amount).map(goal => ({ id: goal.id, name: goal.name, total: goal.amount, remaining: goal.amount - goal.currentAmount }));
+  const savings = goals
+    .filter(goal => goal.currentAmount < goal.amount)
+    .map(goal => ({
+      id: goal.id,
+      name: goal.name,
+      total: eurOf(goal.amount, goal.currency),
+      remaining: eurOf(Math.max(0, goal.amount - goal.currentAmount), goal.currency),
+    }));
   return { debts, savings };
 };
 
@@ -254,14 +288,15 @@ interface PredictionContext {
   accounts: Account[];
   transactions: Transaction[];
   prices: Record<string, number | null>;
+  expenseCategories?: Category[];
 }
 
 /** Where a prediction stands now. The card and the result both use this, so they can't disagree. Null when there's no price yet. */
-export const predictionValue = (prediction: Prediction, { accounts, transactions, prices }: PredictionContext, endDate?: string): number | null => {
+export const predictionValue = (prediction: Prediction, { accounts, transactions, prices, expenseCategories }: PredictionContext, endDate?: string): number | null => {
   const analytics = analyticsOnly(accounts, transactions);
   if (prediction.type === 'spending_cap') {
     return analytics.transactions
-      .filter(tx => isSpend(tx) && tx.category === prediction.targetName && tx.date >= prediction.startDate && (!endDate || tx.date <= endDate))
+      .filter(tx => isSpend(tx) && categoryMatches(tx.category, prediction.targetName, expenseCategories) && tx.date >= prediction.startDate && (!endDate || tx.date <= endDate))
       .reduce((sum, tx) => sum + Math.abs(eurOf(tx.amount, tx.currency)), 0);
   }
   if (prediction.type === 'net_worth_goal') {
@@ -273,6 +308,32 @@ export const predictionValue = (prediction: Prediction, { accounts, transactions
   }
   const price = prediction.targetId ? prices[prediction.targetId] : null;
   return price ?? null;
+};
+
+/** Pure daily check-in streak updater (`ENH-CHL-01`). */
+export const updateActivityStreak = (stats: UserStats, todayIso: string): UserStats => {
+  if (!todayIso) return stats;
+  if (stats.lastLogDate === todayIso) return stats;
+  if (!stats.lastLogDate) {
+    const initialStreak = Math.max(1, stats.currentStreak || 1);
+    return {
+      ...stats,
+      currentStreak: initialStreak,
+      longestStreak: Math.max(stats.longestStreak || 0, initialStreak),
+      lastLogDate: todayIso,
+    };
+  }
+  const lastDate = parseLocalDate(stats.lastLogDate);
+  const todayDate = parseLocalDate(todayIso);
+  const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / 86400000);
+  if (diffDays <= 0) return stats;
+  const nextStreak = diffDays === 1 ? (stats.currentStreak || 0) + 1 : 1;
+  return {
+    ...stats,
+    currentStreak: nextStreak,
+    longestStreak: Math.max(stats.longestStreak || 0, nextStreak),
+    lastLogDate: todayIso,
+  };
 };
 
 /** Settles predictions whose end date has passed. One with no price yet waits. */

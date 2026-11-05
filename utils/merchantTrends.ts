@@ -27,6 +27,7 @@ export const computeSpendTrends = (
 
   for (const tx of transactions) {
     if (!showBalanceAdjustments && tx.isBalanceAdjustment) continue;
+    if (tx.isSplitParent || tx.isCombinedParent || tx.transferId) continue;
     const idx = monthIndex.get(tx.date.slice(0, 7));
     if (idx === undefined) continue;
     const amount = Math.abs(convertToMain(tx.amount, tx.currency));

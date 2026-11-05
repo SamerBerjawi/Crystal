@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { Account, Currency, InvestmentTransaction, Prediction, Transaction, UserStats, Warrant } from '../types';
 import { parseLocalDate, toLocalISOString, convertCurrency, getMainCurrency } from '../utils';
-import { BADGE_GROUPS, budgetMastery, challengeBadges, challengeMetrics, debtsAndGoals, healthScore, netWorthHistory, personalRecords, predictionValue, resolvePredictions, SPRINTS, sprintProgress, type ActiveSprint } from '../utils/challengesModel';
+import { BADGE_GROUPS, budgetMastery, challengeBadges, challengeMetrics, debtsAndGoals, healthScore, netWorthHistory, personalRecords, predictionValue, resolvePredictions, SPRINTS, sprintProgress, updateActivityStreak, type ActiveSprint } from '../utils/challengesModel';
 import { usePreferencesContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -77,17 +77,23 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
   const now = useMemo(() => new Date(), []);
   const today = toLocalISOString(now);
-  const predictionContext = useMemo(() => ({ accounts, transactions, prices: assetPrices }), [accounts, transactions, assetPrices]);
+  const predictionContext = useMemo(() => ({ accounts, transactions, prices: assetPrices, expenseCategories }), [accounts, transactions, assetPrices, expenseCategories]);
 
-  // Predictions settle while this page is open (AUT-44).
+  // Predictions settle and daily streak updates while this page is open (AUT-44, ENH-CHL-01).
   useEffect(() => {
+    const updatedStats = updateActivityStreak(userStats, today);
     const resolved = resolvePredictions(predictions, predictionContext, today);
-    if (resolved.length === 0) return;
+    if (resolved.length === 0) {
+      if (updatedStats !== userStats) {
+        saveUserStats(updatedStats);
+      }
+      return;
+    }
     resolved.forEach(savePrediction);
     saveUserStats({
-      ...userStats,
-      predictionWins: (userStats.predictionWins || 0) + resolved.filter(item => item.status === 'won').length,
-      predictionTotal: (userStats.predictionTotal || 0) + resolved.length,
+      ...updatedStats,
+      predictionWins: (updatedStats.predictionWins || 0) + resolved.filter(item => item.status === 'won').length,
+      predictionTotal: (updatedStats.predictionTotal || 0) + resolved.length,
     });
   }, [predictions, predictionContext, today, userStats, savePrediction, saveUserStats]);
 

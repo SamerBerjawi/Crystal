@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Currency, Invoice, InvoiceStatus, InvoiceType } from '../types';
-import { convertToMain, parseLocalDate, toLocalISOString, getMainCurrency } from '../utils';
-import { effectiveStatus, INVOICE_STATUSES, invoiceFromQuote, invoiceSummary, QUOTE_STATUSES, STATUS_LABELS, visibleDocuments } from '../utils/invoicesModel';
-import { useInvoicesContext, usePreferencesSelector } from '../contexts/DomainProviders';
+import { convertToMain, formatCurrency, parseLocalDate, toLocalISOString, getMainCurrency } from '../utils';
+import { effectiveStatus, INVOICE_STATUSES, invoiceFromQuote, invoiceSummary, QUOTE_STATUSES, renderPrintableInvoiceHtml, STATUS_LABELS, visibleDocuments } from '../utils/invoicesModel';
+import { useAccountSelector, useInvoicesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useIsMobile } from '../hooks/useIsMobile';
 import InvoiceModal from '../components/InvoiceModal';
 import PageHeader, { type PageStat } from '../components/PageHeader';
@@ -68,6 +68,8 @@ const DocumentRow: React.FC<{ doc: Invoice; today: string; isPhone: boolean; men
 /** Talvo's aging above a table of documents. Phones get rows, and editing is a full-height sheet (D-017). */
 const InvoicesPage: React.FC = () => {
   const { invoices, saveInvoice, deleteInvoice } = useInvoicesContext();
+  const accounts = useAccountSelector(acc => acc);
+  const { saveTransaction } = useTransactionsContext();
   const rates = usePreferencesSelector(p => p.conversionRates);
   const isPhone = useIsMobile();
   const today = toLocalISOString(new Date());
@@ -99,9 +101,67 @@ const InvoicesPage: React.FC = () => {
     setStatus('all');
   };
 
+  const markInvoicePaid = (doc: Invoice) => {
+    saveInvoice({ ...doc, status: 'paid' });
+    const defaultAccount =
+      accounts.find(acc => acc.status !== 'closed' && acc.isPrimary) ||
+      accounts.find(acc => acc.status !== 'closed' && acc.type === 'Checking') ||
+      accounts.find(acc => acc.status !== 'closed');
+
+    if (defaultAccount) {
+      toast.success(`${doc.number} marked as paid`, {
+        action: {
+          label: 'Record transaction',
+          onClick: () => {
+            const isIncome = doc.direction === 'sent';
+            saveTransaction(
+              [
+                {
+                  accountId: defaultAccount.id,
+                  date: today,
+                  description: `${doc.type === 'quote' ? 'Quote' : 'Invoice'} ${doc.number} - ${doc.entityName}`,
+                  merchant: doc.entityName,
+                  amount: isIncome ? Math.abs(doc.total) : -Math.abs(doc.total),
+                  category: isIncome ? 'Income' : 'Bills & Utilities',
+                  type: isIncome ? 'income' : 'expense',
+                  currency: doc.currency,
+                },
+              ],
+              []
+            );
+            toast.success(`Recorded in ${defaultAccount.name}`);
+          },
+        },
+      });
+    } else {
+      toast.success(`${doc.number} marked as paid`);
+    }
+  };
+
+  const printDocument = (doc: Invoice) => {
+    const html = renderPrintableInvoiceHtml(doc, formatCurrency);
+    const win = window.open('', '_blank', 'noopener,noreferrer,width=860,height=900');
+    if (!win) {
+      toast.error('Allow pop-ups to print this document');
+      return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 150);
+  };
+
   const menuFor = (doc: Invoice): MenuAction[] => [
     { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setEditor({ type: doc.type, invoice: doc }) },
+    ...(doc.type === 'invoice' && doc.status !== 'paid'
+      ? [{ id: 'mark-paid', label: 'Mark as paid', icon: 'checkmark-circle-02', onAction: () => markInvoicePaid(doc) }]
+      : []),
+    ...(doc.type === 'quote' && doc.status !== 'accepted'
+      ? [{ id: 'mark-accepted', label: 'Mark as accepted', icon: 'checkmark-circle-02', onAction: () => { saveInvoice({ ...doc, status: 'accepted' }); toast.success(`${doc.number} accepted`); } }]
+      : []),
     ...(doc.type === 'quote' ? [{ id: 'convert', label: 'Turn into invoice', icon: 'invoice-02', onAction: () => (doc.status === 'accepted' ? setConverting(doc) : convert(doc)) }] : []),
+    { id: 'print', label: 'Print / PDF', icon: 'printer', onAction: () => printDocument(doc) },
     { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setDeleting(doc) },
   ];
 

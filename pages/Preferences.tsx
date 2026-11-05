@@ -6,7 +6,7 @@ import SettingsGroup from '../components/SettingsGroup';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import ExchangeRates from '../components/ExchangeRates';
 import { Switch, TextInput } from '../components/ui/Fields';
-import { normalizeCurrency } from '../utils';
+import { formatCurrency, normalizeCurrency, setMainCurrency } from '../utils';
 import { currencyOptions, currencyPreference } from '../utils/currencies';
 import Icon from '../components/ui/Icon';
 import { Combobox, Select } from '../components/ui/Pickers';
@@ -15,7 +15,7 @@ import { cn } from '../lib/utils';
 
 interface PreferencesProps {
   preferences: AppPreferences;
-  setPreferences: (prefs: AppPreferences) => void;
+  setPreferences: React.Dispatch<React.SetStateAction<AppPreferences>>;
   theme: Theme;
   setTheme: (theme: Theme) => void;
   setCurrentPage: (page: Page) => void;
@@ -52,9 +52,11 @@ const CalculationSwitch: React.FC<{ title: string; description: string; isSelect
 
 export const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage, currenciesInUse }) => {
   const [fontCategory, setFontCategory] = useState<'all' | AppFontCategory>('all');
-  const [specimen, setSpecimen] = useState('€125,480.00');
+  const activeCurrencyCode = normalizeCurrency(preferences.currency);
+  const [specimen, setSpecimen] = useState(() => formatCurrency(125480, activeCurrencyCode));
 
-  const set = <K extends keyof AppPreferences>(key: K, value: AppPreferences[K]) => setPreferences({ ...preferences, [key]: value });
+  const set = <K extends keyof AppPreferences>(key: K, value: AppPreferences[K]) =>
+    setPreferences(prev => (typeof prev === 'object' && prev !== null ? { ...prev, [key]: value } : { ...preferences, [key]: value }));
 
   const currencyList = useMemo(currencyOptions, []);
   const rateSource = preferences.ratesUpdatedAt
@@ -110,7 +112,18 @@ export const Preferences: React.FC<PreferencesProps> = ({ preferences, setPrefer
 
       <SettingsGroup id="preferences-region" title="Region" description="Totals across Crystal convert to your main currency.">
         <div className="grid gap-4 md:grid-cols-2">
-          <Combobox label="Main currency" options={currencyList} value={normalizeCurrency(preferences.currency)} onChange={id => id && set('currency', currencyPreference(id))} />
+          <Combobox
+            label="Main currency"
+            options={currencyList}
+            value={activeCurrencyCode}
+            onChange={id => {
+              if (!id) return;
+              const normalized = normalizeCurrency(id);
+              setMainCurrency(normalized);
+              set('currency', currencyPreference(id));
+              setSpecimen(formatCurrency(125480, normalized));
+            }}
+          />
           <Combobox label="Country" options={toOptions(COUNTRY_OPTIONS)} value={preferences.country} onChange={id => id && set('country', id)} />
           <Combobox label="Timezone" className="md:col-span-2" options={toOptions(TIMEZONE_OPTIONS)} value={preferences.timezone} onChange={id => id && set('timezone', id)} />
         </div>
@@ -137,6 +150,17 @@ export const Preferences: React.FC<PreferencesProps> = ({ preferences, setPrefer
           <Select label="Overview period" options={DURATION_OPTIONS.map(option => ({ id: option.value, label: option.label }))} value={preferences.defaultPeriod} onChange={id => set('defaultPeriod', id as AppPreferences['defaultPeriod'])} />
           <Select label="Forecast length" options={FORECAST_DURATION_OPTIONS.map(option => ({ id: option.value, label: option.label }))} value={preferences.defaultForecastPeriod || '1Y'} onChange={id => set('defaultForecastPeriod', id as AppPreferences['defaultForecastPeriod'])} />
           <Select label="Account order" options={DEFAULT_ACCOUNT_ORDER_OPTIONS.map(option => ({ id: option.value, label: option.label }))} value={preferences.defaultAccountOrder} onChange={id => set('defaultAccountOrder', id as AppPreferences['defaultAccountOrder'])} />
+          <Select
+            label="Quick budget lookback"
+            options={[
+              { id: '1', label: 'Last month' },
+              { id: '3', label: '3-month average' },
+              { id: '6', label: '6-month average' },
+              { id: '12', label: '12-month average' },
+            ]}
+            value={String(preferences.defaultQuickCreatePeriod || 3)}
+            onChange={id => set('defaultQuickCreatePeriod', Number(id))}
+          />
         </div>
       </SettingsGroup>
 

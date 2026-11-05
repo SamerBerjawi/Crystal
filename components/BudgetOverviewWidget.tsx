@@ -1,17 +1,10 @@
 import React, { useMemo } from 'react';
 import { Budget, Transaction, Category, Duration, Account } from '../types';
-import { getDateRange, convertToMain, parseLocalDate, getMainCurrency } from '../utils';
-import { LIQUID_ACCOUNT_TYPES } from '../constants';
+import { getDateRange, convertToMain, getMainCurrency, toLocalISOString } from '../utils';
+import { budgetAccountIds, spendByCategory } from '../utils/budgetModel';
+import { monthsInPeriod } from '../utils/reportsModel';
 import BudgetProgressBar from './BudgetProgressBar';
 
-const findParentCategory = (categoryName: string, categories: Category[]): Category | undefined => {
-    for (const parent of categories) {
-      if (parent.name === categoryName) return parent;
-      if (parent.subCategories.some(sub => sub.name === categoryName)) return parent;
-    }
-    return undefined;
-};
-  
 interface BudgetOverviewWidgetProps {
   budgets: Budget[];
   transactions: Transaction[];
@@ -19,44 +12,44 @@ interface BudgetOverviewWidgetProps {
   accounts: Account[];
   duration: Duration;
   onBudgetClick: () => void;
+  onCategoryClick?: (categoryName: string) => void;
 }
 
 
-const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, transactions, expenseCategories, accounts, duration, onBudgetClick }) => {
-    const { spendingByCategory } = useMemo(() => {
+const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, transactions, expenseCategories, accounts, duration, onBudgetClick, onCategoryClick }) => {
+    const { spendingByCategory, periodMonths } = useMemo(() => {
         const { start, end } = getDateRange(duration, transactions);
-        const liquidAccountIds = new Set(
-            accounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type)).map(acc => acc.id)
-        );
-
-        const relevantTransactions = transactions.filter(t => {
-            const txDate = parseLocalDate(t.date);
-            return txDate >= start && txDate <= end && t.type === 'expense' && !t.transferId && liquidAccountIds.has(t.accountId);
+        const from = toLocalISOString(start);
+        const to = toLocalISOString(end);
+        const accountIds = budgetAccountIds(accounts);
+        const map = spendByCategory(transactions, { from, to }, {
+            accountIds,
+            categories: expenseCategories,
+            convert: convertToMain,
         });
-
         const spending: Record<string, number> = {};
-        for (const tx of relevantTransactions) {
-            const parentCategory = findParentCategory(tx.category, expenseCategories);
-            if (parentCategory) {
-                spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToMain(tx.amount, tx.currency));
-            }
-        }
-        return { spendingByCategory: spending };
+        map.forEach((val, key) => { spending[key] = val; });
+
+        const months = Math.max(1, monthsInPeriod(from, to));
+
+        return { spendingByCategory: spending, periodMonths: months };
     }, [duration, transactions, expenseCategories, accounts]);
 
     const budgetData = useMemo(() => {
         return budgets.map(budget => {
             const spent = spendingByCategory[budget.categoryName] || 0;
-            const limit = convertToMain(budget.amount, budget.currency);
+            const monthlyLimit = convertToMain(budget.amount, budget.currency);
+            const limit = monthlyLimit * periodMonths;
             const progress = limit > 0 ? (spent / limit) * 100 : 0;
 
             return {
                 ...budget,
                 spent,
+                limit,
                 progress
             };
         }).sort((a, b) => b.progress - a.progress); // Show most spent budgets first
-    }, [budgets, spendingByCategory]);
+    }, [budgets, spendingByCategory, periodMonths]);
 
     if (budgetData.length === 0) {
         return (
@@ -69,10 +62,14 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
     return (
         <div className="space-y-2 h-full overflow-y-auto pr-1">
             {budgetData.slice(0, 4).map(budget => (
-                <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer group p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-all duration-200">
+                <div
+                    key={budget.id}
+                    onClick={() => (onCategoryClick ? onCategoryClick(budget.categoryName) : onBudgetClick())}
+                    className="cursor-pointer group p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-all duration-200"
+                >
                     <BudgetProgressBar
                         spent={budget.spent}
-                        budgeted={convertToMain(budget.amount, budget.currency)}
+                        budgeted={budget.limit}
                         currency={getMainCurrency()}
                         categoryName={budget.categoryName}
                         variant="compact"

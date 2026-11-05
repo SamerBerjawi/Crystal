@@ -14,12 +14,15 @@ const HISTORY_MONTHS = 6;
 
 const monthKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}`;
 
+const isCountableTransaction = (tx: Transaction) =>
+  !tx.isSplitParent && !tx.isCombinedParent && !tx.isBalanceAdjustment;
+
 export const summariseTags = (tags: Tag[], transactions: Transaction[], today = new Date()): TagSummary[] => {
   const months = Array.from({ length: HISTORY_MONTHS }, (_, index) => monthKey(new Date(today.getFullYear(), today.getMonth() - (HISTORY_MONTHS - 1 - index), 1)));
   const stats = new Map(tags.map(tag => [tag.id, { count: 0, netAmount: 0, history: {} as Record<string, number> }]));
 
   transactions.forEach(transaction => {
-    if (!transaction.tagIds?.length) return;
+    if (!isCountableTransaction(transaction) || !transaction.tagIds?.length) return;
     const amount = convertToMain(transaction.amount, transaction.currency);
     const key = monthKey(parseLocalDate(transaction.date));
     transaction.tagIds.forEach(tagId => {
@@ -44,8 +47,14 @@ export const sortTags = (tags: TagSummary[], sort: TagSort): TagSummary[] =>
     return a.name.localeCompare(b.name);
   });
 
-/** The share of all transactions with at least one tag. */
-export const taggedShare = (transactions: Transaction[]): number => {
-  if (transactions.length === 0) return 0;
-  return (transactions.filter(transaction => transaction.tagIds?.length).length / transactions.length) * 100;
+/** The share of countable transactions with at least one tag. */
+export const taggedShare = (transactions: Transaction[], validTagIds?: Set<string>): number => {
+  const countable = transactions.filter(isCountableTransaction);
+  if (countable.length === 0) return 0;
+  const taggedCount = countable.filter(transaction =>
+    validTagIds
+      ? transaction.tagIds?.some(id => validTagIds.has(id))
+      : Boolean(transaction.tagIds?.length)
+  ).length;
+  return (taggedCount / countable.length) * 100;
 };

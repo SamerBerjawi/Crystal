@@ -1,22 +1,29 @@
 import React, { useMemo } from 'react';
-import { Transaction } from '../types';
+import { Currency, Transaction } from '../types';
 import { convertToMain, formatCurrency, getMainCurrency } from '../utils';
 import Icon from './ui/Icon';
-import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
+import { BarChart, Bar, Grid, BarYAxis, ChartTooltip } from '@/src/components/charts';
 
 interface MerchantParetoWidgetProps {
   transactions: Transaction[];
+  currency?: Currency;
+  toDisplay?: (eur: number) => number;
 }
 
-const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transactions }) => {
+const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({
+  transactions,
+  currency = getMainCurrency(),
+  toDisplay = (val: number) => val,
+}) => {
   const data = useMemo(() => {
     const merchantTotals = new Map<string, number>();
     let totalDiscretionary = 0;
 
     transactions.forEach(tx => {
+      if (tx.isSplitParent || tx.isCombinedParent || tx.isBalanceAdjustment) return;
       // Filter for discretionary expenses (ignore transfers and likely fixed costs like Rent/Mortgage)
       if (tx.type === 'expense' && !tx.transferId && tx.merchant) {
-        const amount = Math.abs(convertToMain(tx.amount, tx.currency));
+        const amount = Math.abs(toDisplay(convertToMain(tx.amount, tx.currency)));
         const merchant = tx.merchant.trim();
         merchantTotals.set(merchant, (merchantTotals.get(merchant) || 0) + amount);
         totalDiscretionary += amount;
@@ -33,7 +40,7 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
       }));
 
     return { sorted, totalDiscretionary };
-  }, [transactions]);
+  }, [transactions, toDisplay]);
 
   const topThreePercent = data.sorted.slice(0, 3).reduce((sum, item) => sum + item.percent, 0);
 
@@ -64,7 +71,7 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
           />
           <BarYAxis />
           <ChartTooltip
-            valueFormatter={(val: number) => formatCurrency(val, getMainCurrency())}
+            valueFormatter={(val: number) => formatCurrency(val, currency)}
           />
         </BarChart>
       </div>

@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { Category, MerchantRule, Transaction } from '../types';
 import { useTransactionsContext } from '../contexts/DomainProviders';
 import { categoryPickerOptions } from '../utils/categoryTree';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { branchesOf, merchantTransactionCount, primaryBranch, transactionsAtBranch, withBranches } from '../utils/merchantModel';
 import MerchantBranches from './MerchantBranches';
 import MerchantKeywordRules from './MerchantKeywordRules';
@@ -26,14 +26,15 @@ interface MerchantDetailModalProps {
   merchantName: string;
   logoKey: string;
   initialRule?: MerchantRule;
-  onSave: (key: string, rule: MerchantRule) => void;
+  onSave: (key: string, rule: MerchantRule, oldKey?: string, newName?: string) => void;
   incomeCategories: Category[];
   expenseCategories: Category[];
   transactions: Transaction[];
   brandfetchClientId?: string;
 }
 
-const draftFrom = (rule: MerchantRule | undefined, logoKey: string) => ({
+const draftFrom = (rule: MerchantRule | undefined, logoKey: string, merchantName: string) => ({
+  displayName: merchantName,
   category: rule?.category || '',
   defaultDescription: rule?.defaultDescription || '',
   notes: rule?.notes || '',
@@ -47,7 +48,7 @@ const draftFrom = (rule: MerchantRule | undefined, logoKey: string) => ({
 /** Edits one merchant in a 640 side panel. The profile on Merchants shows the result. */
 const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({ isOpen, onClose, merchantName, logoKey, initialRule, onSave, incomeCategories, expenseCategories, transactions, brandfetchClientId }) => {
   const { saveTransaction } = useTransactionsContext();
-  const [saved, setSaved] = useState(() => draftFrom(initialRule, logoKey));
+  const [saved, setSaved] = useState(() => draftFrom(initialRule, logoKey, merchantName));
   const [draft, setDraft] = useState(saved);
   const [tab, setTab] = useState('details');
   const [refreshedAt, setRefreshedAt] = useState<number>();
@@ -55,7 +56,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({ isOpen, onClo
   const [stampTransactions, setStampTransactions] = useState(saved.branches.length === 0);
 
   useEffect(() => {
-    const next = draftFrom(initialRule, logoKey);
+    const next = draftFrom(initialRule, logoKey, merchantName);
     setSaved(next);
     setDraft(next);
     setStampTransactions(next.branches.length === 0);
@@ -72,8 +73,10 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({ isOpen, onClo
   const transactionCount = merchantTransactionCount(transactions, logoKey, merchantName);
 
   const save = () => {
-    const { branches, category, defaultDescription, notes, website, logo, isHidden, isOnline } = draft;
-    onSave(logoKey, withBranches({
+    const { displayName, branches, category, defaultDescription, notes, website, logo, isHidden, isOnline } = draft;
+    const trimmedName = displayName.trim() || merchantName;
+    const targetKey = normalizeMerchantKey(trimmedName) || logoKey;
+    onSave(targetKey, withBranches({
       category: category || undefined,
       defaultDescription: defaultDescription || undefined,
       notes: notes || undefined,
@@ -81,12 +84,20 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({ isOpen, onClo
       logo: logo || undefined,
       isHidden,
       isOnline,
-    }, branches));
+    }, branches), logoKey, trimmedName);
 
     const primary = primaryBranch(branches);
     const stamped = stampTransactions && primary ? transactionsAtBranch(transactions, logoKey, merchantName, primary) : [];
-    if (stamped.length > 0) saveTransaction(stamped);
-    toast.success(stamped.length > 0 ? `Saved ${merchantName} and its location on ${stamped.length} ${stamped.length === 1 ? 'transaction' : 'transactions'}` : `Saved ${merchantName}`);
+    const stampedById = new Map(stamped.map(tx => [tx.id, tx]));
+    const renamed = trimmedName !== merchantName
+      ? transactions
+          .filter(tx => tx.merchant && (normalizeMerchantKey(tx.merchant) === logoKey || tx.merchant.trim() === merchantName.trim()))
+          .map(tx => ({ ...(stampedById.get(tx.id) || tx), merchant: trimmedName }))
+      : [];
+    const renamedIds = new Set(renamed.map(tx => tx.id));
+    const updates = [...renamed, ...stamped.filter(tx => !renamedIds.has(tx.id))];
+    if (updates.length > 0) saveTransaction(updates, [], { skipRules: true });
+    toast.success(updates.length > 0 ? `Saved ${trimmedName} across ${updates.length} ${updates.length === 1 ? 'transaction' : 'transactions'}` : `Saved ${trimmedName}`);
     onClose();
   };
 
@@ -110,6 +121,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({ isOpen, onClo
         {tab === 'details' && (
           <>
             <div className="space-y-4">
+              <TextInput label="Merchant name" help="Renaming updates past transactions from this merchant." value={draft.displayName} onChange={displayName => update({ displayName })} />
               <Combobox label="Category" help="New transactions from this merchant are filed here." options={categoryOptions} value={draft.category || null} onChange={id => update({ category: id ?? '' })} placeholder="Search categories" />
               <TextInput label="Description" help="Used in place of the bank's text." value={draft.defaultDescription} onChange={defaultDescription => update({ defaultDescription })} />
               <Textarea label="Notes" placeholder="Contract number, support contact, how to cancel" value={draft.notes} onChange={notes => update({ notes })} />

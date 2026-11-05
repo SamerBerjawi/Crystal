@@ -4,7 +4,7 @@ import type { Page } from '../types';
 import { toLocalISOString, getMainCurrency, formatCurrency } from '../utils';
 import { sortAccountsByType } from '../utils/accountsModel';
 import { categoryPickerOptions } from '../utils/categoryTree';
-import { automaticReports, buildReport, dailySpend, expensesIn, MAX_SAVED_VIEWS, NO_FILTERS, reportTiles, type GroupBy, type ReportFilters, type ReportId, type SavedReportView } from '../utils/reportsModel';
+import { automaticReports, buildReport, dailySpend, expensesIn, exportReportCsv, inScope, MAX_SAVED_VIEWS, NO_FILTERS, reportTiles, type GroupBy, type ReportFilters, type ReportId, type SavedReportView } from '../utils/reportsModel';
 import { warnIgnored } from '../utils/logging';
 import { useAccountSelector, usePreferencesContext, useTransactionSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
@@ -42,10 +42,10 @@ export type Point = {
   value: number;
 };
 
-const defaultKpiData: Point[] = Array.from({ length: 24 }, (_, i) => ({
-  day: `Day ${i + 1}`,
-  value: Math.round(4200 + 40 * i + Math.sin(i * 0.7) * 500),
-}));
+const defaultKpiData: Point[] = [
+  { day: 'Day 1', value: 0 },
+  { day: 'Day 2', value: 0 },
+];
 
 export interface KpiCardProps {
   label?: string;
@@ -171,16 +171,36 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
     }
   }, [setPreferences]);
 
-  const report = useMemo(() => buildReport(transactions, budgets, filters, showAdjustments, groupBy, today), [transactions, budgets, filters, showAdjustments, groupBy, today]);
+  const allCategories = useMemo(() => [...expenseCategories, ...incomeCategories], [expenseCategories, incomeCategories]);
+  const analyticsAccountIds = useMemo(
+    () => new Set(accounts.filter(acc => acc.includeInAnalytics ?? true).map(acc => acc.id)),
+    [accounts]
+  );
+  const scopedTransactions = useMemo(
+    () => transactions.filter(tx => filters.accountId !== 'all' || analyticsAccountIds.size === 0 || analyticsAccountIds.has(tx.accountId)),
+    [transactions, filters.accountId, analyticsAccountIds]
+  );
+
+  const report = useMemo(
+    () => buildReport(scopedTransactions, budgets, filters, showAdjustments, groupBy, today, allCategories),
+    [scopedTransactions, budgets, filters, showAdjustments, groupBy, today, allCategories]
+  );
   const tiles = useMemo(() => reportTiles(report), [report]);
   const cashflowTransactions = useMemo(
-    () => transactions.filter(tx => tx.date >= filters.startDate && tx.date <= filters.endDate && (filters.accountId === 'all' || tx.accountId === filters.accountId) && (showAdjustments || !tx.isBalanceAdjustment)),
-    [transactions, filters, showAdjustments]
+    () => scopedTransactions.filter(tx =>
+      !tx.isSplitParent &&
+      !tx.isCombinedParent &&
+      tx.date >= filters.startDate &&
+      tx.date <= filters.endDate &&
+      (showAdjustments || !tx.isBalanceAdjustment) &&
+      inScope(tx, filters, allCategories)
+    ),
+    [scopedTransactions, filters, showAdjustments, allCategories]
   );
 
   const library = useMemo(() => {
     const summarise = (scope: ReportFilters) => {
-      const rows = expensesIn(transactions, scope, showAdjustments);
+      const rows = expensesIn(scopedTransactions, scope, showAdjustments, scope.startDate, scope.endDate, allCategories);
       const trend = dailySpend(rows, scope.startDate, scope.endDate);
       return { amount: trend.reduce((sum, point) => sum + point.value, 0), trend };
     };
@@ -188,7 +208,21 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
       automatic: automatic.map(item => ({ ...item, ...summarise({ ...item, ...NO_FILTERS }) })),
       saved: savedViews.map(view => ({ view, ...summarise(view) })),
     };
-  }, [automatic, savedViews, transactions, showAdjustments]);
+  }, [automatic, savedViews, scopedTransactions, showAdjustments, allCategories]);
+
+  const handleExportCsv = () => {
+    const csv = exportReportCsv(report, filters);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `crystal-report-${filters.startDate}-to-${filters.endDate}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast.success('Report exported to CSV');
+  };
 
   const isSame = (scope: ReportFilters) => scope.startDate === filters.startDate && scope.endDate === filters.endDate && scope.merchant === filters.merchant && scope.category === filters.category && scope.accountId === filters.accountId;
   const activeFilters = [filters.merchant.trim(), filters.category !== 'all', filters.accountId !== 'all'].filter(Boolean).length;
@@ -226,11 +260,12 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
         title="Reports"
         stats={stats}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="secondary" icon="sliders-horizontal" onPress={() => setFilterOpen(true)}>
               <span className="flex items-center gap-1.5">Filters{activeFilters > 0 && <CountPill count={activeFilters} />}</span>
             </Button>
             <Button variant="secondary" onPress={() => setSaving(true)}>Save view</Button>
+            <Button variant="secondary" icon="download" onPress={handleExportCsv}>Export CSV</Button>
           </div>
         }
       />

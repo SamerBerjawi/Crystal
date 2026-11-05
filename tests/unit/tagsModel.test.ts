@@ -25,7 +25,12 @@ test('sorts by use, size and name', () => {
   assert.deepEqual(sortTags(tags, 'name').map(item => item.id), ['b', 'a']);
 });
 
-test('the tagged share counts each transaction once', () => {
+test('the tagged share counts each transaction once and ignores split parents', () => {
   assert.equal(taggedShare([tx(1, '2026-01-01', ['a', 'b']), tx(2, '2026-01-02')]), 50);
+  assert.equal(taggedShare([
+    { ...tx(-100, '2026-01-01', ['a']), isSplitParent: true },
+    tx(-60, '2026-01-01', ['a']),
+    tx(-40, '2026-01-01'),
+  ]), 50);
   assert.equal(taggedShare([]), 0);
 });

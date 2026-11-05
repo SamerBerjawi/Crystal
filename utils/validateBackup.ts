@@ -4,9 +4,9 @@ const ARRAY_KEYS = [
     'accounts', 'transactions', 'investmentTransactions', 'recurringTransactions', 'recurringTransactionOverrides',
     'financialGoals', 'budgets', 'tasks', 'warrants', 'memberships', 'importExportHistory', 'billsAndPayments',
     'invoices', 'tags', 'predictions', 'enableBankingConnections', 'incomeCategories', 'expenseCategories',
-    'accountOrder', 'taskOrder',
+    'accountOrder', 'taskOrder', 'goalOrder',
 ];
-const OBJECT_KEYS = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats'];
+const OBJECT_KEYS = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats', 'preferences', 'userProfile'];
 const DATED: Record<string, string> = { transactions: 'date', recurringTransactions: 'startDate' };
 const MAX_REPORTED = 20;
 
@@ -21,7 +21,7 @@ export function validateBackup(json: unknown): string[] {
         if (!Array.isArray(data[key])) { problems.push(`"${key}" must be a list.`); continue; }
         const dateField = DATED[key];
         (data[key] as unknown[]).forEach((item, i) => {
-            if (key === 'accountOrder' || key === 'taskOrder') return;
+            if (key === 'accountOrder' || key === 'taskOrder' || key === 'goalOrder') return;
             if (!item || typeof item !== 'object' || Array.isArray(item)) { problems.push(`${key}[${i}] is not a record.`); return; }
             const rec = item as Record<string, any>;
             if ((key === 'accounts' || key === 'transactions') && (typeof rec.id !== 'string' || !rec.id)) problems.push(`${key}[${i}] has no id.`);

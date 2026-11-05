@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Budget, Transaction } from '../../types';
-import { automaticReports, budgetAgainstActual, buildReport, comparedWithUsual, daysBetween, monthEndForecast, monthsInPeriod, needsAndWants, recurringPatterns, reportInsights, reportTiles, unusualSpending, NO_FILTERS } from '../../utils/reportsModel';
+import { automaticReports, budgetAgainstActual, buildReport, comparedWithUsual, daysBetween, exportReportCsv, monthEndForecast, monthsInPeriod, needsAndWants, recurringPatterns, reportInsights, reportTiles, unusualSpending, NO_FILTERS } from '../../utils/reportsModel';
 
 let id = 0;
 const spend = (date: string, amount: number, category = 'Groceries', merchant = 'Shop', extra: Partial<Transaction> = {}) =>
@@ -94,4 +94,45 @@ test('an empty period still reads sensibly', () => {
   assert.equal(tiles.summary.says, 'There is no spending in this period.');
   assert.equal(tiles.needs.value, 'None');
   assert.equal(reportInsights(report).length, 1);
+});
+
+test('split and combined parent transactions are excluded from report totals', () => {
+  const rows = [
+    spend('2026-02-10', 100, 'Food', 'Supermarket', { isSplitParent: true }),
+    spend('2026-02-10', 60, 'Groceries', 'Supermarket', { parentTransactionId: '1' }),
+    spend('2026-02-10', 40, 'Household', 'Supermarket', { parentTransactionId: '1' }),
+  ];
+  const report = buildReport(rows, [], filters('2026-02-01', '2026-02-28'), true, 'merchant', '2026-03-01');
+  assert.equal(report.totalSpend, 100);
+  assert.equal(report.count, 2);
+});
+
+test('parent category filter and budgetAgainstActual roll up child subcategories', () => {
+  const categories = [
+    {
+      id: 'cat-food',
+      name: 'Food & Dining',
+      color: '#000',
+      icon: 'restaurant',
+      classification: 'expense' as const,
+      subCategories: [
+        { id: 'cat-groc', name: 'Groceries', color: '#000', icon: 'cart', classification: 'expense' as const, subCategories: [] },
+        { id: 'cat-rest', name: 'Restaurants', color: '#000', icon: 'fork', classification: 'expense' as const, subCategories: [] },
+      ],
+    },
+  ];
+  const rows = [
+    spend('2026-02-10', 80, 'Groceries', 'Carrefour'),
+    spend('2026-02-12', 45, 'Restaurants', 'Bistro'),
+    spend('2026-02-15', 200, 'Rent', 'Landlord'),
+  ];
+  const budgets = [{ id: 'b1', categoryName: 'Food & Dining', amount: 200, currency: 'EUR', period: 'monthly' }] as unknown as Budget[];
+  const report = buildReport(rows, budgets, filters('2026-02-01', '2026-02-28', { category: 'Food & Dining' }), true, 'category', '2026-03-01', categories);
+  assert.equal(report.totalSpend, 125);
+  assert.equal(report.budget[0].actualEur, 125);
+  assert.equal(report.budget[0].varianceEur, 75);
+
+  const csv = exportReportCsv(report, filters('2026-02-01', '2026-02-28', { category: 'Food & Dining' }));
+  assert.ok(csv.includes('Carrefour'));
+  assert.ok(csv.includes('125.00'));
 });

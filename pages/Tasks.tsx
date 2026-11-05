@@ -60,8 +60,11 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
   const move = (task: Task, status: TaskStatus) => saveTask({ ...task, status });
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over) return;
-    setTaskOrder(placeTask(sorted.map(task => task.id), String(active.id), String(over.id)));
+    if (!over || active.id === over.id) return;
+    const allSortedIds = sorted.map(task => task.id);
+    const reordered = placeTask(allSortedIds, String(active.id), String(over.id));
+    setTaskOrder([...reordered, ...(taskOrder || []).filter(id => !allSortedIds.includes(id))]);
+    if (sort !== 'manual') setSort('manual');
   };
 
   const row = (task: Task, handle?: React.ReactNode) => (
@@ -110,7 +113,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={shown.map(task => task.id)} strategy={verticalListSortingStrategy}>
                     <ul className="divide-y divide-line">
-                      {shown.map(task => <SortableTask key={task.id} task={task} canDrag={sort === 'manual'} row={handle => row(task, handle)} />)}
+                      {shown.map(task => <SortableTask key={task.id} task={task} canDrag={true} row={handle => row(task, handle)} />)}
                     </ul>
                   </SortableContext>
                 </DndContext>

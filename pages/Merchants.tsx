@@ -25,6 +25,7 @@ import { cn } from '../lib/utils';
 import { branchesOf, branchName, googleMapsUrl, hasCoordinates, keywordOf, keywordRulesFor } from '../utils/merchantModel';
 import { computeSpendTrends } from '../utils/merchantTrends';
 import { guessBrandDomain } from '../utils/enableBankingMapper';
+import { NO_BRANCH_MERCHANTS } from '../utils/transactionForm';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -157,7 +158,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   }, [hiddenMerchants, merchantRules, setPreferences]);
 
   const missingMerchantCount = useMemo(() => 
-    transactions.filter(tx => !tx.merchant || !tx.merchant.trim()).length,
+    transactions.filter(tx => !tx.isSplitParent && !tx.isCombinedParent && !tx.transferId && !tx.isBalanceAdjustment && (!tx.merchant || !tx.merchant.trim())).length,
   [transactions]);
 
   const entities = useMemo(() => {
@@ -166,7 +167,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     // 1. Process Merchants from ALL Transactions
     transactions.forEach(tx => {
       if (!showBalanceAdjustments && tx.isBalanceAdjustment) return;
-      if (!tx.merchant) return;
+      if (tx.isSplitParent || tx.isCombinedParent || tx.transferId) return;
+      if (!tx.merchant || NO_BRANCH_MERCHANTS.includes(tx.merchant.trim())) return;
       const key = normalizeMerchantKey(tx.merchant);
       if (!key) return;
       const mapKey = `merchant:${key}`;
@@ -232,7 +234,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
 
     return Array.from(map.values());
-  }, [transactions, accounts, effectiveMerchantRules, legacyOverrides]);
+  }, [transactions, accounts, effectiveMerchantRules, legacyOverrides, showBalanceAdjustments]);
 
   const spendTrendsMap = useMemo(() => {
       const now = new Date();
@@ -270,13 +272,21 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   }, [entities, searchTerm, sortBy, showHidden]);
 
   // Category and description are an always file rule. Everything else stays on the merchant (D-105).
-  const handleSaveRule = (key: string, { category, defaultDescription, ...rule }: MerchantRule) => {
-      const name = entities.find(entity => entity.logoKey === key)?.name ?? key;
-      setPreferences(prev => ({
-          ...prev,
-          merchantRules: { ...prev.merchantRules, [key]: rule },
-          transactionRules: setFiling(prev.transactionRules ?? [], key, name, { category, description: defaultDescription }),
-      }));
+  const handleSaveRule = (key: string, { category, defaultDescription, ...rule }: MerchantRule, oldKey?: string, newName?: string) => {
+      const name = newName || entities.find(entity => entity.logoKey === key)?.name || key;
+      setPreferences(prev => {
+          const nextMerchantRules = { ...prev.merchantRules, [key]: { ...(prev.merchantRules?.[key] || {}), ...rule } };
+          let nextTxRules = prev.transactionRules ?? [];
+          if (oldKey && oldKey !== key) {
+              delete nextMerchantRules[oldKey];
+              nextTxRules = nextTxRules.filter(r => r.id !== `always-${oldKey}`);
+          }
+          return {
+              ...prev,
+              merchantRules: nextMerchantRules,
+              transactionRules: setFiling(nextTxRules, key, name, { category, description: defaultDescription }),
+          };
+      });
   };
 
   const handleRefreshLogos = async () => {

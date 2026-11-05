@@ -87,6 +87,10 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
       toast.error('Add a number and a date');
       return;
     }
+    if (draft.dueDate && draft.dueDate < draft.date) {
+      toast.error(draft.type === 'quote' ? 'Valid-until date cannot be before issue date' : 'Due date cannot be before issue date');
+      return;
+    }
     const items: InvoiceItem[] = draft.lines
       .map(line => {
         const numbers = toNumbers(line);

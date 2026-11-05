@@ -12,7 +12,7 @@ import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 import { isAlwaysFile, ordinaryRules, ruleMatches } from '../utils/rules';
-import { buildRevert, buildRun, moveRule, RuleChange, ruleSuggestions, sentenceText, shiftRule } from '../utils/rulesModel';
+import { buildRevert, buildRun, moveRule, previewChanges, RuleChange, ruleSuggestions, sentenceText, shiftRule } from '../utils/rulesModel';
 
 interface RulesProps {
   preferences: AppPreferences;
@@ -63,8 +63,23 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
   const ordered = ordinaryRules(rules).filter(matchesSearch);
 
   const saveRule = (rule: TransactionRule, replacesId?: string) => {
-    setRules(current => [...current.filter(item => item.id !== rule.id && item.id !== replacesId), rule]);
-    toast.success('Rule saved');
+    setRules(current => {
+      const idx = current.findIndex(item => item.id === rule.id || (replacesId && item.id === replacesId));
+      if (idx >= 0) {
+        const next = [...current];
+        next[idx] = rule;
+        return next.filter((item, i) => i === idx || (item.id !== rule.id && item.id !== replacesId));
+      }
+      return [...current, rule];
+    });
+    const pending = rule.isActive ? previewChanges(transactions, [rule]) : [];
+    if (pending.length > 0) {
+      toast.success(`Rule saved · matches ${pending.length} existing ${pending.length === 1 ? 'transaction' : 'transactions'}`, {
+        action: { label: `Apply to ${pending.length}`, onClick: () => applyChanges(pending) },
+      });
+    } else {
+      toast.success('Rule saved');
+    }
   };
 
   const applyChanges = (changes: RuleChange[]) => {
