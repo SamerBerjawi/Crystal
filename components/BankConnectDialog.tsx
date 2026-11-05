@@ -27,6 +27,41 @@ const PSU_TYPE_OPTIONS = [
   { id: 'business', label: 'Business' },
 ];
 
+const EU_EEA_COUNTRIES = [
+  { id: 'AT', label: 'Austria (AT)' },
+  { id: 'BE', label: 'Belgium (BE)' },
+  { id: 'BG', label: 'Bulgaria (BG)' },
+  { id: 'HR', label: 'Croatia (HR)' },
+  { id: 'CY', label: 'Cyprus (CY)' },
+  { id: 'CZ', label: 'Czechia (CZ)' },
+  { id: 'DK', label: 'Denmark (DK)' },
+  { id: 'EE', label: 'Estonia (EE)' },
+  { id: 'FI', label: 'Finland (FI)' },
+  { id: 'FR', label: 'France (FR)' },
+  { id: 'DE', label: 'Germany (DE)' },
+  { id: 'GR', label: 'Greece (GR)' },
+  { id: 'HU', label: 'Hungary (HU)' },
+  { id: 'IS', label: 'Iceland (IS)' },
+  { id: 'IE', label: 'Ireland (IE)' },
+  { id: 'IT', label: 'Italy (IT)' },
+  { id: 'LV', label: 'Latvia (LV)' },
+  { id: 'LI', label: 'Liechtenstein (LI)' },
+  { id: 'LT', label: 'Lithuania (LT)' },
+  { id: 'LU', label: 'Luxembourg (LU)' },
+  { id: 'MT', label: 'Malta (MT)' },
+  { id: 'NL', label: 'Netherlands (NL)' },
+  { id: 'NO', label: 'Norway (NO)' },
+  { id: 'PL', label: 'Poland (PL)' },
+  { id: 'PT', label: 'Portugal (PT)' },
+  { id: 'RO', label: 'Romania (RO)' },
+  { id: 'SK', label: 'Slovakia (SK)' },
+  { id: 'SI', label: 'Slovenia (SI)' },
+  { id: 'ES', label: 'Spain (ES)' },
+  { id: 'SE', label: 'Sweden (SE)' },
+  { id: 'CH', label: 'Switzerland (CH)' },
+  { id: 'GB', label: 'United Kingdom (GB)' },
+];
+
 interface BankConnectDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -86,7 +121,15 @@ const BankConnectDialog: React.FC<BankConnectDialogProps> = ({ isOpen, onClose, 
         )}
 
         <div className="flex items-end gap-2">
-          <TextInput label="Country code" maxLength={2} className="w-32 shrink-0" value={form.countryCode} onChange={value => onChange({ countryCode: value.toUpperCase() })} />
+          <div className="min-w-0 flex-1">
+            <Combobox
+              label="Country"
+              options={EU_EEA_COUNTRIES}
+              value={form.countryCode || null}
+              onChange={id => onChange({ countryCode: (id ?? '').toUpperCase(), selectedBank: '' })}
+              placeholder="Choose country"
+            />
+          </div>
           <Button variant="secondary" isBusy={isLoadingBanks} onPress={onFindBanks}>Find banks</Button>
         </div>
         {banksError && <Banner tone="error">{banksError}</Banner>}

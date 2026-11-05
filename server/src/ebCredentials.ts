@@ -3,11 +3,20 @@ import { decryptSecret, encryptSecret } from './crypto';
 
 export interface EnableBankingCredentials { applicationId: string; clientCertificate: string }
 
-export const loadCredentials = async (userId: number | string): Promise<EnableBankingCredentials | null> => {
-    const result = await db.query(
-        `SELECT application_id, encrypted_key FROM enable_banking_credentials WHERE user_id = $1`,
-        [userId]
-    );
+export const loadCredentials = async (userId: number | string, applicationId?: string): Promise<EnableBankingCredentials | null> => {
+    const cleanAppId = applicationId?.trim();
+    const result = cleanAppId
+        ? await db.query(
+            `SELECT application_id, encrypted_key FROM enable_banking_credentials
+             WHERE user_id = $1
+             ORDER BY CASE WHEN application_id = $2 THEN 0 ELSE 1 END, updated_at DESC
+             LIMIT 1`,
+            [userId, cleanAppId]
+          )
+        : await db.query(
+            `SELECT application_id, encrypted_key FROM enable_banking_credentials WHERE user_id = $1`,
+            [userId]
+          );
     const row = result.rows?.[0];
     if (!row) return null;
     return { applicationId: row.application_id, clientCertificate: decryptSecret(row.encrypted_key) };

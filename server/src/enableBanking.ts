@@ -250,7 +250,7 @@ const resolveCredentials = async (req: AuthRequest) => {
   const userId = req.user!.id;
   const body = (req.body || {}) as { applicationId?: string; clientCertificate?: string };
   const suppliedKey = typeof body.clientCertificate === 'string' ? body.clientCertificate.trim() : '';
-  const stored = await loadCredentials(userId);
+  const stored = await loadCredentials(userId, body.applicationId);
   if (suppliedKey) {
     const applicationId = (body.applicationId || stored?.applicationId || '').trim();
     return { applicationId, clientCertificate: suppliedKey, isNew: true, userId };
