@@ -57,7 +57,7 @@ export const DetailList: React.FC<{ items: { label: string; value?: React.ReactN
         <dt className="type-body shrink-0 text-muted">{item.label}</dt>
         <dd className="type-body-strong flex min-w-0 items-center justify-end gap-1 text-right text-ink">
           <span className={item.copy ? "min-w-0 break-words" : "min-w-0 truncate"}>{item.value}</span>
-          {item.copy && <IconButton icon="content_copy" label={`Copy ${item.label.toLowerCase()}`} className="size-8 shrink-0" iconSize={16} tooltipPlacement="left" onPress={() => copyToClipboard(item.label, item.copy!)} />}
+          {item.copy && <IconButton icon="copy-01" label={`Copy ${item.label.toLowerCase()}`} className="size-8 shrink-0" iconSize={16} tooltipPlacement="left" onPress={() => copyToClipboard(item.label, item.copy!)} />}
         </dd>
       </div>
     ))}
@@ -189,7 +189,7 @@ const AccountFrame: React.FC<AccountFrameProps> = ({ account, context, value, va
         <div className="flex gap-2 md:hidden">
           {mainAction && <Button icon={mainAction.icon} className="min-w-0 flex-1" onPress={mainAction.onPress}>{mainAction.label}</Button>}
           {menuItems.length === 1 && <Button variant="secondary" icon={actions[0].icon} className="min-w-0 flex-1" onPress={actions[0].onPress}>{actions[0].label}</Button>}
-          {menuItems.length > 1 && <Menu title="Account actions" trigger={<IconButton icon="more_horiz" label="More actions" />} items={menuItems} />}
+          {menuItems.length > 1 && <Menu title="Account actions" trigger={<IconButton icon="more-horizontal" label="More actions" />} items={menuItems} />}
         </div>
       )}
 

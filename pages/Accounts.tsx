@@ -2,10 +2,12 @@
 import React, { useState, useMemo } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AccountForm from '../components/AccountForm';
-import { calculateAccountTotals, convertCurrency, convertToMain, formatCurrency, getMainCurrency } from '../utils';
+import { calculateAccountTotals, convertCurrency, convertToMain, getMainCurrency } from '../utils';
 import {
   accountHasCard,
   accountsInTab,
+  computeAccountDisplayBalance,
+  computeAccountsHeroModel,
   computeCashSegmentNetFlow,
   getVisibleAccountsForAccountsPage,
   type AccountsTab,
@@ -192,9 +194,19 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const sortedPots = useMemo(() => {
     const list = [...tabAccounts];
     if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy === 'balance') return list.sort((a, b) => convertToMain(b.balance, b.currency) - convertToMain(a.balance, a.currency));
-    return list.sort((a, b) => accountOrder.indexOf(a.id) - accountOrder.indexOf(b.id));
-  }, [tabAccounts, sortBy, accountOrder]);
+    if (sortBy === 'balance') {
+      const balOf = (acc: Account) => computeAccountDisplayBalance(acc, transactionsByAccount[acc.id] || [], loanPaymentOverrides, { conversionRates });
+      return list.sort((a, b) => convertToMain(balOf(b), b.currency) - convertToMain(balOf(a), a.currency));
+    }
+    return list.sort((a, b) => (accountOrder || []).indexOf(a.id) - (accountOrder || []).indexOf(b.id));
+  }, [tabAccounts, sortBy, accountOrder, transactionsByAccount, loanPaymentOverrides, conversionRates]);
+
+  const attentionItems = useMemo(() => {
+    const tabIds = new Set(tabAccounts.map(a => a.id));
+    return computeAccountsHeroModel(accounts, transactions, loanPaymentOverrides, preferredCurrency, { conversionRates })
+      .attentionItems.filter(item => tabIds.has(item.accountId))
+      .slice(0, 3);
+  }, [accounts, transactions, loanPaymentOverrides, preferredCurrency, conversionRates, tabAccounts]);
 
   const sortedCards = useMemo(() => {
     const list = [...tabAccounts];
@@ -269,6 +281,23 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           </>
         }
       />
+
+      {attentionItems.length > 0 && (
+        <section aria-label="Attention" className="surface-card rounded-[var(--radius-xl)] border border-[var(--amber-bg)] bg-[var(--amber-bg)]/30 p-4">
+          <p className="type-label text-[var(--amber)]">Needs attention</p>
+          <ul className="mt-1.5 divide-y divide-line">
+            {attentionItems.map(item => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                <button type="button" onClick={() => handleAccountClick(item.accountId)} className="min-w-0 flex-1 cursor-pointer text-left">
+                  <span className="type-body-strong block truncate text-ink">{item.title}</span>
+                  <span className="type-caption block truncate text-muted">{item.subtitle}</span>
+                </button>
+                <span className="type-figure-row shrink-0 text-ink">{item.metricLabel}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {activeTab === 'cards' ? (
         <CardsWallet

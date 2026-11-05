@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Account } from '../types';
 import { currencySign, round2, toLocalISOString } from '../utils';
+import { computeAccountDisplayBalance, computeBalanceAdjustmentDelta } from '../utils/accountsModel';
 import { parseAmountInput } from '../utils/scheduleModel';
+import { usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
+import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { DetailList } from './AccountFrame';
 import { Button } from './ui/Actions';
 import { AmountInput, Checkbox, DateInput, TextInput } from './ui/Fields';
@@ -17,15 +20,22 @@ interface BalanceAdjustmentModalProps {
 }
 
 const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose, onSave, account }) => {
-  const [newBalance, setNewBalance] = useState(String(account.balance));
+  const { transactions } = useTransactionsContext();
+  const { loanPaymentOverrides } = useScheduleContext();
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
+  const accountTransactions = useMemo(() => transactions.filter(t => t.accountId === account.id), [transactions, account.id]);
+  const displayBalance = useMemo(() => computeAccountDisplayBalance(account, accountTransactions, loanPaymentOverrides, { conversionRates }), [account, accountTransactions, loanPaymentOverrides, conversionRates]);
+
+  const [newBalance, setNewBalance] = useState(String(displayBalance));
   const [date, setDate] = useState(toLocalISOString(new Date()));
   const [notes, setNotes] = useState('');
   const [isMarketAdjustment, setIsMarketAdjustment] = useState(false);
 
   const typed = parseAmountInput(newBalance);
-  const change = Number.isNaN(typed) ? 0 : round2(typed - account.balance);
+  const delta = Number.isNaN(typed) ? 0 : computeBalanceAdjustmentDelta(account, accountTransactions, typed, date, conversionRates as Record<string, number> | undefined);
+  const change = delta !== null ? delta : (Number.isNaN(typed) ? 0 : round2(typed - displayBalance));
 
-  const nudge = (delta: number) => setNewBalance(String(round2((Number.isNaN(typed) ? account.balance : typed) + delta)));
+  const nudge = (deltaVal: number) => setNewBalance(String(round2((Number.isNaN(typed) ? displayBalance : typed) + deltaVal)));
 
   const save = () => {
     onSave(change, date, notes, isMarketAdjustment);
@@ -50,11 +60,11 @@ const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose
         <AmountInput autoFocus label="New balance" currency={currencySign(account.currency)} value={newBalance} onChange={setNewBalance} />
         <div className="flex flex-wrap gap-2">
           {QUICK_CHANGES.map(delta => <Button key={delta} variant="secondary" size="sm" onPress={() => nudge(delta)}>{delta > 0 ? `+${delta}` : `−${-delta}`}</Button>)}
-          <Button variant="ghost" size="sm" onPress={() => setNewBalance(String(account.balance))}>Reset</Button>
+          <Button variant="ghost" size="sm" onPress={() => setNewBalance(String(displayBalance))}>Reset</Button>
           <Button variant="ghost" size="sm" onPress={() => setNewBalance('0')}>Zero</Button>
         </div>
         <DetailList items={[
-          { label: 'Current balance', value: <Amount value={account.balance} currency={account.currency} /> },
+          { label: 'Current balance', value: <Amount value={displayBalance} currency={account.currency} /> },
           { label: 'Change', value: <Amount value={change} currency={account.currency} tone="flow" /> },
         ]} />
         <DateInput label="Date" value={date} onChange={setDate} isRequired />

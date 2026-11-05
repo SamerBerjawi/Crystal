@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { filingFor, setFiling } from '../utils/rules';
 import type { Suggestion } from '../hooks/useTransactionMatcher';
 import type { SyncedBillMatchSuggestion } from '../hooks/useSyncedBillMatcher';
-import type { Account, Transaction } from '../types';
+import type { Account, Category, Transaction } from '../types';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { useReview } from '../contexts/ReviewContext';
@@ -110,7 +110,25 @@ const ReviewQueue: React.FC = () => {
   }, [active, transactions, preferences.transactionRules]);
 
   const accountOf = (tx: Transaction) => accounts.find(account => account.id === tx.accountId);
-  const categories = active?.kind === 'categorise' && active.tx.type === 'income' ? incomeCategories : expenseCategories;
+  const allCategories = useMemo(() => [...expenseCategories, ...incomeCategories], [expenseCategories, incomeCategories]);
+  const categories = active?.kind === 'categorise' && active.tx.type === 'income'
+    ? [...incomeCategories, ...expenseCategories]
+    : [...expenseCategories, ...incomeCategories];
+
+  const applyCategoryToTx = (tx: Transaction, categoryName: string): Transaction => {
+    const findCat = (cats: Category[]): Category | undefined => {
+      for (const c of cats) {
+        if (c.name === categoryName) return c;
+        const sub = c.subCategories ? findCat(c.subCategories) : undefined;
+        if (sub) return sub;
+      }
+      return undefined;
+    };
+    const matched = findCat(allCategories);
+    const nextType = matched?.classification || tx.type;
+    const nextAmount = nextType === 'income' ? Math.abs(tx.amount) : -Math.abs(tx.amount);
+    return { ...tx, category: categoryName, type: nextType, amount: nextAmount };
+  };
 
   const advance = () => {
     const index = items.findIndex(item => item.id === active?.id);
@@ -120,13 +138,57 @@ const ReviewQueue: React.FC = () => {
   const fileCategory = () => {
     if (active?.kind !== 'categorise' || !picked) return;
     advance();
-    saveTransaction([{ ...active.tx, category: picked }], [], { skipRules: true });
+    saveTransaction([applyCategoryToTx(active.tx, picked)], [], { skipRules: true });
     const key = normalizeMerchantKey(active.tx.merchant);
     if (alwaysFile && key) {
       const description = filingFor(active.tx.merchant, preferences.transactionRules)?.actions.find(action => action.field === 'description')?.value;
       setPreferences(prev => ({ ...prev, transactionRules: setFiling(prev.transactionRules ?? [], key, active.tx.merchant ?? key, { category: picked, description }) }));
     }
   };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!active || isBulkOpen || isSettingsOpen) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        if (active.kind === 'categorise') {
+          setSkipped(prev => [...prev, active.id]);
+          advance();
+        } else if (active.kind === 'transfer') {
+          advance();
+          review.dismissTransfer(active.match);
+        } else if (active.kind === 'bill') {
+          advance();
+          review.dismissBill(active.match);
+        }
+      } else if (e.key === 'Enter') {
+        if (active.kind === 'categorise' && picked) {
+          e.preventDefault();
+          fileCategory();
+        } else if (active.kind === 'transfer') {
+          e.preventDefault();
+          advance();
+          review.confirmTransfer(active.match);
+        } else if (active.kind === 'bill') {
+          e.preventDefault();
+          advance();
+          review.confirmBill(active.match);
+        }
+      } else if (active.kind === 'categorise' && /^[1-5]$/.test(e.key)) {
+        const idx = Number(e.key) - 1;
+        if (suggestions[idx]) {
+          e.preventDefault();
+          setPicked(suggestions[idx]);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
 
   const selectedItems = allItems.filter(item => selected.has(item.id));
   const selectedTransfers = selectedItems.flatMap(item => (item.kind === 'transfer' ? [item.match] : []));
@@ -188,7 +250,7 @@ const ReviewQueue: React.FC = () => {
               <p className="type-body-strong truncate text-ink">{active.match.matchedName}</p>
               <p className="type-caption text-muted">{day(active.match.matchedDate)}</p>
             </div>
-            <p className="type-figure-row shrink-0 text-ink"><Amount value={active.match.matchedAmount} currency={active.match.transaction.currency} /></p>
+            <p className="type-figure-row shrink-0 text-ink"><Amount value={active.match.matchedAmount} currency={active.match.matchedCurrency ?? active.match.transaction.currency} /></p>
           </div>
           <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
             <Button variant="ghost" onPress={() => { advance(); review.dismissBill(active.match); }}>Not this bill</Button>
@@ -287,7 +349,7 @@ const ReviewQueue: React.FC = () => {
         <BulkCategorizeModal
           onClose={() => setBulkOpen(false)}
           onSave={name => {
-            saveTransaction(selectedTxs.map(tx => ({ ...tx, category: name })), [], { skipRules: true });
+            saveTransaction(selectedTxs.map(tx => applyCategoryToTx(tx, name)), [], { skipRules: true });
             setBulkOpen(false);
             setSelected(new Set());
           }}

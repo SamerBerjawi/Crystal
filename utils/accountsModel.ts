@@ -382,14 +382,18 @@ export const latestTransactions = (transactions: Transaction[], count: number): 
   [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, count);
 
 /** The biggest destinations this month, in the account's own currency. */
-export const topMerchantsThisMonth = (transactions: Transaction[], count = 3, today = new Date()) => {
+export const topMerchantsThisMonth = (transactions: Transaction[], count = 3, today = new Date(), targetCurrency?: Currency) => {
   const month = toLocalISOString(today).slice(0, 7);
   const totals = new Map<string, number>();
   transactions
-    .filter(tx => tx.type === 'expense' && !tx.transferId && tx.date.startsWith(month))
+    .filter(tx => tx.type === 'expense' && !tx.transferId && !tx.isBalanceAdjustment && !tx.isSplitParent && !tx.isCombinedParent && tx.date.startsWith(month))
     .forEach(tx => {
       const name = tx.merchant || tx.description;
-      totals.set(name, safeAdd(totals.get(name) ?? 0, Math.abs(tx.amount)));
+      const raw = Math.abs(tx.amount);
+      const val = targetCurrency && tx.currency && tx.currency !== targetCurrency
+        ? convertCurrency(raw, tx.currency, targetCurrency)
+        : raw;
+      totals.set(name, safeAdd(totals.get(name) ?? 0, val));
     });
   return [...totals.entries()].map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount).slice(0, count);
 };

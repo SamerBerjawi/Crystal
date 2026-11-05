@@ -92,7 +92,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
           <span className="type-body-strong block truncate text-ink">{account.name}</span>
           <span className="type-caption block truncate text-muted">{context}</span>
         </button>
-        <Menu title={account.name} trigger={<IconButton icon="more_horiz" label={`Actions for ${account.name}`} tooltipPlacement="left" />} items={menuItems} />
+        <Menu title={account.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${account.name}`} tooltipPlacement="left" />} items={menuItems} />
       </header>
       <div className="space-y-1">
         <div className="flex items-baseline justify-between gap-2">

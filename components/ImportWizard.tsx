@@ -425,13 +425,15 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                       type: typeValue as AccountType,
                       balance: row.balance,
                       currency: finalCurrency as Currency,
+                      status: 'open',
                   };
                   return newAcc;
               }
           }).filter(Boolean);
 
+        const publishedRawRows = parsedData.filter((_, idx) => !excludedRows.has(idx));
         setIsPublishing(true);
-        onPublish(dataToPublish as any[], importType, fileName, parsedData, dataErrors, newAccountsToCreate);
+        onPublish(dataToPublish as any[], importType, fileName, publishedRawRows, dataErrors, newAccountsToCreate);
         setTimeout(() => onClose(), 2000);
     };
 

@@ -5,8 +5,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { heroClassFor } from '../utils/accountHero';
 import { Radio, RadioGroup } from 'react-aria-components';
 import { Account, Transaction } from '../types';
-import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
-import { accountCardKind, latestTransactions, topMerchantsThisMonth } from '../utils/accountsModel';
+import { convertToMain, parseLocalDate, getMainCurrency } from '../utils';
+import { accountCardKind, computeAccountDisplayBalance, latestTransactions, topMerchantsThisMonth } from '../utils/accountsModel';
+import { useScheduleContext } from '../contexts/FinancialDataContext';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { DetailList, Panel, ProgressBar } from './AccountFrame';
 import { shortDate } from './AccountPot';
 import Icon from './ui/Icon';
@@ -18,14 +20,14 @@ import { EmptyState } from './ui/States';
 import { MerchantLogo } from './EntityIcon';
 import { cn } from '../lib/utils';
 
-const CardMoney: React.FC<{ account: Account }> = ({ account }) => (
+const CardMoney: React.FC<{ account: Account; balance: number }> = ({ account, balance }) => (
   account.creditLimit ? (
     <>
-      <Amount value={Math.abs(account.balance)} currency={account.currency} />
+      <Amount value={Math.abs(balance)} currency={account.currency} />
       <span> of </span>
       <Amount value={account.creditLimit} currency={account.currency} />
     </>
-  ) : <Amount value={account.balance} currency={account.currency} />
+  ) : <Amount value={balance} currency={account.currency} />
 );
 
 /** A card drawn from what the account stores. Only ever the last four digits. */
@@ -60,7 +62,7 @@ interface CardsWalletProps {
   onReorder?: (activeId: string, overId: string) => void;
 }
 
-const SortableCard: React.FC<{ card: Account }> = ({ card }) => {
+const SortableCard: React.FC<{ card: Account; balance: number }> = ({ card, balance }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
@@ -83,7 +85,7 @@ const SortableCard: React.FC<{ card: Account }> = ({ card }) => {
       >
         <BankCard account={card} />
         <span className="type-body-strong mt-2 block truncate px-1 text-ink">{card.name}</span>
-        <span className="type-caption block truncate px-1 text-muted"><CardMoney account={card} /></span>
+        <span className="type-caption block truncate px-1 text-muted"><CardMoney account={card} balance={balance} /></span>
       </Radio>
     </div>
   );
@@ -91,7 +93,10 @@ const SortableCard: React.FC<{ card: Account }> = ({ card }) => {
 
 /** Every account with a card: a row to pick from, then the chosen card's details and activity. */
 const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactionsByAccount, selectedId, onSelect, menuFor, onOpen, onSeeTransactions, onAddCard, onReorder }) => {
+  const { loanPaymentOverrides } = useScheduleContext();
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const selected = cards.find(card => card.id === selectedId) ?? cards[0];
+  const balanceOf = (acc: Account) => computeAccountDisplayBalance(acc, transactionsByAccount[acc.id] ?? [], loanPaymentOverrides, { conversionRates });
 
   useEffect(() => {
     if (selected && selected.id !== selectedId) onSelect(selected.id);
@@ -103,7 +108,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
     latestTransactions(transactions, 12).forEach(tx => groups.set(tx.date, [...(groups.get(tx.date) ?? []), tx]));
     return [...groups.entries()];
   }, [transactions]);
-  const merchants = useMemo(() => topMerchantsThisMonth(transactions), [transactions]);
+  const merchants = useMemo(() => topMerchantsThisMonth(transactions, 3, new Date(), selected?.currency), [transactions, selected?.currency]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -125,7 +130,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
       {
         id: 'move-left',
         label: 'Move card left',
-        icon: 'arrow_back',
+        icon: 'arrow-left-01',
         isDisabled: selectedIndex <= 0,
         startsGroup: true,
         onAction: () => onReorder(selected.id, cards[selectedIndex - 1].id),
@@ -133,7 +138,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
       {
         id: 'move-right',
         label: 'Move card right',
-        icon: 'arrow_forward',
+        icon: 'arrow-right-01',
         isDisabled: selectedIndex >= cards.length - 1,
         onAction: () => onReorder(selected.id, cards[selectedIndex + 1].id),
       },
@@ -145,7 +150,8 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
   }
 
   const settlement = accounts.find(item => item.id === selected.settlementAccountId);
-  const used = Math.abs(selected.balance);
+  const selectedBalance = balanceOf(selected);
+  const used = Math.abs(selectedBalance);
   const limit = selected.creditLimit;
 
   return (
@@ -160,7 +166,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
             className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-5"
           >
             {cards.map(card => (
-              <SortableCard key={card.id} card={card} />
+              <SortableCard key={card.id} card={card} balance={balanceOf(card)} />
             ))}
           </RadioGroup>
         </SortableContext>
@@ -211,7 +217,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
         <div className="min-w-0 space-y-4 lg:col-span-7">
           <Panel title={limit ? 'Credit limit' : 'Balance'}>
             <p className="type-figure-lg text-ink">
-              <Amount value={limit ? used : selected.balance} currency={selected.currency} />
+              <Amount value={limit ? used : selectedBalance} currency={selected.currency} />
               {limit && <span className="type-body text-muted"> of <Amount value={limit} currency={selected.currency} /></span>}
             </p>
             {limit && (

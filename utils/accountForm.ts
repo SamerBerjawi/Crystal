@@ -1,8 +1,8 @@
-import { getMainCurrency } from '../utils';
+import { getMainCurrency, toLocalISOString } from '../utils';
+import { parseAmountInput } from './scheduleModel';
 import { v4 as uuidv4 } from 'uuid';
 import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import type { Account, AccountType, Currency, FuelType, InvestmentSubType, MileageLog, OtherAssetSubType, OtherLiabilitySubType, PropertyType, RecurrenceFrequency, VehicleOwnership } from '../types';
-import { toLocalISOString } from '../utils';
 
 /** Text and number fields, held as typed. Each name matches the `Account` field it saves to. */
 const TEXT_FIELDS = [
@@ -111,9 +111,9 @@ export const draftFromAccount = (account: Account): AccountDraft => {
 /** Total, principal and interest reconcile: change one, and the third follows. */
 export const reconcileLoan = (draft: AccountDraft, field: 'totalAmount' | 'principalAmount' | 'interestAmount', value: string): AccountDraft => {
   const next = { ...draft, [field]: value };
-  const total = parseFloat(next.totalAmount);
-  const principal = parseFloat(next.principalAmount);
-  const interest = parseFloat(next.interestAmount);
+  const total = parseAmountInput(next.totalAmount);
+  const principal = parseAmountInput(next.principalAmount);
+  const interest = parseAmountInput(next.interestAmount);
   if (field === 'totalAmount') {
     if (!isNaN(total) && !isNaN(principal)) next.interestAmount = (total - principal).toFixed(2);
   } else if (!isNaN(principal) && !isNaN(interest)) {
@@ -122,7 +122,11 @@ export const reconcileLoan = (draft: AccountDraft, field: 'totalAmount' | 'princ
   return next;
 };
 
-const num = (value: string) => (value !== '' ? parseFloat(value) : undefined);
+const num = (value: string) => {
+  if (value === '') return undefined;
+  const parsed = parseAmountInput(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
 const int = (value: string) => (value !== '' ? parseInt(value, 10) : undefined);
 const text = (value: string) => value.trim() || undefined;
 

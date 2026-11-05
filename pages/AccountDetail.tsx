@@ -3,6 +3,7 @@ import React, { useMemo, useState, Suspense } from 'react';
 import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog, EnableBankingConnection, EnableBankingAccount, EnableBankingSyncOptions, AssetClosureDetails } from '../types';
 import { convertCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
+import AccountForm from '../components/AccountForm';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import AddMileageLogModal from '../components/AddMileageLogModal';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -82,6 +83,8 @@ const AccountDetail: React.FC<{
     const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
     const [isValuationModalOpen, setValuationModalOpen] = useState(false);
     const [isCloseModalOpen, setCloseModalOpen] = useState(false);
+    const [isEditAccountModalOpen, setEditAccountModalOpen] = useState(false);
+    const [visibleTxLimit, setVisibleTxLimit] = useState(100);
     const [syncPrompt, setSyncPrompt] = useState<{
         connectionId: string;
         connectionOverride: EnableBankingConnection;
@@ -292,12 +295,12 @@ const AccountDetail: React.FC<{
     }, [transactions, account.id, account.currency, showBalanceAdjustments, conversionRates]);
 
     const displayTransactionsList: DisplayTransaction[] = useMemo(() => {
-        const sorted = [...accountTransactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime()).slice(0, 50);
+        const sorted = [...accountTransactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime()).slice(0, visibleTxLimit);
         return sorted.map(item => ({
             ...item.tx,
             accountName: account.name
         }));
-    }, [accountTransactions, account.name]);
+    }, [accountTransactions, account.name, visibleTxLimit]);
 
     const handleTransactionClick = (tx: DisplayTransaction) => {
         setModalTransactions([tx]);
@@ -375,6 +378,18 @@ const AccountDetail: React.FC<{
                     onClose={() => setAdjustModalOpen(false)}
                     onSave={handleSaveAdjustment}
                     account={account}
+                />
+            )}
+
+            {isEditAccountModalOpen && (
+                <AccountForm
+                    account={account}
+                    accounts={accounts}
+                    onClose={() => setEditAccountModalOpen(false)}
+                    onSave={data => {
+                        saveAccount(data);
+                        setEditAccountModalOpen(false);
+                    }}
                 />
             )}
 
@@ -459,8 +474,20 @@ const AccountDetail: React.FC<{
                     onAddLog={() => handleOpenMileageModal()}
                     onEditLog={handleOpenMileageModal}
                     onDeleteLog={handleDeleteMileageLog}
+                    onEditAccount={() => setEditAccountModalOpen(true)}
                 />
             </Suspense>
+            {accountTransactions.length > visibleTxLimit && (
+                <div className="flex justify-center pt-2">
+                    <button
+                        type="button"
+                        onClick={() => setVisibleTxLimit(prev => prev + 100)}
+                        className="type-body-strong cursor-pointer rounded-[var(--radius-md)] bg-inset px-4 py-2 text-ink hover:bg-line"
+                    >
+                        Show more transactions ({accountTransactions.length - visibleTxLimit} remaining)
+                    </button>
+                </div>
+            )}
         </>
     );
 };

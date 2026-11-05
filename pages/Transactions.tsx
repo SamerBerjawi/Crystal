@@ -418,10 +418,10 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   }, [displayTransactions]);
 
   const filteredTransactions = useMemo(() => {
-    const startDateTime = startDate ? new Date(startDate) : null;
+    const startDateTime = startDate ? parseLocalDate(startDate) : null;
     if (startDateTime) startDateTime.setHours(0, 0, 0, 0);
 
-    const endDateTime = endDate ? new Date(endDate) : null;
+    const endDateTime = endDate ? parseLocalDate(endDate) : null;
     if (endDateTime) endDateTime.setHours(23, 59, 59, 999);
 
     const getParentCategoryName = (categoryName: string): string | undefined => {
@@ -441,7 +441,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     const transactionList = indexedTransactions.filter(({ tx, amountAbsEur, searchText, merchantText }) => {
       const matchAccount = selectedAccountIds.length === 0 ||
         (tx.isTransfer
-          ? selectedAccountIds.includes(accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(accountMapByName[tx.toAccountName!]?.id)
+          ? selectedAccountIds.includes(tx.fromAccountId || accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(tx.toAccountId || accountMapByName[tx.toAccountName!]?.id)
           : selectedAccountIds.includes(tx.accountId));
 
       const matchSearch = (
@@ -483,8 +483,8 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     return transactionList.sort((a, b) => {
       switch (sortBy) {
         case 'date-asc': return parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
-        case 'amount-desc': return Math.abs(b.amount) - Math.abs(a.amount);
-        case 'amount-asc': return Math.abs(a.amount) - Math.abs(b.amount);
+        case 'amount-desc': return Math.abs(convertToMain(b.amount, b.currency)) - Math.abs(convertToMain(a.amount, a.currency));
+        case 'amount-asc': return Math.abs(convertToMain(a.amount, a.currency)) - Math.abs(convertToMain(b.amount, b.currency));
         case 'merchant-asc': return (a.merchant || '').localeCompare(b.merchant || '');
         case 'merchant-desc': return (b.merchant || '').localeCompare(a.merchant || '');
         case 'category-asc': return a.category.localeCompare(b.category);
@@ -542,7 +542,10 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   }, [selectedIds, transactions]);
 
   const canCombine = useMemo(() => {
-    return selectedTransactions.length >= 2 && !selectedTransactions.some(t => t.transferId);
+    if (selectedTransactions.length < 2) return false;
+    const accountIds = new Set(selectedTransactions.map(t => t.accountId));
+    if (accountIds.size !== 1) return false;
+    return !selectedTransactions.some(t => t.transferId || t.isSplitParent || t.isCombinedParent || t.parentTransactionId);
   }, [selectedTransactions]);
 
   const canSplit = useMemo(() => {
@@ -780,17 +783,19 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   };
 
   const handleConfirmBulkDelete = () => {
-    const idsToDelete: string[] = [];
+    const idsSet = new Set<string>();
     selectedIds.forEach((id: string) => {
       if (id.startsWith('transfer-')) {
         const transferId = id.replace('transfer-', '');
         const pair = transactions.filter(t => t.transferId === transferId);
-        pair.forEach(p => idsToDelete.push(p.id));
+        pair.forEach(p => idsSet.add(p.id));
       } else {
-        idsToDelete.push(id);
+        idsSet.add(id);
+        transactions.filter(t => t.parentTransactionId === id).forEach(child => idsSet.add(child.id));
       }
     });
 
+    const idsToDelete = Array.from(idsSet);
     if (idsToDelete.length > 0) {
       deleteTransactions(idsToDelete);
     }
@@ -957,8 +962,8 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     const incomeAmount = tx.transferIncomeAmount ?? expenseAmount;
     const incomeCurrency = tx.transferIncomeCurrency ?? expenseCurrency;
 
-    const fromAccId = accountMapByName[tx.fromAccountName || '']?.id;
-    const toAccId = accountMapByName[tx.toAccountName || '']?.id;
+    const fromAccId = tx.fromAccountId || accountMapByName[tx.fromAccountName || '']?.id;
+    const toAccId = tx.toAccountId || accountMapByName[tx.toAccountName || '']?.id;
     const fromSelected = fromAccId ? selectedAccountIds.includes(fromAccId) : false;
     const toSelected = toAccId ? selectedAccountIds.includes(toAccId) : false;
 
@@ -1121,12 +1126,12 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       if (col === 'date') {
         cmp = parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
       } else if (col === 'amount') {
-        cmp = Math.abs(a.amount) - Math.abs(b.amount);
+        cmp = Math.abs(convertToMain(a.amount, a.currency)) - Math.abs(convertToMain(b.amount, b.currency));
       } else if (col === 'description') {
         cmp = (a.description || '').localeCompare(b.description || '');
       } else if (col === 'account') {
-        const nameA = accountMapByName[a.accountName || '']?.name || a.accountName || '';
-        const nameB = accountMapByName[b.accountName || '']?.name || b.accountName || '';
+        const nameA = accountMap[a.accountId]?.name || accountMapByName[a.accountName || '']?.name || a.accountName || '';
+        const nameB = accountMap[b.accountId]?.name || accountMapByName[b.accountName || '']?.name || b.accountName || '';
         cmp = nameA.localeCompare(nameB);
       } else if (col === 'category') {
         cmp = (a.category || '').localeCompare(b.category || '');
@@ -1190,9 +1195,15 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
         let totalEur = 0;
         const groupTxIds: string[] = [];
         currentGroupTxs.forEach(t => {
+          groupTxIds.push(t.id);
+          if (t.isSubTransaction) return;
+          if (t.isTransfer) {
+            const fromSelected = selectedAccountIds.includes(t.fromAccountId || '');
+            const toSelected = selectedAccountIds.includes(t.toAccountId || '');
+            if (selectedAccountIds.length === 0 || (fromSelected && toSelected)) return;
+          }
           const resolved = resolveTransferDisplay(t);
           totalEur += convertToMain(resolved.amount, resolved.currency);
-          groupTxIds.push(t.id);
         });
 
         items.push({
@@ -1290,8 +1301,8 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
 
   const accountOf = useCallback((tx: DisplayTransaction) => {
     if (tx.isTransfer) {
-      const fromAcc = tx.fromAccountName ? accountMapByName[tx.fromAccountName] : undefined;
-      const toAcc = tx.toAccountName ? accountMapByName[tx.toAccountName] : undefined;
+      const fromAcc = (tx.fromAccountId ? accountMap[tx.fromAccountId] : undefined) || (tx.fromAccountName ? accountMapByName[tx.fromAccountName] : undefined);
+      const toAcc = (tx.toAccountId ? accountMap[tx.toAccountId] : undefined) || (tx.toAccountName ? accountMapByName[tx.toAccountName] : undefined);
       const fromName = fromAcc?.name || tx.fromAccountName || 'Unknown';
       const toName = toAcc?.name || tx.toAccountName || '?';
       const logoUrl = fromAcc?.imageUrl
@@ -1306,7 +1317,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       };
     }
 
-    const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
+    const account = accountMap[tx.accountId] || accountMapByName[tx.accountName || ''];
     const isCash = isCashAccount(account);
     const logoUrl = !isCash ? (account?.imageUrl
       || (account ? getAccountBrandfetchUrl(account, brandfetchClientId, effectiveMerchantLogoOverrides) : null)
@@ -1866,14 +1877,17 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
         accounts={accounts}
         tags={tags}
         onEdit={tx => { setIsOverviewModalOpen(false); setEditingTransaction(tx); setTransactionModalOpen(true); }}
-        onDelete={ids => { setIsOverviewModalOpen(false); deleteTransactions(ids); }}
+        onDelete={ids => {
+          setIsOverviewModalOpen(false);
+          const allIds = new Set(ids);
+          ids.forEach(id => {
+            transactions.filter(t => t.parentTransactionId === id).forEach(child => allIds.add(child.id));
+          });
+          deleteTransactions(Array.from(allIds));
+        }}
         onDuplicate={tx => {
           setIsOverviewModalOpen(false);
-          setDuplicateData({
-            initialTransaction: tx,
-            isOpen: true,
-            onClose: () => setDuplicateData(null),
-          });
+          handleDuplicate(tx as unknown as DisplayTransaction);
         }}
         onMakeRecurring={tx => {
           setIsOverviewModalOpen(false);

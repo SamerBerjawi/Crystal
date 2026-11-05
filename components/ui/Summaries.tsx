@@ -129,10 +129,25 @@ export const SafeToSpendWidget: React.FC<{
   data: SafeToSpend;
   currency: Currency;
   toDisplay: (eur: number) => number;
+  fromDisplay?: (displayAmount: number) => number;
   countUp?: boolean;
   onCushionChange: (amount: number) => void;
   size?: 's' | 'm' | 'l';
-}> = ({ data, currency, toDisplay, countUp, onCushionChange, size = 's' }) => {
+}> = ({ data, currency, toDisplay, fromDisplay, countUp, onCushionChange, size = 's' }) => {
+  const displayCushion = data.cushion ? Math.round(toDisplay(data.cushion) * 100) / 100 : 0;
+  const [cushionDraft, setCushionDraft] = React.useState(displayCushion ? String(displayCushion) : '');
+
+  React.useEffect(() => {
+    const next = data.cushion ? Math.round(toDisplay(data.cushion) * 100) / 100 : 0;
+    setCushionDraft(next ? String(next) : '');
+  }, [data.cushion, toDisplay]);
+
+  const commitCushion = (raw: string) => {
+    const parsed = Math.max(0, Number(raw.replace(',', '.')) || 0);
+    const inEur = fromDisplay ? fromDisplay(parsed) : parsed;
+    onCushionChange(Math.round(inEur * 100) / 100);
+  };
+
   if (!data.accounts.length) {
     return <EmptyState className="py-4" icon="wallet" title="No spending account yet" description="Add a checking account to see what you can spend." />;
   }
@@ -171,8 +186,11 @@ export const SafeToSpendWidget: React.FC<{
                       label="Keep back"
                       help="Taken off before showing what's safe to spend."
                       currency={currency}
-                      defaultValue={data.cushion ? String(data.cushion) : ''}
-                      onChange={text => onCushionChange(Math.max(0, Number(text.replace(',', '.')) || 0))}
+                      value={cushionDraft}
+                      onChange={text => {
+                        setCushionDraft(text);
+                        commitCushion(text);
+                      }}
                     />
                   </Popover>
                 ) : row.label}

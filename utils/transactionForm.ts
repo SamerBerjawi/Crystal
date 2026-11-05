@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { Account, MerchantLocation, MerchantRule, Transaction, TransactionRule } from '../types';
-import { fuzzySearch, safeRound, toLocalISOString } from '../utils';
+import { convertCurrency, fuzzySearch, safeRound, toLocalISOString } from '../utils';
 import { normalizeMerchantKey } from './brandfetch';
 import { parseLocationString } from './locationDetector';
 import { applyRules, ordinaryRules } from './rules';
@@ -373,9 +373,10 @@ export const planTransactionSave = (form: TxForm, edit: Transaction | null | und
     if (!from || !to) return { ok: false, error: 'Pick two different accounts' };
     const transferId = edit && wasTransfer ? edit.transferId! : `xfer-${uuidv4()}`;
     const amount = safeRound(Math.abs(total), 2);
+    const incomeAmount = from.currency !== to.currency ? safeRound(convertCurrency(amount, from.currency, to.currency), 2) : amount;
     const shared = { date, merchant: merchant || 'Internal Transfer', category: category || 'Transfer', transferId, tagIds, notes, ...location };
     const expense: TxDraftSave = { ...shared, accountId: fromAccountId, description: description || `Transfer to ${to.name}`, amount: -amount, type: 'expense', currency: from.currency };
-    const income: TxDraftSave = { ...shared, accountId: toAccountId, description: description || `Transfer from ${from.name}`, amount, type: 'income', currency: to.currency };
+    const income: TxDraftSave = { ...shared, accountId: toAccountId, description: description || `Transfer from ${from.name}`, amount: incomeAmount, type: 'income', currency: to.currency };
     if (loan) Object.assign(expense.accountId === loan.id ? expense : income, loanFields);
     if (edit && wasTransfer) {
       expense.id = transactions.find(t => t.transferId === transferId && t.type === 'expense')?.id;
@@ -408,10 +409,11 @@ export const planTransactionSave = (form: TxForm, edit: Transaction | null | und
     const source = accounts.find(account => account.id === fromAccountId);
     if (source) {
       const transferId = existing?.transferId || `spare-${toSave[0].id || uuidv4()}`;
+      const spareIncomeAmount = source.currency !== spare.currency ? safeRound(convertCurrency(roundUp, source.currency, spare.currency), 2) : roundUp;
       const shared = { date, merchant: 'Round Up', category: 'Transfer', transferId };
       toSave.push(
         { ...shared, id: existing?.id, accountId: fromAccountId, description: `Spare change for ${description || 'Transaction'}`, amount: -roundUp, type: 'expense', currency: source.currency },
-        { ...shared, id: existingPair?.id, accountId: spare.id, description: `Spare change from ${description || 'Transaction'}`, amount: roundUp, type: 'income', currency: spare.currency },
+        { ...shared, id: existingPair?.id, accountId: spare.id, description: `Spare change from ${description || 'Transaction'}`, amount: spareIncomeAmount, type: 'income', currency: spare.currency },
       );
     }
   }

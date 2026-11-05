@@ -54,6 +54,7 @@ export interface AccountPanelProps {
   onAddLog: () => void;
   onEditLog: (log?: MileageLog) => void;
   onDeleteLog: (id: string) => void;
+  onEditAccount?: () => void;
 }
 
 const money = (value: number, account: Account) => <Amount value={value} currency={account.currency} />;
@@ -61,6 +62,7 @@ const day = (value?: string) => (value ? parseLocalDate(value).toLocaleDateStrin
 
 const commonActions = (props: AccountPanelProps, withAdjust = true): FrameAction[] => [
   ...(props.onSync ? [{ id: 'sync', label: 'Sync', icon: 'refresh', onPress: props.onSync }] : []),
+  ...(props.onEditAccount ? [{ id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onPress: props.onEditAccount }] : []),
   ...(withAdjust ? [{ id: 'adjust', label: 'Adjust balance', icon: 'sliders-horizontal', onPress: props.onAdjustBalance }] : []),
 ];
 
@@ -96,6 +98,7 @@ const GeneralPanel: React.FC<AccountPanelProps> = props => {
     <AccountFrame
       account={account}
       context={`${account.type}, ${account.financialInstitution || 'no bank set'}`}
+      value={metrics.realTodayBalance}
       highlights={[
         ...(account.accountNumber ? [{ label: 'Account', value: `•••• ${account.accountNumber.slice(-4)}` }] : []),
         { label: 'Today', value: money(metrics.realTodayBalance, account) },
@@ -170,7 +173,7 @@ const CashPanel: React.FC<AccountPanelProps> = props => {
   const { account } = props;
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const raw = useRawTransactions(props);
-  const { totalInflow, totalOutflow, netChange, lastReplenishment, flowData, burnRateMessage } = useMemo(
+  const { realTodayBalance, totalInflow, totalOutflow, netChange, lastReplenishment, flowData, burnRateMessage } = useMemo(
     () => computeCashAccountMetrics(account, raw, { conversionRates, showBalanceAdjustments: props.showBalanceAdjustments }),
     [account, raw, conversionRates, props.showBalanceAdjustments]
   );
@@ -179,6 +182,7 @@ const CashPanel: React.FC<AccountPanelProps> = props => {
     <AccountFrame
       account={account}
       context={`Cash, ${account.currency}`}
+      value={realTodayBalance}
       highlights={[
         { label: 'This month', value: <Amount value={netChange} currency={account.currency} /> },
         { label: 'Last top-up', value: lastReplenishment ? lastReplenishment.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : 'None yet' },
@@ -213,7 +217,7 @@ const CreditCardPanel: React.FC<AccountPanelProps> = props => {
   const { account } = props;
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const raw = useRawTransactions(props);
-  const { totalSpent, totalPayments, utilization, availableCredit, estimatedMonthlyInterest, spendingHistory } = useMemo(
+  const { balanceOwed, totalSpent, totalPayments, utilization, availableCredit, estimatedMonthlyInterest, spendingHistory } = useMemo(
     () => computeCreditCardAccountMetrics(account, raw, { conversionRates, showBalanceAdjustments: props.showBalanceAdjustments }),
     [account, raw, conversionRates, props.showBalanceAdjustments]
   );
@@ -222,6 +226,7 @@ const CreditCardPanel: React.FC<AccountPanelProps> = props => {
     <AccountFrame
       account={account}
       context={`${account.cardNetwork || 'Credit card'}${account.last4 ? `, ending ${account.last4}` : ''}`}
+      value={balanceOwed}
       valueLabel="Owed"
       heroExtra={account.creditLimit ? <ProgressBar value={utilization} label="Credit used" tone="onHero" /> : undefined}
       highlights={[
@@ -279,7 +284,7 @@ const SavingsPanel: React.FC<AccountPanelProps> = props => {
   const { financialGoals } = useGoalsContext();
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const raw = useRawTransactions(props);
-  const { apy, projectedAnnualInterest, projectedMonthlyInterest, totalInterestYTD, actualInterestYTD, accruedInterestYTD, interestHistory, growthIndexLabel } = useMemo(
+  const { realTodayBalance, apy, projectedAnnualInterest, projectedMonthlyInterest, totalInterestYTD, actualInterestYTD, accruedInterestYTD, interestHistory, growthIndexLabel } = useMemo(
     () => computeSavingsAccountMetrics(account, raw, props.categories, { conversionRates, showBalanceAdjustments: props.showBalanceAdjustments }),
     [account, raw, props.categories, conversionRates, props.showBalanceAdjustments]
   );
@@ -290,6 +295,7 @@ const SavingsPanel: React.FC<AccountPanelProps> = props => {
     <AccountFrame
       account={account}
       context={`Savings, ${account.financialInstitution || 'no bank set'}`}
+      value={realTodayBalance}
       highlights={[
         ...(apy > 0 ? [{ label: 'Yield', value: `${apy}% APY` }, { label: 'Estimated yearly return', value: money(projectedAnnualInterest, account) }] : []),
         { label: interestLabel, value: money(totalInterestYTD, account) },
@@ -463,7 +469,7 @@ const PensionPanel: React.FC<AccountPanelProps> = props => {
   const { account } = props;
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const raw = useRawTransactions(props);
-  const { retirementYear, yearsToRetirement, totalContributions, totalGrowth, monthlyContributionAvg, chartData, projectedValueAtRetirement } = useMemo(
+  const { realTodayBalance, retirementYear, yearsToRetirement, totalContributions, totalGrowth, monthlyContributionAvg, chartData, projectedValueAtRetirement } = useMemo(
     () => computePensionAccountMetrics(account, raw, { conversionRates, showBalanceAdjustments: props.showBalanceAdjustments }),
     [account, raw, conversionRates, props.showBalanceAdjustments]
   );
@@ -472,6 +478,7 @@ const PensionPanel: React.FC<AccountPanelProps> = props => {
     <AccountFrame
       account={account}
       context={`Pension, retiring ${retirementYear}`}
+      value={realTodayBalance}
       highlights={[
         { label: 'Retirement', value: retirementYear },
         { label: 'Years left', value: yearsToRetirement },
@@ -537,7 +544,7 @@ const SpareChangePanel: React.FC<AccountPanelProps> = props => {
   const { account, accounts } = props;
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const raw = useRawTransactions(props);
-  const { sourceAccount, totalRoundUps, avgRoundUp, thisMonthSaved, biggestRoundUp, monthlyData, coffeesSaved } = useMemo(
+  const { realTodayBalance, sourceAccount, totalRoundUps, avgRoundUp, thisMonthSaved, biggestRoundUp, monthlyData, coffeesSaved } = useMemo(
     () => computeSpareChangeAccountMetrics(account, accounts, raw, { conversionRates, showBalanceAdjustments: props.showBalanceAdjustments }),
     [account, accounts, raw, conversionRates, props.showBalanceAdjustments]
   );
@@ -546,6 +553,7 @@ const SpareChangePanel: React.FC<AccountPanelProps> = props => {
     <AccountFrame
       account={account}
       context={`Round-ups from ${sourceAccount?.name || 'an external account'}`}
+      value={realTodayBalance}
       highlights={[
         { label: 'Round-ups', value: totalRoundUps },
         { label: 'This month', value: <Amount value={thisMonthSaved} currency={account.currency} tone="plain" /> },
@@ -600,6 +608,7 @@ const valuationActions = (props: AccountPanelProps, closeLabel: string): FrameAc
   const isClosed = props.account.status === 'closed';
   return [
     ...(props.onSync ? [{ id: 'sync', label: 'Sync', icon: 'refresh', onPress: props.onSync }] : []),
+    ...(props.onEditAccount ? [{ id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onPress: props.onEditAccount }] : []),
     ...(!isClosed ? [{ id: 'close', label: closeLabel, icon: 'tag-01', onPress: props.onCloseAsset }] : []),
     ...(isClosed && props.onRevertClosure ? [{ id: 'reopen', label: 'Reopen', icon: 'clock-01', onPress: props.onRevertClosure }] : []),
   ];

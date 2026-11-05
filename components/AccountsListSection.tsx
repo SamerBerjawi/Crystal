@@ -3,6 +3,9 @@ import { Account, AccountType, Transaction } from '../types';
 import AccountCard from './AccountCard';
 import SwipeableRow from './SwipeableRow';
 import { convertToMain, getMainCurrency } from '../utils';
+import { computeAccountDisplayBalance } from '../utils/accountsModel';
+import { useScheduleContext } from '../contexts/FinancialDataContext';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { DEBT_TYPES } from '../constants';
 import Icon from './ui/Icon';
 import { IconButton } from './ui/Actions';
@@ -48,10 +51,15 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
   viewStyle = 'detailed',
 }) => {
   const isPhone = useIsMobile();
+  const { loanPaymentOverrides } = useScheduleContext();
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const displayBalanceOf = (account: Account) =>
+    computeAccountDisplayBalance(account, transactionsByAccount[account.id] || [], loanPaymentOverrides, { conversionRates });
 
   const sortedAccounts = useMemo(() => {
     const list = [...accounts];
@@ -66,8 +74,8 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
       });
     }
     if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name));
-    return list.sort((a, b) => convertToMain(b.balance, b.currency) - convertToMain(a.balance, a.currency));
-  }, [accounts, sortBy, accountOrder]);
+    return list.sort((a, b) => convertToMain(displayBalanceOf(b), b.currency) - convertToMain(displayBalanceOf(a), a.currency));
+  }, [accounts, sortBy, accountOrder, transactionsByAccount, loanPaymentOverrides, conversionRates]);
 
   const groupedAccounts = useMemo(() => sortedAccounts.reduce((groups, account) => {
     (groups[account.type] = groups[account.type] || []).push(account);
@@ -117,7 +125,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
         <div className="flex items-center gap-2">
           {isCollapsible ? (
             <button type="button" aria-expanded={isExpanded} onClick={() => setIsExpanded(open => !open)} className="flex min-h-11 cursor-pointer items-center gap-2 text-ink">
-              <Icon name="expand_more" size={20} className={cn('transition-transform duration-[var(--duration-base)]', !isExpanded && '-rotate-90')} />
+              <Icon name="arrow-down-01" size={20} className={cn('transition-transform duration-[var(--duration-base)]', !isExpanded && '-rotate-90')} />
               <h2 className="type-section-title">{title}</h2>
             </button>
           ) : <h2 className="type-section-title text-ink">{title}</h2>}
@@ -130,7 +138,10 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
         const isDebt = DEBT_TYPES.includes(groupName as AccountType);
         const total = group
           .filter(account => account.includeInAnalytics ?? true)
-          .reduce((sum, account) => sum + convertToMain(account.balance, account.currency) * (isDebt ? -Math.sign(account.balance || 1) : 1), 0);
+          .reduce((sum, account) => {
+            const bal = displayBalanceOf(account);
+            return sum + convertToMain(bal, account.currency) * (isDebt ? -Math.sign(bal || 1) : 1);
+          }, 0);
 
         return (
           <div key={groupName} className="space-y-3">
@@ -141,7 +152,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
               className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-md)] text-left"
             >
               <span className="flex min-w-0 items-center gap-2">
-                <Icon name="expand_more" size={16} className={cn('shrink-0 text-muted transition-transform duration-[var(--duration-base)]', !expandedGroups[groupName] && '-rotate-90')} />
+                <Icon name="arrow-down-01" size={16} className={cn('shrink-0 text-muted transition-transform duration-[var(--duration-base)]', !expandedGroups[groupName] && '-rotate-90')} />
                 <h3 className="type-label truncate text-muted">{groupName}</h3>
               </span>
               <span className="type-figure-row text-ink"><Amount value={isDebt ? -Math.abs(total) : total} currency={getMainCurrency()} /></span>
@@ -163,8 +174,8 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                       dragState={draggedId === account.id ? 'dragged' : dragOverId === account.id ? 'over' : null}
                       reorder={canReorder ? (
                         <>
-                          <IconButton icon="arrow_upward" label={`Move ${account.name} up`} isDisabled={index === 0} onPress={() => moveAccount(account.id, group[index - 1]?.id)} />
-                          <IconButton icon="arrow_downward" label={`Move ${account.name} down`} isDisabled={index === group.length - 1} onPress={() => moveAccount(account.id, group[index + 1]?.id)} />
+                          <IconButton icon="arrow-up-01" label={`Move ${account.name} up`} isDisabled={index === 0} onPress={() => moveAccount(account.id, group[index - 1]?.id)} />
+                          <IconButton icon="arrow-down-01" label={`Move ${account.name} down`} isDisabled={index === group.length - 1} onPress={() => moveAccount(account.id, group[index + 1]?.id)} />
                         </>
                       ) : undefined}
                     />

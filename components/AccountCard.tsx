@@ -158,7 +158,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
         <div className="min-w-0">
           <p className="type-figure-lg truncate text-ink"><Amount value={eur} currency={getMainCurrency()} /></p>
           {isForeign && <p className="type-caption text-muted"><Amount value={balance} currency={account.currency} /></p>}
-          {hasTrend && <Change value={trend} currency={getMainCurrency()} period="in 90 days" className="type-caption text-muted" />}
+          {hasTrend && <Change value={convertToMain(trend, account.currency)} currency={getMainCurrency()} period="in 90 days" className="type-caption text-muted" />}
         </div>
         {hasTrend && <Sparkline data={sparklineData} isPositive={isPositiveTrend} width={96} height={36} />}
       </div>
