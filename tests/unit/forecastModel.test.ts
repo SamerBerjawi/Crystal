@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type { Account, BillPayment, FinancialGoal, RecurringTransaction, Warrant } from '../../types';
 import { buildOccurrences, iso, makeConverter, moveFuture, moveSeries } from '../../utils/scheduleModel';
 import {
-  accountForecast, warrantTaxBills, chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
+  accountForecast, warrantTaxBills, chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, bufferSuggestions, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
 } from '../../utils/forecastModel';
 import {
   accountCoverage, goalTree, monthlyTargets, moveGoal, planGoal, projectGoal, summaryRings, emptyGoalDraft,
@@ -234,6 +234,27 @@ test('a dip under the buffer suggests moving the largest movable payment past th
   const projection = { start: 100, startByAccount: {}, days: days([['2026-11-01', -10], ['2026-11-05', 1990]]), events: [loan, rent, pay] };
   assert.deepEqual(moveSuggestion(projection, 0), { event: rent, toDate: '2026-11-06' });
   assert.equal(moveSuggestion(projection, -100), null);
+});
+
+test('buffer suggestions put goals and one-time bills first, then recurring payments, then taxes', () => {
+  const bill = (key: string, amount: number, description: string, id: string) =>
+    event({ key, seriesKey: key, kind: 'bill', date: '2026-11-01', amount, description, occurrence: { bill: { id } } as ForecastEvent['occurrence'] });
+  const goal = event({ key: 'g', seriesKey: 'goal:g1', kind: 'goal', goalId: 'g1', date: '2026-10-30', amount: -150, description: 'Holiday' });
+  const rent = event({ key: 'rent', seriesKey: 'rent', kind: 'recurring', date: '2026-11-01', amount: -900 });
+  const tax = bill('tax', -2000, 'Income tax', 'b-tax');
+  const derived = bill('wt', -3000, 'Warrants tax instalment', 'warrant-tax-w1-t1');
+  const dentist = bill('dentist', -200, 'Dentist', 'b-dentist');
+  const pay = event({ key: 'pay', seriesKey: 'pay', kind: 'recurring', date: '2026-11-05', amount: 2000 });
+  const projection = { start: 100, startByAccount: {}, days: days([['2026-11-01', -10], ['2026-11-05', 1990]]), events: [rent, tax, derived, dentist, goal, pay] };
+  const list = bufferSuggestions(projection, 0);
+  assert.deepEqual(list.map(s => s.id), ['move:dentist', 'goal:g1', 'move:rent', 'move:tax']);
+  assert.equal(list[0].tier, 0);
+  assert.equal(list[2].tier, 1);
+  assert.equal(list[3].tier, 2);
+  assert.equal(list[1].action, 'pause-goal');
+  assert.equal(list[0].toDate, '2026-11-06');
+  assert.deepEqual(bufferSuggestions(projection, 0, 2).length, 2);
+  assert.deepEqual(bufferSuggestions(projection, -100), []);
 });
 
 test('moving a series shifts it, and moving the future splits it', () => {
