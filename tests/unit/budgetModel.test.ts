@@ -156,3 +156,10 @@ test('goal views add up buckets and skip disabled goals', () => {
   assert.equal(trip?.subGoals?.[1].target, 200);
   assert.equal(trip?.subGoals?.[1].saved, 50);
 });
+
+test('transactions marked excludeFromBudget do not count as spending', () => {
+  const data = [tx({ id: 'normal', amount: -40 }), tx({ id: 'laptop', amount: -900, category: 'Shopping', excludeFromBudget: true })];
+  const spend = spendByCategory(data, monthBounds({ year: 2026, month: 9 }), opts);
+  assert.equal(spend.get('Food'), 40);
+  assert.equal(spend.has('Shopping'), false);
+});

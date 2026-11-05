@@ -35,6 +35,7 @@ export const OVERVIEW_WIDGETS: Record<string, OverviewWidgetMeta> = {
   financialRunway: { title: 'Runway', icon: 'hourglass', span: 3, rows: 4 },
   merchantPareto: { title: 'Top merchants', icon: 'shopping_bag', span: 3, rows: 4 },
   wealthVelocity: { title: 'Wealth velocity', icon: 'zap', span: 3, rows: 4 },
+  insights: { title: 'Insights', icon: 'lightbulb', span: 3, rows: 4 },
 };
 
 const DEFAULT_ORDER = ['safeToSpend', 'forecastHorizon', 'netWorthOverTime', 'todayWidget', 'recentActivity', 'accountsSummary', 'outflowsByCategory', 'budgetOverview', 'creditCardStatements'];

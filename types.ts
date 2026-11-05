@@ -273,6 +273,16 @@ export interface RecurringTransaction {
   /** The day you paused it. A paused item leaves totals and forecasts until you resume it (D-093). */
   pausedAt?: string;
   isSkipped?: boolean;
+  /** Pays itself (a direct debit or card on file). Shown as a badge; no payment to make by hand. */
+  autopay?: boolean;
+  /** Where to pay or manage it online. */
+  paymentUrl?: string;
+  /** Days ahead to remind you (default 3). */
+  notifyDaysBefore?: number;
+  /** Days after the due date before it counts as overdue (default 0). */
+  overdueGraceDays?: number;
+  /** When a free trial ends and the first charge lands; you get a reminder. */
+  trialEndsOn?: string;
 }
 
 export interface RecurringTransactionOverride {
@@ -324,6 +334,8 @@ export interface Transaction {
   parentTransactionId?: string;
   isSplitParent?: boolean;
   isCombinedParent?: boolean;
+  /** A one-off you do not want counted against budgets (a laptop, a deposit). Everything else still counts it. */
+  excludeFromBudget?: boolean;
   /** Fields you edited on a bank-synced transaction. Sync leaves them alone (utils/lockedFields.ts). */
   lockedFields?: ('merchant' | 'description')[];
 }
@@ -663,6 +675,8 @@ export interface AppPreferences {
   ignoredSubscriptions?: string[];
   ignoredBillMatches?: string[];
   dismissedBillNotifications?: string[];
+  /** Insight card ids you dismissed on the Overview (utils/insightsModel.ts). */
+  dismissedInsights?: string[];
   matcherConfig?: import('./utils/matcherConfig').MatcherConfig;
   /** Goals counted in the forecast. Unset until the first time goals are known. */
   activeGoalIds?: string[];

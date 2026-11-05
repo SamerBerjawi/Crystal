@@ -4,7 +4,7 @@ import type { Account, BillPayment, RecurringTransaction, RecurringTransactionOv
 import { generateSyntheticCardFees } from '../../utils';
 import { heatKind, postDetails, sourceOfSeries, owningAccountId,
   buildOccurrences, cadenceLabel, classifyFlow, dailyCommitted, groupUpcoming, makeConverter, monthGrid, monthlyEquivalent,
-  endSeriesAt, firstDueOnOrAfter, nextDueAfterPaying, splitSeriesAt, parseAmountInput, planSeries, seriesGroups, summarize, emptySeriesDraft, oldUnpaidBills, type Occurrence,
+  draftFromSeries, endSeriesAt, firstDueOnOrAfter, nextDueAfterPaying, splitSeriesAt, parseAmountInput, planSeries, seriesGroups, summarize, emptySeriesDraft, oldUnpaidBills, type Occurrence,
 } from '../../utils/scheduleModel';
 
 /* Schedule engine. */
@@ -266,4 +266,38 @@ test('a credit card annual fee becomes a yearly expense on the card, on the next
   assert.equal(generateSyntheticCardFees([{ ...card, annualFee: 0 }], TODAY).length, 0);
   assert.equal(generateSyntheticCardFees([{ ...card, annualFeeDate: undefined }], TODAY).length, 0);
   assert.equal(generateSyntheticCardFees([{ ...card, status: 'closed' }], TODAY).length, 0);
+});
+
+const recurringDraft = (over: Record<string, unknown> = {}) => ({ ...emptySeriesDraft('chk', 'EUR', TODAY), description: 'Streaming', amount: '12', ...over });
+
+test('recurring item fields: autopay, link, reminder, grace and trial round-trip through the draft', () => {
+  const plan = planSeries(recurringDraft({ autopay: true, paymentUrl: ' https://example.com/pay ', notifyDaysBefore: '7', overdueGraceDays: '2', trialEndsOn: '2026-11-10' }));
+  assert.equal(plan.ok, true);
+  if (!plan.ok || plan.kind !== 'recurring') return;
+  assert.equal(plan.series.autopay, true);
+  assert.equal(plan.series.paymentUrl, 'https://example.com/pay');
+  assert.equal(plan.series.notifyDaysBefore, 7);
+  assert.equal(plan.series.overdueGraceDays, 2);
+  assert.equal(plan.series.trialEndsOn, '2026-11-10');
+  const back = draftFromSeries({ ...plan.series, id: 'x' } as RecurringTransaction);
+  assert.equal(back.notifyDaysBefore, '7');
+  assert.equal(back.autopay, true);
+  // Blank fields stay unset.
+  const bare = planSeries(recurringDraft());
+  if (bare.ok && bare.kind === 'recurring') assert.deepEqual([bare.series.autopay, bare.series.paymentUrl, bare.series.notifyDaysBefore, bare.series.overdueGraceDays], [undefined, undefined, undefined, undefined]);
+});
+
+test('recurring item fields reject a bad link and out-of-range days', () => {
+  assert.equal(planSeries(recurringDraft({ paymentUrl: 'javascript:alert(1)' })).ok, false);
+  assert.equal(planSeries(recurringDraft({ paymentUrl: 'example.com' })).ok, false);
+  assert.equal(planSeries(recurringDraft({ notifyDaysBefore: '-1' })).ok, false);
+  assert.equal(planSeries(recurringDraft({ overdueGraceDays: '2.5' })).ok, false);
+  assert.equal(planSeries(recurringDraft({ overdueGraceDays: '99' })).ok, false);
+});
+
+test('a grace period keeps a late payment from being overdue until it runs out', () => {
+  const late = (grace?: number) => build([series({ nextDueDate: '2026-10-27', startDate: '2026-10-27', overdueGraceDays: grace })], { to: '2026-11-05' })[0];
+  assert.equal(late().status, 'overdue'); // 2 days late, no grace
+  assert.equal(late(3).status, 'today'); // within grace
+  assert.equal(late(1).status, 'overdue'); // grace ran out
 });

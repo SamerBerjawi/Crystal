@@ -558,6 +558,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             {canSyncBranch && <Switch isSelected={form.syncLocationToMerchant} onChange={syncLocationToMerchant => update({ syncLocationToMerchant })}>Save this location to {form.merchant}</Switch>}
           </Expander>
 
+          {form.type === 'expense' && (
+            <Switch isSelected={form.excludeFromBudget} onChange={excludeFromBudget => update({ excludeFromBudget })}>Leave out of budgets</Switch>
+          )}
+
           <Expander title="Tags and notes" summary={extrasSummary}>
             <TagPicker tags={tagsContext?.tags?.length ? tagsContext.tags : tags} selected={form.tagIds} onChange={tagIds => update({ tagIds })} saveTag={tagsContext?.saveTag} />
             <Textarea label="Notes" value={form.notes} onChange={notes => update({ notes })} />

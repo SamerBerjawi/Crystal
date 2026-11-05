@@ -84,17 +84,19 @@ export function useBillNotifications({
       const dueDate = parseLocalDate(rt.nextDueDate);
       const diffTime = dueDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const remindDays = rt.notifyDaysBefore ?? 3;
+      const graceDays = rt.overdueGraceDays ?? 0;
 
-      if (diffDays <= 3 && diffDays >= -7) {
+      if (diffDays <= remindDays && diffDays >= -7) {
         let urgency: 'overdue' | 'today' | 'soon' = 'soon';
         let statusText = `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
 
-        if (diffDays < 0) {
+        if (diffDays < 0 && -diffDays > graceDays) {
           urgency = 'overdue';
           statusText = `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''}`;
-        } else if (diffDays === 0) {
+        } else if (diffDays <= 0) {
           urgency = 'today';
-          statusText = 'Due Today!';
+          statusText = diffDays === 0 ? 'Due Today!' : `Due ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''} ago`;
         } else if (diffDays === 1) {
           urgency = 'soon';
           statusText = 'Due Tomorrow!';
@@ -114,6 +116,27 @@ export function useBillNotifications({
           originalItem: rt,
         });
       }
+    });
+
+    // Free trials about to turn into a charge
+    recurringTransactions.forEach((rt) => {
+      if (!rt.trialEndsOn || rt.pausedAt) return;
+      const dueDate = parseLocalDate(rt.trialEndsOn);
+      const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays > (rt.notifyDaysBefore ?? 3) || diffDays < 0) return;
+      notifications.push({
+        id: `trial-${rt.id}-${rt.trialEndsOn}`,
+        sourceType: 'recurring',
+        description: `${rt.description} free trial ends`,
+        amount: Math.abs(rt.amount),
+        currency: rt.currency || 'EUR',
+        dueDateStr: rt.trialEndsOn,
+        dueDate,
+        daysUntilDue: diffDays,
+        statusText: diffDays === 0 ? 'Trial ends today!' : diffDays === 1 ? 'Trial ends tomorrow!' : `Trial ends in ${diffDays} days`,
+        urgency: diffDays === 0 ? 'today' : 'soon',
+        originalItem: rt,
+      });
     });
 
     // Process Tasks (reminderDate or dueDate)

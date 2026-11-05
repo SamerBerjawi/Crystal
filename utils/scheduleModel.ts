@@ -264,7 +264,9 @@ export const matchPaid = (
   return paid;
 };
 
-const statusFor = (date: string, todayStr: string): OccurrenceStatus => (date < todayStr ? 'overdue' : date === todayStr ? 'today' : 'upcoming');
+/** A payment past its date is `overdue` only once its grace period (days) has run out; until then it is due `today`. */
+const statusFor = (date: string, todayStr: string, graceDays = 0): OccurrenceStatus =>
+  (date < todayStr ? (graceDays > 0 && daysBetween(date, todayStr) <= graceDays ? 'today' : 'overdue') : date === todayStr ? 'today' : 'upcoming');
 
 /** The synthetic series (loan installments, card settlements, property costs), generated once. */
 export const syntheticSeries = (accounts: Account[], transactions: Transaction[], loanPaymentOverrides: LoanPaymentOverrides = {}): RecurringTransaction[] => [
@@ -308,7 +310,7 @@ export const buildOccurrences = (input: OccurrenceInput): Occurrence[] => {
         category: rt.category,
         accountId: rt.accountId === 'external' ? undefined : rt.accountId,
         toAccountId: rt.toAccountId,
-        status: raw.isSkipped ? 'skipped' : statusFor(raw.date, todayStr),
+        status: raw.isSkipped ? 'skipped' : statusFor(raw.date, todayStr, rt.overdueGraceDays),
         isOverride: raw.isOverride,
         isReadOnly: source !== 'recurring',
         series: rt,
@@ -322,7 +324,8 @@ export const buildOccurrences = (input: OccurrenceInput): Occurrence[] => {
     if (txId) { o.matchedTransactionId = txId; if (o.status !== 'skipped') o.status = 'paid'; }
   }
   // Paid occurrences before the range are history, not schedule.
-  const kept = out.filter(o => o.date >= rangeFrom || o.status === 'overdue');
+  // A late payment still inside its grace period is `today`, not `overdue`, but it must stay listed.
+  const kept = out.filter(o => o.date >= rangeFrom || o.status === 'overdue' || (o.status === 'today' && o.date < todayStr));
 
   for (const bill of bills) {
     if (bill.status === 'expired') continue;
@@ -684,11 +687,17 @@ export interface SeriesDraft {
   dueDateOfMonth: string;
   weekendAdjustment: WeekendAdjustment;
   endDate: string;
+  autopay: boolean;
+  paymentUrl: string;
+  notifyDaysBefore: string;
+  overdueGraceDays: string;
+  trialEndsOn: string;
 }
 
 export const emptySeriesDraft = (accountId: string, currency: Currency, today: Date): SeriesDraft => ({
   kind: 'recurring', type: 'expense', amount: '', currency, description: '', merchant: '', category: '', accountId, toAccountId: '',
   startDate: iso(today), frequency: 'monthly', frequencyInterval: '1', dueDateOfMonth: '', weekendAdjustment: 'on', endDate: '',
+  autopay: false, paymentUrl: '', notifyDaysBefore: '', overdueGraceDays: '', trialEndsOn: '',
 });
 
 export const draftFromSeries = (rt: RecurringTransaction): SeriesDraft => ({
@@ -696,12 +705,15 @@ export const draftFromSeries = (rt: RecurringTransaction): SeriesDraft => ({
   merchant: rt.merchant ?? '', category: rt.category ?? '', accountId: rt.accountId, toAccountId: rt.toAccountId ?? '',
   startDate: rt.nextDueDate || rt.startDate, frequency: rt.frequency, frequencyInterval: String(rt.frequencyInterval || 1),
   dueDateOfMonth: rt.dueDateOfMonth ? String(rt.dueDateOfMonth) : '', weekendAdjustment: rt.weekendAdjustment, endDate: rt.endDate ?? '',
+  autopay: !!rt.autopay, paymentUrl: rt.paymentUrl ?? '', notifyDaysBefore: rt.notifyDaysBefore != null ? String(rt.notifyDaysBefore) : '',
+  overdueGraceDays: rt.overdueGraceDays != null ? String(rt.overdueGraceDays) : '', trialEndsOn: rt.trialEndsOn ?? '',
 });
 
 export const draftFromBill = (bill: BillPayment): SeriesDraft => ({
   kind: 'bill', type: bill.type === 'deposit' ? 'income' : 'expense', amount: String(Math.abs(bill.amount)), currency: bill.currency,
   description: bill.description, merchant: '', category: '', accountId: bill.accountId ?? '', toAccountId: '', startDate: bill.dueDate,
   frequency: 'monthly', frequencyInterval: '1', dueDateOfMonth: '', weekendAdjustment: 'on', endDate: '',
+  autopay: false, paymentUrl: '', notifyDaysBefore: '', overdueGraceDays: '', trialEndsOn: '',
 });
 
 /**
@@ -772,6 +784,17 @@ export const planSeries = (draft: SeriesDraft, existingId?: string, existingBill
     if (draft.toAccountId === draft.accountId) return { ok: false, error: 'Choose two different accounts' };
   }
   if (draft.endDate && draft.endDate < draft.startDate) return { ok: false, error: 'The end date is before the start' };
+  const paymentUrl = draft.paymentUrl.trim();
+  if (paymentUrl && !/^https?:\/\/\S+$/i.test(paymentUrl)) return { ok: false, error: 'The payment link must start with http:// or https://' };
+  const daysField = (value: string, label: string): number | undefined | 'invalid' => {
+    if (value.trim() === '') return undefined;
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 0 && n <= 60 ? n : 'invalid';
+  };
+  const notifyDaysBefore = daysField(draft.notifyDaysBefore, 'reminder');
+  if (notifyDaysBefore === 'invalid') return { ok: false, error: 'Remind me: enter whole days, 0 to 60' };
+  const overdueGraceDays = daysField(draft.overdueGraceDays, 'grace');
+  if (overdueGraceDays === 'invalid') return { ok: false, error: 'Grace period: enter whole days, 0 to 60' };
   const interval = Math.max(1, Math.floor(Number(draft.frequencyInterval) || 1));
   const day = Number(draft.dueDateOfMonth);
   const usesDay = draft.frequency === 'monthly' || draft.frequency === 'yearly';
@@ -794,6 +817,11 @@ export const planSeries = (draft: SeriesDraft, existingId?: string, existingBill
       endDate: draft.endDate || undefined,
       dueDateOfMonth: usesDay && day >= 1 && day <= 31 ? day : undefined,
       weekendAdjustment: draft.weekendAdjustment,
+      autopay: draft.autopay || undefined,
+      paymentUrl: paymentUrl || undefined,
+      notifyDaysBefore,
+      overdueGraceDays,
+      trialEndsOn: draft.trialEndsOn || undefined,
     },
   };
 };

@@ -6,7 +6,7 @@ import { formatCurrency } from '../utils';
 import { sortAccountsByType } from '../utils/accountsModel';
 import { draftFromBill, draftFromSeries, emptySeriesDraft, planSeries, type SeriesDraft } from '../utils/scheduleModel';
 import { Button } from './ui/Actions';
-import { AmountInput, DateInput, TextInput } from './ui/Fields';
+import { AmountInput, DateInput, Switch, TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
 import { Combobox, Select, type PickerOption } from './ui/Pickers';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -166,6 +166,17 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = prop
             </div>
             {usesDay && <TextInput label="Day of the month" inputMode="numeric" value={draft.dueDateOfMonth} onChange={dueDateOfMonth => update({ dueDateOfMonth })} help="Optional. Leave it blank to use the start date." />}
             <Select label="If it lands on a weekend" options={WEEKEND_ADJUSTMENTS.map(item => ({ id: item.value, label: item.label }))} value={draft.weekendAdjustment} onChange={id => update({ weekendAdjustment: id as WeekendAdjustment })} />
+            {draft.type !== 'income' && (
+              <>
+                <Switch isSelected={draft.autopay} onChange={autopay => update({ autopay })}>Pays itself (autopay)</Switch>
+                <TextInput label="Payment link" inputMode="url" value={draft.paymentUrl} onChange={paymentUrl => update({ paymentUrl })} help="Optional. Where you pay or manage it online." />
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput label="Remind me (days before)" inputMode="numeric" value={draft.notifyDaysBefore} onChange={notifyDaysBefore => update({ notifyDaysBefore })} help="Default 3." />
+                  <TextInput label="Grace period (days)" inputMode="numeric" value={draft.overdueGraceDays} onChange={overdueGraceDays => update({ overdueGraceDays })} help="Overdue only after this." />
+                </div>
+                <DateInput label="Free trial ends" value={draft.trialEndsOn} onChange={trialEndsOn => update({ trialEndsOn })} />
+              </>
+            )}
           </>
         )}
       </form>

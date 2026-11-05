@@ -117,7 +117,7 @@ export const budgetAccountIds = (accounts: Pick<Account, 'id' | 'type'>[]) =>
 
 /**
  * Expense spending per top-level category in `[from, to]`, in the display currency. Transfers, balance
- * adjustments and other accounts are left out. A refund (income booked in an expense category) is netted
+ * adjustments, transactions marked `excludeFromBudget` and other accounts are left out. A refund (income booked in an expense category) is netted
  * against that category, never below 0. A split counts through its parts (each has its own category); a
  * combined transaction counts once through its parent. Spending in no known category is `Uncategorized`.
  */
@@ -132,7 +132,7 @@ export const spendByCategory = (
   for (const t of transactions) {
     const day = t.date.slice(0, 10);
     if (day < range.from || day > range.to) continue;
-    if (t.transferId || t.isBalanceAdjustment || t.isSplitParent) continue;
+    if (t.transferId || t.isBalanceAdjustment || t.isSplitParent || t.excludeFromBudget) continue;
     if (t.parentTransactionId && !splitParents.has(t.parentTransactionId)) continue;
     if (!options.accountIds.has(t.accountId)) continue;
     const parent = parentCategoryName(t.category, options.categories);

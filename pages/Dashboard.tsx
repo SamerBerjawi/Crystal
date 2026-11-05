@@ -51,6 +51,8 @@ import { OVERVIEW_LAYOUT_KEY, OVERVIEW_PHONE_LAYOUT_KEY, OVERVIEW_WIDGETS, resol
 import MerchantParetoWidget from '../components/MerchantParetoWidget';
 import FinancialRunwayWidget from '../components/FinancialRunwayWidget';
 import WealthVelocityWidget from '../components/WealthVelocityWidget';
+import InsightsWidget from '../components/InsightsWidget';
+import { generateInsights, visibleInsights } from '../utils/insightsModel';
 
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 import Icon from '../components/ui/Icon';
@@ -1067,6 +1069,32 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [analyticsAccounts, analyticsTransactions, liquidityRatio, savingsRate, income, expenses, eurToDisplay, preferredCurrency]);
 
   // --- Widget Management ---
+  const dismissedInsights = useMemo(() => preferences.dismissedInsights ?? EMPTY_IDS, [preferences.dismissedInsights]);
+  const dismissInsight = useCallback((id: string) => {
+    setPreferences(prev => ({
+      ...prev,
+      dismissedInsights: Array.from(new Set([...(prev.dismissedInsights ?? []), id])),
+    }));
+  }, [setPreferences]);
+
+  const activeInsights = useMemo(() => {
+    const threeMonthsTile = lowestBalanceForecasts.find(tile => tile.period === 'Next 3 Months') ?? lowestBalanceForecasts[0];
+    const lowestBalance = threeMonthsTile
+      ? { date: threeMonthsTile.date, total: eurToDisplay(threeMonthsTile.lowestBalance) }
+      : undefined;
+    const all = generateInsights({
+      today: new Date(),
+      accounts: analyticsAccounts,
+      transactions: analyticsTransactions,
+      categories: expenseCategories,
+      recurring: everySeries,
+      lowestBalance,
+      convert: toPreferred,
+      format: amount => formatCurrency(amount, preferredCurrency),
+    });
+    return visibleInsights(all, dismissedInsights);
+  }, [lowestBalanceForecasts, eurToDisplay, analyticsAccounts, analyticsTransactions, expenseCategories, everySeries, toPreferred, preferredCurrency, dismissedInsights]);
+
   const allWidgets: Widget[] = useMemo(() => [
     {
       id: 'financialOverview',
@@ -1196,8 +1224,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     // ANALYSIS WIDGETS
     { id: 'financialRunway', name: 'Financial Runway', icon: 'timer-01', description: 'Days until zero balance', defaultW: 6, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
     { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'store-01', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions, currency: preferredCurrency, toDisplay: eurToDisplay } },
-    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'flash', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts, currency: preferredCurrency, toDisplay: eurToDisplay } }
-  ], [safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
+    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'flash', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts, currency: preferredCurrency, toDisplay: eurToDisplay } },
+    { id: 'insights', name: 'Insights', icon: 'lightbulb', description: 'Cash flow warnings, idle cash, and spending anomalies', defaultW: 6, defaultH: 2, component: InsightsWidget, props: { insights: activeInsights, onDismiss: dismissInsight, onNavigate: setCurrentPage } }
+  ], [activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const layout = useMemo(() => resolveOverviewLayout(preferences, isMobile), [preferences.dashboardLayouts, preferences.dashboardHiddenWidgets, isMobile]);
   const layoutKey = isMobile ? OVERVIEW_PHONE_LAYOUT_KEY : OVERVIEW_LAYOUT_KEY;

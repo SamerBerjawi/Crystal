@@ -32,6 +32,7 @@ export interface TxForm extends TxLocation {
   description: string;
   notes: string;
   tagIds: string[];
+  excludeFromBudget: boolean;
   /** What you changed yourself. Autofill leaves these alone (AUT-04). */
   descriptionEdited: boolean;
   categoryEdited: boolean;
@@ -104,6 +105,7 @@ export const initialTxForm = (
     description: details?.description || '',
     notes: details?.notes || '',
     tagIds: details?.tagIds || [],
+    excludeFromBudget: false,
     descriptionEdited: !!details?.description,
     categoryEdited: !!options.category,
     locationEdited: !!(data?.address || details?.locationString),
@@ -147,7 +149,7 @@ export const initialTxForm = (
     locationLabel: edit.locationLabel || '',
   } : EMPTY_LOCATION;
 
-  const base = { ...form, ...location, date: edit.date, notes: edit.notes || '', tagIds: edit.tagIds || [], categoryEdited: !!edit.category, descriptionEdited: !!edit.description, locationEdited: !!edit.address };
+  const base = { ...form, ...location, date: edit.date, notes: edit.notes || '', tagIds: edit.tagIds || [], excludeFromBudget: !!edit.excludeFromBudget, categoryEdited: !!edit.category, descriptionEdited: !!edit.description, locationEdited: !!edit.address };
   const extras = { existingRoundUpId: findRoundUp(edit, ctx.transactions)?.id };
   const split = (tx: Transaction) => ({ principal: String(tx.principalAmount || ''), interest: String(tx.interestAmount || ''), autoLoanSplit: !(tx.principalAmount || tx.interestAmount) });
 
@@ -393,6 +395,8 @@ export const planTransactionSave = (form: TxForm, edit: Transaction | null | und
     const signed = safeRound(Math.abs(total), 2);
     toSave.push({
       accountId, date, description, merchant, amount: type === 'expense' ? -signed : signed, category, type, currency: account.currency, tagIds, notes, ...location,
+      // Only spending is budgeted, so only an expense carries the flag; clearing it removes it.
+      excludeFromBudget: type === 'expense' && form.excludeFromBudget ? true : undefined,
       ...(loan?.id === accountId ? loanFields : {}),
       id: edit && !wasTransfer ? edit.id : uuidv4(),
     });

@@ -366,8 +366,9 @@ const SchedulePage: React.FC = () => {
                   <li key={row.series.id} className="flex min-h-14 items-center gap-2 py-1.5">
                     <div className="min-w-0 flex-1">
                       <p className="type-body-strong truncate text-ink">{row.series.merchant || row.series.description}</p>
-                      <p className="type-caption truncate text-muted">{[row.source === 'recurring' ? cadenceLabel(row.series) : SOURCE_LABEL[row.source], row.next ? `Next ${shortDay(row.next)}` : row.ended ? 'Ended' : '', accountName(row.series.accountId)].filter(Boolean).join(', ')}</p>
+                      <p className="type-caption truncate text-muted">{[row.source === 'recurring' ? cadenceLabel(row.series) : SOURCE_LABEL[row.source], row.next ? `Next ${shortDay(row.next)}` : row.ended ? 'Ended' : '', row.series.autopay ? 'Autopay' : '', accountName(row.series.accountId)].filter(Boolean).join(', ')}</p>
                     </div>
+                    {row.series.paymentUrl && <a href={row.series.paymentUrl} target="_blank" rel="noopener noreferrer" className="type-caption shrink-0 font-bold text-primary hover:underline">Pay online</a>}
                     <span className="type-figure-row shrink-0 text-ink"><Amount value={row.monthly} currency={row.series.currency} /><span className="type-caption text-muted"> /mo</span></span>
                     {row.source === 'recurring'
                       ? <Menu title={row.series.description} trigger={<IconButton icon="more-horizontal" label={`Actions for ${row.series.description}`} tooltipPlacement="left" />} items={seriesMenu(row)} />
