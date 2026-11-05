@@ -430,7 +430,7 @@ export const TopBar: React.FC<ShellProps> = props => (
             </>
           ) : (
             <>
-              <span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />
+              <span className="size-2 rounded-full bg-amber" aria-hidden="true" />
               <span>Unsaved</span>
             </>
           )}

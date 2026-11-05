@@ -1,105 +1,95 @@
 ---
-version: 2.0
+version: 3.0
 name: Crystal
-description: Personal Finance Dashboard visual identity & Apple HIG Design System
+description: Warm light canvas, forest green and amber, with a matching dark mode
 colors:
-  primary: "#fa9a1d"
-  primary-50: "#fef8f0"
-  primary-100: "#fdeed9"
-  primary-200: "#fbddb1"
-  primary-300: "#faca89"
-  primary-400: "#fcb045"
-  primary-500: "#fa9a1d"
-  primary-600: "#e78310"
-  primary-700: "#b45309"
-  primary-800: "#995111"
-  primary-900: "#7d4312"
-  semantic-red: "#EF4444"
-  semantic-green: "#10B981"
-  semantic-yellow: "#F59E0B"
-  semantic-blue: "#06B6D4"
-  light-bg: "#FAFAFA"
-  light-text: "#171717"
-  dark-bg: "#0A0A0A"
-  dark-text: "#FAFAFA"
+  primary: "#2F5C50"
+  primary-dark: "#6CC59A"
+  amber: "#F2C94C"
+  money-in: "#27694A"
+  money-out: "#A93316"
+  canvas: "#EBE8E1"
+  solid: "#FFFDF8"
+  ink: "#1B1813"
+  muted: "#5E584E"
 typography:
   sans:
-    fontFamily: "var(--app-font), 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
-geometry:
-  badges: "rounded-md (6px) or rounded-lg (8px)"
-  controls: "rounded-xl (12px)"
-  cards_modals: "rounded-2xl (16px) or rounded-3xl (24px)"
-  capsules: "rounded-full"
-spacing_grid:
-  micro: "gap-1.5 to gap-2, px-2.5 py-0.5 (6px-8px)"
-  controls: "px-4 py-2.5 (12px-14px), min 44x44px touch targets"
-  cards: "p-4 sm:p-6 (16px-24px)"
-  sections: "space-y-6 sm:space-y-8, py-6 sm:py-8 (24px-48px)"
+    fontFamily: "Manrope Variable, Manrope, -apple-system, BlinkMacSystemFont, system-ui, sans-serif"
 ---
 
-## Overview
+# Crystal design
 
-The Crystal Personal Finance Dashboard offers a sleek, modern, and data-dense UI for managing financial metrics. It utilizes high contrast between vibrant primary accents and sleek dark/light themes, heavily employing an authentic Apple HIG frosted Glassmorphism interface.
+This is the short guide for anyone changing the interface. The full reasoning, every measurement and every decision is in [docs/redesign](docs/redesign/README.md): the specification is [06-design-system-specification.md](docs/redesign/06-design-system-specification.md), and the decisions are in [DECISION_REGISTER.md](docs/redesign/DECISION_REGISTER.md) (`D-` numbers below).
 
-## Colors & Surface Architecture
+## The look
 
-- **Primary (#FA9A1D):** An energetic warm gold/amber driving interaction points, representing growth and capital flow.
-- **Light Theme Canvas:** `#FAFAFA` with near-black text (`#171717`) conveying clean elegance for daylight usage.
-- **Dark Theme Canvas:** `#050505` with high-contrast bright text (`#FFFFFF`), tailored specifically for power-user financial reviews.
-- **Semantic Signals:** Red (`#EF4444`), Green (`#10B981`), Yellow (`#F59E0B`), Blue (`#06B6D4`).
+A warm light canvas with a soft fixed tint behind it, forest green for actions and amber for highlights. Dark mode is its own set of values, not an inversion. Cards and controls are translucent over the tint, and popovers, panels, sheets, tooltips and toasts are solid (`D-086`). Borders are soft and the background glow is light (`D-126`). The sidebar and page tabs use the pill style (`D-122`), and phones get a floating dock at the bottom (`D-123`).
 
-## Typography (Apple HIG Hierarchy)
+## Rules that hold everywhere
 
-Crystal supports dynamic switching between **Plus Jakarta Sans** and **Inter** with clean system fallbacks:
-- **Large Title / Title 1 (H1):** `text-2xl md:text-4xl font-bold tracking-tight leading-tight` (Page headers)
-- **Title 2 (H2):** `text-xl md:text-2xl font-semibold tracking-tight leading-snug` (Section headers, modal titles)
-- **Title 3 (H3):** `text-lg font-semibold leading-snug` (Card titles, widget headers)
-- **Headline / Subsection (H4):** `text-base font-semibold leading-snug` (Subsection headers)
-- **Subhead / Subtitle:** `text-sm md:text-base font-normal leading-normal text-light-text-secondary dark:text-dark-text-secondary`
-- **Body:** `text-base font-normal leading-relaxed text-light-text dark:text-dark-text` (or `text-sm` for compact UI data)
-- **Footnote / Caption:** `text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary`
-- **Kicker / Eyebrow:** `text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary`
+1. **Tokens, never raw colours.** No Tailwind palette classes (`text-gray-500`, `bg-emerald-600`) and no hex values in components. User-chosen colours (a category's colour) are data, so they are the exception.
+2. **Money goes through `Amount`.** It is tabular, signed, and hidden in privacy mode. Use `tone="flow"` to show direction and `tone="loss"` to show negatives in red. Do arithmetic with the safe-math helpers in `utils.ts`.
+3. **Colour never carries meaning alone.** Every status has a word or an icon, and every chart with more than one series has a legend.
+4. **Text is ink or muted.** Coloured text is for `money-in`, `money-out` and `attention-text` only. Soft tints (`primary-soft`, `amber-soft`, `blue-soft` and so on) hold ink text with a coloured icon or dot.
+5. **Icons come from `components/ui/Icon`**, which maps saved names onto Hugeicons.
+6. **Touch targets are 44 px** on coarse pointers, and form text is 16 px on phones.
+7. **Respect the preferences.** Reduced motion, reduced transparency, more contrast and forced colours all have a fallback in `index.css`.
 
-## Spatial Rhythm & Geometry (8pt / 4pt Scale)
+## Tokens
 
-- **Corner Radii Hierarchy:**
-  - `rounded-md` / `rounded-lg`: Micro-badges, indicators, inner icons.
-  - `rounded-xl`: Buttons, inputs, dropdown menus, search triggers.
-  - `rounded-2xl` / `rounded-3xl`: Primary cards, widget containers, sheet dialogues (`rounded-t-[28px] md:rounded-3xl`).
-  - `rounded-full`: Action pills, status chips, floating action capsules.
-- **Touch Targets:** Minimum `44x44px` (`min-h-[44px] min-w-[44px]`) on interactive buttons and mobile elements.
+Defined once in `index.css` (light on `:root`, dark on `.dark`) and exposed to Tailwind as colours.
 
-## Frosted Glassmorphism Surfaces
+| Group | Names |
+|---|---|
+| Surfaces | `canvas`, `solid`, `surface`, `glass`, `inset` |
+| Lines | `line`, `line-strong` |
+| Text | `ink`, `muted`, `attention-text` |
+| Action | `primary`, `primary-hover`, `on-primary`, `primary-soft`, `pill`, `pill-hover`, `on-pill` |
+| Meaning | `money-in`, `money-out`, `on-danger`, `amber`, `amber-soft`, `-soft` versions of each |
+| Accents | `blue`, `tomato`, `rose`, `teal` (each with a `-soft` tint) |
+| Charts | `chart-1` to `chart-5`, in that order, never cycled |
+| Depth | `shadow-sm`, `shadow-md`, `shadow-lg`, `scrim` |
+| Layers | `--z-sticky` 110, `--z-bar` 200, `--z-popover` 500, `--z-overlay` 400, `--z-toast` 1000. Popovers sit above dialogs because they open from them |
 
-- **Canvas & Navigation Bars:** `bg-white/75 dark:bg-dark-card/85 backdrop-blur-xl border-b border-black/5 dark:border-white/10`
-- **Glass Cards (`ios-regular` / `glass-card`):** `bg-white/60 dark:bg-dark-card/70 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-card`
-- **Elevated Overlays & Modals:** `bg-light-card dark:bg-dark-card backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl`
-- **Backdrops:** `bg-black/60 backdrop-blur-sm` (consistent modal and bottom-sheet scrim)
-- **Hairline Reflex Highlights:** `shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]` in dark mode to simulate real glass edge reflection.
+Corners: `radius-sm` 8, `radius-md` 12, `radius-lg` 16, `radius-xl` 22, `radius-2xl` 28, and full for buttons, pills and badges.
 
-## Design token source
+## Type
 
-`index.css` (`@theme` plus the `@utility z-*` rules) is the single source of truth for tokens; there is no `tailwind.config.js`. Values in this document mirror it.
+Manrope, sizes in `rem`, sentence case. Use the utilities, not raw sizes:
 
-## Layer & Stacking Order (Z-Index Scale)
+`type-figure-hero`, `type-page-title`, `type-sentence`, `type-figure-lg`, `type-section-title`, `type-card-title`, `type-body`, `type-body-strong`, `type-figure-row`, `type-label`, `type-caption`.
 
-Crystal employs a strict, named stacking hierarchy to avoid arbitrary z-index escalation:
-- **`z-dropdown` (50):** Select menus, autocomplete popdowns, contextual action menus.
-- **`z-sticky` (100):** Sticky page headers, floating bottom action bars.
-- **`z-popover` (200):** Tooltips, date pickers, floating command palettes.
-- **`z-modal` (500):** Floating dialogs, responsive bottom sheets, detail inspectors.
-- **`z-toast` (1000):** Ephemeral notifications, system alerts (Sonner).
-- **`z-max` (9999):** Fullscreen spotlight takeovers / critical blocking prompts.
+## Layout
 
-## Semantic Status Token System
+Phone under 768 px, tablet 768 to 1023, desktop 1024 and up. Content is at most 1360 px wide. Check every change at 1440, 768 and 390 wide, in light and dark.
 
-To ensure financial metrics communicate urgency and direction consistently:
-- **Danger / Negative (Apple Red):** `STATUS_DANGER_TEXT` (`text-rose-600 dark:text-rose-400`), `STATUS_DANGER_BG` (`bg-rose-500/10 dark:bg-rose-500/20`), `STATUS_DANGER_BADGE`.
-- **Success / Positive (Apple Green):** `STATUS_SUCCESS_TEXT` (`text-emerald-600 dark:text-emerald-400`), `STATUS_SUCCESS_BG` (`bg-emerald-500/10 dark:bg-emerald-500/20`), `STATUS_SUCCESS_BADGE`.
-- **Warning / Attention (Apple Amber):** `STATUS_WARNING_TEXT` (`text-amber-600 dark:text-amber-400`), `STATUS_WARNING_BG` (`bg-amber-500/10 dark:bg-amber-500/20`), `STATUS_WARNING_BADGE`.
-- **Informational / Neutral (Apple Blue):** `STATUS_INFO_TEXT` (`text-blue-600 dark:text-blue-400`), `STATUS_INFO_BG` (`bg-blue-500/10 dark:bg-blue-500/20`), `STATUS_INFO_BADGE`.
+## Building blocks
 
-## Icon System
+Everything is in `components/ui`. Reach for these before writing markup.
 
-All icons are standardized on `@hugeicons/core-free-icons` (`^4.3.5`) in the **Stroke Rounded** style (1.5px stroke width). Pro variants (`solid`, `twotone`, `bulk`, `sharp`) are strictly excluded.
-See [`docs/ICON_SYSTEM.md`](docs/ICON_SYSTEM.md) for the complete icon catalog, the Hub-vs-Tab matrix, and registration guides.
+| Need | Use |
+|---|---|
+| A dialog, panel or sheet | `Dialog` (short task), `SidePanel` (a record), `FullPanel` (long work). Phones get a bottom sheet automatically |
+| Ask before something risky | `ConfirmDialog` |
+| A small anchored picker or filter | `Popover`. Its trigger is a button, and phones get a sheet |
+| A list of actions | `Menu`, and `PointerMenu` for right-click |
+| Fields | `TextInput`, `AmountInput`, `Textarea`, `DateInput`, `Select`, `Combobox`, `MultiSelect`, `Checkbox`, `Switch` |
+| Buttons | `Button` (primary, secondary, soft, ghost, destructive), `IconButton` |
+| Rows, tags and tables | `Row`, `Badge`, `DataTable`, `DayGroup` |
+| Empty and loading | `EmptyState`, `Skeleton`. A spinner is for buttons and the first load only |
+| Logos and icons for things | `EntityIcon` (`LogoTile`, `EntityGlyph`, `MerchantLogo`). Logos come only from Merchants (`D-127`) |
+| Charts | `src/components/charts` with the chart tokens, plus a legend and a table view |
+
+## Forecasting
+
+One calculation drives the Overview, Forecast and account pages: `utils/forecastModel.ts`. Add new money movements there, not in a screen.
+
+## Checking a change
+
+```bash
+node node_modules/typescript/bin/tsc --noEmit
+npm test
+npm run build
+```
+
+Then open it in the browser at the three widths. `/?ui-kit` shows every component in development.

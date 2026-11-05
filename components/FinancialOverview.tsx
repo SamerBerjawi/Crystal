@@ -1,10 +1,7 @@
-
 import React from 'react';
 import { formatCurrency, getMainCurrency } from '../utils';
 import { Currency } from '../types';
-import { LINE_MOTION } from '../src/components/charts/animation';
-import { ResponsiveContainer, LineChart, Line } from 'recharts';
-import Icon from './ui/Icon';
+import { Badge, Sparkline } from './ui/Display';
 import { Amount, FormattedAmount } from './ui/Money';
 
 interface FinancialOverviewProps {
@@ -19,12 +16,19 @@ interface FinancialOverviewProps {
     size?: 's' | 'm' | 'l';
 }
 
-const FinancialOverview: React.FC<FinancialOverviewProps> = ({ 
-    netWorth, 
-    income, 
-    expenses, 
-    incomeChange, 
-    expenseChange,
+const Tile: React.FC<{ label: string; children: React.ReactNode; trend?: React.ReactNode }> = ({ label, children, trend }) => (
+    <div className="flex flex-col justify-between gap-1 rounded-[var(--radius-md)] bg-inset p-3">
+        <span className="type-label text-muted">{label}</span>
+        <p className="type-figure-row text-ink privacy-blur">{children}</p>
+        {trend}
+    </div>
+);
+
+/** Net worth, then what came in, what went out, and how much of the income the spending used. */
+const FinancialOverview: React.FC<FinancialOverviewProps> = ({
+    netWorth,
+    income,
+    expenses,
     incomeSparkline = [],
     expenseSparkline = [],
     currency = getMainCurrency(),
@@ -34,101 +38,51 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
     const savingsRate = income > 0 ? (netCashFlow / income) * 100 : 0;
     const isPositiveNet = netCashFlow >= 0;
     const flowIntensity = income > 0 ? (expenses / income) * 100 : (expenses > 0 ? 100 : 0);
+    const compact = (value: number, showPlusSign = false) => formatCurrency(value, currency, { compact: true, showPlusSign });
 
     return (
-        <div className="flex flex-col h-full justify-between gap-3 p-0.5">
-            {/* --- TOP: POSITION & WEALTH --- */}
+        <div className="flex h-full flex-col justify-between gap-3">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Net worth</span>
-                    <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums privacy-blur mt-0.5">
-                        <Amount value={netWorth} currency={currency as Currency} />
-                    </h3>
+                    <span className="type-label text-muted">Net worth</span>
+                    <p className="type-figure-lg text-ink"><Amount value={netWorth} currency={currency} /></p>
                 </div>
-
-                <div className={`px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider flex items-center gap-1.5 shrink-0 border ${
-                    isPositiveNet 
-                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' 
-                        : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20'
-                }`}>
-                    <Icon name={isPositiveNet ? 'trending_up' : 'trending_down'} className="text-sm shrink-0" />
-                    <span>{Math.abs(savingsRate).toFixed(0)}% {savingsRate >= 0 ? 'Savings' : 'Burn'} rate</span>
-                </div>
+                <Badge tone={isPositiveNet ? 'positive' : 'negative'} icon={isPositiveNet ? 'trending_up' : 'trending_down'} className="shrink-0">
+                    {Math.abs(savingsRate).toFixed(0)}% {savingsRate >= 0 ? 'saved' : 'overspent'}
+                </Badge>
             </div>
 
-            {/* --- MIDDLE: PERFORMANCE CARDS --- */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {/* Net Flow */}
-                <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-all">
-                    <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Net flow</span>
-                    <p className={`text-base sm:text-lg font-bold tracking-tight tabular-nums privacy-blur mt-1 ${
-                        isPositiveNet ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
-                    }`}>
-                        <FormattedAmount text={formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true, compact: true })} />
-                    </p>
-                    <div className="mt-2 flex items-center gap-1 text-2xs font-medium text-slate-500 dark:text-slate-400">
-                        <Icon name={isPositiveNet ? 'trending_up' : 'trending_down'} className={`text-xs ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`} />
-                        <span>{isPositiveNet ? 'Surplus' : 'Deficit'}</span>
-                    </div>
-                </div>
-                
-                {/* Revenue */}
-                <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-all group/stat">
-                    <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Revenue</span>
-                    <p className="text-base sm:text-lg font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur mt-1">
-                        <FormattedAmount text={formatCurrency(income, currency as Currency, { compact: true })} />
-                    </p>
-                    {size !== 's' && (
-                        <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={incomeSparkline.length > 0 ? incomeSparkline : [{value:10}, {value:15}, {value:12}, {value:20}, {value:18}]}>
-                                    <Line {...LINE_MOTION} type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={false} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                </div>
-
-                {/* Outflow */}
-                <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-all group/stat">
-                    <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Outflow</span>
-                    <p className="text-base sm:text-lg font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur mt-1">
-                        <FormattedAmount text={formatCurrency(expenses, currency as Currency, { compact: true })} />
-                    </p>
-                    {size !== 's' && (
-                        <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={expenseSparkline.length > 0 ? expenseSparkline : [{value:20}, {value:12}, {value:25}, {value:15}, {value:22}]}>
-                                    <Line {...LINE_MOTION} type="monotone" dataKey="value" stroke="#f43f5e" strokeWidth={2} dot={false} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                </div>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                <Tile label="Net flow">
+                    <span className={isPositiveNet ? 'text-money-in' : 'text-money-out'}><FormattedAmount text={compact(netCashFlow, true)} /></span>
+                    <span className="type-caption ml-1.5 text-muted">{isPositiveNet ? 'surplus' : 'deficit'}</span>
+                </Tile>
+                <Tile label="Money in" trend={size !== 's' && <Sparkline data={incomeSparkline} isPositive width={120} height={20} preserveAspect={false} className="w-full" />}>
+                    <FormattedAmount text={compact(income)} />
+                </Tile>
+                <Tile label="Money out" trend={size !== 's' && <Sparkline data={expenseSparkline} isPositive={false} width={120} height={20} preserveAspect={false} className="w-full" />}>
+                    <FormattedAmount text={compact(expenses)} />
+                </Tile>
             </div>
 
-            {/* --- BOTTOM: BURN INTENSITY --- */}
             {size !== 's' && (
-                <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
-                    <div className="flex justify-between items-center text-xs mb-1.5">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Burn intensity</span>
-                            <span className="text-slate-300 dark:text-slate-600">•</span>
-                            <span className={`text-xs font-bold tabular-nums ${flowIntensity > 100 ? 'text-rose-500' : 'text-primary-600 dark:text-primary-400'}`}>
-                                {flowIntensity.toFixed(0)}%
-                            </span>
-                        </div>
-                        <span className="text-2xs font-medium text-slate-400 dark:text-slate-500">Relative to revenue</span>
+                <div className="rounded-[var(--radius-md)] bg-inset p-3">
+                    <div className="mb-2 flex items-baseline justify-between gap-3">
+                        <span className="type-label text-muted">Spent of what came in</span>
+                        <span className={`type-figure-row ${flowIntensity > 100 ? 'text-money-out' : 'text-ink'}`}>{flowIntensity.toFixed(0)}%</span>
                     </div>
-                    <div className="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden flex p-0.5">
-                        <div 
-                            className={`h-full rounded-full transition-all duration-700 ease-out ${
-                                flowIntensity > 100 
-                                    ? 'bg-gradient-to-r from-rose-500 to-rose-600' 
-                                    : 'bg-gradient-to-r from-primary-500 to-indigo-500'
-                            }`} 
+                    <div
+                        role="progressbar"
+                        aria-label="Spent of what came in"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.min(Math.round(flowIntensity), 100)}
+                        className="h-2 overflow-hidden rounded-full bg-line-strong"
+                    >
+                        <div
+                            className={`h-full rounded-full transition-[width] duration-[var(--duration-medium)] ${flowIntensity > 100 ? 'bg-money-out' : 'bg-primary'}`}
                             style={{ width: `${Math.max(Math.min(flowIntensity, 100), flowIntensity > 0 ? 3 : 0)}%` }}
-                        ></div>
+                        />
                     </div>
                 </div>
             )}

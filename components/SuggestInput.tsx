@@ -108,7 +108,7 @@ const SuggestInput: React.FC<SuggestInputProps> = ({ value, onType, onPick, onAc
       </div>
 
       {shown && (
-        <ul id={listId} role="listbox" aria-label={`${label} suggestions`} className={cn(popoverStyles, 'absolute left-0 top-full z-[80] mt-1.5 max-h-60 w-full overflow-y-auto p-1.5')}>
+        <ul id={listId} role="listbox" aria-label={`${label} suggestions`} className={cn(popoverStyles, 'absolute left-0 top-full z-[var(--z-popover)] mt-1.5 max-h-60 w-full overflow-y-auto p-1.5')}>
           {suggestions.map((item, index) => (
             <li
               key={item.id}

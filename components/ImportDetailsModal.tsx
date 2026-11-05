@@ -74,8 +74,8 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
           {
             id: 'errors',
             title: `Errors (${errors.length})`,
-            activeColor: errors.length > 0 ? 'bg-red-500 dark:bg-red-600' : undefined,
-            activeTextColor: errors.length > 0 ? 'text-white' : undefined,
+            activeColor: errors.length > 0 ? 'bg-money-out' : undefined,
+            activeTextColor: errors.length > 0 ? 'text-on-danger' : undefined,
           },
         ]}
         value={tab}

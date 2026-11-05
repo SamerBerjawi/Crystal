@@ -107,7 +107,7 @@ import { moveLocalChoices } from './utils/syncedChoices';
 import { syncFill, withEditLocks } from './utils/lockedFields';
 import { clearDeleted, deletedIdsByAccount, forgetDeleted, rememberDeleted } from './utils/deletedSync';
 import LockScreen from './components/LockScreen';
-import { Banner } from './components/ui/States';
+import { Banner, Spinner } from './components/ui/States';
 import { useIdleLock } from './hooks/useIdleLock';
 import { DEFAULT_AUTO_LOCK_MINUTES } from './utils/lockModel';
 import { migrateRules } from './utils/rulesMigration';
@@ -116,7 +116,6 @@ import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
 const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
-import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { PhoneBar, PhoneTopBar, Sidebar, SkipLink, TabRow, ToolRail, TopBar, type ShellProps } from './components/ui/Shell';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
@@ -338,7 +337,7 @@ const safeLocalStorage = {
 };
 
 const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...' }) => (
-  <div className="flex items-center justify-center py-10 text-primary-500" role="status" aria-live="polite">
+  <div className="flex items-center justify-center py-10 text-primary" role="status" aria-live="polite">
     <svg className="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -2871,7 +2870,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (isAuthLoading || !isDataLoaded) return <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]"><svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>;
+  if (isAuthLoading || !isDataLoaded) return <div role="status" aria-label="Loading Crystal" className="flex min-h-screen items-center justify-center bg-canvas text-primary"><Spinner className="size-10" /></div>;
 
   if (!isAuthenticated && !isDemoMode) {
     return (

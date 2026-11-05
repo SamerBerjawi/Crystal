@@ -27,15 +27,15 @@ const CATEGORY_CLASSIFICATION_TABS: SwipeTabItem[] = [
     id: 'expense',
     title: 'Expense',
     icon: () => <HugeiconsIcon icon={ArrowDown01Icon} size={16} className="shrink-0" />,
-    activeColor: 'bg-red-500 dark:bg-red-600',
-    activeTextColor: 'text-white',
+    activeColor: 'bg-money-out',
+    activeTextColor: 'text-on-danger',
   },
   {
     id: 'income',
     title: 'Income',
     icon: () => <HugeiconsIcon icon={ArrowUp01Icon} size={16} className="shrink-0" />,
-    activeColor: 'bg-emerald-600 dark:bg-emerald-500',
-    activeTextColor: 'text-white',
+    activeColor: 'bg-money-in',
+    activeTextColor: 'text-on-primary',
   },
 ];
 

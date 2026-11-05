@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { Button as AriaButton } from 'react-aria-components';
-import { ContextMenu } from '@base-ui/react/context-menu';
 import type { Account, Category, DisplayTransaction, Tag } from '../types';
 import { convertToMain, getMainCurrency } from '../utils';
 import { getCategoryDetails } from '../utils/categories';
@@ -12,7 +11,7 @@ import Icon from './ui/Icon';
 import { IconButton } from './ui/Actions';
 import { Badge, DayGroup } from './ui/Display';
 import { Checkbox } from './ui/Fields';
-import { Menu, type MenuAction } from './ui/Menu';
+import { Menu, PointerMenu, type MenuAction } from './ui/Menu';
 import { Amount } from './ui/Money';
 import { Popover, popoverStyles } from './ui/Overlays';
 import { cn } from '../lib/utils';
@@ -74,7 +73,7 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string;
   if (tx.isTransfer) {
     return (
       <span
-        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cyan-950/60 dark:bg-[#0c313a] text-cyan-400 border border-cyan-800/30"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-teal-soft text-teal border border-teal/20"
         aria-hidden="true"
       >
         <Icon name="arrow-data-transfer-horizontal" size={18} />
@@ -102,7 +101,7 @@ const AccountLogoTile: React.FC<{ url?: string | null; isTransfer?: boolean; lab
 
   if (isTransfer) {
     return (
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-cyan-950/60 dark:bg-[#0c313a] text-cyan-400 border border-cyan-800/30" aria-hidden="true">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-teal-soft text-teal border border-teal/20" aria-hidden="true">
         <Icon name="arrow-data-transfer-horizontal" size={16} />
       </span>
     );
@@ -152,7 +151,7 @@ const SortHeader: React.FC<{
                 aria-label={`Filter by ${label.toLowerCase()}${filter.count ? `, ${filter.count} active` : ''}`}
                 className={cn(
                   'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-inset hover:text-ink',
-                  filter.count > 0 ? 'text-ink font-semibold' : 'text-muted/60 hover:text-muted'
+                  filter.count > 0 ? 'text-ink font-semibold' : 'text-muted hover:text-ink'
                 )}
               >
                 <Icon name="tune" size={14} />
@@ -172,16 +171,13 @@ const SortHeader: React.FC<{
   );
 };
 
-const CONTEXT_ITEM = 'flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[14px] text-ink outline-none hover:bg-inset focus:bg-inset data-[highlighted]:bg-inset transition-colors select-none';
-const CONTEXT_ITEM_DANGER = 'flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[14px] text-money-out outline-none hover:bg-money-out-soft/40 focus:bg-money-out-soft/40 data-[highlighted]:bg-money-out-soft/40 transition-colors select-none';
-
 /** Day-grouped ledger: a table from tablets up, day rows on phones. */
 const LedgerTable: React.FC<LedgerTableProps> = props => {
   const { items, isPhone, isCompact, selectedIds, isSelecting, sort, onSort, onToggle, onToggleGroup, onOpen, onCategorise, onExpand, onStartSelecting, amountOf, accountOf, locationOf, logoOf, menuFor, filtersFor, onFilterTo, columnFilters, categories, tags } = props;
   const isDark = useIsDark();
   const pressTimer = useRef<number>(0);
   const didLongPress = useRef(false);
-  const [contextTx, setContextTx] = useState<DisplayTransaction | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ tx: DisplayTransaction; x: number; y: number } | null>(null);
 
   const details = (tx: DisplayTransaction) => {
     if (tx.isTransfer) {
@@ -221,7 +217,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
           <span
             title="Uncategorised"
             aria-label="Uncategorised"
-            className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400"
+            className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-amber-soft text-attention-text"
           >
             <Icon name="warning" size={14} />
           </span>
@@ -230,7 +226,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
           <span
             title="Recurring"
             aria-label="Recurring"
-            className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+            className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-money-in-soft text-money-in"
           >
             <Icon name="repeat-one-01" size={14} />
           </span>
@@ -312,10 +308,18 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
   }
 
   const rowHeight = isCompact ? 'h-10' : 'h-14';
-  const activeFilters = contextTx && filtersFor ? filtersFor(contextTx) : [];
-  const contextActions = contextTx ? menuFor(contextTx) : [];
-  const normalActions = contextActions.filter(a => !a.isDestructive);
-  const dangerActions = contextActions.filter(a => a.isDestructive);
+  const contextItems: MenuAction[] = (() => {
+    if (!contextMenu) return [];
+    const actions = menuFor(contextMenu.tx);
+    const filters = (filtersFor ? filtersFor(contextMenu.tx) : []).map((filter, index): MenuAction => ({
+      id: `filter-${filter.kind}-${filter.value}`,
+      label: filter.isActive ? `Clear filter “${filter.label}”` : `Filter to “${filter.label}”`,
+      icon: filter.isActive ? 'close' : filter.icon,
+      startsGroup: index === 0,
+      onAction: () => onFilterTo?.(filter),
+    }));
+    return [...actions.filter(a => !a.isDestructive), ...filters, ...actions.filter(a => a.isDestructive).map((a, index) => ({ ...a, startsGroup: index === 0 }))];
+  })();
 
   const allTxIds = items
     .filter((item): item is Extract<LedgerItem, { isGroupHeader: false }> => !item.isGroupHeader)
@@ -325,8 +329,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
   const isSomeSelected = allCount > 0 && allCount < allTxIds.length;
 
   return (
-    <ContextMenu.Root>
-      <ContextMenu.Trigger render={<div className="overflow-x-auto rounded-[var(--radius-xl)] surface-card" />}>
+    <div className="overflow-x-auto rounded-[var(--radius-xl)] surface-card">
         <table className="w-full border-separate border-spacing-0 table-fixed">
           <caption className="sr-only">Transactions</caption>
           <colgroup>
@@ -368,7 +371,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           aria-label={`Filter by tags${columnFilters.tags.count ? `, ${columnFilters.tags.count} active` : ''}`}
                           className={cn(
                             'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-inset hover:text-ink',
-                            columnFilters.tags.count > 0 ? 'text-ink font-semibold' : 'text-muted/60 hover:text-muted'
+                            columnFilters.tags.count > 0 ? 'text-ink font-semibold' : 'text-muted hover:text-ink'
                           )}
                         >
                           <Icon name="tune" size={14} />
@@ -429,7 +432,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
               return (
                 <tr
                   key={tx.id}
-                  onContextMenu={() => setContextTx(tx)}
+                  onContextMenu={e => { e.preventDefault(); setContextMenu({ tx, x: e.clientX, y: e.clientY }); }}
                   className={cn('group hover:bg-inset', isSelected && 'bg-primary-soft hover:bg-primary-soft')}
                 >
                   <td className={cn('w-10 border-t border-line pl-3', rowHeight)}>
@@ -491,7 +494,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                         onClick={() => onCategorise(tx)}
                         title="Uncategorised"
                         aria-label="Uncategorised"
-                        className="inline-flex size-6 cursor-pointer items-center justify-center rounded-full bg-amber-500/15 text-amber-600 transition-opacity hover:opacity-80 dark:text-amber-400"
+                        className="inline-flex size-6 cursor-pointer items-center justify-center rounded-full bg-amber-soft text-attention-text transition-opacity hover:opacity-80"
                       >
                         <Icon name="warning" size={14} />
                       </button>
@@ -517,7 +520,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                   <td className="type-figure-row whitespace-nowrap border-t border-line px-3 text-right text-ink">
                     {money(tx)}
                     {!!tx.spareChangeAmount && !isCompact && (
-                      <span title="Round-up set aside" className="type-caption flex items-center justify-end gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span title="Round-up set aside" className="type-caption flex items-center justify-end gap-1 text-money-in">
                         <Icon name="piggy-bank" size={14} className="shrink-0" aria-hidden="true" />
                         <Amount value={convertToMain(Math.abs(tx.spareChangeAmount), tx.currency)} currency={getMainCurrency()} tone="plain" />
                       </span>
@@ -535,65 +538,15 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
             })}
           </tbody>
         </table>
-      </ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Positioner className="pointer-events-auto z-[var(--z-popover)]">
-          <ContextMenu.Popup className="z-[var(--z-popover)] min-w-56 max-w-80 rounded-2xl border border-line bg-[#FFFDF8] dark:bg-[#1E1C17] p-1.5 shadow-2xl outline-none select-none">
-            {contextTx && (
-              <>
-                <p className="truncate px-2.5 pb-1 pt-1.5 text-[12px] font-medium text-muted">
-                  {contextTx.merchant || contextTx.description}
-                </p>
-                {normalActions.map(action => (
-                  <ContextMenu.Item
-                    key={action.id}
-                    onClick={action.onAction}
-                    disabled={action.isDisabled}
-                    className={CONTEXT_ITEM}
-                  >
-                    {action.icon && <Icon name={action.icon} size={18} className="shrink-0 text-muted" />}
-                    <span className="min-w-0 flex-1 truncate">{action.label}</span>
-                  </ContextMenu.Item>
-                ))}
-                {dangerActions.length > 0 && <div role="separator" className="mx-2 my-1 h-px bg-line" />}
-                {dangerActions.map(action => (
-                  <ContextMenu.Item
-                    key={action.id}
-                    onClick={action.onAction}
-                    disabled={action.isDisabled}
-                    className={CONTEXT_ITEM_DANGER}
-                  >
-                    {action.icon && <Icon name={action.icon} size={18} className="shrink-0 text-money-out" />}
-                    <span className="min-w-0 flex-1 truncate">{action.label}</span>
-                  </ContextMenu.Item>
-                ))}
-                {activeFilters.length > 0 && (
-                  <>
-                    <div role="separator" className="mx-2 my-1 h-px bg-line" />
-                    {activeFilters.map(filter => (
-                      <ContextMenu.Item
-                        key={`${filter.kind}-${filter.value}`}
-                        onClick={() => onFilterTo?.(filter)}
-                        className={CONTEXT_ITEM}
-                      >
-                        <Icon name={filter.isActive ? 'close' : filter.icon} size={18} className="shrink-0 text-muted" />
-                        <span className="min-w-0 flex-1 truncate">
-                          {filter.isActive ? (
-                            <>Clear filter <span className="text-muted">“{filter.label}”</span></>
-                          ) : (
-                            <>Filter to <span className="font-semibold text-ink">“{filter.label}”</span></>
-                          )}
-                        </span>
-                      </ContextMenu.Item>
-                    ))}
-                  </>
-                )}
-              </>
-            )}
-          </ContextMenu.Popup>
-        </ContextMenu.Positioner>
-      </ContextMenu.Portal>
-    </ContextMenu.Root>
+      {contextMenu && (
+        <PointerMenu
+          point={contextMenu}
+          title={contextMenu.tx.merchant || contextMenu.tx.description}
+          items={contextItems}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </div>
   );
 };
 

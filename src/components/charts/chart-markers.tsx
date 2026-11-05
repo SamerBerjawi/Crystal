@@ -45,16 +45,16 @@ export function MarkerTooltipContent({ markers }: { markers: ChartMarker[] }) {
   if (!markers || markers.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 pt-1 border-t border-neutral-200 dark:border-neutral-800/80 mt-2">
+    <div className="flex flex-col gap-2 pt-1 border-t border-line mt-2">
       {markers.map((marker, idx) => (
         <div
           key={idx}
-          className="flex items-start gap-2 text-xs p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700/50"
+          className="flex items-start gap-2 text-xs p-2 rounded-xl bg-inset border border-line"
         >
           <div>
-            <div className="font-bold text-neutral-800 dark:text-neutral-100">{marker.title}</div>
+            <div className="font-bold text-ink">{marker.title}</div>
             {marker.description && (
-              <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+              <div className="text-xs text-muted mt-0.5">
                 {marker.description}
               </div>
             )}

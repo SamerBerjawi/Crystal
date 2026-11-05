@@ -103,7 +103,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
             <span className="type-caption text-muted truncate flex items-center gap-1.5">
               <span>{shown.day} · {formatCurrency(shown.value, account.currency)}</span>
               {shown.pnl !== undefined && shown.pnl !== 0 && (
-                <span className={cn('text-2xs font-semibold px-1 py-0.5 rounded', shown.pnl > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500')}>
+                <span className={cn('text-2xs font-semibold px-1 py-0.5 rounded', shown.pnl > 0 ? 'bg-money-in-soft text-money-in' : 'bg-money-out-soft text-money-out')}>
                   {shown.pnl > 0 ? '+' : ''}{formatCurrency(shown.pnl, account.currency)}
                 </span>
               )}

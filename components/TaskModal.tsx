@@ -18,7 +18,7 @@ interface TaskModalProps {
 const PRIORITIES: SwipeTabItem[] = ([
   { id: 'Low', title: 'Low' },
   { id: 'Medium', title: 'Medium' },
-  { id: 'High', title: 'High', activeColor: 'bg-red-500 dark:bg-red-600', activeTextColor: 'text-white' },
+  { id: 'High', title: 'High', activeColor: 'bg-money-out', activeTextColor: 'text-on-danger' },
 ]);
 const STATUSES: SwipeTabItem[] = (['To Do', 'In Progress', 'Done'] as TaskStatus[]).map(id => ({ id, title: id }));
 const LINKED_SECTION_OPTIONS = [

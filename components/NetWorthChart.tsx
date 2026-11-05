@@ -15,6 +15,7 @@ import {
 import { formatCurrency, parseLocalDate, calculateTrendLine, getMainCurrency, currencySign } from '../utils';
 import { FinancialGoal } from '../types';
 import Icon from './ui/Icon';
+import { EmptyState } from './ui/States';
 
 interface ChartData {
   name: string;
@@ -172,10 +173,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
 
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-40 p-8 text-center min-h-[250px]">
-        <Icon name="show_chart" className="text-3xl mb-2" />
-        <p className="text-xs font-bold tracking-widest">No Net Worth Data Available</p>
-      </div>
+      <EmptyState icon="chart-line-data-01" title="No net worth to show yet" description="It appears once you have an account with a balance." className="min-h-[250px]" />
     );
   }
 

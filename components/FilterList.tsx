@@ -161,7 +161,7 @@ export const FilterList: React.FC<FilterListProps> = ({
       </div>
 
       {isCapped && (
-        <p className="text-xs text-muted/80">
+        <p className="type-caption text-muted">
           Showing the first {maxInitialShown} of {options.length}. Search to find the rest.
         </p>
       )}

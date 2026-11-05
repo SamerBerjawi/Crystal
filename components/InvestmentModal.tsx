@@ -32,8 +32,8 @@ export interface InvestmentModalProps {
 
 const MODES: SwipeTabItem[] = [{ id: 'trade', title: 'Trade' }, { id: 'grant', title: 'Equity grant' }];
 const SIDES: SwipeTabItem[] = [
-  { id: 'buy', title: 'Buy', activeColor: 'bg-emerald-600 dark:bg-emerald-500', activeTextColor: 'text-white' },
-  { id: 'sell', title: 'Sell', activeColor: 'bg-red-500 dark:bg-red-600', activeTextColor: 'text-white' },
+  { id: 'buy', title: 'Buy', activeColor: 'bg-money-in', activeTextColor: 'text-on-primary' },
+  { id: 'sell', title: 'Sell', activeColor: 'bg-money-out', activeTextColor: 'text-on-danger' },
 ];
 const TAX_TYPES: SwipeTabItem[] = [{ id: 'percentage', title: 'Percentage' }, { id: 'amount', title: 'Fixed amount' }];
 const SUB_TYPES: InvestmentSubType[] = ['Stock', 'ETF', 'Crypto', 'Pension Fund', 'Spare Change', 'Other'];

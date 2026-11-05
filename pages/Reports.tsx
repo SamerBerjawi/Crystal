@@ -130,8 +130,6 @@ export function KpiCard({
   );
 }
 
-const LibraryCard = KpiCard;
-
 interface ReportsProps {
   setCurrentPage?: (page: Page) => void;
 }

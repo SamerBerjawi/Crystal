@@ -56,7 +56,7 @@ const MERCHANT_SORTS = [
 ];
 
 const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
-  const { transactions, saveTransaction } = useTransactionsContext();
+  const { transactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { preferences, setPreferences } = usePreferencesContext();
@@ -85,33 +85,6 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const smartSuggestions = useMemo(() => {
     return generateSmartRuleSuggestions(transactions, preferences.transactionRules || []);
   }, [transactions, preferences.transactionRules]);
-
-  const handleDeploySmartSuggestion = (suggestion: SmartRuleSuggestion) => {
-    const newRule = convertSuggestionToTransactionRule(suggestion);
-
-    setPreferences(prev => ({
-      ...prev,
-      transactionRules: [newRule, ...(prev.transactionRules || [])]
-    }));
-
-    const kw = suggestion.keyword.toLowerCase();
-    const matching = transactions.filter(t => 
-      (t.description && t.description.toLowerCase().includes(kw)) ||
-      (t.merchant && t.merchant.toLowerCase().includes(kw))
-    );
-
-    if (matching.length > 0) {
-      const updated = matching.map(t => ({
-        ...t,
-        merchant: suggestion.suggestedMerchant || t.merchant,
-        category: suggestion.suggestedCategory || t.category,
-      }));
-      saveTransaction(updated);
-      toast.success(`Created rule and updated ${updated.length} past transaction(s) for "${suggestion.suggestedMerchant}"!`);
-    } else {
-      toast.success(`Created auto-categorization rule for "${suggestion.suggestedMerchant}"!`);
-    }
-  };
 
   const effectiveMerchantRules = useMemo(() => {
     const migratedRules = { ...merchantRules };

@@ -76,20 +76,7 @@ export function CrystalLogo({ showText = true }: { showText?: boolean; }) {
   );
 }
 
-// Common Styles based on Apple Health & Frosted Glass Architecture
-export const BTN_PRIMARY_STYLE = "h-10 pointer-coarse:h-11 inline-flex items-center justify-center gap-2 rounded-full bg-primary hover:bg-primary-hover text-on-primary text-sm font-bold px-[18px] transition-colors duration-[var(--duration-fast)] active:scale-[.98] whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
-export const BTN_SECONDARY_STYLE = "h-10 pointer-coarse:h-11 inline-flex items-center justify-center gap-2 rounded-full bg-surface hover:bg-inset text-ink text-sm font-bold px-[18px] border border-line-strong transition-colors duration-[var(--duration-fast)] active:scale-[.98] whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
-export const BTN_DANGER_STYLE = "h-10 pointer-coarse:h-11 inline-flex items-center justify-center gap-2 rounded-full bg-money-out text-on-danger hover:brightness-95 text-sm font-bold px-[18px] transition-colors duration-[var(--duration-fast)] active:scale-[.98] whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
-export const INPUT_BASE_STYLE = "h-11 max-md:h-12 w-full appearance-none rounded-[var(--radius-md)] bg-inset text-ink border border-line-strong placeholder:text-muted transition-colors duration-[var(--duration-fast)] px-3 text-[.9375rem] max-md:text-base font-medium touch-feedback";
-export const SELECT_STYLE = "h-11 max-md:h-12 w-full appearance-none rounded-[var(--radius-md)] bg-inset text-ink border border-line-strong placeholder:text-muted transition-colors duration-[var(--duration-fast)] pl-3 pr-10 text-[.9375rem] max-md:text-base font-medium whitespace-nowrap cursor-pointer touch-feedback";
-export const SELECT_WRAPPER_STYLE = "relative w-full";
-export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-neutral-500 dark:text-neutral-400";
-export const CHECKBOX_STYLE = "h-5 w-5 rounded-lg accent-primary-500 text-white bg-black/[0.03] dark:bg-white/[0.04] border border-black/15 dark:border-white/20 focus:ring-2 focus:ring-primary-500/40 cursor-pointer touch-feedback";
 
-// Icon Button Styles — Minimum 44x44px touch targets per Apple HIG
-export const ICON_BUTTON_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/60 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer shrink-0 touch-feedback";
-export const ICON_BUTTON_SM_STYLE = "w-9 h-9 min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/60 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer shrink-0 touch-feedback";
-export const CLOSE_BTN_STYLE = "size-10 pointer-coarse:size-11 inline-flex items-center justify-center rounded-full text-ink hover:bg-inset transition-colors cursor-pointer shrink-0";
 
 // Semantic Status Tokens from Design System Blueprint
 export const STATUS_TOKENS = {
@@ -137,15 +124,6 @@ export const STATUS_INFO_BORDER = "border-cyan-500/20 dark:border-cyan-500/30";
 export const STATUS_INFO_BADGE = "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30";
 
 // Stacking Order Hierarchy
-export const Z_INDEX = {
-  BASE: 'z-0',
-  DROPDOWN: 'z-dropdown',
-  STICKY: 'z-sticky',
-  POPOVER: 'z-popover',
-  MODAL: 'z-modal',
-  TOAST: 'z-toast',
-  MAX: 'z-max',
-} as const;
 
 
 export const BRAND_COLORS = ['#fcb045', '#fd1d1d', '#3B82F6', '#22d3ee', '#a78bfa', '#f472b6'];
@@ -286,61 +264,48 @@ export const QUICK_CREATE_BUDGET_OPTIONS: { value: number, label: string, shortL
 ];
 
 
-export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string; color: string } } = {
-  'Checking': { icon: 'bank', color: 'text-blue-500' },
-  'Savings': { icon: 'piggy-bank', color: 'text-green-500' },
-  'Credit Card': { icon: 'credit-card', color: 'text-rose-500' },
-  'Investment': { icon: 'chart-line-data-01', color: 'text-purple-500' },
-  'Loan': { icon: 'agreement-01', color: 'text-red-500' },
-  'Lending': { icon: 'money-receive-01', color: 'text-teal-500' },
-  'Property': { icon: 'building-03', color: 'text-sky-500' },
-  'Vehicle': { icon: 'car-01', color: 'text-slate-500' },
-  'Other Assets': { icon: 'package', color: 'text-lime-500' },
-  'Other Liabilities': { icon: 'receipt', color: 'text-pink-500' },
+export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string } } = {
+  'Checking': { icon: 'bank' },
+  'Savings': { icon: 'piggy-bank' },
+  'Credit Card': { icon: 'credit-card' },
+  'Investment': { icon: 'chart-line-data-01' },
+  'Loan': { icon: 'agreement-01' },
+  'Lending': { icon: 'money-receive-01' },
+  'Property': { icon: 'building-03' },
+  'Vehicle': { icon: 'car-01' },
+  'Other Assets': { icon: 'package' },
+  'Other Liabilities': { icon: 'receipt' },
 };
 
-export const ACCOUNT_TYPE_ACCENT_STYLES: { [key in AccountType]: { bar: string; pill: string } } = {
-  'Checking': { bar: 'bg-blue-500', pill: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  'Savings': { bar: 'bg-green-500', pill: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-  'Credit Card': { bar: 'bg-rose-500', pill: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
-  'Investment': { bar: 'bg-purple-500', pill: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
-  'Loan': { bar: 'bg-red-500', pill: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-  'Lending': { bar: 'bg-teal-500', pill: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
-  'Property': { bar: 'bg-sky-500', pill: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
-  'Vehicle': { bar: 'bg-slate-500', pill: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300' },
-  'Other Assets': { bar: 'bg-lime-500', pill: 'bg-lime-100 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300' },
-  'Other Liabilities': { bar: 'bg-pink-500', pill: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' },
+export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: string } } = {
+  'Stock': { icon: 'chart-line-data-01' },
+  'ETF': { icon: 'chart-column' },
+  'Crypto': { icon: 'bitcoin' },
+  'Warrant': { icon: 'certificate-01' },
+  'Pension Fund': { icon: 'safe' },
+  'Spare Change': { icon: 'coins-01' },
+  'Other': { icon: 'package' },
 };
 
-export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: string; color: string } } = {
-  'Stock': { icon: 'chart-line-data-01', color: 'text-purple-500' },
-  'ETF': { icon: 'chart-column', color: 'text-teal-500' },
-  'Crypto': { icon: 'bitcoin', color: 'text-amber-500' },
-  'Warrant': { icon: 'certificate-01', color: 'text-rose-500' },
-  'Pension Fund': { icon: 'safe', color: 'text-indigo-500' },
-  'Spare Change': { icon: 'coins-01', color: 'text-cyan-500' },
-  'Other': { icon: 'package', color: 'text-slate-500' },
+export const OTHER_ASSET_SUB_TYPE_STYLES: { [key in OtherAssetSubType]: { icon: string } } = {
+  'Cash': { icon: 'wallet-02' },
+  'Precious Metals': { icon: 'coins-01' },
+  'Collectibles': { icon: 'shopping-bag-01' },
+  'Art': { icon: 'palette' },
+  'Business Equity': { icon: 'store-01' },
+  'Private Loan': { icon: 'agreement-01' },
+  'Electronics': { icon: 'laptop' },
+  'Furniture': { icon: 'home-01' },
+  'Meal Voucher': { icon: 'credit-card' },
+  'Other': { icon: 'package' },
 };
 
-export const OTHER_ASSET_SUB_TYPE_STYLES: { [key in OtherAssetSubType]: { icon: string; color: string } } = {
-  'Cash': { icon: 'wallet-02', color: 'text-green-500' },
-  'Precious Metals': { icon: 'coins-01', color: 'text-yellow-500' },
-  'Collectibles': { icon: 'shopping-bag-01', color: 'text-purple-500' },
-  'Art': { icon: 'palette', color: 'text-pink-500' },
-  'Business Equity': { icon: 'store-01', color: 'text-blue-500' },
-  'Private Loan': { icon: 'agreement-01', color: 'text-teal-500' },
-  'Electronics': { icon: 'laptop', color: 'text-gray-500' },
-  'Furniture': { icon: 'home-01', color: 'text-orange-500' },
-  'Meal Voucher': { icon: 'credit-card', color: 'text-emerald-500' },
-  'Other': { icon: 'package', color: 'text-slate-500' },
-};
-
-export const OTHER_LIABILITY_SUB_TYPE_STYLES: { [key in OtherLiabilitySubType]: { icon: string; color: string } } = {
-  'Tax': { icon: 'balance-scale', color: 'text-red-500' },
-  'Private Debt': { icon: 'agreement-01', color: 'text-orange-500' },
-  'Legal Settlement': { icon: 'balance-scale', color: 'text-purple-500' },
-  'Business Debt': { icon: 'store-01', color: 'text-blue-500' },
-  'Other': { icon: 'receipt', color: 'text-slate-500' },
+export const OTHER_LIABILITY_SUB_TYPE_STYLES: { [key in OtherLiabilitySubType]: { icon: string } } = {
+  'Tax': { icon: 'balance-scale' },
+  'Private Debt': { icon: 'agreement-01' },
+  'Legal Settlement': { icon: 'balance-scale' },
+  'Business Debt': { icon: 'store-01' },
+  'Other': { icon: 'receipt' },
 };
 
 
