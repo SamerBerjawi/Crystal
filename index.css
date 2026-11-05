@@ -944,18 +944,18 @@ img {
 
 /* Custom Map Tooltip Styling */
 .leaflet-tooltip.custom-map-tooltip {
-  background-color: var(--tooltip-bg, #ffffff) !important;
-  color: var(--tooltip-text, #0f172a) !important;
-  border: 1px solid var(--tooltip-border, rgba(0, 0, 0, 0.08)) !important;
+  background-color: var(--solid) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line-strong) !important;
   border-radius: 12px !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
   padding: 6px 10px !important;
 }
 .leaflet-tooltip-top.custom-map-tooltip:before {
-  border-top-color: var(--tooltip-bg, #ffffff) !important;
+  border-top-color: var(--solid) !important;
 }
 .leaflet-tooltip-bottom.custom-map-tooltip:before {
-  border-bottom-color: var(--tooltip-bg, #ffffff) !important;
+  border-bottom-color: var(--solid) !important;
 }
 
 /* Hide Leaflet bottom-right attribution strip */

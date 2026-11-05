@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { Account, BillPayment, FinancialGoal, RecurringTransaction } from '../../types';
+import type { Account, BillPayment, FinancialGoal, RecurringTransaction, Warrant } from '../../types';
 import { buildOccurrences, iso, makeConverter, moveFuture, moveSeries } from '../../utils/scheduleModel';
 import {
-  chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
+  accountForecast, warrantTaxBills, chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
 } from '../../utils/forecastModel';
 import {
   accountCoverage, goalTree, monthlyTargets, moveGoal, planGoal, projectGoal, summaryRings, emptyGoalDraft,
@@ -280,4 +280,44 @@ test('tiles ignore past days, and an empty forecast has none', () => {
   const today = new Date(2026, 10, 10);
   assert.equal(horizonTiles([{ date: '2026-11-01', total: -5 }, { date: '2026-11-10', total: 40 }], today)[0].lowestBalance, 40);
   assert.deepEqual(horizonTiles([], today), []);
+});
+
+test('an account forecast starts from the shown balance and ignores bills with no account', () => {
+  const bill: BillPayment = { id: 'b', description: 'Unassigned', amount: -300, type: 'payment', dueDate: '2026-11-05', status: 'unpaid', currency: 'EUR' };
+  const days = accountForecast(
+    { recurring: [series({})], overrides: [], bills: [bill], accounts, transactions: [] },
+    accounts[0], 800, [], [], TODAY, d('2026-11-30'),
+  );
+  assert.equal(days.find(day => day.date === '2026-10-31')?.value, 800);
+  assert.equal(days.at(-1)?.value, 300);
+});
+
+test('pending warrant taxes join the forecast as bills from the first selected account', () => {
+  const warrant: Warrant = {
+    id: 'w', isin: 'BE0001', name: 'Grant', grantDate: '2026-01-01', quantity: 10, grantPrice: 1,
+    taxPayments: [
+      { id: 't1', label: 'First', percentage: 50, amount: 400, dueDate: '2026-11-10', status: 'pending' },
+      { id: 't2', label: 'Second', percentage: 50, amount: 400, dueDate: '2026-12-10', status: 'paid' },
+    ],
+  };
+  const bills = warrantTaxBills([warrant], [accounts[1]], accounts);
+  assert.equal(bills.length, 1);
+  assert.equal(bills[0].accountId, 'sav');
+  assert.equal(bills[0].amount, -400);
+  const days = forecastFromData({ recurring: [], overrides: [], bills, accounts, transactions: [] }, [accounts[1]], [], [], TODAY, d('2026-11-30'), eur).days;
+  assert.equal(days.at(-1)?.total, 4600);
+  assert.equal(warrantTaxBills([warrant], [], accounts)[0].accountId, 'chk');
+});
+
+test('Overview tiles use the same periods and lows as Forecast', () => {
+  const today = new Date(2026, 10, 5);
+  const days = [
+    { date: '2026-11-05', total: 3000 }, { date: '2026-11-20', total: 2500 },
+    { date: '2027-01-05', total: 1400 }, { date: '2027-02-05', total: 1100 }, { date: '2027-03-05', total: 900 },
+  ];
+  const tiles = horizonTiles(days, today);
+  const lows = lowestPoints(days.map(day => ({ ...day, byAccount: {}, net: 0, events: [] })), today);
+  assert.deepEqual(tiles.map(tile => [tile.lowestBalance, tile.date]), lows.map(low => [low.value, low.date]));
+  assert.equal(tiles[1].lowestBalance, 1100);
+  assert.equal(tiles[1].date, '2027-02-05');
 });

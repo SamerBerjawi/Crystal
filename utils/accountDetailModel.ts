@@ -1,4 +1,3 @@
-import { getMainCurrency } from '../utils';
 import {
   Account,
   BillPayment,
@@ -18,7 +17,6 @@ import {
   expandRecurringOccurrences,
   flattenCategories,
   generateAmortizationSchedule,
-  generateBalanceForecast,
   generateSyntheticCreditCardPayments,
   generateSyntheticLoanPayments,
   generateSyntheticPropertyTransactions,
@@ -30,6 +28,7 @@ import {
   toLocalISOString,
   toLocalISOYearMonth,
 } from '../utils';
+import { accountForecast } from './forecastModel';
 
 export interface TxWithMeta {
   tx: Transaction;
@@ -1292,6 +1291,8 @@ export interface OperatingAccountOptions extends DetailModelOptions {
   recurringTransactionOverrides?: RecurringTransactionOverride[];
   billsAndPayments?: BillPayment[];
   financialGoals?: FinancialGoal[];
+  /** Goals counted in the forecast, as chosen on Forecast. Every goal when left out. */
+  activeGoalIds?: string[];
   loanPaymentOverrides?: LoanPaymentOverrides;
   allCategories?: Category[];
 }
@@ -1403,22 +1404,28 @@ export function computeOperatingAccountMetrics(
   upcomingPayments.sort((a, b) => a.date.localeCompare(b.date));
   const safeToSpend = safeRound(safeSubtract(realTodayBalance, upcomingOutflows14d), 2);
 
-  // 30-day lowest balance forecast in account.currency
+  // 30-day lowest balance in account.currency, from the same forecast as Overview and Forecast (D-111)
   const forecastEndDate = new Date(todayStart);
   forecastEndDate.setDate(forecastEndDate.getDate() + 30);
-  const accountForForecast = { ...account, balance: realTodayBalance };
-  const { lowestPoint } = generateBalanceForecast(
-    [accountForForecast],
-    allRecurringItems,
-    options.financialGoals || [],
-    options.billsAndPayments || [],
+  const goals = options.financialGoals || [];
+  const forecast = accountForecast(
+    {
+      recurring: options.recurringTransactions || [],
+      overrides: options.recurringTransactionOverrides || [],
+      bills: options.billsAndPayments || [],
+      accounts: contextAccounts,
+      transactions: allTransactions,
+      loanPaymentOverrides: options.loanPaymentOverrides,
+    },
+    account,
+    realTodayBalance,
+    goals,
+    options.activeGoalIds ?? goals.map((goal) => goal.id),
+    todayStart,
     forecastEndDate,
-    options.recurringTransactionOverrides || []
+    effectiveRates
   );
-  const lowestBalanceForecast = safeRound(
-    convertCurrency(lowestPoint.value, getMainCurrency(), account.currency, effectiveRates),
-    2
-  );
+  const lowestBalanceForecast = safeRound(Math.min(realTodayBalance, ...forecast.map((day) => day.value)), 2);
 
   // 6-month inflow vs outflow bar chart
   const inflowOutflow6m: Array<{ name: string; income: number; expense: number; net: number }> = [];

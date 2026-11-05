@@ -14,7 +14,6 @@ import { useAccountsContext, usePreferencesSelector, useTransactionsContext } fr
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl, isCashAccount, normalizeMerchantKey } from '../utils/brandfetch';
-import { accountIcon } from '../components/AccountCard';
 import PageHeader from '../components/PageHeader';
 import { Button as AriaButton } from 'react-aria-components';
 import Icon from '../components/ui/Icon';
@@ -28,7 +27,8 @@ import { Select } from '../components/ui/Pickers';
 import { EmptyState } from '../components/ui/States';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import LedgerTable, { type LedgerItem, type LedgerSort, type TableCellFilter } from '../components/LedgerTable';
-import { FilterList, type FilterOption, type QuickFilter } from '../components/FilterList';
+import { FilterList, type FilterOption } from '../components/FilterList';
+import { useAccountFilterOptions } from '../hooks/useAccountFilterOptions';
 import { EntityGlyph, LogoTile } from '../components/EntityIcon';
 import ReviewQueue from '../components/ReviewQueue';
 import TransactionScatter from '../components/TransactionScatter';
@@ -1471,49 +1471,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
 
   const money = (value: number, tone: 'flow' | 'plain' = 'plain') => <Amount value={value} currency={getMainCurrency()} tone={tone} />;
 
-  const accountFilterOptions: FilterOption[] = useMemo(() => {
-    const ACCOUNT_TYPE_ORDER = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets', 'Lending', 'Credit Card', 'Loan', 'Other Liabilities'];
-    const rank = (type: string) => {
-      const i = ACCOUNT_TYPE_ORDER.indexOf(type);
-      return i === -1 ? ACCOUNT_TYPE_ORDER.length : i;
-    };
-    const open = accounts.filter(a => a.status !== 'closed').sort((a, b) => rank(a.type) - rank(b.type));
-    const closed = accounts.filter(a => a.status === 'closed');
-
-    const mapAccount = (a: Account, group: string): FilterOption => {
-      const isCash = isCashAccount(a);
-      const logoUrl = !isCash ? (a.imageUrl
-        || getAccountBrandfetchUrl(a, brandfetchClientId, effectiveMerchantLogoOverrides)
-        || (a.financialInstitution ? getMerchantLogoUrl(a.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides) : null)) : null;
-      return {
-        id: a.id,
-        label: a.name,
-        hint: a.last4 ? `•••• ${a.last4}` : a.type,
-        group,
-        visual: <LogoTile url={logoUrl} label={a.name} size={26} fallbackIcon={accountIcon(a)} />,
-      };
-    };
-
-    return [
-      ...open.map(a => mapAccount(a, a.type)),
-      ...closed.map(a => mapAccount(a, 'Closed')),
-    ];
-  }, [accounts, brandfetchClientId, effectiveMerchantLogoOverrides]);
-
-  const accountQuickFiltersList: QuickFilter[] = useMemo(() => {
-    const open = accounts.filter(a => a.status !== 'closed');
-    const ids = (predicate: (a: Account) => boolean) => open.filter(predicate).map(a => a.id);
-    const debt = ['Credit Card', 'Loan', 'Other Liabilities'];
-    const liquid = ['Checking', 'Savings', 'Credit Card'];
-    const presets: QuickFilter[] = [
-      { label: 'All accounts', ids: ids(() => true) },
-      { label: 'Liquid only', ids: ids(a => liquid.includes(a.type)) },
-      { label: 'All assets', ids: ids(a => !debt.includes(a.type)) },
-      { label: 'All liabilities', ids: ids(a => debt.includes(a.type)) },
-      { label: 'Investments', ids: ids(a => a.type === 'Investment') },
-    ];
-    return presets.filter(p => p.ids.length > 0);
-  }, [accounts]);
+  const { options: accountFilterOptions, quick: accountQuickFiltersList } = useAccountFilterOptions(accounts);
 
   const categoryFilterOptionsList: FilterOption[] = useMemo(() => {
     const txCounts = new Map<string, number>();

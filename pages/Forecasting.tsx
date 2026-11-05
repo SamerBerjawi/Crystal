@@ -25,7 +25,7 @@ import { useCategoryContext, useGoalsContext, useScheduleContext } from '../cont
 import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../lib/utils';
 import {
-  FORECAST_RANGES, NO_ASSUMPTIONS, WEEKLY_AFTER_DAYS, biggestAhead, drivers, forecastBubbles, forecastFromData, hasAssumptions, horizonSummary, lowestPoints, moveSuggestion, rangeEnd, rangeFromDuration,
+  FORECAST_RANGES, NO_ASSUMPTIONS, warrantTaxBills, WEEKLY_AFTER_DAYS, biggestAhead, drivers, forecastBubbles, forecastFromData, hasAssumptions, horizonSummary, lowestPoints, moveSuggestion, rangeEnd, rangeFromDuration,
   type Assumptions, type Bubble, type ForecastEvent, type ForecastRange,
 } from '../utils/forecastModel';
 import { iso, moveFuture, moveSeries, parseAmountInput, scheduledItemOf } from '../utils/scheduleModel';
@@ -88,24 +88,10 @@ const Forecasting: React.FC = () => {
   const selectedAccounts = useMemo(() => accounts.filter(account => selectedAccountIds.includes(account.id)), [accounts, selectedAccountIds]);
   const end = useMemo(() => rangeEnd(range, today), [range, today]);
 
-  const allBills = useMemo<BillPayment[]>(() => {
-    const primaryAccountId = selectedAccounts[0]?.id || accounts.find(a => a.isPrimary)?.id || accounts[0]?.id || '';
-    const warrantTaxBills: BillPayment[] = warrants.flatMap(w =>
-      (w.taxPayments || [])
-        .filter(tp => tp.status === 'pending' && tp.amount > 0 && tp.dueDate)
-        .map(tp => ({
-          id: `warrant-tax-${w.id}-${tp.id}`,
-          description: `${w.name || w.isin} tax instalment`,
-          amount: -Math.abs(tp.amount),
-          type: 'payment' as const,
-          dueDate: tp.dueDate,
-          status: 'unpaid' as const,
-          accountId: primaryAccountId,
-          currency: getMainCurrency() as BillPayment['currency'],
-        }))
-    );
-    return [...billsAndPayments, ...warrantTaxBills];
-  }, [billsAndPayments, warrants, selectedAccounts, accounts]);
+  const allBills = useMemo<BillPayment[]>(
+    () => [...billsAndPayments, ...warrantTaxBills(warrants, selectedAccounts, accounts)],
+    [billsAndPayments, warrants, selectedAccounts, accounts]
+  );
 
   const projection = useMemo(() => {
     return forecastFromData(

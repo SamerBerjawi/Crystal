@@ -1,32 +1,17 @@
-
 import React from 'react';
 import { Duration } from '../types';
-import { SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, DURATION_OPTIONS } from '../constants';
-import Icon from './ui/Icon';
+import { DURATION_OPTIONS } from '../constants';
+import { Select } from './ui/Pickers';
 
 interface DurationFilterProps {
   selectedDuration: Duration;
   onDurationChange: (duration: Duration) => void;
 }
 
-const DurationFilter: React.FC<DurationFilterProps> = ({ selectedDuration, onDurationChange }) => {
-  return (
-    <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
-      <select
-        aria-label="Time period"
-        value={selectedDuration}
-        onChange={(e) => onDurationChange(e.target.value as Duration)}
-        className={`${SELECT_STYLE} !w-auto min-w-[8rem] cursor-pointer`}
-      >
-        {DURATION_OPTIONS.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-      <div className={SELECT_ARROW_STYLE}>
-         <Icon name="expand_more" className="text-base" />
-      </div>
-    </div>
-  );
-};
+const OPTIONS = DURATION_OPTIONS.map(option => ({ id: option.value, label: option.label }));
+
+const DurationFilter: React.FC<DurationFilterProps> = ({ selectedDuration, onDurationChange }) => (
+  <Select variant="chip" label="Time period" options={OPTIONS} value={selectedDuration} onChange={id => onDurationChange(id as Duration)} />
+);
 
 export default DurationFilter;

@@ -5,6 +5,7 @@ import {
   Dialog as AriaDialog,
   Header,
   Input,
+  Label as AriaLabel,
   ListBox,
   ListBoxItem,
   Popover as AriaPopover,
@@ -36,6 +37,9 @@ const optionRow =
   'flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-ink outline-none pointer-coarse:min-h-12 data-[focused]:bg-inset data-[hovered]:bg-inset data-[selected]:bg-primary-soft data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50';
 
 const triggerRow = cn(controlStyles, 'flex h-11 cursor-pointer items-center justify-between gap-2 px-3 text-left text-[.9375rem] font-medium max-md:h-12 max-md:text-base');
+
+/** A filter chip in a toolbar: the label is for screen readers only, beside other chips. */
+export const chipRow = 'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 text-[.8125rem] font-bold text-ink outline-none hover:bg-inset focus-visible:outline-2 focus-visible:outline-[var(--focus)] pointer-coarse:h-11';
 
 const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, multi }) => (
   <ListBoxItem
@@ -107,11 +111,17 @@ export const Select: React.FC<FieldProps & {
   onChange: (id: string) => void;
   placeholder?: string;
   isDisabled?: boolean;
-}> = ({ label, help, error, autofill, className, options, value, onChange, placeholder = 'Choose', isDisabled }) => {
+  /** `chip` for toolbars: a pill trigger with the label read out but not shown. */
+  variant?: 'field' | 'chip';
+}> = ({ label, help, error, autofill, className, options, value, onChange, placeholder = 'Choose', isDisabled, variant = 'field' }) => {
   const isPhone = useIsMobile();
   const [isOpen, setOpen] = useState(false);
 
   const name = typeof label === 'string' ? label : placeholder;
+  const isChip = variant === 'chip';
+  const shell = (trigger: React.ReactNode) => isChip
+    ? <><AriaLabel className="sr-only">{label}</AriaLabel>{trigger}</>
+    : <FieldShell label={label} help={help} error={error} autofill={autofill}>{trigger}</FieldShell>;
 
   // React Aria's Select reads its items from a popover, so the phone's sheet drives its own list.
   if (isPhone) {
@@ -119,12 +129,12 @@ export const Select: React.FC<FieldProps & {
     return (
       <div className={className}>
         <AriaSelect isOpen={false} isDisabled={isDisabled} isInvalid={!!error} onOpenChange={() => undefined}>
-          <FieldShell label={label} help={help} error={error} autofill={autofill}>
-            <AriaButton className={triggerRow} onPress={() => setOpen(true)}>
+          {shell(
+            <AriaButton className={isChip ? chipRow : triggerRow} onPress={() => setOpen(true)}>
               <span className={cn('min-w-0 truncate', !selected && 'text-muted')}>{selected?.label ?? placeholder}</span>
-              <Icon name="expand_more" size={20} className="shrink-0 text-muted" />
+              <Icon name="expand_more" size={isChip ? 16 : 20} className="shrink-0 text-muted" />
             </AriaButton>
-          </FieldShell>
+          )}
         </AriaSelect>
         <BottomSheet isOpen={isOpen} onClose={() => setOpen(false)} title={name}>
           <ListBox
@@ -152,16 +162,16 @@ export const Select: React.FC<FieldProps & {
       placeholder={placeholder}
       className={className}
     >
-      <FieldShell label={label} help={help} error={error} autofill={autofill}>
-        <AriaButton className={cn(triggerRow, 'gap-2.5')}>
+      {shell(
+        <AriaButton className={isChip ? chipRow : cn(triggerRow, 'gap-2.5')}>
           {selected?.visual && <span className="shrink-0">{selected.visual}</span>}
           <SelectValue className="min-w-0 flex-1 truncate data-[placeholder]:text-muted">
             {({ selectedText, defaultChildren }) => selectedText ?? defaultChildren}
           </SelectValue>
-          <Icon name="expand_more" size={20} className="shrink-0 text-muted" />
+          <Icon name="expand_more" size={isChip ? 16 : 20} className="shrink-0 text-muted" />
         </AriaButton>
-      </FieldShell>
-      <AriaPopover offset={6} className={cn(popoverStyles, 'w-(--trigger-width)')}>
+      )}
+      <AriaPopover offset={6} className={cn(popoverStyles, isChip ? 'min-w-(--trigger-width)' : 'w-(--trigger-width)')}>
         <ListBox className={listStyles}>
           {renderOptions(options)}
         </ListBox>

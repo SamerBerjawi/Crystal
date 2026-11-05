@@ -1,52 +1,65 @@
 import React from 'react';
-import Modal from './Modal';
+import { Dialog } from './ui/Overlays';
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const shortcuts = [
-  { key: '⌘ K / Ctrl K', description: 'Open Command Center' },
-  { key: 'N', description: 'Create new transaction' },
-  { key: '⇧ P', description: 'Toggle Privacy Mode' },
-  { key: 'L', description: 'Lock Crystal' },
-  { key: 'G then D', description: 'Go to Overview (Dashboard)' },
-  { key: 'G then A', description: 'Go to Accounts' },
-  { key: 'G then T', description: 'Go to Transactions' },
-  { key: 'G then F', description: 'Go to Forecasting' },
-  { key: 'G then B', description: 'Go to Budget' },
-  { key: 'G then G', description: 'Go to Goals' },
-  { key: 'G then C', description: 'Go to Schedule & Calendar' },
-  { key: 'G then I', description: 'Go to Investments' },
-  { key: 'G then R', description: 'Go to Reports' },
-  { key: 'G then S', description: 'Go to Settings' },
-  { key: '?', description: 'Open Keyboard Shortcuts' },
-  { key: 'Esc', description: 'Close modal or overlay' },
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+
+/** Matches hooks/useKeyboardShortcuts.ts and the ⌘K handler in App.tsx. */
+const GROUPS: { title: string; items: { keys: string[]; label: string }[] }[] = [
+  {
+    title: 'Anywhere',
+    items: [
+      { keys: [isMac ? '⌘' : 'Ctrl', 'K'], label: 'Search' },
+      { keys: ['N'], label: 'Add a transaction' },
+      { keys: ['⇧', 'P'], label: 'Hide or show amounts' },
+      { keys: ['L'], label: 'Lock Crystal, once you have a PIN' },
+      { keys: ['?'], label: 'Show these shortcuts' },
+      { keys: ['Esc'], label: 'Close what’s open' },
+    ],
+  },
+  {
+    title: 'Go to, press G then',
+    items: [
+      { keys: ['D'], label: 'Overview' },
+      { keys: ['A'], label: 'Accounts' },
+      { keys: ['T'], label: 'Ledger' },
+      { keys: ['F'], label: 'Forecast' },
+      { keys: ['B'], label: 'Budget' },
+      { keys: ['G'], label: 'Goals' },
+      { keys: ['C'], label: 'Calendar' },
+      { keys: ['I'], label: 'Investments' },
+      { keys: ['R'], label: 'Reports' },
+      { keys: ['S'], label: 'Settings' },
+    ],
+  },
 ];
 
-const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-
-  return (
-    <Modal onClose={onClose} title="Keyboard Shortcuts" size="lg">
-      <div className="space-y-2">
-        {shortcuts.map((s) => (
-          <div
-            key={s.key}
-            className="flex items-center justify-between rounded-[var(--radius-md)] border border-line bg-inset px-3.5 py-2.5"
-          >
-            <span className="type-body-strong text-ink">
-              {s.description}
-            </span>
-            <kbd className="rounded-lg border border-line-strong bg-solid px-2.5 py-1 font-mono text-xs font-bold text-primary shadow-2xs">
-              {s.key}
-            </kbd>
-          </div>
-        ))}
-      </div>
-    </Modal>
-  );
-};
+const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen, onClose }) => (
+  <Dialog isOpen={isOpen} onClose={onClose} title="Keyboard shortcuts" description="They don’t work while you’re typing in a field.">
+    <div className="space-y-5">
+      {GROUPS.map(group => (
+        <section key={group.title}>
+          <h3 className="type-label text-muted">{group.title}</h3>
+          <dl className="mt-1 divide-y divide-line">
+            {group.items.map(item => (
+              <div key={item.label} className="flex items-center justify-between gap-4 py-2">
+                <dt className="type-body text-ink">{item.label}</dt>
+                <dd className="flex shrink-0 gap-1">
+                  {item.keys.map(key => (
+                    <kbd key={key} className="type-caption min-w-7 rounded-[var(--radius-sm)] border border-line-strong bg-inset px-1.5 py-0.5 text-center font-semibold text-ink">{key}</kbd>
+                  ))}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+    </div>
+  </Dialog>
+);
 
 export default KeyboardShortcutsModal;

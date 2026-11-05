@@ -1,8 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { controlStyles } from './ui/Fields';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAddressSearch, AddressData } from '../hooks/useAddressSearch';
-import Icon from './ui/Icon';
-import { cn } from '../lib/utils';
+import SuggestInput from './SuggestInput';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -11,244 +9,49 @@ interface AddressAutocompleteProps {
   disabled?: boolean;
 }
 
-const CategoryBadge: React.FC<{ category: AddressData['category'] }> = ({ category }) => {
-  switch (category) {
-    case 'business':
-      return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
-          <Icon name="shopping_bag" className="text-xs" />
-          <span>Business</span>
-        </span>
-      );
-    case 'building':
-      return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0">
-          <Icon name="home" className="text-xs" />
-          <span>Building</span>
-        </span>
-      );
-    case 'street':
-      return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-          <Icon name="marker_pin" className="text-xs" />
-          <span>Street</span>
-        </span>
-      );
-    case 'city':
-      return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
-          <Icon name="globe" className="text-xs" />
-          <span>City</span>
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
-          <Icon name="map" className="text-xs" />
-          <span>Area</span>
-        </span>
-      );
-  }
+const KINDS: Record<string, { kind: string; icon: string }> = {
+  business: { kind: 'Business', icon: 'store-01' },
+  building: { kind: 'Building', icon: 'building-03' },
+  street: { kind: 'Street', icon: 'road' },
+  city: { kind: 'City', icon: 'city-01' },
 };
 
 const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   value,
   onChange,
-  placeholder = 'Search address, business, or area...',
+  placeholder = 'Search an address, shop or area',
   disabled = false
 }) => {
   const [inputValue, setInputValue] = useState(value || '');
-  const [isOpen, setIsOpen] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isActive, setIsActive] = useState(false);
+  const { normalized, isFetching } = useAddressSearch(inputValue, { enabled: isActive });
+  const results = useMemo(() => normalized.ids.map(id => normalized.entities[id]), [normalized]);
 
-  const { normalized, isFetching } = useAddressSearch(inputValue, { enabled: isFocused });
+  useEffect(() => { setInputValue(value || ''); }, [value]);
 
-  const suggestions = useMemo(() => {
-    return normalized.ids.map((id) => normalized.entities[id]);
-  }, [normalized]);
-
-  useEffect(() => {
-    setInputValue(value || '');
-  }, [value]);
-
-  useEffect(() => {
-    const query = inputValue.trim();
-    if (!isFocused || query.length < 2) {
-      setIsOpen(false);
-      setHighlightedIndex(-1);
-      return;
-    }
-
-    if (suggestions.length > 0) {
-      setIsOpen(true);
-    }
-  }, [inputValue, suggestions.length, isFocused]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setIsFocused(false);
-        setHighlightedIndex(-1);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setInputValue(val);
-    setIsFocused(true);
-    setHighlightedIndex(-1);
-    onChange(val, undefined);
-  };
-
-  const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setInputValue('');
-    onChange('', undefined);
-    setIsOpen(false);
-    setHighlightedIndex(-1);
-    inputRef.current?.focus();
-  };
-
-  const handleSelect = (item: AddressData) => {
-    setInputValue(item.formattedAddress);
-    onChange(item.formattedAddress, item);
-    setIsOpen(false);
-    setIsFocused(false);
-    setHighlightedIndex(-1);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen || suggestions.length === 0) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1));
-    } else if (e.key === 'Enter') {
-      if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
-        e.preventDefault();
-        handleSelect(suggestions[highlightedIndex]);
-      }
-    } else if (e.key === 'Escape') {
-      setIsOpen(false);
-      setHighlightedIndex(-1);
-    }
-  };
+  const suggestions = useMemo(() => results.map(item => {
+    const kind = KINDS[item.category] ?? { kind: 'Area', icon: 'maps' };
+    return { id: item.id, title: item.title, subtitle: [item.subtitle, item.country].filter(Boolean).join(', '), kind: kind.kind, icon: kind.icon };
+  }), [results]);
 
   return (
-    <div ref={wrapperRef} className="relative w-full">
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          onFocus={() => {
-            setIsFocused(true);
-            if (inputValue.trim().length >= 2 && suggestions.length > 0) setIsOpen(true);
-          }}
-          aria-label="Address"
-          className={cn(controlStyles, 'h-11 pl-9 pr-14 text-[.9375rem] font-medium max-md:h-12 max-md:text-base')}
-          placeholder={placeholder}
-          autoComplete="off"
-          spellCheck={false}
-        />
-        <Icon
-          name="marker_pin"
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted pointer-events-none"
-        />
-
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-          {isFetching && (
-            <svg
-              className="animate-spin h-3.5 w-3.5 text-primary-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-          )}
-          {inputValue && !disabled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="flex size-8 pointer-coarse:size-11 items-center justify-center rounded-full text-muted hover:bg-inset hover:text-ink transition-colors cursor-pointer"
-              title="Clear address"
-              aria-label="Clear address"
-            >
-              <Icon name="close" className="text-xs" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 mt-1.5 w-full bg-solid rounded-[var(--radius-lg)] shadow-sm border border-line z-[80] max-h-60 overflow-y-auto py-1.5 custom-scrollbar divide-y divide-black/5 dark:divide-white/5">
-          {suggestions.map((item, index) => {
-            const isSelected = highlightedIndex === index;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleSelect(item)}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                className={`w-full text-left px-3.5 py-2.5 text-xs transition-colors flex items-start gap-2.5 cursor-pointer ${
-                  isSelected
-                    ? 'bg-inset text-ink'
-                    : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.04] text-light-text dark:text-dark-text'
-                }`}
-              >
-                <div className="pt-0.5 shrink-0">
-                  <CategoryBadge category={item.category} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-bold text-xs truncate leading-tight">
-                      {item.title}
-                    </p>
-                    {item.country && (
-                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-80 shrink-0">
-                        • {item.country}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 opacity-80 leading-normal">
-                    {item.subtitle}
-                  </p>
-                  <p className="text-xs font-mono text-light-text-secondary dark:text-dark-text-secondary opacity-50 mt-0.5">
-                    {item.lat.toFixed(4)}°, {item.lon.toFixed(4)}°
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <SuggestInput
+      label="Address"
+      icon="location-01"
+      placeholder={placeholder}
+      disabled={disabled}
+      value={inputValue}
+      onType={text => { setInputValue(text); onChange(text, undefined); }}
+      onPick={id => {
+        const item = results.find(result => result.id === id);
+        if (!item) return;
+        setInputValue(item.formattedAddress);
+        onChange(item.formattedAddress, item);
+      }}
+      onActiveChange={setIsActive}
+      suggestions={suggestions}
+      isFetching={isFetching}
+    />
   );
 };
 
