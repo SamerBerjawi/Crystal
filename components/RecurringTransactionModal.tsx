@@ -37,22 +37,22 @@ const RECURRING_TYPES: SwipeTabItem[] = [
     id: 'expense',
     title: 'Payment',
     icon: () => <HugeiconsIcon icon={ArrowDown01Icon} size={16} className="shrink-0" />,
-    activeColor: 'bg-red-500 dark:bg-red-600',
-    activeTextColor: 'text-white',
+    activeColor: 'bg-money-out',
+    activeTextColor: 'text-on-danger',
   },
   {
     id: 'income',
     title: 'Income',
     icon: () => <HugeiconsIcon icon={ArrowUp01Icon} size={16} className="shrink-0" />,
-    activeColor: 'bg-emerald-600 dark:bg-emerald-500',
-    activeTextColor: 'text-white',
+    activeColor: 'bg-money-in',
+    activeTextColor: 'text-on-primary',
   },
   {
     id: 'transfer',
     title: 'Transfer',
     icon: () => <HugeiconsIcon icon={ArrowDataTransferHorizontalIcon} size={16} className="shrink-0" />,
-    activeColor: 'bg-blue-600 dark:bg-blue-500',
-    activeTextColor: 'text-white',
+    activeColor: 'bg-pill',
+    activeTextColor: 'text-on-pill',
   },
 ];
 const BILL_TYPES = RECURRING_TYPES.slice(0, 2);

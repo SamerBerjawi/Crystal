@@ -108,11 +108,11 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({
             scale: isTriggered || isRefreshing ? 1 : 0.5 + progress * 0.5,
           }}
         >
-          <div className={`w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-black/10 dark:border-white/10 flex items-center justify-center ${isRefreshing || isTriggered ? 'ptr-spinner' : ''}`}>
+          <div className={`w-9 h-9 rounded-full bg-solid shadow-[var(--elev-sm)] border border-line-strong flex items-center justify-center ${isRefreshing || isTriggered ? 'ptr-spinner' : ''}`}>
             <Icon
               name={isRefreshing ? 'refresh' : isTriggered ? 'check' : 'arrow_downward'}
               className={`text-base transition-transform ${!isRefreshing ? `rotate-[${Math.min(progress * 180, 180)}deg]` : ''} ${
-                isTriggered ? 'text-green-500' : 'text-primary-500'
+                isTriggered ? 'text-money-in' : 'text-primary'
               }`}
             />
           </div>

@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader';
 import { liveSeries } from '../utils/scheduleModel';
 import { formatCurrency, convertCurrency, convertToMain, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound, getMainCurrency } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
-import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import OutflowsChart from '../components/OutflowsChart';
 import DurationFilter from '../components/DurationFilter';
@@ -26,8 +26,6 @@ import TodayWidget from '../components/TodayWidget';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext, usePreferencesSelector, useWarrantsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, Cell } from 'recharts';
-import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import { useIsMobile } from '../hooks/useIsMobile';
 import BudgetModal from '../components/BudgetModal';
 import { Skeleton } from '../components/ui/States';
@@ -143,12 +141,12 @@ const CreditCardStatementsWidget: React.FC<{ statements: any[]; size?: 's' | 'm'
 const EMPTY_IDS: string[] = [];
 
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBanks, isSyncingBanks, setCurrentPage, onOpenAccount }) => {
-  const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
+  const { activeGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { warrants } = useWarrantsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
-  const { financialGoals, saveFinancialGoal } = useGoalsContext();
+  const { financialGoals } = useGoalsContext();
   const {
     recurringTransactions: everySeries,
     recurringTransactionOverrides,
@@ -156,8 +154,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     billsAndPayments,
     saveRecurringTransaction,
     saveBillPayment,
-    saveRecurringOverride,
-    deleteRecurringOverride,
   } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
@@ -588,7 +584,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
           const name = `Transfer to ${accountLookup.get(counterpart.accountId)?.name || 'Unknown'}`;
           if (!spending[name]) {
-            spending[name] = { name, value: 0, color: '#A0AEC0', icon: 'arrow_upward' };
+            spending[name] = { name, value: 0, color: 'var(--muted)', icon: 'arrow_upward' };
           }
           spending[name].value += Math.abs(convertedAmount);
         }
@@ -600,7 +596,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         }
         const name = parentCategory?.name || 'Uncategorized';
         if (!spending[name]) {
-          spending[name] = { name, value: 0, color: parentCategory?.color || '#A0AEC0', icon: parentCategory?.icon };
+          spending[name] = { name, value: 0, color: parentCategory?.color || 'var(--muted)', icon: parentCategory?.icon };
         }
         spending[name].value += Math.abs(convertedAmount);
       }
@@ -708,42 +704,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [enrichedTransactions, duration, transactions]);
 
 
-  const colorClassToHex: { [key: string]: string } = {
-    'text-blue-500': '#3b82f6',
-    'text-green-500': '#22c55e',
-    'text-orange-500': '#f97316',
-    'text-purple-500': '#8b5cf6',
-    'text-red-500': '#ef4444',
-    'text-teal-500': '#14b8a6',
-    'text-yellow-500': '#eab308',
-    'text-cyan-500': '#06b6d4',
-    'text-lime-500': '#84cc16',
-    'text-pink-500': '#ec4899',
-    'text-amber-500': '#f59e0b',
-    'text-indigo-500': '#6366f1',
-    'text-lime-600': '#65a30d',
-    'text-slate-500': '#64748b'
-  };
-
+  /** The biggest four types get the chart colours in order and the rest share one grey. The list beside the chart names each. */
   const createBreakdown = (accs: Account[]) => {
     const grouped = accs.reduce((acc, account) => {
-      const group = acc[account.type] || { value: 0, color: '#A0AEC0' };
-      let style;
-      if (account.type === 'Investment' && account.subType) {
-        style = INVESTMENT_SUB_TYPE_STYLES[account.subType];
-      } else {
-        style = ACCOUNT_TYPE_STYLES[account.type];
-      }
-
-      if (style) {
-        group.color = colorClassToHex[style.color] || '#A0AEC0';
-      }
-      group.value += convertToMain(account.balance, account.currency);
-      acc[account.type] = group;
+      acc[account.type] = (acc[account.type] || 0) + convertToMain(account.balance, account.currency);
       return acc;
-    }, {} as Record<string, { value: number, color: string }>);
+    }, {} as Record<string, number>);
 
-    return Object.entries(grouped).map(([name, data]) => ({ name, value: Math.abs(data.value), color: data.color })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
+    return Object.entries(grouped)
+      .map(([name, value]) => ({ name, value: Math.abs(value) }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .map((item, index) => ({ ...item, color: index < 4 ? `var(--chart-${index + 1})` : 'var(--muted)' }));
   };
 
   const { totalAssets, totalDebt, netWorth } = useMemo(() => {
@@ -764,17 +736,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
     // Group accounts for the detailed breakdown
     const assetGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
-      'Liquid Cash': { types: ['Checking', 'Savings'], value: 0, color: '#3B82F6', icon: 'wallet' }, // Blue
-      'Investments': { types: ['Investment'], value: 0, color: '#8B5CF6', icon: 'candlestick_chart' }, // Purple
-      'Properties': { types: ['Property'], value: 0, color: '#10B981', icon: 'home' }, // Emerald
-      'Vehicles': { types: ['Vehicle'], value: 0, color: '#F59E0B', icon: 'directions_car' }, // Amber
-      'Other Assets': { types: ['Other Assets', 'Lending'], value: 0, color: '#64748B', icon: 'Box' }, // Slate
+      'Liquid Cash': { types: ['Checking', 'Savings'], value: 0, color: 'var(--chart-1)', icon: 'wallet' },
+      'Investments': { types: ['Investment'], value: 0, color: 'var(--chart-2)', icon: 'candlestick_chart' },
+      'Properties': { types: ['Property'], value: 0, color: 'var(--chart-3)', icon: 'home' },
+      'Vehicles': { types: ['Vehicle'], value: 0, color: 'var(--chart-4)', icon: 'directions_car' },
+      'Other Assets': { types: ['Other Assets', 'Lending'], value: 0, color: 'var(--chart-5)', icon: 'Box' },
     };
 
     const liabilityGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
-      'Loans': { types: ['Loan'], value: 0, color: '#EF4444', icon: 'receipt_check' }, // Red
-      'Credit Cards': { types: ['Credit Card'], value: 0, color: '#F43F5E', icon: 'credit_card' }, // Rose
-      'Other Liabilities': { types: ['Other Liabilities'], value: 0, color: '#94A3B8', icon: 'receipt' }, // Gray
+      'Loans': { types: ['Loan'], value: 0, color: 'var(--chart-1)', icon: 'receipt_check' },
+      'Credit Cards': { types: ['Credit Card'], value: 0, color: 'var(--chart-2)', icon: 'credit_card' },
+      'Other Liabilities': { types: ['Other Liabilities'], value: 0, color: 'var(--chart-3)', icon: 'receipt' },
     };
 
     // Helper to sum a group
@@ -808,11 +780,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     // Explicitly type the groups to avoid implicit any errors
     const groups = assetGroups as Record<string, AssetGroup>;
     const data = [
-      { name: 'Liquid Cash', value: groups?.['Liquid Cash']?.value || 0, color: groups?.['Liquid Cash']?.color || '#A0AEC0' },
-      { name: 'Investments', value: groups?.['Investments']?.value || 0, color: groups?.['Investments']?.color || '#A0AEC0' },
-      { name: 'Properties', value: groups?.['Properties']?.value || 0, color: groups?.['Properties']?.color || '#A0AEC0' },
-      { name: 'Vehicles', value: groups?.['Vehicles']?.value || 0, color: groups?.['Vehicles']?.color || '#A0AEC0' },
-      { name: 'Other Assets', value: groups?.['Other Assets']?.value || 0, color: groups?.['Other Assets']?.color || '#A0AEC0' }
+      { name: 'Liquid Cash', value: groups?.['Liquid Cash']?.value || 0, color: groups?.['Liquid Cash']?.color || 'var(--muted)' },
+      { name: 'Investments', value: groups?.['Investments']?.value || 0, color: groups?.['Investments']?.color || 'var(--muted)' },
+      { name: 'Properties', value: groups?.['Properties']?.value || 0, color: groups?.['Properties']?.color || 'var(--muted)' },
+      { name: 'Vehicles', value: groups?.['Vehicles']?.value || 0, color: groups?.['Vehicles']?.color || 'var(--muted)' },
+      { name: 'Other Assets', value: groups?.['Other Assets']?.value || 0, color: groups?.['Other Assets']?.color || 'var(--muted)' }
     ];
     return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [assetGroups]);
@@ -942,10 +914,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const netWorthTrendColor = useMemo(() => {
     // Check trend based on historical data only
     const historyPoints = netWorthData.filter(d => d.value !== undefined);
-    if (historyPoints.length < 2) return '#6366F1';
+    if (historyPoints.length < 2) return 'var(--chart-1)';
     const startValue = historyPoints[0].value!;
     const endValue = historyPoints[historyPoints.length - 1].value!;
-    return endValue >= startValue ? '#34C759' : '#FF3B30';
+    return endValue >= startValue ? 'var(--money-in)' : 'var(--money-out)';
   }, [netWorthData]);
 
   const configuredCreditCards = useMemo(() => {
@@ -967,7 +939,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     return configuredCreditCards.map(account => {
       const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
 
-      const { statementBalance: prevBalance, amountPaid: prevAmountPaid } = getCreditCardStatementDetails(account, periods.previous.start, periods.previous.end, transactions);
+      const { statementBalance: prevBalance } = getCreditCardStatementDetails(account, periods.previous.start, periods.previous.end, transactions);
       const { statementBalance: currentBalance, amountPaid: currentAmountPaid } = getCreditCardStatementDetails(account, periods.current.start, periods.current.end, transactions);
       const { statementBalance: futureBalance, amountPaid: futureAmountPaid } = getCreditCardStatementDetails(account, periods.future.start, periods.future.end, transactions);
 
@@ -1181,7 +1153,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       defaultW: 6,
       defaultH: 2,
       component: ForecastOverview,
-      props: { forecasts: lowestBalanceForecasts, currency: preferredCurrency, noCard: true }
+      props: { forecasts: lowestBalanceForecasts, currency: preferredCurrency}
     },
     {
       id: 'creditCardStatements',

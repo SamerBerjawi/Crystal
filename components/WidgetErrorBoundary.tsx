@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import Icon from './ui/Icon';
+import { Button } from './ui/Actions';
 
 interface WidgetErrorBoundaryProps {
   children: ReactNode;
@@ -28,22 +29,13 @@ class WidgetErrorBoundary extends Component<WidgetErrorBoundaryProps, WidgetErro
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="p-5 rounded-2xl bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 text-center flex flex-col items-center justify-center min-h-[160px] gap-2">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
-            <Icon name="warning" className="text-xl" />
-          </div>
-          <h4 className="text-xs font-bold text-light-text dark:text-dark-text">
-            Unable to load {this.props.widgetTitle || 'widget'}
-          </h4>
-          <p className="text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/60 max-w-xs">
-            {this.state.error?.message || 'An error occurred while rendering this component.'}
-          </p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: undefined })}
-            className="mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 transition-colors"
-          >
-            Retry Widget
-          </button>
+        <div role="alert" className="surface-card flex min-h-[160px] flex-col items-center justify-center gap-2 p-5 text-center">
+          <span className="flex size-10 items-center justify-center rounded-[var(--radius-md)] bg-money-out-soft text-money-out">
+            <Icon name="warning" size={20} />
+          </span>
+          <h4 className="type-body-strong text-ink">This widget didn't load: {this.props.widgetTitle || 'widget'}</h4>
+          <p className="type-caption max-w-xs text-muted">{this.state.error?.message || 'Something went wrong while drawing it.'}</p>
+          <Button variant="secondary" size="sm" onClick={() => this.setState({ hasError: false, error: undefined })}>Try again</Button>
         </div>
       );
     }

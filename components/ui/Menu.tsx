@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Menu as AriaMenu,
   MenuItem,
@@ -28,6 +28,15 @@ const itemStyles = (destructive?: boolean) => cn(
   destructive ? 'text-money-out' : 'text-ink'
 );
 
+const menuItems = (items: MenuAction[]) => items.flatMap(item => [
+  ...(item.startsGroup ? [<Separator key={`${item.id}-line`} className="mx-2.5 my-1.5 border-t border-line" />] : []),
+  <MenuItem key={item.id} id={item.id} textValue={item.label} isDisabled={item.isDisabled} className={itemStyles(item.isDestructive)}>
+    {item.icon && <Icon name={item.icon} size={20} className="shrink-0" />}
+    <span className="type-body min-w-0 flex-1 truncate">{item.label}</span>
+    {item.shortcut && <kbd className="type-caption shrink-0 text-muted max-md:hidden">{item.shortcut}</kbd>}
+  </MenuItem>,
+]);
+
 /** Actions, not values, with icons and shortcuts. Destructive items go last. A bottom sheet on phones. */
 export const Menu: React.FC<{
   trigger: React.ReactElement;
@@ -51,14 +60,7 @@ export const Menu: React.FC<{
       }}
       className="outline-none"
     >
-      {items.flatMap(item => [
-        ...(item.startsGroup ? [<Separator key={`${item.id}-line`} className="mx-2.5 my-1.5 border-t border-line" />] : []),
-        <MenuItem key={item.id} id={item.id} textValue={item.label} isDisabled={item.isDisabled} className={itemStyles(item.isDestructive)}>
-          {item.icon && <Icon name={item.icon} size={20} className="shrink-0" />}
-          <span className="type-body min-w-0 flex-1 truncate">{item.label}</span>
-          {item.shortcut && <kbd className="type-caption shrink-0 text-muted max-md:hidden">{item.shortcut}</kbd>}
-        </MenuItem>,
-      ])}
+      {menuItems(items)}
     </AriaMenu>
   );
 
@@ -79,5 +81,32 @@ export const Menu: React.FC<{
         </AriaPopover>
       )}
     </MenuTrigger>
+  );
+};
+
+/** A menu that opens where the pointer is, for right-click. It closes on choosing, Escape or a click outside. */
+export const PointerMenu: React.FC<{
+  point: { x: number; y: number };
+  title: string;
+  items: MenuAction[];
+  onClose: () => void;
+}> = ({ point, title, items, onClose }) => {
+  const anchor = useRef<HTMLSpanElement>(null);
+
+  return (
+    <>
+      <span ref={anchor} aria-hidden="true" className="pointer-events-none fixed size-px" style={{ left: point.x, top: point.y }} />
+      <AriaPopover triggerRef={anchor} isOpen onOpenChange={open => { if (!open) onClose(); }} placement="bottom start" offset={4} className={cn(popoverStyles, 'min-w-56 max-w-80 p-1.5')}>
+        <p className="type-caption truncate px-2.5 pb-1 pt-1.5 text-muted">{title}</p>
+        <AriaMenu
+          aria-label={title}
+          autoFocus="first"
+          onAction={id => { onClose(); items.find(item => item.id === id)?.onAction(); }}
+          className="outline-none"
+        >
+          {menuItems(items)}
+        </AriaMenu>
+      </AriaPopover>
+    </>
   );
 };

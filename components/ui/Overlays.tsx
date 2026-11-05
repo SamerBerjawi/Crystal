@@ -7,8 +7,10 @@ import {
   Modal,
   ModalOverlay,
   Popover as AriaPopover,
+  Pressable,
 } from 'react-aria-components';
-import { Popover as BasePopover } from '@base-ui/react/popover';
+
+type PopoverPlacement = React.ComponentProps<typeof AriaPopover>['placement'];
 import { motion, useDragControls, type PanInfo } from 'motion/react';
 import Icon from './Icon';
 import { Button, IconButton } from './Actions';
@@ -266,7 +268,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onClose, o
 };
 
 export const popoverStyles =
-  'crystal-pop z-popover rounded-[var(--radius-lg)] border border-line bg-solid shadow-sm outline-none';
+  'crystal-pop z-[var(--z-popover)] rounded-[var(--radius-lg)] border border-line bg-solid shadow-sm outline-none';
 
 /** A small anchored picker or filter. A bottom sheet on phones. */
 export const Popover: React.FC<{
@@ -299,31 +301,15 @@ export const Popover: React.FC<{
     );
   }
 
-  const p = placement || 'bottom start';
-  const side: 'top' | 'bottom' | 'left' | 'right' = p.startsWith('top')
-    ? 'top'
-    : p.startsWith('left')
-    ? 'left'
-    : p.startsWith('right')
-    ? 'right'
-    : 'bottom';
-  const align: 'start' | 'center' | 'end' = p.includes('end')
-    ? 'end'
-    : p.includes('start')
-    ? 'start'
-    : 'center';
+  const anchored = typeof trigger.type === 'string' ? <Pressable>{trigger as React.ReactElement<React.DOMAttributes<HTMLElement>, string>}</Pressable> : trigger;
 
   return (
-    <BasePopover.Root open={isOpen} onOpenChange={setOpen}>
-      <BasePopover.Trigger render={trigger} />
-      <BasePopover.Portal>
-        <BasePopover.Positioner side={side} align={align} sideOffset={8} className="pointer-events-auto z-popover">
-          <BasePopover.Popup className={cn(popoverStyles, 'p-3 max-h-[min(28rem,75vh)] overflow-y-auto', className)}>
-            {children}
-          </BasePopover.Popup>
-        </BasePopover.Positioner>
-      </BasePopover.Portal>
-    </BasePopover.Root>
+    <DialogTrigger isOpen={isOpen} onOpenChange={setOpen}>
+      {anchored}
+      <AriaPopover placement={placement as PopoverPlacement} offset={8} className={cn(popoverStyles, 'max-h-[min(28rem,75vh)] overflow-y-auto p-3', className)}>
+        <AriaDialog aria-label={title} className="outline-none">{children}</AriaDialog>
+      </AriaPopover>
+    </DialogTrigger>
   );
 };
 

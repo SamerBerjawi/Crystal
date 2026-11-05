@@ -49,7 +49,7 @@ export const CAR_MAKE_DOMAINS: Record<string, string> = {
 export const LicensePlate: React.FC<{ plate?: string; countryCode?: string }> = ({ plate, countryCode }) => {
   if (!plate || plate.trim() === '') {
     return (
-      <div className="inline-flex items-center h-10 bg-black/5 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10 rounded-xl px-4 text-xs font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/40 select-none  tracking-widest">
+      <div className="inline-flex items-center h-10 bg-inset border border-dashed border-line-strong rounded-xl px-4 text-xs font-semibold text-muted select-none tracking-widest">
         No Plate Set
       </div>
     );

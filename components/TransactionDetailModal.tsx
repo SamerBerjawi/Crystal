@@ -103,7 +103,7 @@ const FactSection: React.FC<{
   <section className={cn('min-w-0', className)}>
         <div className="mb-2.5 flex items-center justify-between gap-2">
           <h4 className="flex items-center gap-2 text-sm font-semibold text-muted">
-            {icon && <Icon name={icon} size={16} className="text-muted/80" aria-hidden />}
+            {icon && <Icon name={icon} size={16} className="text-muted" aria-hidden />}
             <span>{label}</span>
           </h4>
           {action}
@@ -268,7 +268,6 @@ const FactSection: React.FC<{
   const from = legs.find(leg => leg.type === 'expense');
   const to = legs.find(leg => leg.type === 'income');
   const isTransfer = Boolean(tx.transferId);
-  const hasBothSides = Boolean(from && to);
   const headline = isTransfer ? from || tx : tx;
   const mainAccount = accountOf(headline.accountId);
 
@@ -286,7 +285,6 @@ const FactSection: React.FC<{
   const logo = logoUrl !== failedLogo ? logoUrl : null;
 
         const place = placeName(tx);
-  const locMeta = useMemo(() => formatTransactionLocation(tx), [tx]);
   const txTags = (tx.tagIds || []).flatMap(id => tags.find(tag => tag.id === id) || []);
   const categoryDetails = useMemo(() => getCategoryDetails(tx.category, allCategories), [tx.category, allCategories]);
 
@@ -394,7 +392,7 @@ const FactSection: React.FC<{
                 {logo ? (
                   <img src={logo} alt="" onError={() => setFailedLogo(logoUrl)} className="size-full object-cover" />
                 ) : isTransfer ? (
-                  <span className="flex size-full items-center justify-center bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                  <span className="flex size-full items-center justify-center bg-blue-soft text-blue">
                     <Icon name="arrow-data-transfer-horizontal" size={28} />
                   </span>
                 ) : mainAccount ? (
@@ -409,7 +407,7 @@ const FactSection: React.FC<{
               <button
                 type="button"
                 aria-label="Merchant details"
-                className="mt-1 flex size-8 items-center justify-center rounded-full text-muted/60 transition-colors hover:text-ink"
+                className="mt-1 flex size-8 items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
               >
                 <Icon name="info" size={20} />
               </button>
@@ -442,7 +440,7 @@ const FactSection: React.FC<{
               const rawText = formatCurrency(amountNumber, headline.currency);
               const parts = splitAmount(rawText);
               const sign = isIncome ? '+' : isExpense ? '−' : parts.sign;
-              const symbolTone = isTransfer ? 'text-sky-400' : 'text-primary';
+              const symbolTone = isTransfer ? 'text-blue' : 'text-primary';
               return (
                 <div className="mt-3 flex items-baseline text-4xl font-extrabold tracking-tight md:text-5xl tabular-nums">
                   {sign && (
@@ -483,9 +481,9 @@ const FactSection: React.FC<{
                             <span
                               className={cn(
                                 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
-                                isExpense && 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
-                                isIncome && 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-                                isTransfer && 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
+                                isExpense && 'bg-tomato-soft text-tomato',
+                                isIncome && 'bg-money-in-soft text-money-in',
+                                isTransfer && 'bg-blue-soft text-blue'
                               )}
                             >
                               <Icon
@@ -642,7 +640,7 @@ const FactSection: React.FC<{
                                       key={i}
                                       className={cn(
                                         'h-full flex-1 rounded-full transition-colors',
-                      isActive ? 'bg-orange-500 dark:bg-orange-400' : 'bg-primary/30 dark:bg-primary/30'
+                      isActive ? 'bg-amber' : 'bg-primary/30 dark:bg-primary/30'
                                       )}
                                     />
                                   );
@@ -676,7 +674,7 @@ const FactSection: React.FC<{
                                       <p className="truncate text-sm font-semibold text-ink transition-colors group-hover:text-primary">{accountOf(from.accountId)?.name || 'Unknown'}</p>
                                       {accountOf(from.accountId)?.type && <p className="truncate text-xs text-muted capitalize">{accountOf(from.accountId)?.type}</p>}
                                     </div>
-                                    <Icon name="chevron_right" size={16} className="shrink-0 text-muted/60 transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+                                    <Icon name="chevron_right" size={16} className="shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
                                   </button>
                                 ) : (
                                   <div className="flex items-center gap-2.5 rounded-2xl bg-inset p-3">
@@ -700,7 +698,7 @@ const FactSection: React.FC<{
                                       <p className="truncate text-sm font-semibold text-ink transition-colors group-hover:text-primary">{accountOf(to.accountId)?.name || 'Unknown'}</p>
                                       {accountOf(to.accountId)?.type && <p className="truncate text-xs text-muted capitalize">{accountOf(to.accountId)?.type}</p>}
                                     </div>
-                                    <Icon name="chevron_right" size={16} className="shrink-0 text-muted/60 transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+                                    <Icon name="chevron_right" size={16} className="shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
                                   </button>
                                 ) : (
                                   <div className="flex items-center gap-2.5 rounded-2xl bg-inset p-3">
@@ -755,14 +753,14 @@ const FactSection: React.FC<{
                                     {spareAmount > 0 && (
                                         <div className="flex items-center justify-between gap-3 rounded-2xl bg-inset p-3">
                                           <div className="flex min-w-0 items-center gap-3">
-                                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-money-in-soft text-money-in">
                                               <Icon name="piggy-bank" size={20} />
                                             </span>
                                             <p className="truncate text-sm font-semibold text-ink">
                                               Spare Change Round-up
                                             </p>
                                           </div>
-                                          <span className="shrink-0 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                                          <span className="type-figure-row shrink-0 text-money-in">
                                             +<FormattedAmount text={formatCurrency(spareAmount, headline.currency)} />
                                           </span>
                                         </div>
@@ -893,7 +891,7 @@ const FactSection: React.FC<{
                                         label="Delete"
                                         staticLabel
                                         block={false}
-                                        className="!h-12 !min-w-[120px] rounded-full !border-rose-500/25 !bg-rose-500/15 !text-rose-600 dark:!text-rose-400 font-bold"
+                                        className="!h-12 !min-w-[120px] rounded-full !border-money-out/25 !bg-money-out-soft !text-money-out font-bold"
                                         onConfirm={() => onDelete(legs.map(l => l.id))}
                                       />
                                     )}
@@ -919,7 +917,6 @@ const FactSection: React.FC<{
                                 onRecategorize,
                                 onRemoveLocation,
 }) => {
-  const isPhone = useIsMobile();
   const allTransactions = useTransactionSelector(all => all);
                                 const [picked, setPicked] = useState<Transaction | null>(null);
                                 const [shown, setShown] = useState(LIST_STEP);

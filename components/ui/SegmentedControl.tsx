@@ -55,7 +55,7 @@ export interface SegmentedControlProps {
  * 2. "Period/cycle selectors with arrows" (e.g. Budgeting, Schedule).
  *
  * Conforms strictly to DESIGN.md tokens:
- * - rounded-2xl glass-subwell shell
+ * - rounded-2xl inset shell
  * - rounded-xl interactive buttons with 44px minimum touch target
  * - spring-animated active tab indicator
  */

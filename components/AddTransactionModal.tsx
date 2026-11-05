@@ -57,22 +57,22 @@ const TRANSACTION_TYPE_TABS: SwipeTabItem[] = [
     id: 'expense',
     title: 'Expense',
     icon: () => <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} className="shrink-0" />,
-    activeColor: 'bg-red-500 dark:bg-red-600',
-    activeTextColor: 'text-white',
+    activeColor: 'bg-money-out',
+    activeTextColor: 'text-on-danger',
   },
   {
     id: 'income',
     title: 'Income',
     icon: () => <HugeiconsIcon icon={ArrowDownLeft01Icon} size={16} className="shrink-0" />,
-    activeColor: 'bg-emerald-600 dark:bg-emerald-500',
-    activeTextColor: 'text-white',
+    activeColor: 'bg-money-in',
+    activeTextColor: 'text-on-primary',
   },
   {
     id: 'transfer',
     title: 'Transfer',
     icon: () => <HugeiconsIcon icon={ArrowDataTransferHorizontalIcon} size={16} className="shrink-0" />,
-    activeColor: 'bg-blue-600 dark:bg-blue-500',
-    activeTextColor: 'text-white',
+    activeColor: 'bg-pill',
+    activeTextColor: 'text-on-pill',
   },
 ];
 
@@ -296,7 +296,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         {locMeta.flag ? (
           <span className="text-[13px] leading-none shrink-0" aria-hidden>{locMeta.flag}</span>
         ) : (
-          <Icon name="location_on" size={14} className="shrink-0 text-emerald-500" />
+          <Icon name="location_on" size={14} className="shrink-0 text-money-in" />
         )}
         <span className="truncate">{text}</span>
       </span>

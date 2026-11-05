@@ -38,11 +38,11 @@ Tests: there's no test runner. Each `*.test.ts` is a standalone script that logs
 **UI layout.**
 - `components/`: flat directory of feature components and modals. Mobile variants live alongside as `Mobile*View.tsx`.
 - `src/components/charts/`: visx-based chart primitives.
-- `src/components/ui/`: shadcn (`components.json`).
+- `components/ui/`: the shared UI kit (dialogs, fields, buttons, rows, money). Build screens from it.
 - `src/services/twelveDataService.ts`: market data.
 - Path alias `@/` points to the repo root.
 
-**Design system.** `DESIGN.md` defines the visual language: an Apple HIG / glassmorphism style, primary color `#fa9a1d`, and the typography scale, radii and spacing tokens. Follow it for any UI work.
+**Design system.** `DESIGN.md` is the short guide: warm light canvas, forest green and amber, tokens instead of raw colours, and the shared kit in `components/ui`. The full specification and every decision are in `docs/redesign/`. Follow them for any UI work.
 
 ## Deployment
 

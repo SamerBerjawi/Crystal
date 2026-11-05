@@ -107,8 +107,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   const { tags } = useTagsContext();
   const { saveRecurringTransaction } = useScheduleContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-  const preferredCurrency = usePreferencesSelector(p => p.currency || 'EUR');
-  const conversionRates = usePreferencesSelector(p => p.conversionRates || CONVERSION_RATES);
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || EMPTY_OBJECT);
   const merchantRules = usePreferencesSelector(p => p.merchantRules || EMPTY_OBJECT) as Record<string, MerchantRule>;
   const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
@@ -136,10 +134,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   }, [accounts, initialAccountFilter, initialTagFilter, onClearInitialFilters]);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const formatDate = (dateString: string) => {
-    const d = parseLocalDate(dateString);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
@@ -243,10 +237,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       return acc;
     }, {} as Record<string, string>);
   }, [brandfetchClientId, effectiveMerchantLogoOverrides, transactions]);
-
-  const handleLogoError = useCallback((logoUrl: string) => {
-    setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
-  }, []);
 
   // Recursive function to find a category by name in a tree
   const findCategoryByName = (name: string, categories: Category[]): Category | undefined => {
@@ -522,11 +512,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     };
   }, [filteredTransactions]);
 
-  const isAllSelected = useMemo(() => {
-    if (filteredTransactions.length === 0) return false;
-    return filteredTransactions.every(tx => selectedIds.has(tx.id));
-  }, [filteredTransactions, selectedIds]);
-
   const selectedTransactions = useMemo(() => {
     const resolvedIds = new Set<string>();
     selectedIds.forEach(id => {
@@ -575,25 +560,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     }
     return false;
   }, [selectedTransactions, transactions]);
-
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      const allIds = new Set(filteredTransactions.map(tx => tx.id));
-      setSelectedIds(allIds);
-    } else {
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleSelectOne = (transactionId: string) => {
-    const newSelection = new Set(selectedIds);
-    if (newSelection.has(transactionId)) {
-      newSelection.delete(transactionId);
-    } else {
-      newSelection.add(transactionId);
-    }
-    setSelectedIds(newSelection);
-  };
 
   const handleOpenCategorizeModal = () => {
     setIsCategorizeModalOpen(true);
@@ -1030,16 +996,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     return options;
   };
 
-  const categoryOptions = useMemo(() => {
-    const incomeOpts = generateCategoryOptions(incomeCategories);
-    const expenseOpts = generateCategoryOptions(expenseCategories);
-    return [...expenseOpts, ...incomeOpts];
-  }, [incomeCategories, expenseCategories]);
-
-  const tagOptions = useMemo(() => tags.map(t => ({ value: t.id, label: t.name })), [tags]);
-
-  const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-
   const handleAccountToggle = useCallback((id: string) => {
     setSelectedAccountIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -1052,41 +1008,11 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     );
   }, []);
 
-  const handleTagToggle = useCallback((id: string) => {
-    setSelectedTagIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  }, []);
-
   const handleLocationToggle = useCallback((city: string) => {
     setSelectedLocations(prev =>
       prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]
     );
   }, []);
-
-  const uniqueLocations = useMemo(() => {
-    const map = new Map<string, { flag: string; city: string; country: string; count: number }>();
-    transactions.forEach(tx => {
-      const loc = formatTransactionLocation(tx, user);
-      if (!loc.hasLocation || !loc.city) return;
-      const existing = map.get(loc.city);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        map.set(loc.city, { ...loc, count: 1 });
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
-  }, [transactions, user]);
-
-  const filteredLocationOptions = useMemo(() => {
-    if (!locationSearch.trim()) return uniqueLocations;
-    const query = locationSearch.toLowerCase();
-    return uniqueLocations.filter(loc =>
-      loc.city.toLowerCase().includes(query) ||
-      loc.country.toLowerCase().includes(query)
-    );
-  }, [uniqueLocations, locationSearch]);
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "date",

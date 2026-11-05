@@ -144,7 +144,6 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     const processConfiguredData = () => {
         const errors: Record<number, Record<string, string>> = {};
         const cleaned: any[] = [];
-        const CURRENCIES_SET = new Set(CURRENCIES);
 
         parsedData.forEach((row, index) => {
             const newRow: any = { originalIndex: index };

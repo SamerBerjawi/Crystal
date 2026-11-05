@@ -156,8 +156,8 @@ export function SmoothTab({
   value,
   onChange,
   className,
-  activeColor = "bg-zinc-900 dark:bg-zinc-100",
-  activeTextColor = "text-white dark:text-zinc-900",
+  activeColor = "bg-pill",
+  activeTextColor = "text-on-pill",
   label = "Sections",
   fullWidth = false,
 }: SmoothTabProps) {
@@ -429,7 +429,7 @@ export function SmoothTab({
         <div
           aria-label={label}
           className={cn(
-            "relative max-w-full rounded-full bg-inset p-1 border border-line/40 dark:bg-zinc-900/80",
+            "relative max-w-full rounded-full bg-inset p-1 border border-line",
             fullWidth ? "flex w-full" : "inline-flex"
           )}
           ref={tablistRef}
@@ -492,7 +492,7 @@ export function SmoothTab({
                   {renderTabIcon(item.icon)}
                   <span className="truncate">{item.title ?? item.label ?? ''}</span>
                   {item.badge !== undefined && item.badge !== null && (
-                    <span className="px-1.5 rounded-full bg-white/20 text-current text-xs tabular-nums">
+                    <span className="px-1.5 rounded-full bg-on-pill/20 text-current text-xs tabular-nums">
                       {item.badge}
                     </span>
                   )}

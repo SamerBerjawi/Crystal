@@ -184,7 +184,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
       </div>
 
       <div className="relative min-h-[260px] w-full flex-1 overflow-hidden">
-        <MapContainerAny center={focalCenter} zoom={tileZoom} style={{ height: '100%', width: '100%' }} className="!z-0" zoomControl={false} attributionControl={false}>
+        <MapContainerAny center={focalCenter} zoom={tileZoom} style={{ height: '100%', width: '100%' }} className="!z-0" zoomControl={false}>
           <VectorBasemap dark={isDarkMode} />
           <BoundsFitter coords={coords} center={focalCenter} />
           <LeafletZoomController zoomLevel={tileZoom} />
