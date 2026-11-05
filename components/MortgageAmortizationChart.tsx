@@ -46,8 +46,8 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
           className="w-full h-full"
         >
           <Grid horizontal vertical={false} strokeOpacity={0.1} />
-          <Bar dataKey="principal" stroke="#3B82F6" fill="#3B82F6" lineCap="round" />
-          <Bar dataKey="interest" stroke="#EF4444" fill="#EF4444" lineCap="round" />
+          <Bar dataKey="principal" stroke="var(--chart-1)" fill="var(--chart-1)" lineCap="round" />
+          <Bar dataKey="interest" stroke="var(--chart-2)" fill="var(--chart-2)" lineCap="round" />
           <BarXAxis />
           <BarYAxis />
           <ChartTooltip

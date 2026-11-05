@@ -87,7 +87,7 @@ export function ChartMarkers({
         const xPos = xScale(mDate);
         if (xPos == null || isNaN(xPos)) return null;
 
-        const strokeColor = marker.color || "#F59E0B";
+        const strokeColor = marker.color || "var(--chart-4)";
 
         return (
           <g

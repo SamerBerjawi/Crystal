@@ -160,7 +160,7 @@ export interface PageHeaderProps {
 const BADGE_TONES = {
   pine: 'bg-pine text-on-pine',
   butter: 'bg-amber text-on-amber',
-  tomato: 'bg-tomato text-[#FBF8F2]',
+  tomato: 'bg-money-out text-on-danger',
 };
 
 /** Each letter rises out of its word, one after the other. */

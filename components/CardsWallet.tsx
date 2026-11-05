@@ -81,7 +81,7 @@ const SortableCard: React.FC<{ card: Account; balance: number }> = ({ card, bala
     >
       <Radio
         value={card.id}
-        className="block w-full cursor-grab active:cursor-grabbing rounded-[var(--radius-lg)] border-2 border-transparent p-1.5 outline-none transition-[border-color,background-color] data-[selected]:border-primary data-[hovered]:bg-inset data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus"
+        className="block w-full cursor-grab active:cursor-grabbing rounded-[var(--radius-lg)] border-2 border-transparent p-1.5 outline-hidden transition-[border-color,background-color] data-[selected]:border-primary data-[hovered]:bg-inset data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-focus"
       >
         <BankCard account={card} />
         <span className="type-body-strong mt-2 block truncate px-1 text-ink">{card.name}</span>

@@ -52,7 +52,7 @@ export const NetWorthHero: React.FC<{
   return (
     <section aria-label="Net worth" className="net-worth-hero flex h-full flex-col justify-between gap-6 rounded-[var(--radius-xl)] bg-pine p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]">
       <div>
-        <button type="button" onClick={onOpen} className="type-label inline-flex cursor-pointer items-center gap-1">
+        <button type="button" onClick={onOpen} className="type-label inline-flex min-h-6 cursor-pointer items-center gap-1 pointer-coarse:min-h-11">
           Net worth
           <Icon name="ChevronRight" size={16} />
         </button>
@@ -179,7 +179,7 @@ export const SafeToSpendWidget: React.FC<{
                   <Popover
                     title="Cushion"
                     placement="bottom start"
-                    trigger={<AriaButton className="cursor-pointer underline underline-offset-2">Cushion</AriaButton>}
+                    trigger={<AriaButton className="inline-flex min-h-6 cursor-pointer items-center underline underline-offset-2 pointer-coarse:min-h-11">Cushion</AriaButton>}
                   >
                     <AmountInput
                       className="w-56 max-md:w-full"

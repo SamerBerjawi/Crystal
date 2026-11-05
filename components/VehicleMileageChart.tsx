@@ -36,7 +36,7 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
       >
         <Grid horizontal stroke="rgba(255, 255, 255, 0.06)" />
         <XAxis />
-        <Line dataKey="reading" stroke="#3B82F6" strokeWidth={3} fadeEdges />
+        <Line dataKey="reading" stroke="var(--chart-1)" strokeWidth={3} fadeEdges />
         <ChartTooltip />
       </LineChart>
     </div>

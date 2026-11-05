@@ -137,7 +137,7 @@ const SortHeader: React.FC<{
   return (
     <th scope="col" aria-sort={isSorted ? sort.direction : 'none'} className={cn('h-10 px-3', align === 'right' ? 'text-right' : 'text-left', className)}>
       <div className={cn('flex items-center gap-1', align === 'right' ? 'justify-end' : 'justify-between')}>
-        <button type="button" onClick={() => onSort(id)} className={cn('type-label inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-muted hover:text-ink', align === 'right' && 'flex-row-reverse')}>
+        <button type="button" onClick={() => onSort(id)} className={cn('type-label inline-flex min-h-6 cursor-pointer items-center gap-1 whitespace-nowrap text-muted hover:text-ink pointer-coarse:min-h-11', align === 'right' && 'flex-row-reverse')}>
           {label}
           {isSorted && <Icon name={sort.direction === 'ascending' ? 'arrow_upward' : 'arrow_downward'} size={16} />}
         </button>
@@ -150,7 +150,7 @@ const SortHeader: React.FC<{
                 type="button"
                 aria-label={`Filter by ${label.toLowerCase()}${filter.count ? `, ${filter.count} active` : ''}`}
                 className={cn(
-                  'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-inset hover:text-ink',
+                  'relative flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-inset hover:text-ink',
                   filter.count > 0 ? 'text-ink font-semibold' : 'text-muted hover:text-ink'
                 )}
               >
@@ -370,7 +370,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           type="button"
                           aria-label={`Filter by tags${columnFilters.tags.count ? `, ${columnFilters.tags.count} active` : ''}`}
                           className={cn(
-                            'relative flex size-6 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-inset hover:text-ink',
+                            'relative flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none transition-colors hover:bg-inset hover:text-ink',
                             columnFilters.tags.count > 0 ? 'text-ink font-semibold' : 'text-muted hover:text-ink'
                           )}
                         >

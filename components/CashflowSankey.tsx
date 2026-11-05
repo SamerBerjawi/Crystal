@@ -17,7 +17,7 @@ const MAX_SUBS_PER_CAT = 5;
 
 const getCategoryColor = (name: string, categories: Category[]) => {
   const cat = categories.find(c => c.name === name);
-  return cat?.color || '#94A3B8';
+  return cat?.color || 'var(--muted)';
 };
 
 const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCategories, expenseCategories }) => {
@@ -168,7 +168,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
   }, [transactions, incomeCategories, expenseCategories, viewMode, COLOR_HUB, COLOR_SAVINGS, COLOR_DEFICIT]);
 
   const getNodeColor = useCallback((node: any, index: number) => {
-    return nodeColors[index] || node.color || (isDarkMode ? '#60A5FA' : '#2563EB');
+    return nodeColors[index] || node.color || 'var(--chart-1)';
   }, [nodeColors, isDarkMode]);
 
   if (totalFlow === 0) {

@@ -34,12 +34,12 @@ export interface PickerOption {
 }
 
 const optionRow =
-  'flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-ink outline-none pointer-coarse:min-h-12 data-[focused]:bg-inset data-[hovered]:bg-inset data-[selected]:bg-primary-soft data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50';
+  'flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-ink outline-hidden pointer-coarse:min-h-12 data-[focused]:bg-inset data-[hovered]:bg-inset data-[selected]:bg-primary-soft data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50';
 
 const triggerRow = cn(controlStyles, 'flex h-11 cursor-pointer items-center justify-between gap-2 px-3 text-left text-[.9375rem] font-medium max-md:h-12 max-md:text-base');
 
 /** A filter chip in a toolbar: the label is for screen readers only, beside other chips. */
-export const chipRow = 'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 text-[.8125rem] font-bold text-ink outline-none hover:bg-inset focus-visible:outline-2 focus-visible:outline-[var(--focus)] pointer-coarse:h-11';
+export const chipRow = 'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 text-[.8125rem] font-bold text-ink outline-hidden hover:bg-inset focus-visible:outline-2 focus-visible:outline-[var(--focus)] pointer-coarse:h-11';
 
 const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, multi }) => (
   <ListBoxItem
@@ -77,7 +77,7 @@ const Option: React.FC<{ option: PickerOption; multi?: boolean }> = ({ option, m
   </ListBoxItem>
 );
 
-const listStyles = 'max-h-[calc(40px*12+12px)] overflow-y-auto p-1.5 outline-none';
+const listStyles = 'max-h-[calc(40px*12+12px)] overflow-y-auto p-1.5 outline-hidden';
 
 function renderOptions(options: PickerOption[], multi?: boolean) {
   const hasGroups = options.some(o => !!o.group);
@@ -142,7 +142,7 @@ export const Select: React.FC<FieldProps & {
             selectionMode="single"
             selectedKeys={value ? [value] : []}
             onAction={id => { onChange(String(id)); setOpen(false); }}
-            className="outline-none"
+            className="outline-hidden"
           >
             {renderOptions(options)}
           </ListBox>
@@ -275,7 +275,7 @@ export const Combobox: React.FC<FieldProps & {
             selectedKeys={value ? [value] : []}
             onAction={pick}
             renderEmptyState={empty}
-            className="outline-none"
+            className="outline-hidden"
           >
             {createRow}
             {renderOptions(visible)}
@@ -360,7 +360,7 @@ export const MultiSelect: React.FC<FieldProps & {
       selectionMode="multiple"
       selectedKeys={selection}
       onSelectionChange={toggle}
-      className={isPhone ? 'outline-none' : listStyles}
+      className={isPhone ? 'outline-hidden' : listStyles}
     >
       {renderOptions(options, true)}
     </ListBox>
@@ -392,7 +392,7 @@ export const MultiSelect: React.FC<FieldProps & {
         </BottomSheet>
       ) : (
         <AriaPopover triggerRef={triggerRef} isOpen={isOpen} onOpenChange={setOpen} offset={6} className={cn(popoverStyles, 'w-(--trigger-width)')}>
-          <AriaDialog aria-label={name} className="outline-none">{list}</AriaDialog>
+          <AriaDialog aria-label={name} className="outline-hidden">{list}</AriaDialog>
         </AriaPopover>
       )}
     </div>

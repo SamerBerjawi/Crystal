@@ -199,7 +199,7 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, dens
       >
         <TableHeader className="sticky top-0 z-[var(--z-sticky)] bg-inset">
           {isSelectable && (
-            <Column width={44} className={cn('h-10 outline-none', cellPad)}>
+            <Column width={44} className={cn('h-10 outline-hidden', cellPad)}>
               <Checkbox slot="selection">{null}</Checkbox>
             </Column>
           )}
@@ -210,7 +210,7 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, dens
               isRowHeader={index === 0}
               allowsSorting={column.isSortable}
               style={{ width: column.width }}
-              className={cn('type-label h-10 whitespace-nowrap text-muted outline-none data-[allows-sorting]:cursor-pointer data-[focus-visible]:outline-2 data-[focus-visible]:-outline-offset-2 data-[focus-visible]:outline-focus', cellPad, column.align === 'right' ? 'text-right' : 'text-left', !column.isKey && index > 0 && secondary)}
+              className={cn('type-label h-10 whitespace-nowrap text-muted outline-hidden data-[allows-sorting]:cursor-pointer data-[focus-visible]:outline-2 data-[focus-visible]:-outline-offset-2 data-[focus-visible]:outline-focus', cellPad, column.align === 'right' ? 'text-right' : 'text-left', !column.isKey && index > 0 && secondary)}
             >
               {({ sortDirection }) => (
                 <span className={cn('inline-flex items-center gap-1', column.align === 'right' && 'flex-row-reverse')}>
@@ -227,17 +227,17 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, dens
               key={row.id}
               id={row.id}
               textValue={row.id}
-              className={cn('group outline-none data-[hovered]:bg-inset data-[selected]:bg-primary-soft data-[focus-visible]:outline-2 data-[focus-visible]:-outline-offset-2 data-[focus-visible]:outline-focus', onRowOpen && 'cursor-pointer')}
+              className={cn('group outline-hidden data-[hovered]:bg-inset data-[selected]:bg-primary-soft data-[focus-visible]:outline-2 data-[focus-visible]:-outline-offset-2 data-[focus-visible]:outline-focus', onRowOpen && 'cursor-pointer')}
             >
               {isSelectable && (
-                <Cell className={cn('border-t border-line outline-none', rowHeight, cellPad)}>
+                <Cell className={cn('border-t border-line outline-hidden', rowHeight, cellPad)}>
                   <Checkbox slot="selection">{null}</Checkbox>
                 </Cell>
               )}
               {columns.map((column, index) => (
                 <Cell
                   key={column.id}
-                  className={cn('border-t border-line text-ink outline-none data-[focus-visible]:outline-2 data-[focus-visible]:-outline-offset-2 data-[focus-visible]:outline-focus', rowHeight, cellPad, column.align === 'right' ? 'type-figure-row text-right' : 'type-body', !column.isKey && index > 0 && secondary)}
+                  className={cn('border-t border-line text-ink outline-hidden data-[focus-visible]:outline-2 data-[focus-visible]:-outline-offset-2 data-[focus-visible]:outline-focus', rowHeight, cellPad, column.align === 'right' ? 'type-figure-row text-right' : 'type-body', !column.isKey && index > 0 && secondary)}
                 >
                   {column.render(row)}
                 </Cell>

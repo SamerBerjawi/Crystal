@@ -25,7 +25,7 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 12 | Any currency | Support across the app (`S-010`) | Done, merged |
 | 13 | Clean-up | Remove bridge, `@base-ui/react`, `DESIGN.md` | Done, committed on `feat/redesign-cleanup` |
 
-Phase 10 (final QA) follows module 13.
+Phase 10 (final QA) follows module 13. Started 2026-11-05; see the Phase 10 log at the end.
 
 ## Module log
 
@@ -528,3 +528,20 @@ Step 9, the contrast check, measured every text colour against every surface in 
 Module 13, the clean-up (`D-132`, `D-133`): `index.css` lost its old layer, about 910 lines. The bridge was already nearly unused, since only 23 files still held raw palette classes; those are now tokens, apart from the licence plate, which is meant to look like a plate. Asset and debt breakdowns take the chart colours in order instead of hard-coded hex values, and `ACCOUNT_TYPE_ACCENT_STYLES` and the colour fields on the account styles are gone because only those hex values used them. `IconPicker`, the one screen sorted as a rebuild, is a side panel on the shared fields. `@base-ui/react` is gone, along with 7 other unused packages. `DESIGN.md` and the design paragraph in `CLAUDE.md` describe the shipped system. Maps show their credits.
 
 Checked in the browser with demo data: Overview at 1440×900 in dark and light and at 390×844 in light (no page overflow), the Accounts filter popover and the right-click menu on a Ledger row (items, filter entries, Escape), and the icon picker, including choosing an icon. Not checked: the other nine popovers by hand, the right-click menu in light, the picker on a phone, the map credits on a map with real places, `prefers-contrast: more` in a browser, and the Buy and Sell tabs in the investment form. Still open for Phase 10: 69 unused locals in `App.tsx`, `utils` and a few pages, 3 server packages and `vite-plugin-pwa` that nothing references, and `FinancialOverview`'s and `ForecastOverview`'s widget sizes at tablet width.
+
+## Phase 10 log
+
+**Sweep 1, 2026-11-05.** A script opened all 22 routes with demo data at 1440, 768 and 390 wide, in light and dark (six passes), and checked each for page overflow, elements past the edge, buttons with no name, fields with no label, images with no alt, targets under 24 px (40 px on touch), and text under 4.5:1 (3:1 when large), working out the background by compositing every layer behind each piece of text.
+
+Result: no page overflowed sideways at any size, no image lacked alt text, and no field lacked a label. Fixed (`D-135` to `D-137`):
+
+- **Goals at 768:** goal cards overflowed their column because the open sidebar left 450 px. The sidebar now starts collapsed under 1024 px.
+- **Focus:** text fields showed no outline when focused (`D-136`).
+- **Undefined variables:** `--amber-bg` left the Goals and Accounts warning panels with no tint, and their heading used amber text at 1.3:1. `--foreground` and `--muted-foreground` were undefined in the charts, and the candlestick chart used Tailwind variables that don't exist at runtime.
+- **Contrast:** the grey decimals in the Net worth card (4.3:1, now about 5.3:1), chart axis labels drawn at 70% opacity, and the Tasks "high" badge (3.8:1).
+- **Targets:** the Ledger column headers and filter buttons (18 and 14 px), the Subscriptions timeline dots (16 px, now 24), the Net worth and Cushion text buttons and the "Get a key" links on a phone, and the phone bar's More button (38 px).
+- **Hex colours:** six charts still used hex values.
+
+Left as found, on purpose: the previous and next month's days on the Calendar are dimmed, so their text is under 4.5:1; and Save profile, which is disabled when nothing changed. The script's other flags were false: stretched links on Subscriptions, hidden switch inputs that are named by their label, and the skip link, which is off screen until focused.
+
+Not covered: the live checklist (`10-live-checklist.md`), which needs a real install; screen reader output, which was read from the accessibility tree and not heard; amber used as a chart fill on light backgrounds (about 1.5:1, so those marks rely on their labels, as `D-061` requires); forced colours and reduced transparency in a browser; and touch gestures such as swipe rows and pull to refresh.

@@ -45,7 +45,7 @@ const ApiKeyField: React.FC<{
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <h3 className="type-body-strong text-ink">{title}</h3>
         <Badge tone={value.trim() ? 'positive' : 'neutral'}>{value.trim() ? 'Set' : 'Not set'}</Badge>
-        <TextLink href={docsUrl} target="_blank" rel="noopener noreferrer" className="ml-auto">Get a key</TextLink>
+        <TextLink href={docsUrl} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-6 items-center pointer-coarse:min-h-11">Get a key</TextLink>
       </div>
       <p className="type-caption mb-2 text-muted">{description}</p>
       <div className="flex items-end gap-1">

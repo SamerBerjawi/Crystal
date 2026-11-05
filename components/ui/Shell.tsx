@@ -75,7 +75,7 @@ const Avatar: React.FC<{ user: User; size?: number }> = ({ user, size = 36 }) =>
 
 /** Collapsible left sidebar with nested sub-page tree and collapsed hover flyout. */
 export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = ({ currentPage, setCurrentPage }) => {
-  const [isCollapsed, setCollapsed] = useLocalStorage<boolean>('crystal-sidebar-collapsed', false);
+  const [isCollapsed, setCollapsed] = useLocalStorage<boolean>('crystal-sidebar-collapsed', typeof window !== 'undefined' && window.innerWidth < 1024);
   const activeHub = hubForPage(currentPage);
   const urlTab = useUrlTab();
   const [openHubIds, setOpenHubIds] = useState<Record<string, boolean>>(() => ({ [activeHub.id]: true }));
@@ -603,7 +603,7 @@ const useKeyboardOpen = () => {
   return isOpen;
 };
 
-const barItem = 'relative flex h-[58px] min-w-0 flex-[1_1_auto] cursor-pointer flex-col items-center justify-center gap-[3px] rounded-[20px] text-xs font-bold text-ink';
+const barItem = 'relative flex h-[58px] min-w-11 flex-1 cursor-pointer flex-col items-center justify-center gap-[3px] rounded-[20px] text-xs font-bold text-ink';
 
 /** Overview, Accounts, Transactions, Planning and More, in glass, always labelled (D-054). */
 export const PhoneBar: React.FC<ShellProps> = props => {

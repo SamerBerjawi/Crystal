@@ -87,8 +87,10 @@ const RenewalTimeline: React.FC<RenewalTimelineProps> = ({ items, today, isPhone
                     title={`${nameOf(item)}, ${shortDay(item.date)}`}
                     aria-label={`${nameOf(item)}, ${shortDay(item.date)}`}
                     onClick={() => onOpen(item)}
-                    className="absolute -left-2 -top-2 block size-4 cursor-pointer rounded-full border-[3px] border-[var(--primary)] bg-[var(--solid)]"
-                  />
+                    className="group absolute -left-3 -top-3 flex size-6 cursor-pointer items-center justify-center rounded-full outline-hidden focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
+                  >
+                    <span className="block size-4 rounded-full border-[3px] border-[var(--primary)] bg-[var(--solid)]" />
+                  </button>
                   {lane !== null && (
                     <div
                       aria-hidden="true"

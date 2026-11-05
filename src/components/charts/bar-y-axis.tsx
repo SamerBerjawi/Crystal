@@ -37,14 +37,14 @@ function BarYAxisLabel({
     >
       <motion.span
         animate={{
-          opacity: isHovered ? 1 : 0.7,
+          opacity: 1,
           color: isHovered
             ? "var(--foreground)"
             : "var(--chart-label, var(--color-zinc-500))",
         }}
         className={cn("truncate whitespace-nowrap text-right text-xs")}
         initial={{
-          opacity: 0.7,
+          opacity: 1,
           color: "var(--chart-label, var(--color-zinc-500))",
         }}
         style={{ maxWidth }}

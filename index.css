@@ -112,6 +112,8 @@
   --chart-segment-background: var(--inset);
   --chart-segment-line: var(--line-strong);
   --ring-background: var(--inset);
+  --foreground: var(--ink);
+  --muted-foreground: var(--muted);
 }
 
 html {
@@ -158,12 +160,6 @@ img {
   --color-chart-marker-border: var(--chart-marker-border);
   --color-chart-marker-foreground: var(--chart-marker-foreground);
   --color-chart-label: var(--chart-label);
-  --color-chart-scale-01: var(--chart-scale-01);
-  --color-chart-scale-02: var(--chart-scale-02);
-  --color-chart-scale-03: var(--chart-scale-03);
-  --color-chart-scale-04: var(--chart-scale-04);
-  --color-chart-scale-05: var(--chart-scale-05);
-  --color-chart-scale-pattern-color: var(--chart-scale-pattern-color);
   --color-chart-line-primary: var(--chart-line-primary);
   --color-chart-line-secondary: var(--chart-line-secondary);
   --color-chart-brush-border: var(--chart-brush-border);
@@ -173,11 +169,6 @@ img {
   --color-chart-marker-badge-background: var(--chart-marker-badge-background);
   --color-chart-indicator-secondary-color: var(--chart-indicator-secondary-color);
   --color-chart-indicator-color: var(--chart-indicator-color);
-  --chart-scale-05: var(--chart-scale-05);
-  --chart-scale-04: var(--chart-scale-04);
-  --chart-scale-03: var(--chart-scale-03);
-  --chart-scale-02: var(--chart-scale-02);
-  --color-chart-scale-mix: var(--chart-scale-mix);
   --chart-tooltip-muted: var(--chart-tooltip-muted);
   --chart-tooltip-foreground: var(--chart-tooltip-foreground);
   --chart-tooltip-background: var(--chart-tooltip-background);
@@ -422,6 +413,7 @@ img {
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-ink: var(--ink);
+  --color-focus: var(--focus);
   --color-muted: var(--muted);
   --color-glass: var(--glass);
   --color-primary: var(--primary);
@@ -442,7 +434,6 @@ img {
   --color-money-out: var(--money-out);
   --color-money-out-soft: var(--money-out-soft);
   --color-on-danger: var(--on-danger);
-  --color-focus: var(--focus);
   --color-blue: var(--blue);
   --color-blue-soft: var(--blue-soft);
   --color-tomato: var(--tomato);
@@ -677,5 +668,5 @@ html[data-selection-bar] { --toast-bottom: 148px; --toast-phone-bottom: calc(164
 .net-worth-hero .amount-fraction,
 .bg-pine .amount-fraction,
 .text-on-pine .amount-fraction {
-  color: rgba(251, 248, 242, 0.68) !important;
+  color: rgba(251, 248, 242, 0.8) !important;
 }

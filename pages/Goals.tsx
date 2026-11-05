@@ -180,8 +180,8 @@ const Goals: React.FC = () => {
           </section>
 
           {coverageWarnings.length > 0 && (
-            <section aria-label="Account coverage warnings" className="surface-card rounded-[var(--radius-xl)] border border-[var(--amber-bg)] bg-[var(--amber-bg)]/40 p-4">
-              <p className="type-label text-[var(--amber)]">Account coverage</p>
+            <section aria-label="Account coverage warnings" className="surface-card rounded-[var(--radius-xl)] border border-amber/40 bg-amber-soft p-4">
+              <p className="type-label text-attention-text">Account coverage</p>
               <ul className="mt-1.5 space-y-1">
                 {coverageWarnings.map(warning => {
                   const accountName = accounts.find(a => a.id === warning.accountId)?.name || 'Linked account';
