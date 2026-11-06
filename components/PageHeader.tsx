@@ -31,6 +31,8 @@ export interface PageStat {
   /** Text after the figure, such as "of 12" or "3 late". */
   badge?: string;
   badgeTone?: 'pine' | 'butter' | 'tomato';
+  /** What the badge compares against, shown on hover. */
+  badgeTitle?: string;
   /** Color tone for the KPI icon and its circular badge */
   iconTone?: StatTone;
   /** Optional custom class for the icon */
@@ -230,7 +232,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, stats =
                 <dd className="flex items-center gap-2.5 text-[1.3125rem] font-semibold tracking-[-.01em] text-ink">
                   <CountUp value={stat.value} format={stat.format} currency={stat.currency} delay={0.15 + index * 0.06} />
                   {stat.trend && stat.trend.length > 1 && <Sparkline data={stat.trend} isPositive={toneKey !== 'negative' && toneKey !== 'tomato'} width={56} height={22} className="max-md:hidden" />}
-                  {stat.badge && <span className={cn('type-caption whitespace-nowrap rounded-full px-2 py-0.5', BADGE_TONES[stat.badgeTone ?? 'pine'])}>{stat.badge}</span>}
+                  {stat.badge && <span title={stat.badgeTitle} className={cn('type-caption whitespace-nowrap rounded-full px-2 py-0.5', BADGE_TONES[stat.badgeTone ?? 'pine'])}>{stat.badge}</span>}
                 </dd>
               </div>
             </Wrapper>

@@ -31,7 +31,7 @@ import { FilterList, type FilterOption } from '../components/FilterList';
 import { useAccountFilterOptions } from '../hooks/useAccountFilterOptions';
 import { EntityGlyph, LogoTile } from '../components/EntityIcon';
 import ReviewQueue from '../components/ReviewQueue';
-import TransactionScatter from '../components/TransactionScatter';
+import TransactionScatter, { type ScatterBrush } from '../components/TransactionScatter';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useUrlTab } from '../hooks/useUrlTab';
@@ -407,7 +407,8 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     });
   }, [displayTransactions]);
 
-  const filteredTransactions = useMemo(() => {
+  // Everything the filters allow, before any days picked on the chart. The chart draws this, so picking days never empties it.
+  const scatterTransactions = useMemo(() => {
     const startDateTime = startDate ? parseLocalDate(startDate) : null;
     if (startDateTime) startDateTime.setHours(0, 0, 0, 0);
 
@@ -484,6 +485,24 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     });
 
   }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter, showBalanceAdjustments, user]);
+
+  /** The days picked on the scatter chart. The list and the summary show only these. */
+  const [brush, setBrush] = useState<ScatterBrush | null>(null);
+  const filteredTransactions = useMemo(
+    () => (brush ? scatterTransactions.filter(tx => tx.date.slice(0, 10) >= brush.from && tx.date.slice(0, 10) <= brush.to) : scatterTransactions),
+    [scatterTransactions, brush]
+  );
+
+  const categoryColors = useMemo(() => {
+    const colors: Record<string, string> = {};
+    const add = (categories: Category[], inherited?: string) => categories.forEach(category => {
+      const color = category.color || inherited;
+      if (color) colors[category.name] = color;
+      add(category.subCategories ?? [], color);
+    });
+    add(allCategories);
+    return colors;
+  }, [allCategories]);
 
   const toggleExpandParent = useCallback((parentId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -1714,7 +1733,15 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   const summary = (
     <aside aria-label="This view at a glance" className="flex flex-col justify-between space-y-4 rounded-[var(--radius-xl)] surface-card p-5 h-full">
       <div className="space-y-4">
-        <h2 className="type-card-title text-ink">This view</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="type-card-title text-ink">{brush ? 'Picked days' : 'This view'}</h2>
+          {brush && (
+            <button type="button" onClick={() => setBrush(null)} className="type-caption inline-flex items-center gap-1.5 rounded-full bg-amber-soft px-2.5 py-1 text-ink hover:bg-inset focus-visible:outline-2 focus-visible:outline-[var(--focus)]" aria-label="Clear the picked days">
+              {brush.from === brush.to ? parseLocalDate(brush.from).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : `${parseLocalDate(brush.from).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${parseLocalDate(brush.to).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}
+              <Icon name="close" size={12} />
+            </button>
+          )}
+        </div>
         <dl className="space-y-2">
           <div className="flex justify-between gap-3"><dt className="type-body text-muted">Transactions</dt><dd className="type-figure-row text-ink">{filteredTransactions.length.toLocaleString()}</dd></div>
           <div className="flex justify-between gap-3"><dt className="type-body text-muted">Income</dt><dd className="type-figure-row text-ink">{money(totalIncome, 'flow')}</dd></div>
@@ -1855,7 +1882,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       ) : (
         <>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]">
-            <TransactionScatter transactions={filteredTransactions} onOpen={handleOpenOverview} />
+            <TransactionScatter transactions={scatterTransactions} onOpen={handleOpenOverview} categoryColors={categoryColors} brush={brush} onBrushChange={setBrush} hasDateFilter={!!(startDate || endDate)} />
             {summary}
           </div>
           <div className="flex flex-wrap items-center gap-2">
