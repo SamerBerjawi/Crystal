@@ -5,6 +5,7 @@ import { LIQUID_ACCOUNT_TYPES } from '../constants';
 import { Badge } from './ui/Display';
 import { Amount } from './ui/Money';
 import { useWidgetBox } from './ui/WidgetGrid';
+import { StatGauge } from './ui/StatGauge';
 
 interface FinancialRunwayWidgetProps {
   accounts: Account[];
@@ -32,6 +33,8 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
   const box = useWidgetBox();
   // The figure and bar always show. The two amounts need about 210px and the note about 290px.
   const showAmounts = box.height === 0 || box.height >= 210;
+  // With about 320px of height the figure becomes a gauge against a year of cover.
+  const showGauge = months !== null && box.height >= 320 && box.width >= 220;
   const showNote = box.height === 0 || box.height >= 290;
   const status = months === null ? null
     : months < 3 ? { tone: 'negative' as const, label: 'Under 3 months' }
@@ -40,7 +43,13 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
 
   return (
     <div className={`flex h-full flex-col ${showAmounts ? 'gap-4' : 'justify-center gap-3'}`}>
-      <div className="flex items-start justify-between gap-3">
+      {showGauge && status && (
+        <div className="flex flex-col items-center gap-2">
+          <StatGauge fill={(months! / 12) * 100} tone={status.tone === 'negative' ? 'loss' : status.tone === 'positive' ? 'pine' : 'amber'} display={months!.toFixed(1)} caption={months!.toFixed(1) === '1.0' ? 'month' : 'months'} size={Math.min(160, Math.floor(box.width - 24), Math.floor(box.height * 0.42))} label="Cash runway" />
+          <Badge tone={status.tone}>{status.label}</Badge>
+        </div>
+      )}
+      {!showGauge && <div className="flex items-start justify-between gap-3">
         {months === null ? (
           <p className="type-body-strong text-muted">Not enough spending to measure</p>
         ) : (
@@ -50,11 +59,11 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
           </p>
         )}
         {status && <Badge tone={status.tone}>{status.label}</Badge>}
-      </div>
+      </div>}
 
-      <div className="h-2 overflow-hidden rounded-full bg-inset" aria-hidden>
+      {!showGauge && <div className="h-2 overflow-hidden rounded-full bg-inset" aria-hidden>
         <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(((months ?? 0) / 12) * 100, 100)}%` }} />
-      </div>
+      </div>}
 
       {showAmounts && <dl className="divide-y divide-line">
         <div className="type-body flex justify-between gap-3 py-2">

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkline } from './ui/Display';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Currency } from '../types';
 import { cn } from '../lib/utils';
@@ -34,6 +35,8 @@ export interface PageStat {
   iconTone?: StatTone;
   /** Optional custom class for the icon */
   iconColor?: string;
+  /** A small trend drawn beside the figure. */
+  trend?: { value: number }[];
 }
 
 const KPI_ICON_TONES: Record<StatTone, { text: string; bg: string; border: string }> = {
@@ -226,6 +229,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, stats =
                 <dt className="max-w-[150px] text-[.78125rem] leading-[1.3] text-muted">{stat.label}</dt>
                 <dd className="flex items-center gap-2.5 text-[1.3125rem] font-semibold tracking-[-.01em] text-ink">
                   <CountUp value={stat.value} format={stat.format} currency={stat.currency} delay={0.15 + index * 0.06} />
+                  {stat.trend && stat.trend.length > 1 && <Sparkline data={stat.trend} isPositive={toneKey !== 'negative' && toneKey !== 'tomato'} width={56} height={22} className="max-md:hidden" />}
                   {stat.badge && <span className={cn('type-caption whitespace-nowrap rounded-full px-2 py-0.5', BADGE_TONES[stat.badgeTone ?? 'pine'])}>{stat.badge}</span>}
                 </dd>
               </div>

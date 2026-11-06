@@ -42,3 +42,5 @@ export {
   type LineSparklineProps,
   type BarSparklineProps,
 } from "./sparkline";
+
+export { Gauge, type GaugeProps } from "./gauge";
