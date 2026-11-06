@@ -6,13 +6,14 @@ import {
   XAxis,
   YAxis,
   ChartTooltip,
-  ChartMarkers,
-  useActiveMarkers,
-  MarkerTooltipContent,
   LineSeriesTerminalMarker,
-  type ChartMarker,
 } from '../src/components/charts';
-import { formatCurrency, parseLocalDate, calculateTrendLine, getMainCurrency, currencySign } from '../utils';
+import { useChartStable, useYScale } from '../src/components/charts/chart-context';
+import { SpotlightIndicator } from '../src/components/charts/spotlight-indicator';
+import { curveLinear } from '@visx/curve';
+import { HorizonArea, clip, compact, labelWidth, shortDay } from './ForecastHorizonChart';
+import { iso } from '../utils/scheduleModel';
+import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { FinancialGoal } from '../types';
 import Icon from './ui/Icon';
 import { EmptyState } from './ui/States';
@@ -42,22 +43,92 @@ interface NetWorthChartProps {
   minHeight?: string;
 }
 
-const yAxisTickFormatter = (value: number) => {
-  const sign = currencySign(getMainCurrency());
-  if (Math.abs(value) >= 1000000) return `${sign}${(value / 1000000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1000) return `${sign}${(value / 1000).toFixed(0)}K`;
-  return `${sign}${value}`;
-};
+const GOAL_ROWS = 3;
 
-const CustomTooltipContent: React.FC<{ markers: ChartMarker[] }> = ({ markers }) => {
-  const activeMarkers = useActiveMarkers(markers);
+/** Today, dated goals and the lowest point, drawn over the line the way the cash horizon draws them. */
+const NetWorthLayer: React.FC<{ today?: Date; goals: { date: Date; label: string }[]; lowest: { value: number; date: Date } | null; compactLabels: boolean }> = ({ today, goals, lowest, compactLabels }) => {
+  const { xScale, innerWidth, innerHeight } = useChartStable();
+  const yScale = useYScale();
+  const dayLabel = (date: Date) => shortDay(iso(date));
+
+  const flags = useMemo(() => {
+    const ends: number[] = [];
+    return goals
+      .map(goal => ({ goal, x: xScale(goal.date) }))
+      .sort((a, b) => a.x - b.x)
+      .map(({ goal, x }) => {
+        const full = `${clip(goal.label, 22)}, ${dayLabel(goal.date)}`;
+        const right = innerWidth - x - 6;
+        const left = x - 6;
+        const flip = labelWidth(full) > right && left > right;
+        const text = clip(full, Math.max(6, Math.floor(((flip ? left : right) - 22) / 6.6)));
+        const w = labelWidth(text);
+        const start = Math.max(0, Math.min(flip ? x - 6 - w : x + 6, innerWidth - w));
+        let row = ends.findIndex(end => start >= end + 6);
+        if (row === -1) row = ends.length < GOAL_ROWS ? ends.length : -1;
+        if (row >= 0) ends[row] = start + w;
+        return { goal, x, text, w, start, row };
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goals, xScale, innerWidth]);
+
+  const todayX = today ? xScale(today) : undefined;
+  const todayFlip = todayX !== undefined && todayX + 6 + 52 > innerWidth;
 
   return (
-    <div className="space-y-2">
-      {activeMarkers.length > 0 && <MarkerTooltipContent markers={activeMarkers} />}
-    </div>
+    <g>
+      {yScale(0) >= 0 && yScale(0) <= innerHeight && <line x1={0} x2={innerWidth} y1={yScale(0)} y2={yScale(0)} stroke="var(--ink)" strokeOpacity={0.55} strokeWidth={1.5} pointerEvents="none" />}
+
+      {flags.map(({ goal, x, text, w, start, row }) => (
+        <g key={`${goal.label}-${goal.date.getTime()}`}>
+          <title>{`Goal: ${goal.label}, ${dayLabel(goal.date)}`}</title>
+          <line x1={x} x2={x} y1={0} y2={innerHeight} stroke="var(--chart-4)" strokeWidth={1.5} strokeDasharray="5 4" pointerEvents="none" />
+          <path d={`M${x},0 l5,5 l-5,5 l-5,-5 z`} fill="var(--chart-4)" pointerEvents="none" />
+          {row >= 0 && !compactLabels && (
+            <g transform={`translate(${start},${8 + (row + 1) * 24})`} pointerEvents="none">
+              <rect width={w} height={20} rx={10} fill="var(--solid)" stroke="var(--chart-4)" strokeWidth={1.5} />
+              <path d="M10,5 v10 M10,5 h7 l-2,2.5 l2,2.5 h-7" fill="none" stroke="var(--chart-4)" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              <text x={22} y={14} fontSize={11} fontWeight={700} fill="var(--ink)">{text}</text>
+            </g>
+          )}
+        </g>
+      ))}
+
+      {todayX !== undefined && (
+        <g aria-hidden="true" pointerEvents="none">
+          <line x1={todayX} x2={todayX} y1={0} y2={innerHeight} stroke="var(--ink)" strokeWidth={1.5} />
+          {!compactLabels && (
+            <g transform={`translate(${todayFlip ? todayX - 6 - 52 : todayX + 6},8)`}>
+              <rect width={52} height={20} rx={10} fill="var(--pill)" />
+              <text x={26} y={14} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--on-pill)">Today</text>
+            </g>
+          )}
+        </g>
+      )}
+
+      {lowest && (() => {
+        const lx = xScale(lowest.date);
+        const ly = yScale(lowest.value);
+        const text = `${formatCurrency(lowest.value, getMainCurrency())} low, ${dayLabel(lowest.date)}`;
+        const w = labelWidth(text) - 8;
+        const flip = ly < 44;
+        const left = Math.max(0, Math.min(lx - w / 2, innerWidth - w));
+        return (
+          <g pointerEvents="none">
+            <circle cx={lx} cy={ly} r={5} fill="var(--money-out)" stroke="var(--solid)" strokeWidth={2} />
+            {!compactLabels && (
+              <g transform={`translate(${left},${flip ? ly + 12 : ly - 32})`}>
+                <rect width={w} height={20} rx={10} fill="var(--money-out)" />
+                <text x={w / 2} y={14} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--on-danger)">{text}</text>
+              </g>
+            )}
+          </g>
+        );
+      })()}
+    </g>
   );
 };
+(NetWorthLayer as unknown as { __isPostOverlay: boolean }).__isPostOverlay = true;
 
 const NetWorthChart: React.FC<NetWorthChartProps> = ({
   data,
@@ -65,7 +136,6 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   showForecast = true,
   showGoals = true,
   goals = [],
-  annotations = [],
   margin,
   minHeight = 'min-h-[120px]',
 }) => {
@@ -98,11 +168,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
       ? rawPoints
       : rawPoints.filter((_, idx) => lastActualIdx === -1 || idx <= lastActualIdx);
 
-    const trendValues = calculateTrendLine(filtered, (item) => item.netWorth ?? 0);
-    const finalData = filtered.map((p, idx) => ({
-      ...p,
-      trend: trendValues[idx],
-    }));
+    const finalData = filtered;
 
     return {
       chartData: finalData,
@@ -132,50 +198,24 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     return 'var(--money-out)'; // lower than today's value
   }, [currentActualValue, finalProjectedValue]);
 
-  const markers = useMemo<ChartMarker[]>(() => {
-    const items: ChartMarker[] = [];
+  // Dated goals inside the chart's range, as flags. Transactions and events are not drawn here.
+  const goalFlags = useMemo(() => {
+    if (!showGoals || chartData.length === 0) return [];
+    const start = chartData[0].date.getTime();
+    const end = chartData[chartData.length - 1].date.getTime();
+    return goals
+      .filter(goal => goal.date)
+      .map(goal => ({ date: parseLocalDate(goal.date!), label: goal.name }))
+      .filter(flag => flag.date.getTime() >= start && flag.date.getTime() <= end);
+  }, [showGoals, goals, chartData]);
 
-    if (chartData.length > 0 && lastActualIndex >= 0 && lastActualIndex < chartData.length) {
-      const todayDate = chartData[lastActualIndex].date;
-      items.push({
-        date: todayDate,
-        title: 'Today',
-        color: 'var(--chart-1)',
-      });
+  const lowest = useMemo(() => {
+    let best: { value: number; date: Date } | null = null;
+    for (const point of chartData) {
+      if (typeof point.netWorth === 'number' && (!best || point.netWorth < best.value)) best = { value: point.netWorth, date: point.date };
     }
-
-    if (showGoals && goals.length > 0 && chartData.length > 0) {
-      const start = chartData[0].date.getTime();
-      const end = chartData[chartData.length - 1].date.getTime();
-
-      goals.forEach((goal) => {
-        if (!goal.date) return;
-        const gDate = parseLocalDate(goal.date);
-        const gTime = gDate.getTime();
-        if (gTime >= start && gTime <= end) {
-          items.push({
-            date: gDate,
-            title: goal.name,
-            description: `Target: ${formatCurrency(goal.amount, getMainCurrency())}`,
-            color: 'var(--chart-4)',
-          });
-        }
-      });
-    }
-
-    if (annotations && annotations.length > 0) {
-      annotations.forEach((ann) => {
-        if (!ann.date) return;
-        items.push({
-          date: parseLocalDate(ann.date),
-          title: ann.label,
-          color: 'var(--chart-2)',
-        });
-      });
-    }
-
-    return items;
-  }, [showGoals, goals, annotations, chartData]);
+    return best;
+  }, [chartData]);
 
   if (!chartData || chartData.length === 0) {
     return (
@@ -184,12 +224,13 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   }
 
   const isDashedProjection = showForecast && lastActualIndex >= 0 && lastActualIndex < chartData.length - 1;
+  const todayDate = chartData[lastActualIndex]?.date;
 
   const legend = [
     { label: 'Net worth', color: lineColor, dashed: false },
     ...(isDashedProjection ? [{ label: 'Projected', color: projectionColor, dashed: true }] : []),
-    { label: 'Trend', color: 'var(--chart-3)', dashed: true },
-    ...(showGoals && goals.length > 0 ? [{ label: 'Goals', color: 'var(--chart-4)', dashed: false }] : []),
+    ...(goalFlags.length > 0 ? [{ label: 'Goals', color: 'var(--chart-4)', dashed: true }] : []),
+    { label: 'Lowest point', color: 'var(--money-out)', dashed: false, dot: true },
   ];
   const showLegend = !tight && (box.height === 0 || box.height >= 240);
 
@@ -205,74 +246,47 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         className="h-full w-full"
         margin={plotMargin}
       >
-        <Grid
-          horizontal
-          highlightRowValues={[0]}
-          highlightRowStrokeDasharray="6,4"
-          highlightRowStrokeWidth={1.5}
-          highlightRowStrokeOpacity={0.85}
-        />
-        <XAxis />
-        <YAxis tickFormatter={yAxisTickFormatter} />
+        <Grid horizontal numTicksRows={3} />
+        <SpotlightIndicator seriesKey="netWorth" color={lineColor} />
+        <HorizonArea seriesKey="netWorth" color={lineColor} />
+        <XAxis numTicks={tight ? 3 : 5} />
+        <YAxis numTicks={3} tickFormatter={compact} />
 
-        {/* Combined Historic & Projection Line */}
+        {/* One line: solid for what happened, dashed in the projection's colour for what is forecast. */}
         <Line
           dataKey="netWorth"
           stroke={lineColor}
           dashStroke={projectionColor}
-          strokeWidth={3}
+          strokeWidth={2}
           dashFromIndex={isDashedProjection ? lastActualIndex : undefined}
           dashArray="6,4"
-          fadeEdges
+          curve={curveLinear}
+          fadeEdges={false}
         />
+        {isDashedProjection && <LineSeriesTerminalMarker dataKey="netWorth" stroke={projectionColor} fill={projectionColor} />}
 
-        {!tight && (
-          <Line
-            dataKey="trend"
-            stroke="var(--chart-3)"
-            strokeWidth={2}
-            strokeDasharray="4,4"
-          />
-        )}
-
-        {isDashedProjection && (
-          <LineSeriesTerminalMarker dataKey="netWorth" stroke={projectionColor} fill={projectionColor} />
-        )}
-
-        {!tight && markers.length > 0 && <ChartMarkers items={markers} />}
+        <NetWorthLayer today={todayDate} goals={goalFlags} lowest={lowest} compactLabels={tight} />
 
         <ChartTooltip
+          showCrosshair={false}
           rows={(point) => {
             const isProjected = Boolean(point.isProjected);
-            const label = isProjected ? 'Projected Net Worth' : 'Actual Net Worth';
-            const val = typeof point.netWorth === 'number' ? point.netWorth : 0;
-            const strokeColor = isProjected ? projectionColor : lineColor;
-            const rowsList = [
-              {
-                color: strokeColor,
-                label,
-                value: formatCurrency(val, getMainCurrency()),
-              },
-            ];
-            if (typeof point.trend === 'number') {
-              rowsList.push({
-                color: 'var(--chart-3)',
-                label: 'Trend Line',
-                value: formatCurrency(point.trend, getMainCurrency()),
-              });
-            }
-            return rowsList;
+            return [{
+              color: isProjected ? projectionColor : lineColor,
+              label: isProjected ? 'Projected net worth' : 'Net worth',
+              value: formatCurrency(typeof point.netWorth === 'number' ? point.netWorth : 0, getMainCurrency()),
+            }];
           }}
-        >
-          <CustomTooltipContent markers={markers} />
-        </ChartTooltip>
+        />
       </LineChart>
     </div>
     {showLegend && (
       <ul className="type-caption flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-muted">
         {legend.map(item => (
           <li key={item.label} className="flex items-center gap-2">
-            <span className={item.dashed ? 'w-4 border-t-2 border-dashed' : 'h-0.5 w-4 rounded-full'} style={item.dashed ? { borderColor: item.color } : { backgroundColor: item.color }} aria-hidden />
+            {'dot' in item
+              ? <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} aria-hidden />
+              : <span className={item.dashed ? 'w-4 border-t-2 border-dashed' : 'h-0.5 w-4 rounded-full'} style={item.dashed ? { borderColor: item.color } : { backgroundColor: item.color }} aria-hidden />}
             {item.label}
           </li>
         ))}
