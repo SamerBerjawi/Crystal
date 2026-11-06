@@ -4,7 +4,10 @@ import { Task, RecurringTransaction, BillPayment, FinancialGoal, RecurringTransa
 import { convertToMain, parseLocalDate, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
 import { Button } from './ui/Actions';
-import { Badge } from './ui/Display';
+import { LogoTile, MerchantLogo } from './EntityIcon';
+import { useCategoryContext } from '../contexts/FinancialDataContext';
+import type { Category } from '../types';
+import { cn } from '../lib/utils';
 import { Amount } from './ui/Money';
 import { EmptyState } from './ui/States';
 
@@ -31,6 +34,15 @@ type AgendaItem =
 /** How far ahead the agenda looks. Today's items come first, then what is coming. */
 const LOOKAHEAD_DAYS = 14;
 
+const findCategoryIcon = (name: string, categories: Category[]): string | undefined => {
+    for (const category of categories) {
+        if (category.name === name) return category.icon;
+        const inner = category.subCategories ? findCategoryIcon(name, category.subCategories) : undefined;
+        if (inner) return inner;
+    }
+    return undefined;
+};
+
 const TodayWidget: React.FC<TodayWidgetProps> = ({ 
     tasks, 
     recurringTransactions, 
@@ -44,6 +56,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     size = 'm'
 }) => {
     const box = useWidgetBox();
+    const { expenseCategories } = useCategoryContext();
     const agendaItems = useMemo(() => {
         const items: AgendaItem[] = [];
         const todayStr = toLocalISOString(new Date());
@@ -155,13 +168,15 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         return items.sort((a, b) => a.daysUntil - b.daysUntil || a.sortDate - b.sortDate);
     }, [tasks, recurringTransactions, bills, goals, overrides]);
 
-    const dueBadge = (daysUntil: number) => {
-        if (daysUntil < 0) return <Badge tone="negative">{Math.abs(daysUntil) === 1 ? '1 day late' : `${Math.abs(daysUntil)} days late`}</Badge>;
-        if (daysUntil === 0) return <Badge tone="attention">Today</Badge>;
-        if (daysUntil === 1) return <Badge tone="neutral">Tomorrow</Badge>;
-        if (daysUntil > 7) return <Badge tone="neutral">{new Date(Date.now() + daysUntil * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Badge>;
-        return <Badge tone="neutral">In {daysUntil} days</Badge>;
+    const dueText = (daysUntil: number) => {
+        if (daysUntil < 0) return `${Math.abs(daysUntil)} ${Math.abs(daysUntil) === 1 ? 'day' : 'days'} late`;
+        if (daysUntil === 0) return 'today';
+        if (daysUntil === 1) return 'tomorrow';
+        return `in ${daysUntil} days`;
     };
+    // The dot on the timeline: late is red, soon is amber, the rest is quiet.
+    const dotColor = (daysUntil: number) => (daysUntil < 0 ? 'var(--money-out)' : daysUntil <= 2 ? 'var(--amber)' : 'var(--line-strong)');
+    const categoryIcon = (name?: string) => (name ? findCategoryIcon(name, expenseCategories) : undefined);
 
     const totals = useMemo(() => {
         let out = 0;
@@ -185,63 +200,84 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
 
     const fallbackCount = size === 's' ? 3 : size === 'm' ? 6 : agendaItems.length;
     // A row is 60px. When some are left out, the last line says how many, so one fewer row shows.
-    const fit = fitRows(box, 60, fallbackCount, showTotals ? 36 : 0);
+    const fit = fitRows(box, 56, fallbackCount, showTotals ? 36 : 0);
     const count = box.height === 0 ? fallbackCount : fit >= agendaItems.length ? agendaItems.length : Math.max(1, fit - 1);
     const visibleAgenda = agendaItems.slice(0, count);
     const hiddenCount = agendaItems.length - visibleAgenda.length;
-    const glyph = (icon: string) => <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-inset text-muted"><Icon name={icon} size={18} /></span>;
+    // One row of the timeline: the date, a dot on the line, the logo, what it is and when, and what it costs.
+    const narrow = box.width > 0 && box.width < 340;
+    const Row: React.FC<{ date: Date; daysUntil: number; lead: React.ReactNode; title: string; subtitle: string; end?: React.ReactNode; action?: React.ReactNode; last: boolean }> = ({ date, daysUntil, lead, title, subtitle, end, action, last }) => (
+        <li className="flex items-stretch gap-3 px-2">
+            {!narrow && <span className="flex w-9 shrink-0 flex-col items-center justify-center py-2 text-center leading-tight">
+                <span className="type-figure-row text-ink">{date.getDate()}</span>
+                <span className="type-caption uppercase text-muted">{date.toLocaleDateString(undefined, { month: 'short' })}</span>
+            </span>}
+            <span aria-hidden className="relative flex w-3 shrink-0 justify-center">
+                <span className={cn('absolute left-1/2 w-px -translate-x-1/2 bg-line', last ? 'top-0 h-1/2' : 'inset-y-0')} />
+                <span className="relative top-1/2 size-2.5 -translate-y-1/2 rounded-full border-2 bg-solid" style={{ borderColor: dotColor(daysUntil) }} />
+            </span>
+            <span className="flex min-w-0 flex-1 items-center gap-2.5 py-2">
+                {lead}
+                <span className="min-w-0 flex-1">
+                    <span className="type-body-strong block truncate text-ink">{title}</span>
+                    <span className={cn('type-caption block truncate', daysUntil < 0 ? 'text-tomato' : 'text-muted')}>{narrow ? `${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} · ${subtitle}` : subtitle}</span>
+                </span>
+                {end}
+                {action}
+            </span>
+        </li>
+    );
 
     return (
         <div className="flex h-full flex-col">
-        <ul className="no-scrollbar -mx-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto">
-            {visibleAgenda.map(item => {
+        <ul className="no-scrollbar -mx-2 min-h-0 flex-1 overflow-y-auto">
+            {visibleAgenda.map((item, index) => {
+                const last = index === visibleAgenda.length - 1;
                 if (item.type === 'task') {
                     return (
-                        <li key={`task-${item.data.id}`} className="flex items-center gap-3 px-2 py-2.5">
-                            <button
-                                type="button"
-                                onClick={() => onTaskUpdate({ ...item.data, status: 'Done' })}
-                                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-inset hover:text-ink focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
-                                aria-label={`Mark “${item.data.title}” done`}
-                            >
-                                <span className="size-5 rounded-full border-2 border-line-strong" />
-                            </button>
-                            <div className="min-w-0 flex-1">
-                                <p className="type-body-strong truncate text-ink">{item.data.title}</p>
-                                <p className="type-caption text-muted">Task</p>
-                            </div>
-                            {dueBadge(item.daysUntil)}
-                        </li>
+                        <Row
+                            key={`task-${item.data.id}`}
+                            date={item.date}
+                            daysUntil={item.daysUntil}
+                            last={last}
+                            lead={<LogoTile label={item.data.title} size={32} rounded="full" fallbackIcon="checkmark-circle-02" />}
+                            title={item.data.title}
+                            subtitle={`Task · ${dueText(item.daysUntil)}`}
+                            action={<Button variant="ghost" size="sm" onPress={() => onTaskUpdate({ ...item.data, status: 'Done' })}>Done</Button>}
+                        />
                     );
                 }
 
                 if (item.type === 'bill' || item.type === 'recurring') {
                     const isBill = item.type === 'bill';
                     const data = item.data as (BillPayment | RecurringTransaction);
+                    const recurring = !isBill ? (data as RecurringTransaction) : null;
+                    const incoming = isBill ? (data as BillPayment).type === 'deposit' : recurring?.type === 'income';
                     return (
-                        <li key={`${item.type}-${data.id}`} className="flex items-center gap-3 px-2 py-2.5">
-                            {glyph(isBill ? 'invoice-03' : 'repeat')}
-                            <div className="min-w-0 flex-1">
-                                <p className="type-body-strong truncate text-ink">{data.description}</p>
-                                <p className="type-caption flex flex-wrap items-center gap-x-2 text-muted">
-                                    <Amount value={Math.abs(data.amount)} currency={(data as { currency?: Currency }).currency || 'EUR'} className="text-ink" />
-                                    {dueBadge(item.daysUntil)}
-                                </p>
-                            </div>
-                            <Button variant="secondary" size="sm" onPress={() => onProcessItem(data)}>{isBill ? 'Pay' : 'Post'}</Button>
-                        </li>
+                        <Row
+                            key={`${item.type}-${data.id}`}
+                            date={item.date}
+                            daysUntil={item.daysUntil}
+                            last={last}
+                            lead={<MerchantLogo merchant={recurring?.merchant || data.description} description={data.description} size={32} fallbackIcon={categoryIcon(recurring?.category) || (isBill ? 'invoice-03' : 'repeat')} />}
+                            title={data.description}
+                            subtitle={`${isBill ? 'Bill' : recurring?.category || 'Repeats'} · ${dueText(item.daysUntil)}`}
+                            end={<span className="type-figure-row shrink-0 text-ink"><Amount value={incoming ? Math.abs(data.amount) : -Math.abs(data.amount)} currency={(data as { currency?: Currency }).currency || 'EUR'} tone="flow" /></span>}
+                            action={<Button variant="secondary" size="sm" onPress={() => onProcessItem(data)}>{isBill ? 'Pay' : 'Post'}</Button>}
+                        />
                     );
                 }
 
                 return (
-                    <li key={`goal-${item.data.id}`} className="flex items-center gap-3 px-2 py-2.5">
-                        {glyph('target-01')}
-                        <div className="min-w-0 flex-1">
-                            <p className="type-body-strong truncate text-ink">{item.data.name}</p>
-                            <p className="type-caption text-muted">Goal target date</p>
-                        </div>
-                        {dueBadge(item.daysUntil)}
-                    </li>
+                    <Row
+                        key={`goal-${item.data.id}`}
+                        date={item.date}
+                        daysUntil={item.daysUntil}
+                        last={last}
+                        lead={<LogoTile label={item.data.name} size={32} rounded="full" fallbackIcon="target-01" />}
+                        title={item.data.name}
+                        subtitle={`Goal target date · ${dueText(item.daysUntil)}`}
+                    />
                 );
             })}
         </ul>

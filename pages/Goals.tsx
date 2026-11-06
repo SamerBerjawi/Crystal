@@ -3,7 +3,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { FinancialGoal } from '../types';
-import { convertToMain, getMainCurrency } from '../utils';
+import { convertToMain, currencyCode, getMainCurrency } from '../utils';
 import { sortAccountsByType } from '../utils/accountsModel';
 import GoalCard from '../components/GoalCard';
 import GoalScenarioModal from '../components/GoalScenarioModal';
@@ -19,6 +19,8 @@ import { EmptyState } from '../components/ui/States';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import { useAccountsContext } from '../contexts/DomainProviders';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
+import { goalViews } from '../utils/budgetModel';
+import { RingChart, Ring, RingCenter } from '../src/components/charts';
 import { goalCategoryOf } from '../utils/forecastModel';
 import { parseAmountInput } from '../utils/scheduleModel';
 import { accountCoverage, completionChanges, goalTree, isGoalDone, monthlyNeed, monthlyTargetGroups, moveGoal, summaryRings, type GoalNode } from '../utils/goalsModel';
@@ -84,6 +86,10 @@ const Goals: React.FC = () => {
       .map(node => ({ id: node.goal.id, name: node.goal.name, saved: leaves(node).filter(goal => !isGoalDone(goal) && goalCategoryOf(goal) === 'savings').reduce((sum, goal) => sum + convertToMain(goal.currentAmount, goal.currency), 0) }))
       .filter(share => share.saved > 0);
   }, [tree]);
+  const ringData = useMemo(
+    () => goalViews(visibleGoals, convertToMain).filter(goal => !goal.done && goal.target > 0).slice(0, 5).map((goal, index) => ({ label: goal.name, value: goal.saved, maxValue: goal.target, color: SHARE_COLOURS[index % SHARE_COLOURS.length] })),
+    [visibleGoals]
+  );
   const sharesTotal = shares.reduce((sum, share) => sum + share.saved, 0);
 
   const accountOptions = useMemo<PickerOption[]>(() => {
@@ -151,8 +157,16 @@ const Goals: React.FC = () => {
       ) : (
         <>
           <section aria-label="Goals summary" className="surface-card rounded-[var(--radius-xl)] p-6 max-md:p-5">
-            <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
-              <div>
+            <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
+              {ringData.length > 0 && (
+                <div className="mx-auto shrink-0 sm:mx-0" style={{ width: 150 }}>
+                  <RingChart data={ringData} size={150} strokeWidth={8} ringGap={4} baseInnerRadius={32}>
+                    {ringData.map((_, index) => <Ring key={index} index={index} />)}
+                    <RingCenter defaultLabel="Saved" formatOptions={{ style: 'currency', currency: currencyCode(getMainCurrency()), notation: 'compact', maximumFractionDigits: 1 }} />
+                  </RingChart>
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
                 <p className="type-label text-muted">Saved towards your goals</p>
                 <p className="type-figure-hero text-ink"><Amount value={savings.saved} currency={getMainCurrency()} countUp /></p>
               </div>

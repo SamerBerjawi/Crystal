@@ -14,6 +14,7 @@ import {
 } from '../utils/accountsModel';
 import AccountsListSection from '../components/AccountsListSection';
 import AccountPot from '../components/AccountPot';
+import AccountsSplitBar from '../components/AccountsSplitBar';
 import CardsWallet from '../components/CardsWallet';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -313,6 +314,20 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       ) : tabAccounts.length === 0 ? (
         <EmptyState icon="wallet-02" title="Nothing here yet" description="Accounts of this kind appear here." actionLabel="Add account" onAction={() => setAddModalOpen(true)} />
       ) : showPots ? (
+        <>
+        {(activeTab === 'accounts' || activeTab === 'loans') && (
+          <AccountsSplitBar
+            title={activeTab === 'accounts' ? 'Where your money sits' : 'Where your debt sits'}
+            accounts={tabAccounts}
+            balanceOf={account => {
+              const balance = toDisplay(convertToMain(computeAccountDisplayBalance(account, transactionsByAccount[account.id] || [], loanPaymentOverrides, { conversionRates }), account.currency));
+              // Money you hold counts; an overdrawn account is not a share of it.
+              return activeTab === 'accounts' ? Math.max(0, balance) : balance;
+            }}
+            currency={preferredCurrency}
+            onOpen={handleAccountClick}
+          />
+        )}
         <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sortedPots.map(account => (
             <AccountPot
@@ -326,6 +341,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             />
           ))}
         </div>
+        </>
       ) : section('', tabAccounts)}
 
       {activeTab === 'assets' && openAccounts.some(acc => acc.type === 'Investment') && (

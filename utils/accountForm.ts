@@ -6,7 +6,7 @@ import type { Account, AccountType, Currency, FuelType, InvestmentSubType, Milea
 
 /** Text and number fields, held as typed. Each name matches the `Account` field it saves to. */
 const TEXT_FIELDS = [
-  'name', 'financialInstitution', 'accountNumber', 'routingNumber', 'openingDate', 'last4', 'expirationDate', 'cardNetwork', 'cardholderName',
+  'name', 'financialInstitution', 'accountNumber', 'routingNumber', 'openingDate', 'last4', 'expirationDate', 'cardNetwork', 'cardholderName', 'cardColor', 'cardShade', 'cardPattern', 'maturityDate',
   'symbol', 'location', 'assetCondition', 'counterparty', 'notes', 'make', 'model', 'licensePlate', 'registrationCountryCode', 'vin', 'purchaseDate',
   'leaseProvider', 'leaseStartDate', 'leaseEndDate', 'leasePaymentAccountId', 'address', 'propertyTaxDate', 'insuranceProvider', 'insurancePolicyNumber',
   'insurancePaymentDate', 'annualFeeDate', 'linkedAccountId', 'linkedAssetId', 'linkedLoanId', 'settlementAccountId', 'loanStartDate',
@@ -20,7 +20,7 @@ const NUMBER_FIELDS = [
   'propertyTaxAmount', 'insuranceAmount', 'hoaFeeAmount', 'rentalIncomeAmount',
 ] as const;
 
-const SWITCH_FIELDS = ['isPrimary', 'hasBasement', 'hasAttic', 'hasGarden', 'hasTerrace', 'isRental'] as const;
+const SWITCH_FIELDS = ['isPrimary', 'rollsOver', 'hasBasement', 'hasAttic', 'hasGarden', 'hasTerrace', 'isRental'] as const;
 
 export type TextField = (typeof TEXT_FIELDS)[number] | (typeof NUMBER_FIELDS)[number] | 'currentMileage';
 export type SwitchField = (typeof SWITCH_FIELDS)[number] | 'includeInAnalytics' | 'hasCard';
@@ -173,9 +173,14 @@ export function buildAccount(draft: AccountDraft, { base, isComputed }: BuildOpt
     routingNumber: text(draft.routingNumber),
     apy: num(draft.apy),
     openingDate: draft.openingDate || undefined,
+    maturityDate: ['Savings', 'Investment'].includes(type) && draft.maturityDate ? draft.maturityDate : undefined,
+    rollsOver: ['Savings', 'Investment'].includes(type) && draft.maturityDate && draft.rollsOver ? true : undefined,
     expirationDate: hasCard && draft.expirationDate ? draft.expirationDate : undefined,
     cardNetwork: hasCard && draft.cardNetwork ? draft.cardNetwork : undefined,
     cardholderName: hasCard ? text(draft.cardholderName) : undefined,
+    cardColor: hasCard && draft.cardColor ? draft.cardColor : undefined,
+    cardShade: hasCard && draft.cardColor ? (draft.cardShade === 'light' ? 'light' : 'dark') : undefined,
+    cardPattern: hasCard && draft.cardPattern && draft.cardPattern !== 'none' ? draft.cardPattern : undefined,
 
     ...(type === 'Investment' && {
       subType: draft.subType,

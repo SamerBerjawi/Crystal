@@ -84,6 +84,9 @@ export interface Account {
   routingNumber?: string; // BIC, SWIFT, Sort Code, or Routing Number
   apy?: number; // Annual Percentage Yield for savings
   openingDate?: string; // Date account was opened
+  /** A fixed term (a bill, bond or term deposit) ends on this date, and the money is paid out or rolled into a new term. */
+  maturityDate?: string;
+  rollsOver?: boolean;
   balanceLastSyncedAt?: string;
   balanceSource?: 'enable_banking' | 'manual';
 
@@ -91,6 +94,10 @@ export interface Account {
   expirationDate?: string; // MM/YY
   cardNetwork?: string; // Visa, Mastercard, etc.
   cardholderName?: string;
+  /** How the card is drawn: a colour id, its shade, and a pattern id (see utils/cardStyle). */
+  cardColor?: string;
+  cardShade?: 'light' | 'dark';
+  cardPattern?: string;
 
   // Investment specific
   subType?: InvestmentSubType;

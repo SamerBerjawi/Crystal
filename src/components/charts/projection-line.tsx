@@ -1,6 +1,6 @@
 "use client";
 
-import { curveLinear } from "@visx/curve";
+import { curveNatural } from "@visx/curve";
 import { LinePath } from "@visx/shape";
 import { useCallback, useId, useMemo } from "react";
 import { useChartStable, useYScale } from "./chart-context";
@@ -90,7 +90,7 @@ function renderProjectionStroke({
   }
   return (
     <LinePath
-      curve={curve ?? curveLinear}
+      curve={curve ?? curveNatural}
       data={data}
       {...strokeProps}
       x={getX}
@@ -107,7 +107,7 @@ export function ProjectionLine({
   gradientStart,
   gradientEnd = "var(--chart-5)",
   strokeWidth = 2,
-  curveKind = "linear",
+  curveKind = "bezier",
   curve,
   strokeDasharray = "6,4",
   strokeOpacity = 1,

@@ -53,7 +53,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({
       <p className="type-caption -mt-2 text-muted">Saved this month, after spending</p>
 
       {showChart && <div className="min-h-[100px] w-full flex-1">
-        <LineChart data={chartData} xDataKey="date" yDomainTween aspectRatio="" className="h-full min-h-[100px] w-full" margin={{ top: 15, right: 15, bottom: 20, left: 15 }}>
+        <LineChart data={chartData} xDataKey="date" yDomainTween aspectRatio="" className="h-full min-h-[100px] w-full" margin={{ top: 15, right: 15, bottom: 20, left: 44 }}>
           <Grid horizontal stroke="var(--line)" />
           <XAxis />
           <YAxis />

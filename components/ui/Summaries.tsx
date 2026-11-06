@@ -18,6 +18,7 @@ import { getMerchantLogoUrl } from '../../utils/brandfetch';
 import { ACCOUNT_TYPE_STYLES } from '../../constants';
 import { ACCOUNT_TYPE_ORDER, computeAccount90dSparkline } from '../../utils/accountsModel';
 import { fitRows, useWidgetBox } from './WidgetGrid';
+import { useAccountLogo } from '../useAccountLogo';
 import { StatGauge, type GaugeTone } from './StatGauge';
 
 /** The signature sentence: three facts at most, each linked to where you can act. */
@@ -218,9 +219,8 @@ export const SafeToSpendWidget: React.FC<{
 };
 
 /** One account's logo, or the icon its owner picked, or its type's icon. Logos come from the account's institution. */
-const AccountMark: React.FC<{ account: Account; size?: number }> = ({ account, size = 28 }) => {
-  const clientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
-  const logo = clientId && account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, clientId) : null;
+export const AccountMark: React.FC<{ account: Account; size?: number }> = ({ account, size = 28 }) => {
+  const logo = useAccountLogo(account, size);
   return <LogoTile url={logo} label={account.name} size={size} fallbackIcon={account.icon || ACCOUNT_TYPE_STYLES[account.type]?.icon || 'bank'} />;
 };
 
@@ -238,6 +238,8 @@ export const AccountsSummary: React.FC<{
 }> = ({ accounts, toDisplay, currency, onOpen, onAll, transactions, conversionRates }) => {
   const box = useWidgetBox();
   const showTrend = !!transactions && (box.width === 0 || box.width >= 300);
+  // Wider when the widget has room; slimmer when names would be squeezed.
+  const trendWidth = box.width === 0 || box.width >= 420 ? 76 : 56;
   const trends = React.useMemo(() => {
     if (!showTrend || !transactions) return new Map<string, { data: { value: number }[]; isPositive: boolean }>();
     const byAccount = new Map<string, Transaction[]>();
@@ -296,7 +298,7 @@ export const AccountsSummary: React.FC<{
                       <span className="type-body-strong block truncate text-ink">{account.name}</span>
                       {account.financialInstitution && <span className="type-caption block truncate text-muted">{account.financialInstitution}</span>}
                     </span>
-                    {trends.has(account.id) && <Sparkline data={trends.get(account.id)!.data} isPositive={trends.get(account.id)!.isPositive} width={44} height={20} />}
+                    {trends.has(account.id) && <Sparkline data={trends.get(account.id)!.data} isPositive={trends.get(account.id)!.isPositive} width={trendWidth} height={24} />}
                     <span className="type-figure-row shrink-0 text-ink"><Amount value={toDisplay(account.balance, account.currency)} currency={currency} /></span>
                   </button>
                 </li>

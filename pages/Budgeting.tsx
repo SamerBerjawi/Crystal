@@ -130,6 +130,15 @@ const Budgeting: React.FC<BudgetingProps> = ({
     [transactions, currentMonth, accountIds, expenseCategories]
   );
 
+  // What each category usually comes to in a month, over up to the six months before this one. It needs a month and a half of history to mean anything.
+  const usualMap = useMemo(() => {
+    if (transactions.length === 0) return new Map<string, number>();
+    const earliest = transactions.reduce((min, tx) => (tx.date < min ? tx.date : min), transactions[0].date).slice(0, 10);
+    const monthStart = monthBounds(currentMonth).from;
+    if ((new Date(monthStart).getTime() - new Date(earliest).getTime()) / 86400000 < 45) return new Map<string, number>();
+    return averageMonthlySpend(transactions, currentMonth, 6, { accountIds, categories: expenseCategories, convert: convertToMain });
+  }, [transactions, currentMonth, accountIds, expenseCategories]);
+
   const prevMonthSpendMap = useMemo(() => {
     const prevDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     return spendByCategory(transactions, monthBounds(monthOf(prevDate)), {
@@ -320,6 +329,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     pct={line.pct}
                     status={line.status}
                     pacePct={pace.when === 'current' ? pace.elapsedPct : undefined}
+                    usual={usualMap.has(line.name) ? usualMap.get(line.name)! * (pace.when === 'current' ? pace.elapsedPct / 100 : 1) : undefined}
                     currency={getMainCurrency()}
                     onPress={() => openForm(line.budget)}
                   />
@@ -327,7 +337,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
               })}
               {uncapped.map(item => {
                 const category = categoryOf(item.name);
-                return <BudgetRow key={item.name} name={item.name} icon={category?.icon} color={category?.color} spent={item.spent} currency={getMainCurrency()} onPress={() => openForm(undefined, category ? item.name : undefined)} />;
+                return <BudgetRow key={item.name} name={item.name} icon={category?.icon} color={category?.color} spent={item.spent} usual={usualMap.has(item.name) ? usualMap.get(item.name)! * (pace.when === 'current' ? pace.elapsedPct / 100 : 1) : undefined} currency={getMainCurrency()} onPress={() => openForm(undefined, category ? item.name : undefined)} />;
               })}
             </div>
           ) : (

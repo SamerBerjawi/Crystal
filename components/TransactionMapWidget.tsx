@@ -6,6 +6,7 @@ import { convertToMain, getMainCurrency, safeRound } from '../utils';
 import L from 'leaflet';
 import { useIsDark } from '../hooks/useIsDark';
 import { IconButton } from './ui/Actions';
+import Icon from './ui/Icon';
 import { Amount } from './ui/Money';
 import { EmptyState } from './ui/States';
 import { useWidgetBox } from './ui/WidgetGrid';
@@ -77,38 +78,42 @@ interface TransactionMapWidgetProps {
   transactions: Transaction[];
 }
 
-// Component to auto-fit Leaflet map bounds around transaction coordinates
-const BoundsFitter: React.FC<{ coords: [number, number][]; center: [number, number] }> = ({ coords, center }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (coords.length > 0) {
-      if (coords.length === 1) {
-        map.setView(coords[0], 12);
-      } else {
-        const bounds = L.latLngBounds(coords);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
-      }
-      setTimeout(() => map.invalidateSize(), 100);
-    } else {
-      map.setView(center, 4);
-    }
-  }, [coords, center, map]);
-  return null;
-};
+/** What the controls and the place chips ask of the map. They go through the map itself, so they work after it has been dragged or zoomed by hand. */
+interface MapApi {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  fitAll: () => void;
+  flyTo: (lat: number, lon: number) => void;
+}
 
-// Component to dynamically sync zoom controls with Leaflet interactive map
-const LeafletZoomController: React.FC<{ zoomLevel: number }> = ({ zoomLevel }) => {
+/** Fits the map around every place when it opens and whenever the places change, and hands its controls to the widget. */
+const MapBridge: React.FC<{ coords: [number, number][]; center: [number, number]; apiRef: React.MutableRefObject<MapApi | null> }> = ({ coords, center, apiRef }) => {
   const map = useMap();
-  const isFirstRun = React.useRef(true);
+  const coordsRef = React.useRef(coords);
+  coordsRef.current = coords;
+
+  const fitAll = React.useCallback(() => {
+    const points = coordsRef.current;
+    if (points.length === 0) map.setView(center, 4);
+    else if (points.length === 1) map.setView(points[0], 12);
+    else map.fitBounds(L.latLngBounds(points), { padding: [50, 50], maxZoom: 13 });
+  }, [map, center]);
+
   useEffect(() => {
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
-      return;
-    }
-    const currentCenter = map.getCenter();
-    const targetZoom = Math.max(1, Math.min(18, Math.round(zoomLevel)));
-    map.setZoomAround(currentCenter, targetZoom);
-  }, [zoomLevel, map]);
+    apiRef.current = {
+      zoomIn: () => map.zoomIn(),
+      zoomOut: () => map.zoomOut(),
+      fitAll,
+      flyTo: (lat, lon) => map.flyTo([lat, lon], Math.max(map.getZoom(), 11), { duration: 0.6 }),
+    };
+    return () => { apiRef.current = null; };
+  }, [map, fitAll, apiRef]);
+
+  useEffect(() => {
+    fitAll();
+    const timer = setTimeout(() => map.invalidateSize(), 100);
+    return () => clearTimeout(timer);
+  }, [coords, fitAll, map]);
   return null;
 };
 
@@ -167,7 +172,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
 
   const focalCenter = useMemo((): [number, number] => (locations.length === 0 ? [20, 0] : [locations[0].lat, locations[0].lon]), [locations]);
   const coords: [number, number][] = useMemo(() => locations.map(l => [l.lat, l.lon]), [locations]);
-  const [tileZoom, setTileZoom] = useState<number>(3);
+  const mapApi = React.useRef<MapApi | null>(null);
   const box = useWidgetBox();
   // Place chips need a row of 48px under the map and the detail card needs 260px by 420px; the map itself fills the rest.
   const showRail = box.height === 0 || box.height >= 300;
@@ -177,6 +182,17 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
     return <EmptyState icon="location-01" title="No places yet" description="Transactions with a location show up on this map." className="h-full py-6" />;
   }
 
+  // Picking a place flies the map to it; picking it again, or "All", brings every place back into view.
+  const choose = (loc: { id: string; lat: number; lon: number } | null) => {
+    if (!loc || selectedLocationId === loc.id) {
+      setSelectedLocationId(null);
+      mapApi.current?.fitAll();
+    } else {
+      setSelectedLocationId(loc.id);
+      mapApi.current?.flyTo(loc.lat, loc.lon);
+    }
+  };
+  const focusId = hoveredLocationId || selectedLocationId;
   const active = locations.find(l => l.id === (hoveredLocationId || selectedLocationId));
   const totalCount = locations.reduce((sum, l) => sum + l.count, 0);
   const floating = 'border border-line bg-solid/90 backdrop-blur-md';
@@ -189,17 +205,16 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
       </div>
 
       <div className="relative min-h-[100px] w-full flex-1 overflow-hidden">
-        <MapContainerAny center={focalCenter} zoom={tileZoom} style={{ height: '100%', width: '100%' }} className="!z-0" zoomControl={false}>
+        <MapContainerAny center={focalCenter} zoom={3} style={{ height: '100%', width: '100%' }} className="!z-0" zoomControl={false}>
           <VectorBasemap dark={isDarkMode} />
-          <BoundsFitter coords={coords} center={focalCenter} />
-          <LeafletZoomController zoomLevel={tileZoom} />
+          <MapBridge coords={coords} center={focalCenter} apiRef={mapApi} />
           {locations.map(loc => (
             <CircleMarkerAny
               key={loc.id}
               center={[loc.lat, loc.lon]}
-              radius={Math.min(Math.max(6 + Math.log1p(loc.count) * 2.5, 7), 16)}
-              pathOptions={{ color: 'var(--solid)', weight: 2, fillColor: 'var(--primary)', fillOpacity: 0.9 }}
-              eventHandlers={{ click: () => setSelectedLocationId(prev => (prev === loc.id ? null : loc.id)) }}
+              radius={Math.min(Math.max(6 + Math.log1p(loc.count) * 2.5, 7), 16) + (loc.id === focusId ? 2 : 0)}
+              pathOptions={{ color: 'var(--solid)', weight: loc.id === focusId ? 3 : 2, fillColor: loc.id === focusId ? 'var(--amber)' : 'var(--primary)', fillOpacity: focusId && loc.id !== focusId ? 0.4 : 0.9 }}
+              eventHandlers={{ click: () => choose(loc), mouseover: () => setHoveredLocationId(loc.id), mouseout: () => setHoveredLocationId(null) }}
             >
               <TooltipAny direction="top" offset={[0, -8]} opacity={1} className="custom-map-tooltip">
                 <span className="type-caption block text-center">
@@ -232,15 +247,24 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
       )}
 
       {showRail && <div className="no-scrollbar relative z-10 flex items-center gap-1.5 overflow-x-auto px-3 pb-3 pt-2">
+        <button
+          type="button"
+          onClick={() => choose(null)}
+          aria-pressed={selectedLocationId === null}
+          className={`type-caption inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${selectedLocationId === null ? 'border-pill bg-pill text-on-pill' : 'border-line bg-solid text-ink hover:bg-inset'}`}
+        >
+          <Icon name="globe-02" size={14} />
+          All
+        </button>
         {locations.map(loc => {
-          const isOn = selectedLocationId === loc.id || hoveredLocationId === loc.id;
+          const isOn = selectedLocationId === loc.id;
           return (
             <button
               key={loc.id}
               type="button"
               onMouseEnter={() => setHoveredLocationId(loc.id)}
               onMouseLeave={() => setHoveredLocationId(null)}
-              onClick={() => setSelectedLocationId(prev => (prev === loc.id ? null : loc.id))}
+              onClick={() => choose(loc)}
               aria-pressed={selectedLocationId === loc.id}
               className={`type-caption inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${isOn ? 'border-pill bg-pill text-on-pill' : 'border-line bg-solid text-ink hover:bg-inset'}`}
             >
@@ -252,9 +276,9 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
       </div>}
 
       <div className={`absolute ${showRail ? 'bottom-14' : 'bottom-3'} right-3 z-[1000] flex items-center gap-0.5 rounded-full p-1 ${floating}`}>
-        <IconButton icon="add-01" label="Zoom in" iconSize={16} className="size-8" onPress={() => setTileZoom(z => Math.min(z + 1, 18))} />
-        <IconButton icon="minus-sign" label="Zoom out" iconSize={16} className="size-8" onPress={() => setTileZoom(z => Math.max(z - 1, 1))} />
-        <IconButton icon="center-focus" label="Show every place" iconSize={16} className="size-8" onPress={() => { setTileZoom(3); setSelectedLocationId(null); }} />
+        <IconButton icon="add-01" label="Zoom in" iconSize={16} className="size-8" onPress={() => mapApi.current?.zoomIn()} />
+        <IconButton icon="minus-sign" label="Zoom out" iconSize={16} className="size-8" onPress={() => mapApi.current?.zoomOut()} />
+        <IconButton icon="globe-02" label="Show every place" iconSize={16} className="size-8" onPress={() => choose(null)} />
       </div>
     </div>
   );

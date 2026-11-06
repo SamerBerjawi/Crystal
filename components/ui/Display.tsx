@@ -58,7 +58,30 @@ export const CountPill: React.FC<{ count: number; className?: string }> = ({ cou
  * screen readers and does not react to the pointer. Green when it ends higher than it started, red when lower. Without a
  * fixed `width` (or with `preserveAspect={false}`) it fills the width of its parent.
  */
-export const Sparkline: React.FC<{ data: { value: number }[]; isPositive: boolean; width?: number; height?: number; className?: string; preserveAspect?: boolean }> = ({ data, isPositive, width = 72, height = 24, className, preserveAspect = true }) => {
+/**
+ * A trend with its small wobbles averaged out, so the line reads as a shape rather than noise. The window grows with the
+ * number of points, and the first and last points stay where they are so the line still starts and ends true.
+ */
+const smoothTrend = (data: { value: number }[]): { value: number }[] => {
+  const radius = Math.min(6, Math.floor(data.length / 14));
+  if (radius < 1) return data;
+  return data.map((point, index) => {
+    if (index === 0 || index === data.length - 1) return point;
+    let total = 0;
+    let weight = 0;
+    for (let offset = -radius; offset <= radius; offset += 1) {
+      const neighbour = data[index + offset];
+      if (!neighbour) continue;
+      const w = radius + 1 - Math.abs(offset); // a triangle: the nearer, the heavier
+      total += neighbour.value * w;
+      weight += w;
+    }
+    return { ...point, value: total / weight };
+  });
+};
+
+export const Sparkline: React.FC<{ data: { value: number }[]; isPositive: boolean; width?: number; height?: number; className?: string; preserveAspect?: boolean }> = ({ data: raw, isPositive, width = 96, height = 26, className, preserveAspect = true }) => {
+  const data = React.useMemo(() => smoothTrend(raw), [raw]);
   if (data.length < 2) return null;
   return (
     <span aria-hidden="true" className={cn('inline-block shrink-0', !preserveAspect && 'w-full', className)} style={preserveAspect ? { width, height } : { height }}>
@@ -68,6 +91,7 @@ export const Sparkline: React.FC<{ data: { value: number }[]; isPositive: boolea
         width={preserveAspect ? width : undefined}
         height={height}
         color={isPositive ? 'var(--money-in)' : 'var(--money-out)'}
+        curve="natural"
         strokeWidth={2}
         fillOpacity={0.18}
         interactive={false}

@@ -18,7 +18,7 @@ export interface SavedReportView extends ReportFilters {
   groupBy: GroupBy;
 }
 
-export type ReportId = 'summary' | 'spending' | 'categories' | 'usual' | 'needs' | 'breakdown' | 'cashflow' | 'budget' | 'recurring' | 'unusual' | 'forecast';
+export type ReportId = 'summary' | 'spending' | 'categories' | 'usual' | 'needs' | 'breakdown' | 'cashflow' | 'budget' | 'recurring' | 'unusual' | 'forecast' | 'categoryMonths' | 'income';
 
 export const NO_FILTERS = { merchant: '', category: 'all', accountId: 'all' };
 export const MAX_SAVED_VIEWS = 15;
@@ -257,6 +257,50 @@ export const monthEndForecast = (transactions: Transaction[], filters: ReportFil
   return { mtdSpendEur, dailyAverage, projectedMonthEnd: mtdSpendEur + dailyAverage * remainingDays, remainingDays };
 };
 
+
+const monthKey = (date: string) => date.slice(0, 7);
+
+/** The months a period touches, oldest first, as `YYYY-MM`. */
+export const monthKeysIn = (startDate: string, endDate: string): string[] => {
+  const keys: string[] = [];
+  const end = monthKey(endDate);
+  let year = Number(startDate.slice(0, 4));
+  let month = Number(startDate.slice(5, 7));
+  while (`${year}-${String(month).padStart(2, '0')}` <= end && keys.length < 36) {
+    keys.push(`${year}-${String(month).padStart(2, '0')}`);
+    month += 1;
+    if (month > 12) { month = 1; year += 1; }
+  }
+  return keys;
+};
+
+/** Spending by category in each month of the period, with the biggest cell for shading. */
+export const categoryByMonth = (rows: Transaction[], startDate: string, endDate: string) => {
+  const months = monthKeysIn(startDate, endDate);
+  const byCategory = new Map<string, Record<string, number>>();
+  rows.forEach(tx => {
+    const cells = byCategory.get(tx.category) ?? {};
+    const key = monthKey(tx.date);
+    cells[key] = (cells[key] ?? 0) + amountOf(tx);
+    byCategory.set(tx.category, cells);
+  });
+  const table = [...byCategory.entries()]
+    .map(([category, cells]) => ({ category, cells, totalEur: sum(Object.values(cells)) }))
+    .sort((a, b) => b.totalEur - a.totalEur);
+  const monthTotals = months.map(key => sum(table.map(row => row.cells[key] ?? 0)));
+  const max = Math.max(0, ...table.flatMap(row => months.map(key => row.cells[key] ?? 0)));
+  return { months, table, monthTotals, max };
+};
+
+/** Money in: by category, and by month across the period. */
+export const incomeBreakdown = (transactions: Transaction[], filters: ReportFilters, showAdjustments: boolean, categories?: Category[]) => {
+  const rows = transactions.filter(tx => tx.type === 'income' && isCounted(tx, showAdjustments) && tx.date >= filters.startDate && tx.date <= filters.endDate && inScope(tx, filters, categories));
+  const total = totalOf(rows);
+  const sources = [...categoryTotals(rows).entries()].map(([category, totalEur]) => ({ category, totalEur })).sort((a, b) => b.totalEur - a.totalEur);
+  const months = monthKeysIn(filters.startDate, filters.endDate).map(key => ({ key, totalEur: sum(rows.filter(tx => monthKey(tx.date) === key).map(amountOf)) }));
+  return { total, count: rows.length, sources, months };
+};
+
 export const buildReport = (
   transactions: Transaction[],
   budgets: Budget[],
@@ -288,6 +332,9 @@ export const buildReport = (
     average: rows.length > 0 ? totalSpend / rows.length : 0,
     recurringImpact: sum(recurring.map(item => item.estimatedMonthlyEur)),
     categories,
+    previousCategories: [...categoryTotals(previousRows).entries()].map(([category, totalEur]) => ({ category, totalEur })),
+    byMonth: categoryByMonth(rows, startDate, endDate),
+    incomeReport: incomeBreakdown(transactions, filters, showAdjustments, categoriesList),
     velocity: spendingVelocity(rows, previousRows, startDate, endDate),
     usual: comparedWithUsual(rows, transactions, filters, showAdjustments, categoriesList),
     needs: needsAndWants(rows),
@@ -388,6 +435,14 @@ export const reportTiles = (report: Report): Record<ReportId, { value: string; s
     unusual: {
       value: `${report.unusual.length} found`,
       says: report.unusual.length === 0 ? 'Nothing stands out, or there are too few payments to tell.' : 'These payments are far above your average in this period.',
+    },
+    categoryMonths: {
+      value: `${report.byMonth.months.length} ${report.byMonth.months.length === 1 ? 'month' : 'months'}`,
+      says: report.byMonth.table.length === 0 ? 'There is no spending in this period.' : `${report.byMonth.table[0].category} led across ${report.byMonth.months.length} ${report.byMonth.months.length === 1 ? 'month' : 'months'}. Darker cells are where more went out.`,
+    },
+    income: {
+      value: eur(report.incomeReport.total),
+      says: report.incomeReport.count === 0 ? 'No money came in during this period.' : `${eur(report.incomeReport.total)} came in across ${report.incomeReport.count} ${report.incomeReport.count === 1 ? 'payment' : 'payments'}, mostly from ${report.incomeReport.sources[0].category}.`,
     },
     forecast: {
       value: eur(report.forecast.projectedMonthEnd),

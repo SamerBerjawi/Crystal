@@ -11,7 +11,8 @@ import { EmptyState } from './ui/States';
 import { fitRows, useWidgetBox } from './ui/WidgetGrid';
 
 interface SpendingByCategoryWidgetProps {
-  data: CategorySpending[];
+  /** The accounts the dashboard is showing. Spending and budgets are both counted over these. */
+  selectedAccountIds: string[];
   budgets: Budget[];
   transactions: Transaction[];
   expenseCategories: Category[];
@@ -47,7 +48,7 @@ const SLICE_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var
  * Where the money went, by category, with the budget for each category beside it. A donut shows the shares; each row shows
  * either its share of spending or, when it has a budget, how much of that budget is used. Rows open the category.
  */
-const SpendingByCategoryWidget: React.FC<SpendingByCategoryWidgetProps> = ({ data, budgets, transactions, expenseCategories, accounts, duration, onCategoryClick, onBudgetClick }) => {
+const SpendingByCategoryWidget: React.FC<SpendingByCategoryWidgetProps> = ({ selectedAccountIds, budgets, transactions, expenseCategories, accounts, duration, onCategoryClick, onBudgetClick }) => {
   const currency = getMainCurrency();
   const box = useWidgetBox();
 
@@ -58,15 +59,31 @@ const SpendingByCategoryWidget: React.FC<SpendingByCategoryWidgetProps> = ({ dat
     return today.getDate() / new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   }, [duration]);
 
+  // One count of spending feeds the donut, the totals and the budget bars, so they always agree: the same rules as the
+  // Budgets page (refunds netted, transfers and excluded payments left out), over the accounts on show.
+  const range = useMemo(() => {
+    const { start, end } = getDateRange(duration, transactions);
+    return { from: toLocalISOString(start), to: toLocalISOString(end) };
+  }, [duration, transactions]);
+  const countedAccountIds = useMemo(() => budgetAccountIds(accounts.filter(account => selectedAccountIds.includes(account.id))), [accounts, selectedAccountIds]);
+  const spentByName = useMemo(
+    () => spendByCategory(transactions, range, { accountIds: countedAccountIds, categories: expenseCategories, convert: convertToMain }),
+    [transactions, range, countedAccountIds, expenseCategories]
+  );
+
+  const data = useMemo<CategorySpending[]>(() => {
+    const topLevel = new Map(expenseCategories.filter(category => !category.parentId).map(category => [category.name, category]));
+    return [...spentByName.entries()]
+      .filter(([, value]) => value > 0.004)
+      .map(([name, value]) => ({ name, value, color: topLevel.get(name)?.color || 'var(--muted)', icon: topLevel.get(name)?.icon }))
+      .sort((a, b) => b.value - a.value);
+  }, [spentByName, expenseCategories]);
+
   const budgetByName = useMemo(() => {
     if (budgets.length === 0) return new Map<string, { spent: number; limit: number }>();
-    const { start, end } = getDateRange(duration, transactions);
-    const from = toLocalISOString(start);
-    const to = toLocalISOString(end);
-    const spent = spendByCategory(transactions, { from, to }, { accountIds: budgetAccountIds(accounts), categories: expenseCategories, convert: convertToMain });
-    const months = duration === 'MTD' ? 1 : Math.max(1, monthsInPeriod(from, to));
-    return new Map(budgets.map(budget => [budget.categoryName, { spent: spent.get(budget.categoryName) || 0, limit: convertToMain(budget.amount, budget.currency) * months }]));
-  }, [budgets, transactions, expenseCategories, accounts, duration]);
+    const months = duration === 'MTD' ? 1 : Math.max(1, monthsInPeriod(range.from, range.to));
+    return new Map(budgets.map(budget => [budget.categoryName, { spent: spentByName.get(budget.categoryName) || 0, limit: convertToMain(budget.amount, budget.currency) * months }]));
+  }, [budgets, spentByName, range, duration]);
 
   // What each category usually comes to over a stretch this long, from up to six months before this period. Needs a month and a half of history.
   const usualByName = useMemo(() => {

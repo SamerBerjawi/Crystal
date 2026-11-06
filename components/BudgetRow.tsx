@@ -26,15 +26,24 @@ export interface BudgetRowProps {
   status?: BudgetStatus;
   /** Where even spending would be today, 0 to 100. */
   pacePct?: number;
+  /** What this category usually comes to by this point in the month. */
+  usual?: number;
   currency: string;
   onPress: () => void;
 }
 
 /** One category: spent against its cap, with a tick where even spending would be today (D-015). */
-const BudgetRow: React.FC<BudgetRowProps> = ({ name, icon, color, spent, limit, pct = 0, status, pacePct, currency, onPress }) => {
+const BudgetRow: React.FC<BudgetRowProps> = ({ name, icon, color, spent, limit, pct = 0, status, pacePct, usual, currency, onPress }) => {
   const style = status ? STATUS[status] : null;
   const hasLimit = limit !== undefined;
   const remaining = hasLimit ? limit - spent : 0;
+  // Only worth saying when it differs enough to matter: a tenth of the usual, and at least a few units.
+  const gap = usual !== undefined && usual > 0 ? spent - usual : 0;
+  const usualNote = usual !== undefined && usual > 0 && Math.abs(gap) > Math.max(usual * 0.1, 5) ? (
+    <span className={cn('type-caption block', gap > 0 ? 'text-tomato' : 'text-pine')}>
+      <Amount value={Math.abs(gap)} currency={currency} /> {gap > 0 ? 'over' : 'under'} your usual
+    </span>
+  ) : null;
   return (
     <button type="button" onClick={onPress} className="flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] p-2 text-left transition-colors duration-[var(--duration-fast)] hover:bg-inset">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset" style={toneDot(color)}><Icon name={icon || 'folder-01'} size={20} /></span>
@@ -61,14 +70,19 @@ const BudgetRow: React.FC<BudgetRowProps> = ({ name, icon, color, spent, limit, 
                 />
               </span>
               {pacePct !== undefined && <span aria-hidden="true" className="absolute -inset-y-1 w-0.5 rounded-full bg-ink" style={{ left: `${pacePct}%` }} />}
+              {usual !== undefined && usual > 0 && limit > 0 && <span aria-hidden="true" title="Your usual by now" className="absolute -inset-y-0.5 w-0.5 rounded-full bg-muted" style={{ left: `${Math.min(100, (usual / limit) * 100)}%` }} />}
             </span>
             <span className={cn('type-caption mt-1 block', remaining < 0 ? 'text-money-out' : 'text-muted')}>
               <Amount value={Math.abs(remaining)} currency={currency} /> {remaining < 0 ? 'over' : 'left'}, {Math.round(pct)}% used
               {style && <span className="sm:hidden">. {style.label}</span>}
             </span>
+            {usualNote}
           </>
         ) : (
-          <span className="type-caption mt-1 block text-muted">No budget yet. Tap to set one.</span>
+          <>
+            <span className="type-caption mt-1 block text-muted">No budget yet. Tap to set one.</span>
+            {usualNote}
+          </>
         )}
       </span>
     </button>

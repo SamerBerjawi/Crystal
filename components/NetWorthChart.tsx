@@ -10,7 +10,7 @@ import {
 } from '../src/components/charts';
 import { useChartStable, useYScale } from '../src/components/charts/chart-context';
 import { SpotlightIndicator } from '../src/components/charts/spotlight-indicator';
-import { curveLinear } from '@visx/curve';
+import { curveNatural } from '@visx/curve';
 import { HorizonArea, clip, compact, labelWidth, shortDay } from './ForecastHorizonChart';
 import { iso } from '../utils/scheduleModel';
 import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
@@ -260,7 +260,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
           strokeWidth={2}
           dashFromIndex={isDashedProjection ? lastActualIndex : undefined}
           dashArray="6,4"
-          curve={curveLinear}
+          curve={curveNatural}
           fadeEdges={false}
         />
         {isDashedProjection && <LineSeriesTerminalMarker dataKey="netWorth" stroke={projectionColor} fill={projectionColor} />}

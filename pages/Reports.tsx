@@ -27,6 +27,8 @@ const TILES: { id: ReportId; label: string; icon: string }[] = [
   { id: 'summary', label: 'Summary', icon: 'analytics-01' },
   { id: 'spending', label: 'Spending pace', icon: 'chart-line-data-01' },
   { id: 'categories', label: 'Categories', icon: 'pie-chart-01' },
+  { id: 'categoryMonths', label: 'Category by month', icon: 'calendar-03' },
+  { id: 'income', label: 'Income', icon: 'wallet-02' },
   { id: 'usual', label: 'Compared with usual', icon: 'exchange-01' },
   { id: 'needs', label: 'Needs and wants', icon: 'balance-scale' },
   { id: 'breakdown', label: 'Spend breakdown', icon: 'receipt' },

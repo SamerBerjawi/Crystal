@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import type { Account, AccountType, Warrant } from '../types';
 import { ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CARD_NETWORKS, CURRENCIES, FREQUENCIES, FUEL_TYPES, INVESTMENT_SUB_TYPES, OTHER_ASSET_SUB_TYPES, OTHER_LIABILITY_SUB_TYPES, PROPERTY_TYPES, VEHICLE_OWNERSHIP_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
+import CardFace from './CardFace';
+import CardStylePicker from './CardStylePicker';
 import { buildAccount, defaultIcon, draftFromAccount, emptyDraft, reconcileLoan, type AccountDraft, type SwitchField, type TextField } from '../utils/accountForm';
 import { sortAccountsByType } from '../utils/accountsModel';
 import IconPicker from './IconPicker';
@@ -167,6 +169,8 @@ const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants =
           {textField('routingNumber', 'Routing number or BIC')}
           {['Checking', 'Savings', 'Investment'].includes(type) && numberField('apy', 'Interest rate (APY %)', { inputMode: 'decimal' })}
           {date('openingDate', 'Opening date')}
+          {['Savings', 'Investment'].includes(type) && date('maturityDate', 'Matures on (fixed term)')}
+          {['Savings', 'Investment'].includes(type) && draft.maturityDate && <div className="md:col-span-2">{toggle('rollsOver', 'Rolls into a new term when it matures')}</div>}
         </Section>
       )}
 
@@ -342,6 +346,17 @@ const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants =
         {draft.hasCard && textField('last4', 'Last 4 digits', { maxLength: 4, inputMode: 'numeric' })}
         {draft.hasCard && textField('expirationDate', 'Expiry', { placeholder: 'MM/YY' })}
         {draft.hasCard && textField('cardholderName', 'Name on card')}
+        {draft.hasCard && (
+          <div className="md:col-span-2">
+            <div className="mx-auto mb-4 aspect-[1.586] w-full max-w-[280px]">
+              <CardFace account={{ ...account, name: draft.name || 'Card', type, last4: draft.last4, cardholderName: draft.cardholderName, expirationDate: draft.expirationDate, cardNetwork: draft.cardNetwork, financialInstitution: draft.financialInstitution } as Account} override={{ color: draft.cardColor || undefined, shade: draft.cardShade === 'light' ? 'light' : draft.cardShade === 'dark' ? 'dark' : undefined, pattern: draft.cardPattern || undefined }} />
+            </div>
+            <CardStylePicker
+              value={{ color: draft.cardColor || undefined, shade: draft.cardShade === 'light' ? 'light' : draft.cardShade === 'dark' ? 'dark' : undefined, pattern: draft.cardPattern || undefined }}
+              onChange={next => set({ cardColor: next.color ?? '', cardShade: next.shade ?? '', cardPattern: next.pattern ?? '' })}
+            />
+          </div>
+        )}
       </Section>
 
       <Section title="Options">

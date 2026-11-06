@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { curveLinear } from '@visx/curve';
+import { curveNatural } from '@visx/curve';
 import { area as shapeArea } from 'd3-shape';
 import { formatCurrency, parseLocalDate, getMainCurrency, currencySign } from '../utils';
 import { addDays, iso } from '../utils/scheduleModel';
@@ -64,7 +64,7 @@ export const HorizonArea: React.FC<{ seriesKey: string; color: string }> = ({ se
       .x(row => xScale(xAccessor(row)))
       .y0(innerHeight)
       .y1(row => yScale(Number(row[seriesKey])))
-      .curve(curveLinear)(renderData) ?? '',
+      .curve(curveNatural)(renderData) ?? '',
     [renderData, xScale, yScale, xAccessor, innerHeight, seriesKey]
   );
   return (
@@ -351,10 +351,10 @@ const ForecastHorizonChart: React.FC<ForecastHorizonChartProps> = ({ days, bubbl
         <Grid horizontal numTicksRows={3} />
         {!lines && <SpotlightIndicator seriesKey="total" color={colour} />}
         {!lines && <HorizonArea seriesKey="total" color={colour} />}
-        {cushion > 0 && <Line dataKey="buffer" label="Buffer" stroke="var(--tomato)" strokeWidth={1.5} strokeDasharray="5,4" curve={curveLinear} fadeEdges={false} showHighlight={false} />}
+        {cushion > 0 && <Line dataKey="buffer" label="Buffer" stroke="var(--tomato)" strokeWidth={1.5} strokeDasharray="5,4" curve={curveNatural} fadeEdges={false} showHighlight={false} />}
         {lines
-          ? lines.map(line => <Line key={line.id} dataKey={line.id} label={line.name} stroke={line.colour} strokeWidth={2} curve={curveLinear} fadeEdges={false} />)
-          : <Line dataKey="total" label="Balance" stroke={colour} strokeWidth={2} curve={curveLinear} fadeEdges={false} />}
+          ? lines.map(line => <Line key={line.id} dataKey={line.id} label={line.name} stroke={line.colour} strokeWidth={2} curve={curveNatural} fadeEdges={false} />)
+          : <Line dataKey="total" label="Balance" stroke={colour} strokeWidth={2} curve={curveNatural} fadeEdges={false} />}
         <XAxis numTicks={5} />
         <YAxis numTicks={3} tickFormatter={compact} />
         <HoverSync target={hovered} />
