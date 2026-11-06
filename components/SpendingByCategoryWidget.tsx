@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Account, Budget, Category, CategorySpending, Duration, Transaction } from '../types';
-import { convertToMain, getDateRange, getMainCurrency, toLocalISOString } from '../utils';
+import { convertToMain, getDateRange, getMainCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { addDays } from '../utils/scheduleModel';
 import { budgetAccountIds, spendByCategory } from '../utils/budgetModel';
 import { monthsInPeriod } from '../utils/reportsModel';
 import { PieChart, PieCenter, PieSlice, type PieData } from '../src/components/charts';
@@ -27,7 +28,17 @@ interface Row {
   spent: number;
   /** The budget for the period, when the category has one. */
   limit?: number;
+  /** What this category usually comes to over the same stretch, from the months before. */
+  usual?: number;
 }
+
+/** A tick on a bar track, at a share of its scale. */
+const Tick: React.FC<{ at: number; label: string }> = ({ at, label }) => (
+  <span aria-hidden title={label} className="absolute -top-0.5 -bottom-0.5 w-0.5 rounded-full bg-ink/70" style={{ left: `${Math.min(Math.max(at, 0), 1) * 100}%` }} />
+);
+
+const USUAL_MONTHS = 6;
+const MIN_HISTORY_DAYS = 45;
 
 const OTHER_COLOR = 'var(--line-strong)';
 const SLICE_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
@@ -40,28 +51,52 @@ const SpendingByCategoryWidget: React.FC<SpendingByCategoryWidgetProps> = ({ dat
   const currency = getMainCurrency();
   const box = useWidgetBox();
 
+  // For the month so far, a budget is the whole month's and a tick shows where an even pace would be today.
+  const pace = useMemo(() => {
+    if (duration !== 'MTD') return undefined;
+    const today = new Date();
+    return today.getDate() / new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  }, [duration]);
+
   const budgetByName = useMemo(() => {
     if (budgets.length === 0) return new Map<string, { spent: number; limit: number }>();
     const { start, end } = getDateRange(duration, transactions);
     const from = toLocalISOString(start);
     const to = toLocalISOString(end);
     const spent = spendByCategory(transactions, { from, to }, { accountIds: budgetAccountIds(accounts), categories: expenseCategories, convert: convertToMain });
-    const months = Math.max(1, monthsInPeriod(from, to));
+    const months = duration === 'MTD' ? 1 : Math.max(1, monthsInPeriod(from, to));
     return new Map(budgets.map(budget => [budget.categoryName, { spent: spent.get(budget.categoryName) || 0, limit: convertToMain(budget.amount, budget.currency) * months }]));
   }, [budgets, transactions, expenseCategories, accounts, duration]);
+
+  // What each category usually comes to over a stretch this long, from up to six months before this period. Needs a month and a half of history.
+  const usualByName = useMemo(() => {
+    const none = new Map<string, number>();
+    if (transactions.length === 0) return none;
+    const { start, end } = getDateRange(duration, transactions);
+    const earliest = transactions.reduce((min, tx) => (tx.date < min ? tx.date : min), transactions[0].date.slice(0, 10)).slice(0, 10);
+    const windowStart = new Date(start.getFullYear(), start.getMonth() - USUAL_MONTHS, start.getDate());
+    const from = toLocalISOString(windowStart) > earliest ? toLocalISOString(windowStart) : earliest;
+    const to = toLocalISOString(addDays(start, -1));
+    const windowDays = Math.round((parseLocalDate(to).getTime() - parseLocalDate(from).getTime()) / 86400000) + 1;
+    if (windowDays < MIN_HISTORY_DAYS) return none;
+    const periodDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1);
+    const history = spendByCategory(transactions, { from, to }, { accountIds: budgetAccountIds(accounts), categories: expenseCategories, convert: convertToMain });
+    history.forEach((total, name) => none.set(name, (total / windowDays) * periodDays));
+    return none;
+  }, [transactions, expenseCategories, accounts, duration]);
 
   const rows = useMemo<Row[]>(() => {
     const named = new Set(data.map(item => item.name));
     const fromSpending: Row[] = data.map(item => {
       const budget = budgetByName.get(item.name);
-      return { name: item.name, color: item.color || 'var(--chart-1)', icon: item.icon, spent: budget ? budget.spent : item.value, limit: budget?.limit };
+      return { name: item.name, color: item.color || 'var(--chart-1)', icon: item.icon, spent: budget ? budget.spent : item.value, limit: budget?.limit, usual: budget ? undefined : usualByName.get(item.name) };
     });
     // A budget with nothing spent yet still belongs here, so every budget is on show.
     const unspent: Row[] = Array.from(budgetByName.entries())
       .filter(([name]) => !named.has(name))
       .map(([name, budget]) => ({ name, color: 'var(--chart-1)', spent: budget.spent, limit: budget.limit }));
     return [...fromSpending, ...unspent];
-  }, [data, budgetByName]);
+  }, [data, budgetByName, usualByName]);
 
   const total = useMemo(() => data.reduce((sum, item) => sum + item.value, 0), [data]);
 
@@ -78,13 +113,24 @@ const SpendingByCategoryWidget: React.FC<SpendingByCategoryWidgetProps> = ({ dat
   // The donut needs 220px of height and a list needs 300px beside it. Otherwise the list has the whole widget.
   const showDonut = box.height === 0 || (box.height >= 220 && box.width >= 520 && data.length > 0);
   const donutSize = box.height > 0 ? Math.max(120, Math.min(box.height - 8, Math.round(box.width * 0.36), 300)) : 220;
-  const rowHeight = 52;
+  const rowHeight = 58;
   const fit = fitRows(box, rowHeight, 8);
   const count = box.height === 0 || fit >= rows.length - 1 ? rows.length : Math.max(1, fit - 1);
   const hidden = rows.length - count;
-  const max = Math.max(...rows.map(row => row.spent), 1);
+  const max = Math.max(...rows.map(row => Math.max(row.spent, row.usual ?? 0)), 1);
 
-  const statusOf = (ratio: number) => (ratio >= 1 ? { color: 'var(--money-out)', text: 'Over budget' } : ratio >= 0.8 ? { color: 'var(--amber)', text: 'Close to the limit' } : { color: undefined, text: 'On track' });
+  const statusOf = (ratio: number) => {
+    if (ratio >= 1) return { color: 'var(--money-out)', text: 'Over budget' };
+    // Ahead of an even pace for the month, even if still well inside the limit.
+    if (pace !== undefined && ratio > pace + 0.1) return { color: 'var(--amber)', text: 'Ahead of pace' };
+    if (ratio >= 0.8) return { color: 'var(--amber)', text: 'Close to the limit' };
+    return { color: undefined, text: pace !== undefined ? 'On pace' : 'On track' };
+  };
+  const usualText = (spent: number, usual: number) => {
+    const gap = spent - usual;
+    if (Math.abs(gap) < Math.max(usual * 0.1, 5)) return 'About your usual';
+    return <><Amount value={Math.abs(gap)} currency={currency} className="text-ink" /> {gap > 0 ? 'over' : 'under'} your usual</>;
+  };
 
   return (
     <div className="flex h-full gap-5">
@@ -133,11 +179,16 @@ const SpendingByCategoryWidget: React.FC<SpendingByCategoryWidgetProps> = ({ dat
                         : <span className="type-caption ml-2 inline-block w-10 text-right text-muted">{share.toFixed(1)}%</span>}
                     </span>
                   </span>
-                  <span className="block h-1.5 overflow-hidden rounded-full bg-inset" role={hasBudget ? 'progressbar' : undefined} aria-label={hasBudget ? `${row.name} budget used` : undefined} aria-valuemin={0} aria-valuemax={100} aria-valuenow={hasBudget ? Math.round(Math.min(ratio, 1) * 100) : undefined}>
-                    <span className="block h-full rounded-full" style={{ width: `${Math.max(width, 2)}%`, backgroundColor: fill }} />
+                  <span className="relative block h-1.5 rounded-full bg-inset" role={hasBudget ? 'progressbar' : undefined} aria-label={hasBudget ? `${row.name} budget used` : undefined} aria-valuemin={0} aria-valuemax={100} aria-valuenow={hasBudget ? Math.round(Math.min(ratio, 1) * 100) : undefined}>
+                    <span className="block h-full overflow-hidden rounded-full"><span className="block h-full rounded-full" style={{ width: `${Math.max(width, 2)}%`, backgroundColor: fill }} /></span>
+                    {hasBudget && pace !== undefined && <Tick at={pace} label="Where an even pace would be today" />}
+                    {!hasBudget && row.usual !== undefined && row.usual > 0 && <Tick at={row.usual / max} label="Your usual for this stretch" />}
                   </span>
-                  {status && status.text !== 'On track' && (
-                    <span className="type-caption mt-0.5 block text-muted">{status.text}</span>
+                  {status && (status.text !== 'On track' && status.text !== 'On pace' || pace !== undefined) && (
+                    <span className="type-caption mt-0.5 block text-muted">{status.text}{pace !== undefined && status.text === 'On pace' ? ' · tick is an even pace' : ''}</span>
+                  )}
+                  {!hasBudget && row.usual !== undefined && row.usual > 0 && (
+                    <span className="type-caption mt-0.5 block text-muted">{usualText(row.spent, row.usual)}</span>
                   )}
                 </button>
               </li>

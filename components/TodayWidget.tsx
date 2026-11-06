@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { fitRows, useWidgetBox } from './ui/WidgetGrid';
 import { Task, RecurringTransaction, BillPayment, FinancialGoal, RecurringTransactionOverride, Currency } from '../types';
-import { parseLocalDate, toLocalISOString } from '../utils';
+import { convertToMain, parseLocalDate, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
 import { Button } from './ui/Actions';
 import { Badge } from './ui/Display';
@@ -16,6 +16,9 @@ interface TodayWidgetProps {
     overrides: RecurringTransactionOverride[];
     onTaskUpdate: (task: Task) => void;
     onProcessItem: (item: RecurringTransaction | BillPayment) => void;
+    /** With these, the foot of the list adds up what goes out and what is expected in. */
+    currency?: Currency;
+    toDisplay?: (eur: number) => number;
     size?: 's' | 'm' | 'l';
 }
 
@@ -36,6 +39,8 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     overrides = [],
     onTaskUpdate,
     onProcessItem,
+    currency,
+    toDisplay,
     size = 'm'
 }) => {
     const box = useWidgetBox();
@@ -158,13 +163,29 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         return <Badge tone="neutral">In {daysUntil} days</Badge>;
     };
 
+    const totals = useMemo(() => {
+        let out = 0;
+        let incoming = 0;
+        for (const item of agendaItems) {
+            if (item.type === 'task' || item.type === 'goal') continue;
+            const data = item.data as BillPayment | RecurringTransaction;
+            const eur = convertToMain(Math.abs(data.amount), (data as { currency?: Currency }).currency || 'EUR');
+            const isIn = item.type === 'bill' ? (data as BillPayment).type === 'deposit' : (data as RecurringTransaction).type === 'income';
+            const isOut = item.type === 'bill' ? (data as BillPayment).type === 'payment' : (data as RecurringTransaction).type === 'expense';
+            if (isIn) incoming += eur;
+            else if (isOut) out += eur;
+        }
+        return { out, incoming };
+    }, [agendaItems]);
+    const showTotals = !!currency && !!toDisplay && (totals.out > 0 || totals.incoming > 0) && (box.height === 0 || box.height >= 200);
+
     if (agendaItems.length === 0) {
         return <EmptyState icon="checkmark-circle-02" title="Nothing due" description="No tasks, bills or payments in the next two weeks." className="h-full py-6" />;
     }
 
     const fallbackCount = size === 's' ? 3 : size === 'm' ? 6 : agendaItems.length;
     // A row is 60px. When some are left out, the last line says how many, so one fewer row shows.
-    const fit = fitRows(box, 60, fallbackCount);
+    const fit = fitRows(box, 60, fallbackCount, showTotals ? 36 : 0);
     const count = box.height === 0 ? fallbackCount : fit >= agendaItems.length ? agendaItems.length : Math.max(1, fit - 1);
     const visibleAgenda = agendaItems.slice(0, count);
     const hiddenCount = agendaItems.length - visibleAgenda.length;
@@ -225,6 +246,12 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
             })}
         </ul>
         {hiddenCount > 0 && <p className="type-caption mt-1 shrink-0 text-muted">+{hiddenCount} more coming up</p>}
+        {showTotals && (
+            <p className="type-caption mt-2 flex shrink-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-line pt-2 text-muted">
+                <span>Out <Amount value={toDisplay!(totals.out)} currency={currency!} className="text-ink" /></span>
+                <span>Expected in <Amount value={toDisplay!(totals.incoming)} currency={currency!} className="text-ink" /></span>
+            </p>
+        )}
         </div>
     );
 };
