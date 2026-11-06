@@ -16,7 +16,8 @@ import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl } from '../../u
 import { cn } from '../../lib/utils';
 import AccountShell from './AccountShell';
 import { Bars, Donut, Figures, Section, ShareBar, TimeSeries } from './charts';
-import { activityTab, closureBanner, day, detailsTab, Grid2, money, pct, shortDay, valuationActions, type AccountPanelProps } from './pageKit';
+import { closureBanner, day, detailsTab, Grid2, money, pct, shortDay, valuationActions, type AccountPanelProps } from './pageKit';
+import { activityTab } from './ActivityView';
 import { useAccountPage } from './useAccountPage';
 
 /** A value known on given days, as a step series by month from the first known day to today. */

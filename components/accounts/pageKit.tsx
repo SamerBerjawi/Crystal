@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Account, Category, DisplayTransaction, LoanPaymentOverrides, MileageLog, ScheduledPayment, Transaction } from '../../types';
 import { parseLocalDate } from '../../utils';
-import { AccountTransactions, DetailList, Panel } from '../AccountFrame';
+import { DetailList, Panel } from '../AccountFrame';
 import { Amount } from '../ui/Money';
 import { Banner } from '../ui/States';
 import type { ShellAction, ShellTab } from './AccountShell';
@@ -62,12 +62,6 @@ export const valuationActions = (props: AccountPanelProps, closeLabel: string): 
 };
 
 export const addAction = (props: AccountPanelProps, label = 'Add transaction'): ShellAction => ({ id: 'add', label, icon: 'add-01', onPress: props.onAddTransaction });
-
-export const activityTab = (props: AccountPanelProps, label = 'Activity'): ShellTab => ({
-  id: 'activity',
-  label,
-  content: <AccountTransactions transactions={props.displayTransactions} categories={props.categories} onOpen={props.onTransactionClick} emptyAction={props.onAddTransaction} />,
-});
 
 export const detailsTab = (items: { label: string; value?: React.ReactNode; copy?: string }[], extra?: React.ReactNode): ShellTab => ({
   id: 'details',

@@ -17,7 +17,9 @@ import { Amount } from '../ui/Money';
 import { EmptyState } from '../ui/States';
 import AccountShell from './AccountShell';
 import { Bars, Donut, Figures, ProgressRings, Section, ShareBar, TimeSeries } from './charts';
-import { activityTab, addAction, bankDetails, commonActions, day, daysUntil, detailsTab, Grid2, money, shortDay, type AccountPanelProps } from './pageKit';
+import { addAction, bankDetails, commonActions, day, daysUntil, detailsTab, Grid2, money, shortDay, type AccountPanelProps } from './pageKit';
+import { activityTab } from './ActivityView';
+import AccountMoneyFlow from './AccountMoneyFlow';
 import { useAccountPage, useAccountProjection, useBalanceChange } from './useAccountPage';
 
 const categoryLookup = (categories: Category[]) => {
@@ -192,18 +194,16 @@ export const CheckingLayout: React.FC<AccountPanelProps> = props => {
           content: (
             <>
               <Runway account={account} todayBalance={page.todayBalance} amounts={page.amounts} onOpenAccount={props.onOpenAccount} />
+              <Section title="In and out" subtitle="Money in, money out and the balance, period by period">
+                <AccountMoneyFlow account={account} transactions={page.own} convert={page.convert} todayBalance={page.todayBalance} categories={props.categories} />
+              </Section>
               <Grid2>
-                <Section title="In and out" subtitle="Last 12 months">
-                  <Bars data={flows as unknown as Record<string, unknown>[]} bars={[{ key: 'in', label: 'In', color: 'var(--money-in)' }, { key: 'out', label: 'Out', color: 'var(--chart-4)' }]} currency={account.currency} />
-                </Section>
                 <Section title="Where it went" subtitle="Spending by category this month">
                   <Donut items={categories} currency={account.currency} centerLabel="Spent" />
                 </Section>
-              </Grid2>
-              <Grid2>
-                <ComingUp account={account} todayBalance={page.todayBalance} onOpenAccount={props.onOpenAccount} accounts={page.accounts} />
                 <TopMerchants account={account} own={page.own} />
               </Grid2>
+              <ComingUp account={account} todayBalance={page.todayBalance} onOpenAccount={props.onOpenAccount} accounts={page.accounts} />
               <CardsOnAccount account={account} accounts={page.accounts} transactions={page.transactions} onOpenAccount={props.onOpenAccount} />
             </>
           ),
@@ -384,12 +384,12 @@ export const MealVoucherLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: (
-            <Grid2>
-              <Section title="Top-ups and spending" subtitle="Last 12 months">
-                <Bars data={flows as unknown as Record<string, unknown>[]} bars={[{ key: 'in', label: 'Topped up', color: 'var(--money-in)' }, { key: 'out', label: 'Spent', color: 'var(--chart-4)' }]} currency={account.currency} />
+            <>
+              <Section title="Top-ups and spending" subtitle="Period by period">
+                <AccountMoneyFlow account={account} transactions={page.own} convert={page.convert} todayBalance={page.todayBalance} categories={props.categories} labels={{ in: 'Topped up', out: 'Spent', balance: 'Balance' }} />
               </Section>
               <TopMerchants account={account} own={page.own} />
-            </Grid2>
+            </>
           ),
         },
         activityTab(props),

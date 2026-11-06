@@ -12,7 +12,10 @@ import { EmptyState } from '../ui/States';
 import AccountShell from './AccountShell';
 import { Bars, Donut, Figures, Section, ShareBar, TimeSeries } from './charts';
 import { useLiveBalance } from './ConnectionsStrip';
-import { activityTab, addAction, commonActions, day, detailsTab, Grid2, money, pct, shortDay, type AccountPanelProps } from './pageKit';
+import { addAction, commonActions, day, detailsTab, Grid2, money, pct, shortDay, type AccountPanelProps } from './pageKit';
+import { monthPeriods } from '../../utils/activityModel';
+import { activityTab } from './ActivityView';
+import MoneyFlowChart from './MoneyFlowChart';
 import { useAccountPage, useAccountProjection } from './useAccountPage';
 
 const monthsLabel = (months: number) => {
@@ -232,6 +235,7 @@ export const LiabilityLayout: React.FC<AccountPanelProps> = props => {
   const page = useAccountPage(account, props);
   const owed = Math.abs(Math.min(0, page.todayBalance));
   const flows = useMemo(() => monthlyFlows(page.amounts, 12), [page.amounts]);
+  const flowPeriodsByMonth = useMemo(() => monthPeriods(flows), [flows]);
   const paidTotal = page.amounts.filter(item => item.amount > 0).reduce((sum, item) => safeAdd(sum, item.amount), 0);
   const pace = flows.slice(-6).reduce((sum, row) => sum + row.in, 0) / 6;
   const monthsLeft = pace > 0 ? Math.ceil(owed / pace) : null;
@@ -279,7 +283,7 @@ export const LiabilityLayout: React.FC<AccountPanelProps> = props => {
                 <TimeSeries data={chart.points} series={[{ key: 'owed', label: 'Owed', color: 'var(--chart-4)', dashFromIndex: chart.todayIndex }]} currency={account.currency} showLegend={false} />
               </Section>
               <Section title="Payments by month" subtitle="Last 12 months">
-                <Bars data={flows as unknown as Record<string, unknown>[]} bars={[{ key: 'in', label: 'Paid', color: 'var(--money-in)' }, { key: 'out', label: 'Added', color: 'var(--chart-4)' }]} currency={account.currency} />
+                <MoneyFlowChart periods={flowPeriodsByMonth} currency={account.currency} labels={{ in: 'Paid', out: 'Added', balance: 'Owed' }} hint="Pick a month to see it" showDetail={false} />
               </Section>
             </Grid2>
           ),

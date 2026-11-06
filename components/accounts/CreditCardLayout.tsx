@@ -12,7 +12,8 @@ import { Amount } from '../ui/Money';
 import AccountShell from './AccountShell';
 import { Bars, Donut, Figures, Section, TimeSeries } from './charts';
 import { useLiveBalance } from './ConnectionsStrip';
-import { activityTab, addAction, commonActions, day, daysUntil, detailsTab, Grid2, money, pct, shortDay, type AccountPanelProps } from './pageKit';
+import { addAction, commonActions, day, daysUntil, detailsTab, Grid2, money, pct, shortDay, type AccountPanelProps } from './pageKit';
+import { activityTab } from './ActivityView';
 import { useAccountPage, useAccountProjection } from './useAccountPage';
 
 /** A card statement as the page shows it: what was charged, what was paid, and whether it was paid in time. */

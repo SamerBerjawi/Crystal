@@ -13,7 +13,10 @@ import { EmptyState } from '../ui/States';
 import AccountShell from './AccountShell';
 import { Bars, Figures, Section, TimeSeries } from './charts';
 import { useLiveBalance } from './ConnectionsStrip';
-import { activityTab, addAction, bankDetails, commonActions, day, detailsTab, Grid2, money, pct, type AccountPanelProps } from './pageKit';
+import { addAction, bankDetails, commonActions, day, detailsTab, Grid2, money, pct, type AccountPanelProps } from './pageKit';
+import { monthPeriods } from '../../utils/activityModel';
+import { activityTab } from './ActivityView';
+import MoneyFlowChart from './MoneyFlowChart';
 import { useAccountPage } from './useAccountPage';
 
 /**
@@ -101,7 +104,7 @@ export const InvestmentLayout: React.FC<AccountPanelProps & { onOpenInvestments?
               </Section>
               <Grid2>
                 <Section title="Contributions" subtitle="Last 12 months">
-                  <Bars data={year} bars={[{ key: 'contributed', label: 'In', color: 'var(--money-in)' }, { key: 'withdrawn', label: 'Out', color: 'var(--chart-4)' }]} currency={account.currency} />
+                  <MoneyFlowChart periods={monthPeriods(year.map(row => ({ month: row.month, in: row.contributed, out: row.withdrawn })))} currency={account.currency} labels={{ in: 'In', out: 'Out', balance: 'Value' }} hint="Pick a month to see it" showDetail={false} />
                 </Section>
                 <Section title="Income" subtitle="Dividends and interest, last 12 months">
                   {year.some(row => row.income > 0)

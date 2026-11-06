@@ -1,12 +1,10 @@
 import React, { useMemo } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
-import type { Category, Currency, DisplayTransaction, FinancialGoal } from '../types';
+import type { Currency, FinancialGoal } from '../types';
 import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, Line, LineChart, XAxis, YAxis } from '../src/components/charts';
 import { formatCurrency, parseLocalDate } from '../utils';
-import TransactionList from './TransactionList';
 import { IconButton } from './ui/Actions';
-import { EmptyState } from './ui/States';
 import { cn } from '../lib/utils';
 
 export interface FrameMetric {
@@ -105,11 +103,4 @@ export const ValueChart: React.FC<{ data: Record<string, unknown>[]; currency: C
     </LineChart>
   );
 };
-
-/** The Transactions tab, shared by every type that has one. */
-export const AccountTransactions: React.FC<{ transactions: DisplayTransaction[]; categories: Category[]; onOpen: (tx: DisplayTransaction) => void; emptyAction?: () => void }> = ({ transactions, categories, onOpen, emptyAction }) => (
-  transactions.length > 0
-    ? <div className="rounded-[var(--radius-xl)] surface-card p-4"><TransactionList transactions={transactions} allCategories={categories} onTransactionClick={onOpen} density="high" /></div>
-    : <EmptyState icon="receipt" title="No transactions yet" description="They appear here as you add them or sync your bank." actionLabel={emptyAction ? 'Add a transaction' : undefined} onAction={emptyAction} />
-);
 
