@@ -10,7 +10,7 @@ import { StatGauge } from '../ui/StatGauge';
 import { Badge, Row } from '../ui/Display';
 import { Amount } from '../ui/Money';
 import AccountShell from './AccountShell';
-import { Bars, Donut, Figures, Section, TimeSeries } from './charts';
+import { Bars, Board, Donut, Figures, Section, TimeSeries } from './charts';
 import { useLiveBalance } from './ConnectionsStrip';
 import { addAction, commonActions, day, daysUntil, detailsTab, Grid2, money, pct, shortDay, type AccountPanelProps } from './pageKit';
 import { activityTab } from './ActivityView';
@@ -166,12 +166,11 @@ export const CreditCardLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: (
-            <>
-              <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-                <Section title={toPay ? 'Statement to pay' : 'This statement'} subtitle={hasCycle ? `${shortDay(toPay?.start ?? current.start)} to ${shortDay(toPay?.end ?? current.end)}` : undefined}>
-                  <div className="flex items-center gap-5">
+            <Board>
+                <Section span="side" title={toPay ? 'Statement to pay' : 'This statement'} subtitle={hasCycle ? `${shortDay(toPay?.start ?? current.start)} to ${shortDay(toPay?.end ?? current.end)}` : undefined}>
+                  <div className="flex flex-wrap items-center gap-5">
                     {account.creditLimit ? <StatGauge fill={utilization} tone={tone} display={pct(utilization)} caption="of limit" label="Credit used" size={120} /> : null}
-                    <Figures className="flex-1" items={[
+                    <Figures className="min-w-[150px] flex-1 @4xl:grid-cols-1 @4xl:gap-2" items={[
                       { label: 'Amount', value: money(nextAmount, account) },
                       { label: 'Due', value: shortDay(nextDue), note: `${dueIn} days` },
                       ...(account.minimumPayment ? [{ label: 'Minimum', value: money(account.minimumPayment, account) }] : []),
@@ -179,7 +178,7 @@ export const CreditCardLayout: React.FC<AccountPanelProps> = props => {
                   </div>
                   <div className="mt-4"><PayFrom card={account} settlement={settlement} due={nextDue} amount={nextAmount} onOpenAccount={props.onOpenAccount} /></div>
                 </Section>
-                <Section title="Cycle pace" subtitle="Spending so far this cycle, against the same days of the last cycle and the average of three">
+                <Section span="wide" title="Cycle pace" subtitle="Spending so far this cycle, against the same days of the last cycle and the average of three">
                   <TimeSeries
                     data={pace}
                     series={[
@@ -188,20 +187,16 @@ export const CreditCardLayout: React.FC<AccountPanelProps> = props => {
                       { key: 'average', label: 'Average of 3', color: 'var(--muted)', dashed: true, width: 1.5 },
                     ]}
                     currency={account.currency}
-                    height="h-[220px]"
+                    height="fill"
                   />
                 </Section>
-              </div>
-              <Grid2>
-                <Section title="Categories this cycle">
+                <Section span="side" title="Categories this cycle">
                   <Donut items={categories} currency={account.currency} centerLabel="Charged" />
                 </Section>
-                <Section title="Statements" subtitle="Charged and paid, last 12">
-                  <Bars data={history} bars={[{ key: 'charged', label: 'Charged', color: 'var(--chart-1)' }, { key: 'paid', label: 'Paid', color: 'var(--money-in)' }]} currency={account.currency} />
+                <Section span="wide" title="Statements" subtitle="Charged and paid, last 12">
+                  <Bars data={history} bars={[{ key: 'charged', label: 'Charged', color: 'var(--chart-1)' }, { key: 'paid', label: 'Paid', color: 'var(--money-in)' }]} currency={account.currency} height="fill" />
                 </Section>
-              </Grid2>
-              <Grid2>
-                <Section title="Recurring on this card" subtitle={recurring.length ? undefined : 'Subscriptions billed here show up here'}>
+                <Section span="wide" title="Recurring on this card" subtitle={recurring.length ? undefined : 'Subscriptions billed here show up here'}>
                   {recurring.length === 0 ? <p className="type-body text-muted">Nothing recurring is billed to this card.</p> : (
                     <>
                       <ul className="divide-y divide-line">
@@ -211,15 +206,14 @@ export const CreditCardLayout: React.FC<AccountPanelProps> = props => {
                     </>
                   )}
                 </Section>
-                <Section title="Cost of the card">
-                  <Figures items={[
+                <Section span="side" title="Cost of the card">
+                  <Figures className="@4xl:grid-cols-1 @4xl:gap-2" items={[
                     { label: 'Annual fee', value: account.annualFee ? money(account.annualFee, account) : 'None', note: nextFee ? `Next ${shortDay(nextFee)}` : undefined },
                     { label: 'Interest rate', value: account.apr != null ? `${account.apr}% APR` : '—', note: metrics.estimatedMonthlyInterest > 0 ? <>About <Amount value={metrics.estimatedMonthlyInterest} currency={account.currency} /> a month if carried</> : undefined },
                     { label: 'Interest this year', value: money(interestThisYear, account) },
                   ]} />
                 </Section>
-              </Grid2>
-            </>
+            </Board>
           ),
         },
         activityTab(props),

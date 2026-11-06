@@ -11,7 +11,7 @@ import { Row } from '../ui/Display';
 import { Amount } from '../ui/Money';
 import { EmptyState } from '../ui/States';
 import AccountShell from './AccountShell';
-import { Bars, Figures, Section, TimeSeries } from './charts';
+import { Bars, Board, Figures, Section, TimeSeries } from './charts';
 import { useLiveBalance } from './ConnectionsStrip';
 import { addAction, bankDetails, commonActions, day, detailsTab, Grid2, money, pct, type AccountPanelProps } from './pageKit';
 import { monthPeriods } from '../../utils/activityModel';
@@ -98,21 +98,11 @@ export const InvestmentLayout: React.FC<AccountPanelProps & { onOpenInvestments?
           id: 'overview',
           label: 'Overview',
           content: (
-            <>
-              <Section title="Value and what you put in" subtitle="The gap between the lines is your return">
-                <TimeSeries data={history} series={[{ key: 'value', label: 'Value', color: 'var(--chart-1)' }, { key: 'contributed', label: 'Put in', color: 'var(--chart-3)', dashed: true }]} currency={account.currency} />
+            <Board>
+              <Section span="wide" rows={2} title="Value and what you put in" subtitle="The gap between the lines is your return">
+                <TimeSeries data={history} series={[{ key: 'value', label: 'Value', color: 'var(--chart-1)' }, { key: 'contributed', label: 'Put in', color: 'var(--chart-3)', dashed: true }]} currency={account.currency} height="fill" />
               </Section>
-              <Grid2>
-                <Section title="Contributions" subtitle="Last 12 months">
-                  <MoneyFlowChart periods={monthPeriods(year.map(row => ({ month: row.month, in: row.contributed, out: row.withdrawn })))} currency={account.currency} labels={{ in: 'In', out: 'Out', balance: 'Value' }} hint="Pick a month to see it" showDetail={false} />
-                </Section>
-                <Section title="Income" subtitle="Dividends and interest, last 12 months">
-                  {year.some(row => row.income > 0)
-                    ? <Bars data={year} bars={[{ key: 'income', label: 'Income', color: 'var(--chart-2)' }]} currency={account.currency} />
-                    : <p className="type-body text-muted">No dividends or interest recorded in the last year.</p>}
-                </Section>
-              </Grid2>
-              <Section title="Funded from" subtitle="Accounts that moved money here in the last two years">
+              <Section span="side" title="Funded from" subtitle="Accounts that moved money here in the last two years">
                 {sources.length === 0 ? <p className="type-body text-muted">No transfers from your other accounts yet.</p> : (
                   <ul className="divide-y divide-line">
                     {sources.map(source => <li key={source.account.id}><Row title={source.account.name} context={`${source.count} transfers`} trailing={<span className="type-caption text-muted">{source.account.type}</span>} onPress={() => props.onOpenAccount(source.account.id)} /></li>)}
@@ -120,11 +110,19 @@ export const InvestmentLayout: React.FC<AccountPanelProps & { onOpenInvestments?
                 )}
               </Section>
               {account.symbol && props.onOpenInvestments && (
-                <Section title="Holdings" subtitle={`Trades and prices for ${account.symbol} live in the Investments hub`}>
+                <Section span="side" title="Holdings" subtitle={`Trades and prices for ${account.symbol} live in the Investments hub`}>
                   <Button variant="secondary" icon="chart-line-data-01" onPress={props.onOpenInvestments}>Open Investments</Button>
                 </Section>
               )}
-            </>
+                <Section span="wide" title="Contributions" subtitle="Last 12 months">
+                  <MoneyFlowChart periods={monthPeriods(year.map(row => ({ month: row.month, in: row.contributed, out: row.withdrawn })))} currency={account.currency} labels={{ in: 'In', out: 'Out', balance: 'Value' }} hint="Pick a month to see it" showDetail={false} />
+                </Section>
+                <Section span="side" title="Income" subtitle="Dividends and interest, last 12 months">
+                  {year.some(row => row.income > 0)
+                    ? <Bars data={year} bars={[{ key: 'income', label: 'Income', color: 'var(--chart-2)' }]} currency={account.currency} />
+                    : <p className="type-body text-muted">No dividends or interest recorded in the last year.</p>}
+                </Section>
+            </Board>
           ),
         },
         activityTab(props),
@@ -171,20 +169,20 @@ export const WarrantLayout: React.FC<AccountPanelProps & { onOpenInvestments?: (
           id: 'overview',
           label: 'Overview',
           content: (
-            <>
+            <Board>
               {history.length > 1 && (
-                <Section title="Price">
-                  <TimeSeries data={history} series={[{ key: 'price', label: 'Price', color: 'var(--chart-1)' }]} currency={account.currency} />
+                <Section span="wide" title="Price">
+                  <TimeSeries data={history} series={[{ key: 'price', label: 'Price', color: 'var(--chart-1)' }]} currency={account.currency} height="fill" />
                 </Section>
               )}
-              <Section title="Grants">
+              <Section span={history.length > 1 ? 'side' : 'full'} title="Grants">
                 {grants.length === 0 ? <EmptyState icon="certificate-01" title="No grants" description="Add grants in the Investments hub." /> : (
                   <ul className="divide-y divide-line">
                     {grants.map(grant => <li key={grant.id}><Row title={`${grant.quantity.toLocaleString()} units`} context={`Granted ${day(grant.grantDate)} at ${grant.grantPrice}`} trailing={money(price !== null ? grant.quantity * price : grant.quantity * grant.grantPrice, account)} /></li>)}
                   </ul>
                 )}
               </Section>
-            </>
+            </Board>
           ),
         },
         activityTab(props),
@@ -242,14 +240,14 @@ export const PensionLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: (
-            <>
-              <Section title="History and projection" subtitle="Assumes steady growth and contributions">
-                <TimeSeries data={chart.rows} series={[{ key: 'value', label: 'Value', color: 'var(--chart-1)', dashFromIndex: chart.todayIndex }, { key: 'contributed', label: 'Paid in', color: 'var(--chart-3)', dashed: true }]} currency={account.currency} />
+            <Board>
+              <Section span="wide" title="History and projection" subtitle="Assumes steady growth and contributions">
+                <TimeSeries height="fill" data={chart.rows} series={[{ key: 'value', label: 'Value', color: 'var(--chart-1)', dashFromIndex: chart.todayIndex }, { key: 'contributed', label: 'Paid in', color: 'var(--chart-3)', dashed: true }]} currency={account.currency} />
               </Section>
-              <Section title="Contributions by year">
+              <Section span="side" title="Contributions by year">
                 {byYear.length ? <Bars data={byYear} xKey="year" bars={[{ key: 'value', label: 'Paid in', color: 'var(--chart-1)' }]} currency={account.currency} /> : <p className="type-body text-muted">No contributions yet.</p>}
               </Section>
-            </>
+            </Board>
           ),
         },
         activityTab(props),
@@ -291,11 +289,11 @@ export const SpareChangeLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: (
-            <Grid2>
-              <Section title="Saved by month">
+            <Board>
+              <Section span="wide" title="Saved by month">
                 <Bars data={metrics.monthlyData as unknown as Record<string, unknown>[]} bars={[{ key: 'value', label: 'Saved', color: 'var(--chart-1)' }]} currency={account.currency} />
               </Section>
-              <Section title="Where round-ups come from">
+              <Section span="side" title="Where round-ups come from">
                 {metrics.sourceAccount ? (
                   <div className="space-y-3">
                     <Figures items={[{ label: 'Source', value: metrics.sourceAccount.name }, { label: 'Saved in all', value: money(metrics.totalRoundUpSaved, account) }]} />
@@ -303,7 +301,7 @@ export const SpareChangeLayout: React.FC<AccountPanelProps> = props => {
                   </div>
                 ) : <p className="type-body text-muted">No source account linked. Set one in Edit.</p>}
               </Section>
-            </Grid2>
+            </Board>
           ),
         },
         activityTab(props),

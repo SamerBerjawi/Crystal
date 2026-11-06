@@ -16,8 +16,8 @@ import { Row } from '../ui/Display';
 import { Amount } from '../ui/Money';
 import { EmptyState } from '../ui/States';
 import AccountShell from './AccountShell';
-import { Bars, Donut, Figures, ProgressRings, Section, ShareBar, TimeSeries } from './charts';
-import { addAction, bankDetails, commonActions, day, daysUntil, detailsTab, Grid2, money, shortDay, type AccountPanelProps } from './pageKit';
+import { Bars, Board, Donut, Figures, ProgressRings, Section, ShareBar, TimeSeries, type Rows, type Span } from './charts';
+import { addAction, bankDetails, commonActions, day, daysUntil, detailsTab, money, shortDay, type AccountPanelProps } from './pageKit';
 import { activityTab } from './ActivityView';
 import AccountMoneyFlow from './AccountMoneyFlow';
 import { useAccountPage, useAccountProjection, useBalanceChange } from './useAccountPage';
@@ -50,7 +50,9 @@ const useCategorySplit = (own: Transaction[], convert: (tx: Transaction) => numb
   }, [own, convert, categories]);
 
 /** Last 30 days of balance and the next 30 from the forecast, with what moves it pinned on the line. */
-const Runway: React.FC<{ account: Account; todayBalance: number; amounts: { date: string; amount: number }[]; onOpenAccount: (id: string) => void }> = ({ account, todayBalance, amounts }) => {
+type Tile = { span: Span; rows?: Rows };
+
+const Runway: React.FC<{ account: Account; todayBalance: number; amounts: { date: string; amount: number }[]; onOpenAccount: (id: string) => void; tile?: Tile }> = ({ account, todayBalance, amounts, tile }) => {
   const projection = useAccountProjection(account, todayBalance, 30);
   const { points, todayIndex, markers } = useMemo(() => {
     const history = dailyBalanceHistory(todayBalance, amounts, 31);
@@ -65,21 +67,22 @@ const Runway: React.FC<{ account: Account; todayBalance: number; amounts: { date
   }, [todayBalance, amounts, projection, account.currency]);
   return (
     <Section
+      {...tile}
       title="Cash runway"
       subtitle="The last 30 days, and the next 30 from your schedule, bills, cards, loans and goals"
       action={projection.lowest ? <span className="type-caption text-right text-muted">Lowest ahead<br /><span className="type-figure-row text-ink"><Amount value={projection.lowest.value} currency={account.currency} tone="loss" /></span> {shortDay(projection.lowest.date)}</span> : undefined}
     >
-      <TimeSeries data={points} series={[{ key: 'balance', label: 'Balance', color: 'var(--chart-1)', dashFromIndex: todayIndex }]} currency={account.currency} markers={markers} terminalKey="balance" showLegend={false} />
+      <TimeSeries data={points} series={[{ key: 'balance', label: 'Balance', color: 'var(--chart-1)', dashFromIndex: todayIndex }]} currency={account.currency} markers={markers} terminalKey="balance" showLegend={false} height="fill" />
     </Section>
   );
 };
 
 /** What leaves or arrives in the next 30 days, each linked to the account it pays. */
-const ComingUp: React.FC<{ account: Account; todayBalance: number; onOpenAccount: (id: string) => void; accounts: Account[] }> = ({ account, todayBalance, onOpenAccount, accounts }) => {
+const ComingUp: React.FC<{ account: Account; todayBalance: number; onOpenAccount: (id: string) => void; accounts: Account[]; tile?: Tile }> = ({ account, todayBalance, onOpenAccount, accounts, tile }) => {
   const projection = useAccountProjection(account, todayBalance, 30);
-  const items = projection.events.slice(0, 10);
+  const items = projection.events.slice(0, 7);
   return (
-    <Section title="Coming up" subtitle="Next 30 days">
+    <Section {...tile} title="Coming up" subtitle="Next 30 days">
       {items.length === 0 ? <p className="type-body text-muted">Nothing scheduled. Nice.</p> : (
         <ul className="divide-y divide-line">
           {items.map(event => {
@@ -88,6 +91,7 @@ const ComingUp: React.FC<{ account: Account; todayBalance: number; onOpenAccount
             return (
               <li key={event.key}>
                 <Row
+                  className="min-h-14"
                   leading={<MerchantLogo description={event.description} isTransfer={!!other} size={36} account={account} />}
                   title={event.description}
                   context={`${shortDay(event.date)}${other ? ` · ${event.own < 0 ? 'to' : 'from'} ${other.name}` : ''}`}
@@ -104,11 +108,11 @@ const ComingUp: React.FC<{ account: Account; todayBalance: number; onOpenAccount
 };
 
 /** The account's own card and every credit card it pays, with each card's next statement. */
-const CardsOnAccount: React.FC<{ account: Account; accounts: Account[]; transactions: Transaction[]; onOpenAccount: (id: string) => void }> = ({ account, accounts, transactions, onOpenAccount }) => {
+const CardsOnAccount: React.FC<{ account: Account; accounts: Account[]; transactions: Transaction[]; onOpenAccount: (id: string) => void; tile?: Tile }> = ({ account, accounts, transactions, onOpenAccount, tile }) => {
   const cards = accounts.filter(item => item.type === 'Credit Card' && item.settlementAccountId === account.id && item.status !== 'closed');
   if (!accountHasCard(account) && cards.length === 0) return null;
   return (
-    <Section title="Cards on this account" subtitle={cards.length ? `${cards.length} ${cards.length === 1 ? 'card is' : 'cards are'} paid from here` : 'Its debit card'}>
+    <Section {...tile} title="Cards on this account" subtitle={cards.length ? `${cards.length} ${cards.length === 1 ? 'card is' : 'cards are'} paid from here` : 'Its debit card'}>
       <div className="grid gap-4 sm:grid-cols-2">
         {accountHasCard(account) && <div className="aspect-[1.586] w-full max-w-[280px]"><CardFace account={account} /></div>}
         {cards.map(card => {
@@ -131,13 +135,13 @@ const CardsOnAccount: React.FC<{ account: Account; accounts: Account[]; transact
   );
 };
 
-const TopMerchants: React.FC<{ account: Account; own: Transaction[] }> = ({ account, own }) => {
+const TopMerchants: React.FC<{ account: Account; own: Transaction[]; tile?: Tile }> = ({ account, own, tile }) => {
   const top = useMemo(() => topMerchantsThisMonth(own, 5, new Date(), account.currency), [own, account.currency]);
   return (
-    <Section title="Top merchants" subtitle="This month">
+    <Section {...tile} title="Top merchants" subtitle="This month">
       {top.length === 0 ? <p className="type-body text-muted">No spending yet this month.</p> : (
         <ul className="divide-y divide-line">
-          {top.map(item => <li key={item.name}><Row leading={<MerchantLogo merchant={item.name} description={item.name} size={36} />} title={item.name} trailing={<Amount value={-item.amount} currency={account.currency} tone="flow" />} /></li>)}
+          {top.map(item => <li key={item.name}><Row className="min-h-14" leading={<MerchantLogo merchant={item.name} description={item.name} size={36} />} title={item.name} trailing={<Amount value={-item.amount} currency={account.currency} tone="flow" />} /></li>)}
         </ul>
       )}
     </Section>
@@ -193,18 +197,15 @@ export const CheckingLayout: React.FC<AccountPanelProps> = props => {
           label: 'Overview',
           content: (
             <>
-              <Runway account={account} todayBalance={page.todayBalance} amounts={page.amounts} onOpenAccount={props.onOpenAccount} />
-              <Section title="In and out" subtitle="Money in, money out and the balance, period by period">
-                <AccountMoneyFlow account={account} transactions={page.own} convert={page.convert} todayBalance={page.todayBalance} categories={props.categories} />
-              </Section>
-              <Grid2>
-                <Section title="Where it went" subtitle="Spending by category this month">
-                  <Donut items={categories} currency={account.currency} centerLabel="Spent" />
+              <Board>
+                <Runway account={account} todayBalance={page.todayBalance} amounts={page.amounts} onOpenAccount={props.onOpenAccount} tile={{ span: 'wide' }} />
+                <ComingUp account={account} todayBalance={page.todayBalance} onOpenAccount={props.onOpenAccount} accounts={page.accounts} tile={{ span: 'side' }} />
+                <Section title="In and out" subtitle="Money in, money out and the balance, period by period" span="wide" rows={2}>
+                  <AccountMoneyFlow account={account} transactions={page.own} convert={page.convert} todayBalance={page.todayBalance} categories={props.categories} />
                 </Section>
-                <TopMerchants account={account} own={page.own} />
-              </Grid2>
-              <ComingUp account={account} todayBalance={page.todayBalance} onOpenAccount={props.onOpenAccount} accounts={page.accounts} />
-              <CardsOnAccount account={account} accounts={page.accounts} transactions={page.transactions} onOpenAccount={props.onOpenAccount} />
+                <TopMerchants account={account} own={page.own} tile={{ span: 'side' }} />
+                <CardsOnAccount account={account} accounts={page.accounts} transactions={page.transactions} onOpenAccount={props.onOpenAccount} tile={{ span: 'side' }} />
+              </Board>
             </>
           ),
         },
@@ -294,46 +295,44 @@ export const SavingsLayout: React.FC<AccountPanelProps> = props => {
           label: 'Overview',
           content: (
             <>
-              <Section title="Balance and projection" subtitle={`24 months back and 12 ahead, at ${savings.apy || 0}% and your average deposit of the last 6 months`}>
-                <TimeSeries data={chart.points} series={[{ key: 'balance', label: 'Balance', color: 'var(--chart-1)', dashFromIndex: chart.todayIndex }]} currency={account.currency} terminalKey="balance" showLegend={false} />
+              <Board>
+                <Section span="wide" title="Balance and projection" subtitle={`24 months back and 12 ahead, at ${savings.apy || 0}% and your average deposit of the last 6 months`}>
+                <TimeSeries data={chart.points} series={[{ key: 'balance', label: 'Balance', color: 'var(--chart-1)', dashFromIndex: chart.todayIndex }]} currency={account.currency} terminalKey="balance" showLegend={false} height="fill" />
               </Section>
-              <Grid2>
-                <Section title="Growth by month" subtitle="Last 12 months">
-                  <Bars data={growth as unknown as Record<string, unknown>[]} stacked bars={[{ key: 'deposits', label: 'Deposits', color: 'var(--chart-1)' }, { key: 'interest', label: 'Interest', color: 'var(--chart-2)' }, { key: 'withdrawals', label: 'Withdrawals', color: 'var(--chart-4)' }]} currency={account.currency} />
-                </Section>
-                <Section title="Goals held here" subtitle={goals.length ? undefined : 'Point a goal at this account to see it here'}>
-                  {goals.length ? <ProgressRings items={goals.map(goal => ({ label: goal.name, value: goal.currentAmount, max: goal.amount }))} currency={account.currency} /> : <EmptyState icon="target-01" title="No goals here yet" description="A goal whose money sits here shows its progress." actionLabel={props.onOpenGoals ? 'Open goals' : undefined} onAction={props.onOpenGoals} />}
-                </Section>
-              </Grid2>
-              <Grid2>
-                <Section title="Where deposits come from" subtitle="Last 12 months">
-                  {sources.length === 0 ? <p className="type-body text-muted">No transfers in from your other accounts yet.</p> : (
-                    <ul className="divide-y divide-line">
-                      {sources.map(source => <li key={source.account.id}><Row title={source.account.name} context={source.account.type} trailing={money(source.total, account)} onPress={() => props.onOpenAccount(source.account.id)} /></li>)}
-                    </ul>
+              <Section span="side" title="Goals held here" subtitle={goals.length ? undefined : 'Point a goal at this account to see it here'}>
+                {goals.length ? <ProgressRings items={goals.map(goal => ({ label: goal.name, value: goal.currentAmount, max: goal.amount }))} currency={account.currency} /> : <EmptyState icon="target-01" title="No goals here yet" description="A goal whose money sits here shows its progress." actionLabel={props.onOpenGoals ? 'Open goals' : undefined} onAction={props.onOpenGoals} />}
+              </Section>
+              <Section span="wide" rows={2} title="Growth by month" subtitle="Last 12 months">
+                <Bars data={growth as unknown as Record<string, unknown>[]} stacked bars={[{ key: 'deposits', label: 'Deposits', color: 'var(--chart-1)' }, { key: 'interest', label: 'Interest', color: 'var(--chart-2)' }, { key: 'withdrawals', label: 'Withdrawals', color: 'var(--chart-4)' }]} currency={account.currency} height="fill" />
+              </Section>
+              <Section span="side" title="Where deposits come from" subtitle="Last 12 months">
+                {sources.length === 0 ? <p className="type-body text-muted">No transfers in from your other accounts yet.</p> : (
+                  <ul className="divide-y divide-line">
+                    {sources.map(source => <li key={source.account.id}><Row title={source.account.name} context={source.account.type} trailing={money(source.total, account)} onPress={() => props.onOpenAccount(source.account.id)} /></li>)}
+                  </ul>
+                )}
+              </Section>
+              {maturity ? (
+                <Section span="side" title="Fixed term" subtitle={account.rollsOver ? 'Rolls into a new term at maturity' : 'Paid out at maturity'}>
+                  <Figures className="@4xl:grid-cols-1 @4xl:gap-2" items={[
+                    { label: 'Matures', value: day(account.maturityDate) },
+                    { label: 'Days left', value: maturityDays !== null && maturityDays >= 0 ? maturityDays : 'Matured' },
+                    { label: 'Interest to maturity', value: money(Math.max(0, (maturityDays ?? 0) / 365) * page.todayBalance * (savings.apy / 100), account) },
+                  ]} />
+                  {account.openingDate && maturityDays !== null && (
+                    <div className="mt-4"><ShareBar value={(1 - Math.max(0, maturityDays) / Math.max(1, daysUntil(maturity, parseLocalDate(account.openingDate)))) * 100} label="Term elapsed" /></div>
                   )}
                 </Section>
-                {maturity ? (
-                  <Section title="Fixed term" subtitle={account.rollsOver ? 'Rolls into a new term at maturity' : 'Paid out at maturity'}>
-                    <Figures items={[
-                      { label: 'Matures', value: day(account.maturityDate) },
-                      { label: 'Days left', value: maturityDays !== null && maturityDays >= 0 ? maturityDays : 'Matured' },
-                      { label: 'Interest to maturity', value: money(Math.max(0, (maturityDays ?? 0) / 365) * page.todayBalance * (savings.apy / 100), account) },
-                    ]} />
-                    {account.openingDate && maturityDays !== null && (
-                      <div className="mt-4"><ShareBar value={(1 - Math.max(0, maturityDays) / Math.max(1, daysUntil(maturity, parseLocalDate(account.openingDate)))) * 100} label="Term elapsed" /></div>
-                    )}
-                  </Section>
-                ) : (
-                  <Section title="Withdrawals" subtitle="Last 6 months">
-                    <Figures items={[
-                      { label: 'Times money left', value: growth.slice(-6).filter(row => row.withdrawals > 0).length },
-                      { label: 'Taken out', value: money(growth.slice(-6).reduce((sum, row) => sum + row.withdrawals, 0), account) },
-                      { label: 'Put in', value: money(growth.slice(-6).reduce((sum, row) => sum + row.deposits, 0), account) },
-                    ]} />
-                  </Section>
-                )}
-              </Grid2>
+              ) : (
+                <Section span="side" title="Withdrawals" subtitle="Last 6 months">
+                  <Figures className="@4xl:grid-cols-1 @4xl:gap-2" items={[
+                    { label: 'Times money left', value: growth.slice(-6).filter(row => row.withdrawals > 0).length },
+                    { label: 'Taken out', value: money(growth.slice(-6).reduce((sum, row) => sum + row.withdrawals, 0), account) },
+                    { label: 'Put in', value: money(growth.slice(-6).reduce((sum, row) => sum + row.deposits, 0), account) },
+                  ]} />
+                </Section>
+              )}
+              </Board>
             </>
           ),
         },
@@ -384,12 +383,12 @@ export const MealVoucherLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: (
-            <>
-              <Section title="Top-ups and spending" subtitle="Period by period">
+            <Board>
+              <Section span="wide" title="Top-ups and spending" subtitle="Period by period">
                 <AccountMoneyFlow account={account} transactions={page.own} convert={page.convert} todayBalance={page.todayBalance} categories={props.categories} labels={{ in: 'Topped up', out: 'Spent', balance: 'Balance' }} />
               </Section>
-              <TopMerchants account={account} own={page.own} />
-            </>
+              <TopMerchants account={account} own={page.own} tile={{ span: 'side' }} />
+            </Board>
           ),
         },
         activityTab(props),

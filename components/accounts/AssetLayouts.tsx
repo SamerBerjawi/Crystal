@@ -15,8 +15,8 @@ import { usePreferencesSelector } from '../../contexts/DomainProviders';
 import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl } from '../../utils/brandfetch';
 import { cn } from '../../lib/utils';
 import AccountShell from './AccountShell';
-import { Bars, Donut, Figures, Section, ShareBar, TimeSeries } from './charts';
-import { closureBanner, day, detailsTab, Grid2, money, pct, shortDay, valuationActions, type AccountPanelProps } from './pageKit';
+import { Bars, Board, Donut, Figures, Section, ShareBar, TimeSeries } from './charts';
+import { closureBanner, day, detailsTab, money, pct, shortDay, valuationActions, type AccountPanelProps } from './pageKit';
 import { activityTab } from './ActivityView';
 import { useAccountPage } from './useAccountPage';
 
@@ -173,8 +173,8 @@ export const PropertyLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: (
-            <>
-              <Section title="Value and mortgage" subtitle={loan ? 'The gap between the two lines is your equity' : 'From the purchase price and your valuations'}>
+            <Board>
+              <Section span="wide" rows={3} title="Value and mortgage" subtitle={loan ? 'The gap between the two lines is your equity' : 'From the purchase price and your valuations'}>
                 <TimeSeries
                   data={valueChart}
                   series={[
@@ -183,15 +183,15 @@ export const PropertyLayout: React.FC<AccountPanelProps> = props => {
                   ]}
                   currency={account.currency}
                   markers={account.purchaseDate ? [{ date: parseLocalDate(account.purchaseDate), title: 'Bought', color: 'var(--muted)' }] : undefined}
+                  height="fill"
                 />
               </Section>
-              <Grid2>
-                <Section title="Mortgage" subtitle={loan ? undefined : 'Link a loan to this property in its Edit form'}>
+                <Section span="side" title="Mortgage" subtitle={loan ? undefined : 'Link a loan to this property in its Edit form'}>
                   {loan ? (
-                    <div className="flex items-center gap-5">
+                    <div className="flex flex-wrap items-center gap-5">
                       <StatGauge fill={ltv} tone={ltv > 90 ? 'loss' : ltv > 75 ? 'amber' : 'pine'} display={pct(ltv)} caption="loan to value" label="Loan to value" size={120} />
                       <div className="min-w-0 flex-1 space-y-3">
-                        <Figures items={[
+                        <Figures className="@4xl:grid-cols-1 @4xl:gap-2" items={[
                           { label: 'Owed', value: money(metrics.outstandingLoanBalance, account) },
                           { label: 'Rate', value: loan.interestRate != null ? `${loan.interestRate}%` : '—' },
                           { label: 'Each month', value: loan.monthlyPayment ? money(loan.monthlyPayment, loan) : '—' },
@@ -201,9 +201,10 @@ export const PropertyLayout: React.FC<AccountPanelProps> = props => {
                     </div>
                   ) : <p className="type-body text-muted">No mortgage linked. Owned outright, or not linked yet.</p>}
                 </Section>
-                <Section title="Cost of owning" subtitle="Stored yearly costs, plus payments marked for this property in the last 12 months">
+                <Section span="side" title="Cost of owning" subtitle="Stored yearly costs, plus payments marked for this property in the last 12 months">
                   {storedYearly + assetMoney.costs12Total > 0 ? (
                     <Donut
+                      stacked
                       centerLabel="A year"
                       currency={account.currency}
                       items={[
@@ -219,30 +220,34 @@ export const PropertyLayout: React.FC<AccountPanelProps> = props => {
                     </p>
                   )}
                 </Section>
-              </Grid2>
+              <Section span="side" title="Return" subtitle="What it's worth plus rent received, against what it has cost">
+                <Figures className="@4xl:grid-cols-1 @4xl:gap-2" items={[
+                  { label: 'Value and rent', value: money(returnFigures.gains, account) },
+                  { label: 'Price, costs, interest', value: money(returnFigures.costs, account) },
+                  { label: 'Net', value: money(returnFigures.gains - returnFigures.costs, account, 'flow') },
+                ]} />
+              </Section>
               {account.isRental && (
                 <Section
+                  span="full"
                   title="Rent roll"
                   subtitle="Rent received is income marked for this property. Mark a month empty when no one lived there"
                   action={<span className="type-caption text-right text-muted">Occupancy<br /><span className="type-figure-row text-ink">{pct(roll.occupancy)}</span></span>}
                 >
+                  <div className="grid gap-6 @4xl:grid-cols-2">
+                    <div className="min-w-0">
                   <Figures className="mb-4" items={[
                     { label: 'Received, 12 months', value: money(roll.received, account) },
                     { label: 'Expected', value: money(roll.expected, account), note: `${roll.vacantCount} empty ${roll.vacantCount === 1 ? 'month' : 'months'}` },
                     { label: 'Net yield', value: pct(netYield, 1), note: `Gross ${pct(grossYield, 1)}` },
                   ]} />
                   <Bars data={roll.months as unknown as Record<string, unknown>[]} bars={[{ key: 'expected', label: 'Expected', color: 'var(--line-strong)' }, { key: 'received', label: 'Received', color: 'var(--money-in)' }]} currency={account.currency} height="h-[200px]" />
-                  <div className="mt-4"><RentRollTable account={account} months={[...roll.months].reverse()} onToggle={toggleMonth} /></div>
+                    </div>
+                  <div className="min-w-0"><RentRollTable account={account} months={[...roll.months].reverse()} onToggle={toggleMonth} /></div>
+                  </div>
                 </Section>
               )}
-              <Section title="Return" subtitle="What it's worth plus rent received, against what it has cost">
-                <Figures items={[
-                  { label: 'Value and rent', value: money(returnFigures.gains, account) },
-                  { label: 'Price, costs, interest', value: money(returnFigures.costs, account) },
-                  { label: 'Net', value: money(returnFigures.gains - returnFigures.costs, account, 'flow') },
-                ]} />
-              </Section>
-            </>
+            </Board>
           ),
         },
         {
@@ -359,20 +364,14 @@ export const VehicleLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: (
-            <>
-              <Grid2>
-                <Section title="Value" subtitle={trend !== null ? `Trend ${trend >= 0 ? '+' : '−'}${Math.abs(Math.round(trend)).toLocaleString()} ${account.currency} a year, projected two years` : 'Add valuations to see a trend'}>
+            <Board>
+                <Section span="wide" title="Value" subtitle={trend !== null ? `Trend ${trend >= 0 ? '+' : '−'}${Math.abs(Math.round(trend)).toLocaleString()} ${account.currency} a year, projected two years` : 'Add valuations to see a trend'}>
                   {valueChart.length > 1
-                    ? <TimeSeries data={valueChart} series={[{ key: 'value', label: 'Valuations', color: 'var(--chart-1)' }, { key: 'trend', label: 'Trend', color: 'var(--chart-3)', dashed: true }]} currency={account.currency} />
+                    ? <TimeSeries height="fill" data={valueChart} series={[{ key: 'value', label: 'Valuations', color: 'var(--chart-1)' }, { key: 'trend', label: 'Trend', color: 'var(--chart-3)', dashed: true }]} currency={account.currency} />
                     : <EmptyState icon="chart-line-data-01" title="Not enough valuations" description="Add a purchase price and a valuation to see the trend." actionLabel={isClosed ? undefined : 'Update value'} onAction={props.onUpdateValuation} />}
                 </Section>
-                <Section title="Mileage" subtitle={isLeased && lease ? `${lease.mileageStatus}: ${Math.round(lease.projectedMileage).toLocaleString()} km projected of ${lease.totalAllowance.toLocaleString()}` : 'Odometer readings over time'}>
-                  {logs.length > 1 ? <VehicleMileageChart logs={logs} /> : <EmptyState icon="dashboard-square-01" title="Add readings" description="Two or more readings show your pace." actionLabel="Add reading" onAction={props.onAddLog} />}
-                </Section>
-              </Grid2>
-              <Grid2>
                 {isLeased && lease ? (
-                  <Section title="Lease" subtitle={account.leaseProvider}>
+                  <Section span="side" title="Lease" subtitle={account.leaseProvider}>
                     <Figures items={[
                       { label: 'Ends', value: day(account.leaseEndDate) },
                       { label: 'Each month', value: account.leasePaymentAmount ? money(account.leasePaymentAmount, account) : '—' },
@@ -386,22 +385,24 @@ export const VehicleLayout: React.FC<AccountPanelProps> = props => {
                     </div>
                   </Section>
                 ) : (
-                  <Section title="Car loan" subtitle={loan ? undefined : 'Link a loan to this vehicle in the loan\'s Edit form'}>
+                  <Section span="side" title="Car loan" subtitle={loan ? undefined : 'Link a loan to this vehicle in the loan\'s Edit form'}>
                     {loan ? (
                       <div className="space-y-3">
-                        <Figures items={[{ label: 'Owed', value: money(metrics.outstandingLoanBalance, account) }, { label: 'Rate', value: loan.interestRate != null ? `${loan.interestRate}%` : '—' }, { label: 'Equity', value: money(metrics.netEquity, account, 'flow') }]} />
+                        <Figures className="@4xl:grid-cols-1 @4xl:gap-2" items={[{ label: 'Owed', value: money(metrics.outstandingLoanBalance, account) }, { label: 'Rate', value: loan.interestRate != null ? `${loan.interestRate}%` : '—' }, { label: 'Equity', value: money(metrics.netEquity, account, 'flow') }]} />
                         <Button variant="secondary" size="sm" icon="arrow-right-01" onPress={() => props.onOpenAccount(loan.id)}>Open {loan.name}</Button>
                       </div>
                     ) : <p className="type-body text-muted">No loan on this vehicle.</p>}
                   </Section>
                 )}
-                <Section title="Running costs" subtitle="Payments marked for this vehicle, last 12 months">
+                <Section span="wide" title="Mileage" subtitle={isLeased && lease ? `${lease.mileageStatus}: ${Math.round(lease.projectedMileage).toLocaleString()} km projected of ${lease.totalAllowance.toLocaleString()}` : 'Odometer readings over time'}>
+                  {logs.length > 1 ? <VehicleMileageChart logs={logs} /> : <EmptyState icon="dashboard-square-01" title="Add readings" description="Two or more readings show your pace." actionLabel="Add reading" onAction={props.onAddLog} />}
+                </Section>
+                <Section span="side" title="Running costs" subtitle="Payments marked for this vehicle, last 12 months">
                   {assetMoney.costsByCategory.length
-                    ? <Donut items={assetMoney.costsByCategory} currency={account.currency} centerLabel="A year" />
+                    ? <Donut stacked items={assetMoney.costsByCategory} currency={account.currency} centerLabel="A year" />
                     : <p className="type-body text-muted">Mark fuel, insurance or repairs for this vehicle in the transaction form ("For a property or vehicle") to see them here.</p>}
                 </Section>
-              </Grid2>
-            </>
+            </Board>
           ),
         },
         {

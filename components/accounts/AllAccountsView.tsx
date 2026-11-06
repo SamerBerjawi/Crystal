@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import type { Account, Transaction } from '../../types';
 import { convertCurrency, convertToMain, getMainCurrency } from '../../utils';
 import { accountLinks } from '../../utils/accountLinks';
@@ -14,9 +14,8 @@ import { Badge } from '../ui/Display';
 import { Menu, type MenuAction } from '../ui/Menu';
 import { IconButton } from '../ui/Actions';
 import { Amount } from '../ui/Money';
-import SegmentedControl from '../ui/SegmentedControl';
 import { cn } from '../../lib/utils';
-import { Donut, Section, TimeSeries } from './charts';
+import { Board, Donut, Section } from './charts';
 
 const GROUP_COLOR: Record<HubGroup, string> = {
   Cash: 'var(--pine)',
@@ -29,12 +28,6 @@ const GROUP_COLOR: Record<HubGroup, string> = {
   Loans: 'var(--hero-loan)',
   'Other debts': 'var(--hero-other-liabilities)',
 };
-
-const RANGES = [
-  { id: '6', label: '6M' },
-  { id: '12', label: '1Y' },
-  { id: '24', label: '2Y' },
-];
 
 interface AllAccountsViewProps {
   accounts: Account[];
@@ -54,7 +47,6 @@ const AllAccountsView: React.FC<AllAccountsViewProps> = ({ accounts, transaction
   const { financialGoals } = useGoalsContext();
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as string);
-  const [range, setRange] = useState('12');
   const main = getMainCurrency();
   const toDisplay = (value: number) => convertCurrency(value, main, preferredCurrency, conversionRates);
 
@@ -69,10 +61,10 @@ const AllAccountsView: React.FC<AllAccountsViewProps> = ({ accounts, transaction
       todayBalance: balances.get(account.id) ?? 0,
       amounts: toDatedAmounts((transactionsByAccount[account.id] || []).filter(tx => !tx.isSplitParent && !tx.isCombinedParent), tx => convertCurrency(tx.amount, tx.currency || account.currency, account.currency, conversionRates)),
     }));
-    return netWorthHistory(items, Number(range), (value, account) => toDisplay(convertToMain(value, account.currency, conversionRates)));
+    return netWorthHistory(items, 12, (value, account) => toDisplay(convertToMain(value, account.currency, conversionRates)));
     // toDisplay is stable for a given rate table and currency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [counted, balances, transactionsByAccount, conversionRates, range, preferredCurrency]);
+  }, [counted, balances, transactionsByAccount, conversionRates, preferredCurrency]);
 
   const now = history[history.length - 1] ?? { assets: 0, debts: 0, net: 0 };
   const monthAgo = history[history.length - 2];
@@ -108,54 +100,37 @@ const AllAccountsView: React.FC<AllAccountsViewProps> = ({ accounts, transaction
     const group = HUB_GROUPS.find(item => item.id === label);
     if (group) onOpenTab(group.tab);
   };
-  const assetsShare = now.assets + now.debts > 0 ? (now.assets / (now.assets + now.debts)) * 100 : 100;
+
+  const sheet = [
+    { id: 'assets', title: 'Assets', groups: groups.filter(group => !group.liability) },
+    { id: 'liabilities', title: 'Liabilities', groups: groups.filter(group => group.liability) },
+  ].map(column => ({ ...column, total: column.groups.reduce((sum, group) => sum + group.total, 0) }));
 
   return (
-    <div className="space-y-4">
-      <section aria-label="Net worth" className="surface-card space-y-5 rounded-[var(--radius-xl)] p-6 max-md:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="type-label text-muted">Net worth</p>
-            <p className="type-figure-hero text-ink"><Amount value={now.net} currency={preferredCurrency} /></p>
-            <p className="type-body text-muted">
-              {monthAgo && <><Amount value={now.net - monthAgo.net} currency={preferredCurrency} tone="flow" /> this month</>}
-              {first && first !== monthAgo && <>, <Amount value={now.net - first.net} currency={preferredCurrency} tone="flow" /> over {RANGES.find(item => item.id === range)?.label}</>}
-            </p>
-          </div>
-          <SegmentedControl items={RANGES} activeId={range} onChange={setRange} />
+    <Board>
+      <section aria-label="Net worth" className="@container col-span-12 surface-card space-y-5 rounded-[var(--radius-xl)] p-5">
+        <div>
+          <p className="type-label text-muted">Net worth</p>
+          <p className="type-figure-hero text-ink"><Amount value={now.net} currency={preferredCurrency} /></p>
+          <p className="type-body text-muted">
+            {monthAgo && <><Amount value={now.net - monthAgo.net} currency={preferredCurrency} tone="flow" /> this month</>}
+            {first && first !== monthAgo && <>, <Amount value={now.net - first.net} currency={preferredCurrency} tone="flow" /> over a year</>}
+          </p>
         </div>
-        <div className="space-y-1.5">
-          <div className="flex h-3 overflow-hidden rounded-full bg-inset" role="img" aria-label={`Assets ${Math.round(assetsShare)}%, debts ${Math.round(100 - assetsShare)}%`}>
-            <div className="h-full bg-money-in" style={{ width: `${assetsShare}%` }} />
-            <div className="h-full bg-money-out" style={{ width: `${100 - assetsShare}%` }} />
+        <div className="grid gap-6 border-t border-line pt-5 @4xl:grid-cols-2 @4xl:gap-8">
+          <div className="min-w-0">
+            <h2 className="type-card-title mb-3 text-ink">What you own</h2>
+            <Donut items={composition.assets} currency={preferredCurrency} centerLabel="Assets" onPick={pickGroup} />
           </div>
-          <div className="type-caption flex justify-between text-muted">
-            <span>Assets <span className="type-figure-row text-ink"><Amount value={now.assets} currency={preferredCurrency} /></span></span>
-            <span>Debts <span className="type-figure-row text-ink"><Amount value={now.debts} currency={preferredCurrency} /></span></span>
+          <div className="min-w-0 @4xl:border-l @4xl:border-line @4xl:pl-8">
+            <h2 className="type-card-title mb-3 text-ink">What you owe</h2>
+            {composition.debts.length ? <Donut items={composition.debts} currency={preferredCurrency} centerLabel="Debts" onPick={pickGroup} /> : <p className="type-body text-muted">No debts. Nice.</p>}
           </div>
         </div>
-        <TimeSeries
-          data={history}
-          series={[
-            { key: 'net', label: 'Net worth', color: 'var(--chart-1)', width: 2.5 },
-            { key: 'assets', label: 'Assets', color: 'var(--money-in)', dashed: true, width: 1.5 },
-            { key: 'debts', label: 'Debts', color: 'var(--money-out)', dashed: true, width: 1.5 },
-          ]}
-          currency={preferredCurrency}
-        />
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="What you own" subtitle="Pick a group to see it">
-          <Donut items={composition.assets} currency={preferredCurrency} centerLabel="Assets" onPick={pickGroup} />
-        </Section>
-        <Section title="What you owe">
-          {composition.debts.length ? <Donut items={composition.debts} currency={preferredCurrency} centerLabel="Debts" onPick={pickGroup} /> : <p className="type-body text-muted">No debts. Nice.</p>}
-        </Section>
-      </div>
-
       {flow.links.length > 0 && (
-        <Section title="Money map" subtitle="Last 90 days: income into your accounts, what moved on to savings, cards, loans and investments, and what was spent from each">
+        <Section span="full" title="Money map" subtitle="Last 90 days: income into your accounts, what moved on to savings, cards, loans and investments, and what was spent from each">
           <div className="h-[340px] w-full max-md:h-[420px]">
             <SankeyChart data={flow} aspectRatio={undefined} nodeWidth={14} nodePadding={18} margin={{ top: 12, right: 120, bottom: 12, left: 120 }} className="h-full w-full">
               <SankeyLink useGradient getNodeColor={node => (node as unknown as { color?: string }).color || 'var(--chart-1)'} strokeOpacity={0.4} fadedOpacity={0.08} />
@@ -165,25 +140,35 @@ const AllAccountsView: React.FC<AllAccountsViewProps> = ({ accounts, transaction
           </div>
         </Section>
       )}
-
-      {groups.map(group => (
-        <section key={group.id} aria-label={group.id} className="surface-card rounded-[var(--radius-xl)] p-4">
-          <header className="flex items-center justify-between gap-3 px-2 pb-2">
-            <button type="button" onClick={() => onOpenTab(group.tab)} className="flex cursor-pointer items-center gap-2 text-left" disabled={!group.tab}>
-              <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: GROUP_COLOR[group.id] }} />
-              <h2 className="type-card-title text-ink">{group.id}</h2>
-              <span className="type-caption text-muted">{group.accounts.length}</span>
-            </button>
-            <span className="type-figure-row text-ink"><Amount value={group.total} currency={preferredCurrency} /></span>
+      {sheet.map(column => (
+        <section key={column.id} aria-label={column.title} className="@container col-span-12 min-w-0 self-start surface-card rounded-[var(--radius-xl)] p-4 @4xl:col-span-6">
+          <header className="flex items-baseline justify-between gap-3 border-b border-line px-2 pb-3">
+            <h2 className="type-card-title text-ink">{column.title}</h2>
+            <span className="type-figure-row text-ink"><Amount value={column.total} currency={preferredCurrency} /></span>
           </header>
-          <ul className="divide-y divide-line">
-            {group.accounts.map(account => (
-              <AccountLine key={account.id} account={account} balance={balances.get(account.id) ?? 0} transactions={transactionsByAccount[account.id] || []} accounts={accounts} goals={financialGoals} onOpen={onOpen} menuItems={menuFor(account)} />
-            ))}
-          </ul>
+          {column.groups.length === 0 ? (
+            <p className="type-body px-2 py-6 text-muted">{column.id === 'assets' ? 'No assets yet.' : 'No debts. Nice.'}</p>
+          ) : column.groups.map(group => (
+            <div key={group.id} className="pt-3">
+              <header className="flex items-center justify-between gap-3 px-2 pb-1">
+                <button type="button" onClick={() => onOpenTab(group.tab)} className="flex cursor-pointer items-center gap-2 text-left" disabled={!group.tab}>
+                  <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: GROUP_COLOR[group.id] }} />
+                  <h3 className="type-label text-muted">{group.id}</h3>
+                  <span className="type-caption text-muted">{group.accounts.length}</span>
+                </button>
+                <span className="type-figure-row text-ink"><Amount value={group.total} currency={preferredCurrency} /></span>
+              </header>
+              <ul className="divide-y divide-line">
+                {group.accounts.map(account => (
+                  <AccountLine key={account.id} account={account} balance={balances.get(account.id) ?? 0} transactions={transactionsByAccount[account.id] || []} accounts={accounts} goals={financialGoals} onOpen={onOpen} menuItems={menuFor(account)} />
+                ))}
+              </ul>
+            </div>
+          ))}
         </section>
       ))}
-    </div>
+
+    </Board>
   );
 };
 
@@ -191,9 +176,9 @@ const AllAccountsView: React.FC<AllAccountsViewProps> = ({ accounts, transaction
 const AccountLine: React.FC<{ account: Account; balance: number; transactions: Transaction[]; accounts: Account[]; goals: ReturnType<typeof useGoalsContext>['financialGoals']; onOpen: (id: string) => void; menuItems: MenuAction[] }> = ({ account, balance, transactions, accounts, goals, onOpen, menuItems }) => {
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const spark = useMemo(() => computeAccount90dSparkline(account, transactions, balance, { conversionRates }), [account, transactions, balance, conversionRates]);
-  const links = useMemo(() => accountLinks(account, { accounts, goals }).filter(link => link.target.type === 'account').slice(0, 2), [account, accounts, goals]);
+  const links = useMemo(() => accountLinks(account, { accounts, goals }).filter(link => link.target.type === 'account').slice(0, 1), [account, accounts, goals]);
   return (
-    <li className="flex min-h-16 items-center gap-3 px-2 py-2">
+    <li className="flex min-h-14 items-center gap-3 px-2 py-1.5">
       <button type="button" onClick={() => onOpen(account.id)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-[var(--radius-md)] text-left">
         <AccountLogo account={account} size={36} />
         <span className="min-w-0 flex-1">
@@ -201,11 +186,11 @@ const AccountLine: React.FC<{ account: Account; balance: number; transactions: T
           <span className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="type-caption truncate text-muted">{account.financialInstitution || account.subType || account.otherSubType || account.type}</span>
             {links.map(link => link.target.type === 'account' && (
-              <Badge key={link.kind + link.target.account.id} icon="link-01" className="max-md:hidden">{link.label} {link.target.account.name}</Badge>
+              <Badge key={link.kind + link.target.account.id} icon="link-01" className="hidden max-w-full @xl:inline-flex">{link.label} {link.target.account.name}</Badge>
             ))}
           </span>
         </span>
-        <span className={cn('w-28 shrink-0 max-md:hidden')}>
+        <span className={cn('hidden w-24 shrink-0 @lg:block')}>
           {spark.sparklineData.length > 1 && <AreaSparkline data={spark.sparklineData.map((point, index) => ({ index, value: point.value }))} dataKey="value" height={32} curve="natural" color={spark.isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'} animationDuration={900} />}
         </span>
         <span className="type-figure-row shrink-0 text-right text-ink"><Amount value={balance} currency={account.currency} /></span>

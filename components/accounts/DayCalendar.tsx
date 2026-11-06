@@ -42,7 +42,7 @@ const PickLayer: React.FC<{ onPick: (day: string) => void; children: React.React
  * A square for every day, in weeks, grouped by calendar quarter and coloured by how much went out. It shows the stretch
  * the time filter is on. Pick a day to see only its transactions.
  */
-const DayCalendar: React.FC<{ rows: ActivityRow<Transaction>[]; account: Account; range: ActivityRange; onPick: (day: string) => void }> = ({ rows, account, range, onPick }) => {
+const DayCalendar: React.FC<{ rows: ActivityRow<Transaction>[]; account: Account; range: ActivityRange; onPick: (day: string) => void; /** Hug the squares instead of stretching across the card, so something can sit beside it. */ compact?: boolean }> = ({ rows, account, range, onPick, compact }) => {
   const todayKey = isoDay(new Date());
   const earliest = useMemo(() => rows.reduce<string | undefined>((first, row) => (!first || row.date < first ? row.date : first), undefined), [rows]);
   const spend = useMemo(() => spendByDay(rows), [rows]);
@@ -63,7 +63,7 @@ const DayCalendar: React.FC<{ rows: ActivityRow<Transaction>[]; account: Account
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={compact ? 'flex w-fit max-w-full flex-col gap-3' : 'flex flex-col gap-3'}>
       <dl className="grid grid-cols-3 gap-3">
         <div className="min-w-0"><dt className="type-caption text-muted">Quiet days</dt><dd className="type-figure-row text-ink">{stats.quiet}<span className="type-caption ml-1 text-muted">of {stats.days}</span></dd></div>
         <div className="min-w-0"><dt className="type-caption text-muted">Longest streak</dt><dd className="type-figure-row text-ink">{stats.longestStreak}<span className="type-caption ml-1 text-muted">{stats.longestStreak === 1 ? 'day' : 'days'}</span></dd></div>
@@ -83,7 +83,7 @@ const DayCalendar: React.FC<{ rows: ActivityRow<Transaction>[]; account: Account
                   <HeatmapTooltip formatLabel={describe} />
                 </HeatmapChart>
               </PickLayer>
-              <HeatmapLegend lessLabel="Less spent" moreLabel="More spent" />
+              <HeatmapLegend lessLabel="Less spent" moreLabel="More spent" align={compact ? 'start' : 'end'} />
             </div>
           </HeatmapInteractionBoundary>
         </HeatmapInteractionProvider>

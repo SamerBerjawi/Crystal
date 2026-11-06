@@ -1,6 +1,6 @@
 # 12 — Account pages redesign (draft for review)
 
-Status: **built 2026-11-06** (`D-143` to `D-149`). Still to do: a map on the property page (needs coordinates), and a candlestick for single-coin crypto accounts (needs OHLC prices). Once they're answered, the decisions go into `DECISION_REGISTER.md`.
+Status: **built 2026-11-06** (`D-143` to `D-151`). Still to do: a map on the property page (needs coordinates), and a candlestick for single-coin crypto accounts (needs OHLC prices). Once they're answered, the decisions go into `DECISION_REGISTER.md`.
 
 ## What changes, and which decisions it revises
 

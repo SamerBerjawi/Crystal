@@ -35,6 +35,7 @@ interface MoneyFlowChartProps {
   /** Show "where it went" and the top source for the picked period. */
   showDetail?: boolean;
   onCategory?: (name: string) => void;
+  /** The least tall the chart gets in px. It grows to fill a taller card. Default 230 */
   height?: number;
 }
 
@@ -81,15 +82,15 @@ const MoneyFlowChart: React.FC<MoneyFlowChartProps> = ({ periods, currency, labe
   const longLabels = periods.map(period => period.long);
 
   return (
-    <div className="@container space-y-3">
+    <div className="@container flex h-full flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="type-caption text-muted">{hint}</p>
         {units && <SegmentedControl items={FLOW_UNITS} activeId={units.active} onChange={id => { setPicked(null); units.onChange(id as FlowUnit); }} />}
       </div>
 
-      <div className="flex flex-col gap-5 @[680px]:flex-row">
-        <div className="min-w-0 flex-1">
-          <div style={{ height }}>
+      <div className="flex min-h-0 flex-1 flex-col gap-5 @[680px]:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex-1" style={{ minHeight: height }}>
             <ComposedChart data={data} aspectRatio="auto" className="h-full" margin={{ top: 8, right: 8, bottom: 40, left: 8 }} barGap={0} maxBarSize={26}>
               <Grid horizontal />
               <SeriesBar dataKey="in" fill="var(--money-in)" radius={4} />

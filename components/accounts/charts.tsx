@@ -77,9 +77,9 @@ export const TimeSeries: React.FC<{
     return veryLong ? String(date.getFullYear()) : long ? date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   };
   return (
-  <div className="space-y-3">
+  <div className={cn(height === 'fill' ? 'flex h-full flex-col gap-3' : 'space-y-3')}>
     {showLegend && <Legend items={series.map(item => ({ label: item.label, color: item.color, dashed: item.dashed }))} />}
-    <LineChart data={data} xDataKey="date" yDomainTween aspectRatio="" className={cn('w-full', height)} margin={{ top: 16, right: 16, bottom: 24, left: 52 }}>
+    <LineChart data={data} xDataKey="date" yDomainTween aspectRatio="" className={cn('w-full', height === 'fill' ? 'min-h-[200px] flex-1' : height)} margin={{ top: 16, right: 16, bottom: 24, left: 52 }}>
       <Grid horizontal stroke="var(--line)" />
       <XAxis tickFormatter={formatTick} />
       <YAxis tickFormatter={compactTick} />
@@ -117,9 +117,9 @@ export const Bars: React.FC<{
   height?: string;
   formatValue?: (value: number) => string;
 }> = ({ data, bars, currency, stacked, xKey = 'name', height = 'h-[220px] md:h-[260px]', formatValue }) => (
-  <div className="space-y-3">
+  <div className={cn(height === 'fill' ? 'flex h-full flex-col gap-3' : 'space-y-3')}>
     {bars.length > 1 && <Legend items={bars.map(bar => ({ label: bar.label, color: bar.color }))} />}
-    <div className={height}>
+    <div className={height === 'fill' ? 'min-h-[180px] flex-1' : height}>
       <BarChart data={data} xDataKey={xKey} stacked={stacked} aspectRatio="auto" margin={{ top: 12, right: 12, left: 12, bottom: 25 }}>
         <Grid horizontal vertical={false} strokeOpacity={0.06} />
         {bars.map(bar => <Bar key={bar.key} dataKey={bar.key} fill={bar.color} lineCap="round" />)}
@@ -133,12 +133,12 @@ export const Bars: React.FC<{
 export const PALETTE = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--muted)'];
 
 /** A donut with its total in the middle and a legend beside it. Hovering a slice shows its share. */
-export const Donut: React.FC<{ items: { label: string; value: number; color?: string }[]; currency: Currency; centerLabel: string; size?: number; onPick?: (label: string) => void }> = ({ items, currency, centerLabel, size = 180, onPick }) => {
+export const Donut: React.FC<{ items: { label: string; value: number; color?: string }[]; currency: Currency; centerLabel: string; size?: number; onPick?: (label: string) => void; /** The legend goes under the ring, for a narrow card. */ stacked?: boolean }> = ({ items, currency, centerLabel, size = 180, onPick, stacked }) => {
   const total = items.reduce((sum, item) => sum + item.value, 0);
   const data = items.map((item, index) => ({ label: item.label, value: item.value, color: item.color ?? PALETTE[index % PALETTE.length] }));
   if (total <= 0) return <p className="type-body text-muted">Nothing here yet.</p>;
   return (
-    <div className="flex items-center gap-6 max-sm:flex-col">
+    <div className={cn('flex items-center gap-6', stacked ? 'flex-col' : 'max-sm:flex-col')}>
       <div className="shrink-0" style={{ width: size }}>
         <PieChart data={data} size={size} innerRadius={Math.round(size * 0.32)} cornerRadius={6} padAngle={data.length > 1 ? 0.04 : 0}>
           {data.map((_, index) => <PieSlice key={index} index={index} />)}
@@ -217,9 +217,33 @@ export const ShareBar: React.FC<{ value: number; label: string; onHero?: boolean
   </div>
 );
 
-/** A card section on the Overview grid. */
-export const Section: React.FC<{ title: string; subtitle?: React.ReactNode; action?: React.ReactNode; className?: string; children: React.ReactNode }> = ({ title, subtitle, action, className, children }) => (
-  <section className={cn('min-w-0 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5', className)}>
+/**
+ * How wide a card is on a Board, by the width of the Board itself (not the screen), so the same page lays out well
+ * beside a sidebar, in a narrow window or on a phone. Twelve columns: `wide` and `side` sit together (8 and 4).
+ */
+export type Span = 'full' | 'wide' | 'side' | 'half' | 'third' | 'quarter';
+export type Rows = 1 | 2 | 3;
+
+const SPAN_CLASSES: Record<Span, string> = {
+  full: 'col-span-12',
+  wide: 'col-span-12 @4xl:col-span-8',
+  side: 'col-span-12 @4xl:col-span-4',
+  half: 'col-span-12 @2xl:col-span-6',
+  third: 'col-span-12 @2xl:col-span-6 @4xl:col-span-4',
+  quarter: 'col-span-12 @xl:col-span-6 @4xl:col-span-3',
+};
+const ROW_CLASSES: Record<Rows, string> = { 1: '', 2: '@4xl:row-span-2', 3: '@4xl:row-span-3' };
+
+/** The Overview and Activity canvas: a twelve-column grid that packs cards of different widths and heights. */
+export const Board: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <div className="@container">
+    <div className={cn('grid grid-flow-dense grid-cols-12 gap-4', className)}>{children}</div>
+  </div>
+);
+
+/** A card section on the Overview grid. Give it a `span` (and `rows`) when it sits on a Board. */
+export const Section: React.FC<{ title: string; subtitle?: React.ReactNode; action?: React.ReactNode; className?: string; span?: Span; rows?: Rows; children: React.ReactNode }> = ({ title, subtitle, action, className, span, rows = 1, children }) => (
+  <section className={cn('min-w-0 rounded-[var(--radius-xl)] surface-card p-5', 'flex flex-col', span && SPAN_CLASSES[span], span && ROW_CLASSES[rows], span && 'h-full', className)}>
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <h3 className="type-card-title text-ink">{title}</h3>
@@ -227,7 +251,7 @@ export const Section: React.FC<{ title: string; subtitle?: React.ReactNode; acti
       </div>
       {action}
     </div>
-    <div className="mt-4">{children}</div>
+    <div className="mt-3 min-h-0 flex-1">{children}</div>
   </section>
 );
 

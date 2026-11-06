@@ -10,7 +10,6 @@ export interface AccountPanelProps {
   account: Account;
   transactions: Transaction[];
   accountTransactions: { tx: Transaction; parsedDate: Date; convertedAmount: number }[];
-  displayTransactions: DisplayTransaction[];
   categories: Category[];
   accounts: Account[];
   loanOverrides: LoanPaymentOverrides;

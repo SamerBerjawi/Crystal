@@ -85,7 +85,6 @@ const AccountDetail: React.FC<{
     const [isValuationModalOpen, setValuationModalOpen] = useState(false);
     const [isCloseModalOpen, setCloseModalOpen] = useState(false);
     const [isEditAccountModalOpen, setEditAccountModalOpen] = useState(false);
-    const [visibleTxLimit, setVisibleTxLimit] = useState(100);
     const [syncPrompt, setSyncPrompt] = useState<{
         connectionId: string;
         connectionOverride: EnableBankingConnection;
@@ -298,14 +297,6 @@ const AccountDetail: React.FC<{
             }));
     }, [transactions, account.id, account.currency, showBalanceAdjustments, conversionRates]);
 
-    const displayTransactionsList: DisplayTransaction[] = useMemo(() => {
-        const sorted = [...accountTransactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime()).slice(0, visibleTxLimit);
-        return sorted.map(item => ({
-            ...item.tx,
-            accountName: account.name
-        }));
-    }, [accountTransactions, account.name, visibleTxLimit]);
-
     const handleTransactionClick = (tx: DisplayTransaction) => {
         setModalTransactions([tx]);
         setModalTitle('Transaction Details');
@@ -461,7 +452,6 @@ const AccountDetail: React.FC<{
                     account={account}
                     transactions={transactions}
                     accountTransactions={accountTransactions}
-                    displayTransactions={displayTransactionsList}
                     categories={allCategories}
                     accounts={accounts}
                     loanOverrides={loanPaymentOverrides}
@@ -486,17 +476,6 @@ const AccountDetail: React.FC<{
                     onOpenInvestments={() => { setViewingAccountId(null); setCurrentPage('Investments'); }}
                 />
             </Suspense>
-            {accountTransactions.length > visibleTxLimit && (
-                <div className="flex justify-center pt-2">
-                    <button
-                        type="button"
-                        onClick={() => setVisibleTxLimit(prev => prev + 100)}
-                        className="type-body-strong cursor-pointer rounded-[var(--radius-md)] bg-inset px-4 py-2 text-ink hover:bg-line"
-                    >
-                        Show more transactions ({accountTransactions.length - visibleTxLimit} remaining)
-                    </button>
-                </div>
-            )}
         </>
     );
 };

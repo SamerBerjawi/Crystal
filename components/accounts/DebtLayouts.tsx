@@ -10,7 +10,7 @@ import { Amount } from '../ui/Money';
 import { StatGauge } from '../ui/StatGauge';
 import { EmptyState } from '../ui/States';
 import AccountShell from './AccountShell';
-import { Bars, Donut, Figures, Section, ShareBar, TimeSeries } from './charts';
+import { Bars, Board, Donut, Figures, Section, ShareBar, TimeSeries } from './charts';
 import { useLiveBalance } from './ConnectionsStrip';
 import { addAction, commonActions, day, detailsTab, Grid2, money, pct, shortDay, type AccountPanelProps } from './pageKit';
 import { monthPeriods } from '../../utils/activityModel';
@@ -131,9 +131,9 @@ export const LoanLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: hasSchedule ? (
-            <>
+            <Board>
               {termChart && (
-                <Section title="Balance over the term" subtitle={extra || lump ? 'The plan, and with your overpayment' : 'What is left after each payment, today marked by the dashes'}>
+                <Section span="wide" title="Balance over the term" subtitle={extra || lump ? 'The plan, and with your overpayment' : 'What is left after each payment, today marked by the dashes'}>
                   <TimeSeries
                     data={termChart.rows}
                     series={[
@@ -142,16 +142,16 @@ export const LoanLayout: React.FC<AccountPanelProps> = props => {
                     ]}
                     currency={account.currency}
                     markers={[{ date: new Date(), title: 'Today', color: 'var(--muted)' }]}
+                    height="fill"
                   />
                 </Section>
               )}
-              <Grid2>
-                {!isLending && payment > 0 && outstanding > 0 ? (
-                  <Section title="Overpayment planner" subtitle="An estimate from today's balance and rate. It changes nothing until you record a payment">
+              {!isLending && payment > 0 && outstanding > 0 ? (
+                  <Section span="side" title="Overpayment planner" subtitle="An estimate from today's balance and rate. It changes nothing until you record a payment">
                     <div className="space-y-4">
                       <Slider label="Extra each month" value={extra} onChange={value => setExtra(Array.isArray(value) ? value[0] : value)} maxValue={Math.max(100, Math.round(payment))} step={10} formatOptions={{ style: 'currency', currency: account.currency === 'BTC' ? 'EUR' : account.currency, maximumFractionDigits: 0 }} />
                       <Slider label="One payment today" value={lump} onChange={value => setLump(Array.isArray(value) ? value[0] : value)} maxValue={Math.max(1000, Math.round(outstanding / 4 / 100) * 100)} step={100} formatOptions={{ style: 'currency', currency: account.currency === 'BTC' ? 'EUR' : account.currency, maximumFractionDigits: 0 }} />
-                      <Figures items={[
+                      <Figures className="@4xl:grid-cols-1 @4xl:gap-2" items={[
                         { label: 'Done sooner by', value: extra || lump ? monthsLabel(whatIf.monthsSaved) : '—' },
                         { label: 'Interest saved', value: money(whatIf.interestSaved, account) },
                         { label: 'New end', value: extra || lump ? new Date(new Date().getFullYear(), new Date().getMonth() + whatIf.faster.length - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '—' },
@@ -159,15 +159,15 @@ export const LoanLayout: React.FC<AccountPanelProps> = props => {
                     </div>
                   </Section>
                 ) : (
-                  <Section title="Repayments" subtitle="Principal and interest received">
-                    <Figures items={[
+                  <Section span="side" title="Repayments" subtitle="Principal and interest received">
+                    <Figures className="@4xl:grid-cols-1 @4xl:gap-2" items={[
                       { label: 'Principal back', value: money(plan.paidPrincipal, account) },
                       { label: 'Interest earned', value: money(plan.paidInterest, account) },
                       { label: 'Still to come', value: money(plan.outstandingPrincipal + plan.outstandingInterest, account) },
                     ]} />
                   </Section>
                 )}
-                <Section title="Where the money goes" subtitle="Principal and interest, paid and to come">
+                <Section span="side" title="Where the money goes" subtitle="Principal and interest, paid and to come">
                   <Donut
                     centerLabel="Total"
                     currency={account.currency}
@@ -179,13 +179,11 @@ export const LoanLayout: React.FC<AccountPanelProps> = props => {
                     ]}
                   />
                 </Section>
-              </Grid2>
-              <Section title="Principal and interest by year">
-                <Bars data={years} xKey="year" stacked bars={[{ key: 'principal', label: 'Principal', color: 'var(--chart-1)' }, { key: 'interest', label: 'Interest', color: 'var(--chart-4)' }]} currency={account.currency} />
+              <Section span="wide" title="Principal and interest by year">
+                <Bars data={years} xKey="year" stacked bars={[{ key: 'principal', label: 'Principal', color: 'var(--chart-1)' }, { key: 'interest', label: 'Interest', color: 'var(--chart-4)' }]} height="fill" currency={account.currency} />
               </Section>
-              <Grid2>
                 {!isLending && (
-                  <Section title="Secured by" subtitle={asset ? undefined : 'Link a property or vehicle in Edit to see its equity'}>
+                  <Section span="half" title="Secured by" subtitle={asset ? undefined : 'Link a property or vehicle in Edit to see its equity'}>
                     {asset ? (
                       <div className="flex items-center gap-5">
                         <StatGauge fill={ltv} tone={ltv > 90 ? 'loss' : ltv > 75 ? 'amber' : 'pine'} display={pct(ltv)} caption="loan to value" label="Loan to value" size={120} />
@@ -197,11 +195,10 @@ export const LoanLayout: React.FC<AccountPanelProps> = props => {
                     ) : <p className="type-body text-muted">No asset linked.</p>}
                   </Section>
                 )}
-                <Section title={isLending ? 'Repaid into' : 'Paid from'}>
+                <Section span="half" title={isLending ? 'Repaid into' : 'Paid from'}>
                   <PaymentAccountCard from={payFrom} date={plan.next ? parseLocalDate(plan.next.date) : null} amount={plan.next?.totalPayment ?? payment} label={isLending ? 'Repayments arrive in' : 'Payments leave from'} onOpenAccount={props.onOpenAccount} />
                 </Section>
-              </Grid2>
-            </>
+            </Board>
           ) : (
             <EmptyState icon="calendar-01" title="No schedule yet" description="Add the amount, term, rate and start date in Edit to see the plan, the payoff date and an overpayment planner." actionLabel={props.onEditAccount ? 'Edit loan' : undefined} onAction={props.onEditAccount} />
           ),
@@ -278,14 +275,14 @@ export const LiabilityLayout: React.FC<AccountPanelProps> = props => {
           id: 'overview',
           label: 'Overview',
           content: (
-            <Grid2>
-              <Section title="What's left" subtitle="24 months back, and ahead at your current pace">
-                <TimeSeries data={chart.points} series={[{ key: 'owed', label: 'Owed', color: 'var(--chart-4)', dashFromIndex: chart.todayIndex }]} currency={account.currency} showLegend={false} />
+            <Board>
+              <Section span="side" title="What's left" subtitle="24 months back, and ahead at your current pace">
+                <TimeSeries data={chart.points} series={[{ key: 'owed', label: 'Owed', color: 'var(--chart-4)', dashFromIndex: chart.todayIndex }]} currency={account.currency} showLegend={false} height="fill" />
               </Section>
-              <Section title="Payments by month" subtitle="Last 12 months">
+              <Section span="wide" title="Payments by month" subtitle="Last 12 months">
                 <MoneyFlowChart periods={flowPeriodsByMonth} currency={account.currency} labels={{ in: 'Paid', out: 'Added', balance: 'Owed' }} hint="Pick a month to see it" showDetail={false} />
               </Section>
-            </Grid2>
+            </Board>
           ),
         },
         activityTab(props),
