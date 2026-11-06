@@ -21,13 +21,13 @@ const HIT_RADIUS = 16;
 const LABEL_ROWS = 3;
 const ROW_HEIGHT = 24;
 
-const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-const compact = (value: number) => {
+export const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+export const compact = (value: number) => {
   const sign = currencySign(getMainCurrency());
   return Math.abs(value) >= 1000 ? `${sign}${Math.round(value / 100) / 10}k` : `${sign}${Math.round(value)}`;
 };
-const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
-const labelWidth = (text: string) => Math.round(text.length * 6.6 + 22);
+export const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+export const labelWidth = (text: string) => Math.round(text.length * 6.6 + 22);
 
 export interface ChartMarker { date: string; label: string }
 export interface ChartLine { id: string; name: string; values: number[]; colour: string }
@@ -54,7 +54,7 @@ interface ForecastHorizonChartProps {
 }
 
 /** The soft fill under the balance line. */
-const HorizonArea: React.FC<{ seriesKey: string; color: string }> = ({ seriesKey, color }) => {
+export const HorizonArea: React.FC<{ seriesKey: string; color: string }> = ({ seriesKey, color }) => {
   const { xAccessor, innerHeight, renderData } = useChartStable();
   const yScale = useYScale();
   const { xScale } = useChartStable();
