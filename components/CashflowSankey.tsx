@@ -4,6 +4,7 @@ import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip } from '@/src/compon
 import { Transaction, Category } from '../types';
 import { convertToMain, formatCurrency, getMainCurrency } from '../utils';
 import SegmentedControl from './ui/SegmentedControl';
+import { useWidgetBox } from './ui/WidgetGrid';
 
 interface CashflowSankeyProps {
   transactions: Transaction[];
@@ -171,25 +172,30 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     return nodeColors[index] || node.color || 'var(--chart-1)';
   }, [nodeColors, isDarkMode]);
 
+  const box = useWidgetBox();
+  // Labels sit outside the flows, so a narrow widget gives them less room, and a short one drops the view switch.
+  const sideMargin = box.width === 0 ? 140 : box.width < 480 ? 64 : box.width < 720 ? 100 : 140;
+  const showSwitch = box.height === 0 || box.height >= 260;
+
   if (totalFlow === 0) {
     return (
-      <p className="type-body py-20 text-center text-muted">No cash flow in this period.</p>
+      <p className="type-body flex h-full items-center justify-center text-center text-muted">No cash flow in this period.</p>
     );
   }
 
   return (
-    <div className="h-full w-full flex flex-col relative min-h-[420px]">
-      <div className="z-20 mb-2 flex justify-end">
+    <div className="h-full w-full flex flex-col relative min-h-[160px]">
+      {showSwitch && <div className="z-20 mb-2 flex justify-end">
         <SegmentedControl items={VIEWS} activeId={viewMode} onChange={id => setViewMode(id as 'detailed' | 'category')} />
-      </div>
+      </div>}
 
-      <div className="flex-1 w-full relative min-h-[360px]">
+      <div className="flex-1 w-full relative min-h-[120px]">
         <SankeyChart
           data={data}
           aspectRatio={undefined}
           nodeWidth={18}
           nodePadding={viewMode === 'detailed' ? 14 : 26}
-          margin={{ top: 20, right: 140, bottom: 20, left: 140 }}
+          margin={{ top: 20, right: sideMargin, bottom: 20, left: sideMargin }}
           className="w-full h-full"
         >
           <SankeyLink

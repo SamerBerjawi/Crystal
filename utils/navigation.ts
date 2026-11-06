@@ -1,4 +1,5 @@
 import type { Page } from '../types';
+import { OVERVIEW_TABS } from './overviewLayout';
 
 export interface HubTab {
   label: string;
@@ -25,7 +26,9 @@ export interface Hub {
  * those pages are built.
  */
 export const HUBS: Hub[] = [
-  { id: 'overview', label: 'Overview', icon: 'dashboard-square-01', home: 'Dashboard', tabs: [] },
+  { id: 'overview', label: 'Overview', icon: 'dashboard-square-01', home: 'Dashboard',
+    tabs: OVERVIEW_TABS.map((view, index) => ({ label: view.label, page: 'Dashboard' as Page, tab: index === 0 ? undefined : view.id, icon: view.icon })),
+  },
   {
     id: 'accounts',
     label: 'Accounts',

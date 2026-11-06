@@ -10,10 +10,12 @@ interface AddWidgetModalProps {
   onClose: () => void;
   availableWidgets: Widget[];
   onAddWidget: (widgetId: string) => void;
+  /** The view being edited, named in the dialog. */
+  viewLabel?: string;
 }
 
-const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, availableWidgets, onAddWidget }) => (
-  <Dialog isOpen={isOpen} onClose={onClose} title="Add a widget" description="It goes at the end of your Overview, and you can move it from there.">
+const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, availableWidgets, onAddWidget, viewLabel }) => (
+  <Dialog isOpen={isOpen} onClose={onClose} title="Add a widget" description={viewLabel ? `Widgets that belong on ${viewLabel}. It goes at the end, and you can move it from there.` : 'It goes at the end of your Overview, and you can move it from there.'}>
     {availableWidgets.length > 0 ? (
       <div className="-mx-2 divide-y divide-line">
         {availableWidgets.map(widget => (
@@ -28,7 +30,7 @@ const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, availa
         ))}
       </div>
     ) : (
-      <EmptyState icon="dashboard-square-add" title="Every widget is on show" description="Remove one from Overview to add it again later." className="py-8" />
+      <EmptyState icon="dashboard-square-add" title="Every widget is on show" description={viewLabel ? `Remove one from ${viewLabel} to add it again later.` : 'Remove one from Overview to add it again later.'} className="py-8" />
     )}
   </Dialog>
 );

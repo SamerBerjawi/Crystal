@@ -4,6 +4,7 @@ import { PieChart as BklitPieChart, PieCenter, PieSlice } from '../src/component
 import { formatCurrency } from '../utils';
 import Icon from './ui/Icon';
 import { Amount } from './ui/Money';
+import { fitRows, useWidgetBox } from './ui/WidgetGrid';
 
 interface Group {
   value: number;
@@ -21,7 +22,9 @@ interface AssetAllocationWidgetProps {
   toDisplay: (eur: number) => number;
 }
 
-const GroupList: React.FC<{ title: string; groups: Record<string, Group>; total: number; empty: string; currency: Currency; toDisplay: (eur: number) => number }> = ({ title, groups, total, empty, currency, toDisplay }) => (
+const GroupList: React.FC<{ title: string; groups: Record<string, Group>; total: number; empty: string; currency: Currency; toDisplay: (eur: number) => number; limit?: number }> = ({ title, groups, total, empty, currency, toDisplay, limit = Infinity }) => {
+  const entries = Object.entries(groups).filter(([, group]) => group.value !== 0);
+  return (
   <div className="min-w-0">
     <h3 className="type-label mb-3 flex justify-between text-muted">
       <span>{title}</span>
@@ -29,7 +32,7 @@ const GroupList: React.FC<{ title: string; groups: Record<string, Group>; total:
     </h3>
     {total === 0 && <p className="type-body text-muted">{empty}</p>}
     <ul className="space-y-3">
-      {Object.entries(groups).filter(([, group]) => group.value !== 0).map(([name, group]) => (
+      {entries.slice(0, limit).map(([name, group]) => (
         <li key={name}>
           <div className="type-body mb-1 flex items-center justify-between gap-3 text-ink">
             <span className="flex min-w-0 items-center gap-2">
@@ -47,19 +50,33 @@ const GroupList: React.FC<{ title: string; groups: Record<string, Group>; total:
         </li>
       ))}
     </ul>
+    {entries.length > limit && <p className="type-caption mt-2 text-muted">+{entries.length - limit} more</p>}
   </div>
-);
+  );
+};
 
 /** The Analysis tab's allocation card, as a widget: donut, then assets and debts by group. */
-const AssetAllocationWidget: React.FC<AssetAllocationWidgetProps> = ({ allocation, assetGroups, liabilityGroups, totalAssets, totalDebt, currency, toDisplay }) => (
-  <div className="grid gap-6 lg:grid-cols-[280px_1fr_1fr]">
-    <div className="h-64">
+const AssetAllocationWidget: React.FC<AssetAllocationWidgetProps> = ({ allocation, assetGroups, liabilityGroups, totalAssets, totalDebt, currency, toDisplay }) => {
+  const box = useWidgetBox();
+  // The donut is a square sized to the room: as tall as the widget when it sits beside the lists, as wide as it when above them.
+  const wide = box.width === 0 || box.width >= 760;
+  const showDonut = box.height === 0 || box.height >= 260;
+  const stacked = box.width > 0 && box.width < 520;
+  const donutSize = box.width === 0 || box.height === 0
+    ? 280
+    : wide
+      ? Math.max(160, Math.min(box.height - 8, Math.round(box.width * 0.36)))
+      : Math.max(140, Math.min(box.width - 8, Math.round(box.height * 0.45)));
+  // Each group is a 50px row under a 40px heading.
+  const limit = box.height === 0 ? Infinity : Math.max(2, fitRows(box, stacked ? 44 : 50, 6, 56) - (stacked ? 2 : 0));
+  const donut = (
+    <div className="flex items-center justify-center" style={wide ? { width: donutSize } : undefined}>
       <BklitPieChart
         data={allocation.map(item => ({ label: item.name, value: item.value, color: item.color }))}
-        innerRadius={70}
+        size={donutSize}
+        innerRadius={Math.round(donutSize * 0.3)}
         cornerRadius={6}
         padAngle={allocation.length > 1 ? 0.04 : 0}
-        className="h-64 w-full"
       >
         {allocation.map((_, index) => <PieSlice key={index} index={index} />)}
         <PieCenter defaultLabel="Net worth">
@@ -72,9 +89,14 @@ const AssetAllocationWidget: React.FC<AssetAllocationWidgetProps> = ({ allocatio
         </PieCenter>
       </BklitPieChart>
     </div>
-    <GroupList title="Assets" groups={assetGroups} total={totalAssets} empty="No assets yet." currency={currency} toDisplay={toDisplay} />
-    <GroupList title="Debts" groups={liabilityGroups} total={Math.abs(totalDebt)} empty="No debts recorded." currency={currency} toDisplay={toDisplay} />
-  </div>
-);
+  );
+  return (
+    <div className="grid h-full content-start gap-6" style={{ gridTemplateColumns: showDonut && wide ? `${donutSize}px 1fr 1fr` : stacked ? '1fr' : '1fr 1fr' }}>
+      {showDonut && (wide ? donut : <div className={stacked ? '' : 'col-span-2'}>{donut}</div>)}
+      <GroupList title="Assets" groups={assetGroups} total={totalAssets} empty="No assets yet." currency={currency} toDisplay={toDisplay} limit={limit} />
+      <GroupList title="Debts" groups={liabilityGroups} total={Math.abs(totalDebt)} empty="No debts recorded." currency={currency} toDisplay={toDisplay} limit={limit} />
+    </div>
+  );
+};
 
 export default AssetAllocationWidget;
