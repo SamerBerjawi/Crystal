@@ -54,7 +54,7 @@ interface ForecastHorizonChartProps {
 }
 
 /** The soft fill under the balance line. */
-export const HorizonArea: React.FC<{ seriesKey: string; color: string }> = ({ seriesKey, color }) => {
+export const HorizonArea: React.FC<{ seriesKey: string; color: string; curve?: typeof curveNatural }> = ({ seriesKey, color, curve = curveNatural }) => {
   const { xAccessor, innerHeight, renderData } = useChartStable();
   const yScale = useYScale();
   const { xScale } = useChartStable();
@@ -64,8 +64,8 @@ export const HorizonArea: React.FC<{ seriesKey: string; color: string }> = ({ se
       .x(row => xScale(xAccessor(row)))
       .y0(innerHeight)
       .y1(row => yScale(Number(row[seriesKey])))
-      .curve(curveNatural)(renderData) ?? '',
-    [renderData, xScale, yScale, xAccessor, innerHeight, seriesKey]
+      .curve(curve)(renderData) ?? '',
+    [renderData, xScale, yScale, xAccessor, innerHeight, seriesKey, curve]
   );
   return (
     <g pointerEvents="none">

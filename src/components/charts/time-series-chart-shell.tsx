@@ -106,7 +106,8 @@ function collectNumericExtents(
 function resolveTimeSeriesYDomain(
   data: Record<string, unknown>[],
   dataKeys: string[],
-  yScaleDomainMax: number | undefined
+  yScaleDomainMax: number | undefined,
+  fit = false
 ): [number, number] {
   if (yScaleDomainMax != null && yScaleDomainMax > 0) {
     return [0, yScaleDomainMax * 1.1];
@@ -128,6 +129,13 @@ function resolveTimeSeriesYDomain(
         ? maxValue * 1.1
         : maxValue * 0.9;
     return [min, max];
+  }
+
+  if (fit) {
+    // Room above and below the line, never dipping under zero for an all-positive series.
+    const padding = (maxValue - minValue) * 0.12 || Math.abs(maxValue) * 0.05 || 1;
+    const bottom = minValue - padding;
+    return [minValue >= 0 ? Math.max(0, bottom) : bottom, maxValue + padding];
   }
 
   if (minValue >= 0) {
@@ -185,6 +193,8 @@ export interface TimeSeriesChartInnerProps {
   xDomainSlotCount?: number;
   /** Tween y-domain when the visible x-range changes during the ready phase. */
   tweenYDomainOnXDomainChange?: boolean;
+  /** Fit the y-axis to the data instead of anchoring at zero. */
+  fitYDomain?: boolean;
   onPhaseChange?: (phase: ChartPhase) => void;
 }
 
@@ -225,6 +235,7 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
   xDomain,
   xDomainSlotCount,
   tweenYDomainOnXDomainChange = false,
+  fitYDomain = false,
   onPhaseChange,
 }: TimeSeriesChartInnerProps) {
   const staticPreview = useStaticChartPreview();
@@ -240,9 +251,9 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
         usesDefaultOnly && yScaleDomainMax != null
           ? yScaleDomainMax
           : undefined;
-      return resolveTimeSeriesYDomain(sourceData, dataKeys, domainMax);
+      return resolveTimeSeriesYDomain(sourceData, dataKeys, domainMax, fitYDomain);
     },
-    [lines, yScaleDomainMax]
+    [lines, yScaleDomainMax, fitYDomain]
   );
 
   const skeletonData = useMemo(() => {
