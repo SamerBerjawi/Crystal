@@ -8,6 +8,7 @@ import { useIsDark } from '../hooks/useIsDark';
 import { IconButton } from './ui/Actions';
 import { Amount } from './ui/Money';
 import { EmptyState } from './ui/States';
+import { useWidgetBox } from './ui/WidgetGrid';
 import { VectorBasemap } from './VectorBasemap';
 
 type CountryCode = Lowercase<TCountryCode>;
@@ -167,6 +168,10 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   const focalCenter = useMemo((): [number, number] => (locations.length === 0 ? [20, 0] : [locations[0].lat, locations[0].lon]), [locations]);
   const coords: [number, number][] = useMemo(() => locations.map(l => [l.lat, l.lon]), [locations]);
   const [tileZoom, setTileZoom] = useState<number>(3);
+  const box = useWidgetBox();
+  // Place chips need a row of 48px under the map and the detail card needs 260px by 420px; the map itself fills the rest.
+  const showRail = box.height === 0 || box.height >= 300;
+  const showDetail = box.height === 0 || (box.height >= 260 && box.width >= 420);
 
   if (locations.length === 0) {
     return <EmptyState icon="location-01" title="No places yet" description="Transactions with a location show up on this map." className="h-full py-6" />;
@@ -178,12 +183,12 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   const placeLine = (loc: { city: string; country: string }) => [loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown place';
 
   return (
-    <div className="relative isolate flex h-full min-h-[360px] w-full flex-col overflow-hidden rounded-[var(--radius-lg)] bg-inset">
+    <div className="relative isolate flex h-full min-h-[160px] w-full flex-col overflow-hidden rounded-[var(--radius-lg)] bg-inset">
       <div className={`type-caption absolute left-3 top-3 z-[1000] rounded-full px-3 py-1 text-ink ${floating}`}>
         {locations.length} {locations.length === 1 ? 'place' : 'places'} · {totalCount} {totalCount === 1 ? 'transaction' : 'transactions'}
       </div>
 
-      <div className="relative min-h-[260px] w-full flex-1 overflow-hidden">
+      <div className="relative min-h-[100px] w-full flex-1 overflow-hidden">
         <MapContainerAny center={focalCenter} zoom={tileZoom} style={{ height: '100%', width: '100%' }} className="!z-0" zoomControl={false}>
           <VectorBasemap dark={isDarkMode} />
           <BoundsFitter coords={coords} center={focalCenter} />
@@ -207,7 +212,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         </MapContainerAny>
       </div>
 
-      {active && (
+      {active && showDetail && (
         <div className={`absolute left-3 top-12 z-[1000] w-[220px] rounded-[var(--radius-lg)] p-3 ${floating}`}>
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 gap-2">
@@ -226,7 +231,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         </div>
       )}
 
-      <div className="no-scrollbar relative z-10 flex items-center gap-1.5 overflow-x-auto px-3 pb-3 pt-2">
+      {showRail && <div className="no-scrollbar relative z-10 flex items-center gap-1.5 overflow-x-auto px-3 pb-3 pt-2">
         {locations.map(loc => {
           const isOn = selectedLocationId === loc.id || hoveredLocationId === loc.id;
           return (
@@ -244,9 +249,9 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
             </button>
           );
         })}
-      </div>
+      </div>}
 
-      <div className={`absolute bottom-14 right-3 z-[1000] flex items-center gap-0.5 rounded-full p-1 ${floating}`}>
+      <div className={`absolute ${showRail ? 'bottom-14' : 'bottom-3'} right-3 z-[1000] flex items-center gap-0.5 rounded-full p-1 ${floating}`}>
         <IconButton icon="add-01" label="Zoom in" iconSize={16} className="size-8" onPress={() => setTileZoom(z => Math.min(z + 1, 18))} />
         <IconButton icon="minus-sign" label="Zoom out" iconSize={16} className="size-8" onPress={() => setTileZoom(z => Math.max(z - 1, 1))} />
         <IconButton icon="center-focus" label="Show every place" iconSize={16} className="size-8" onPress={() => { setTileZoom(3); setSelectedLocationId(null); }} />

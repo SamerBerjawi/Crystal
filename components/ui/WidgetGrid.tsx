@@ -6,6 +6,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import {
+  createContext,
+  useContext,
   type CSSProperties,
   type FocusEvent,
   type KeyboardEvent,
@@ -28,6 +30,56 @@ import { cn } from "../../lib/utils";
 /* -------------------------------------------------------------------------- */
 
 export type WidgetSize = "s" | "m" | "l";
+
+/** What a widget has to work with: the pixels of its body, and the size tier its columns and rows map to. */
+export interface WidgetBox {
+  width: number;
+  height: number;
+  size: WidgetSize;
+}
+
+const WidgetBoxContext = createContext<WidgetBox>({ width: 0, height: 0, size: "m" });
+
+/** The measured body of the widget it sits in. Width and height are 0 until the first measurement. */
+export function useWidgetBox(): WidgetBox {
+  return useContext(WidgetBoxContext);
+}
+
+/**
+ * How many rows of `rowHeight` fit in the widget, after `reserved` pixels for anything else it shows. Before the first
+ * measurement, and outside a grid, it returns `fallback`, so a widget never renders empty while it waits.
+ */
+export function fitRows(box: WidgetBox, rowHeight: number, fallback: number, reserved = 0): number {
+  if (box.height <= 0) return fallback;
+  return Math.max(1, Math.floor((box.height - reserved) / rowHeight));
+}
+
+/**
+ * The body of a widget. It measures itself, hands the size to the widget through `useWidgetBox`, and is a container
+ * for `@sm:`/`@lg:` variants, so a widget answers to the room it has, not to the screen.
+ */
+export function WidgetBody({ size, children, className }: { size: WidgetSize; children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [dims, setDims] = useState({ width: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const measure = (width: number, height: number) =>
+      setDims((prev) => (Math.abs(prev.width - width) < 2 && Math.abs(prev.height - height) < 2 ? prev : { width: Math.round(width), height: Math.round(height) }));
+    measure(node.clientWidth, node.clientHeight);
+    const observer = new ResizeObserver(([entry]) => entry && measure(entry.contentRect.width, entry.contentRect.height));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const value = useMemo<WidgetBox>(() => ({ ...dims, size }), [dims, size]);
+  return (
+    <WidgetBoxContext.Provider value={value}>
+      <div ref={ref} className={cn("@container h-full", className)}>{children}</div>
+    </WidgetBoxContext.Provider>
+  );
+}
 
 export interface WidgetGridItem {
   id: string;
@@ -577,7 +629,7 @@ function WidgetCell({
               key={size}
               transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
             >
-              {item.render(size)}
+              <WidgetBody size={size}>{item.render(size)}</WidgetBody>
             </motion.div>
           </AnimatePresence>
         </div>

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { fitRows, useWidgetBox } from './ui/WidgetGrid';
 import { Task, RecurringTransaction, BillPayment, FinancialGoal, RecurringTransactionOverride, Currency } from '../types';
 import { parseLocalDate, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
@@ -24,6 +25,9 @@ type AgendaItem =
     | { type: 'bill'; data: BillPayment; date: Date; daysUntil: number; sortDate: number }
     | { type: 'goal'; data: FinancialGoal; date: Date; daysUntil: number; sortDate: number };
 
+/** How far ahead the agenda looks. Today's items come first, then what is coming. */
+const LOOKAHEAD_DAYS = 14;
+
 const TodayWidget: React.FC<TodayWidgetProps> = ({ 
     tasks, 
     recurringTransactions, 
@@ -34,6 +38,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     onProcessItem,
     size = 'm'
 }) => {
+    const box = useWidgetBox();
     const agendaItems = useMemo(() => {
         const items: AgendaItem[] = [];
         const todayStr = toLocalISOString(new Date());
@@ -45,29 +50,29 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
             return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         };
 
-        // Tasks (due in <= 3 days and >= -7 days)
+        // Tasks (due within the lookahead and >= -7 days)
         tasks.forEach(task => {
             if (task.status !== 'Done' && task.dueDate) {
                 const days = getDaysUntil(task.dueDate);
-                if (days <= 3 && days >= -7) {
+                if (days <= LOOKAHEAD_DAYS && days >= -7) {
                     const date = parseLocalDate(task.dueDate);
                     items.push({ type: 'task', data: task, date, daysUntil: days, sortDate: date.getTime() });
                 }
             }
         });
 
-        // Bills (unpaid and due in <= 3 days and >= -7 days)
+        // Bills (unpaid and due within the lookahead and >= -7 days)
         bills.forEach(bill => {
             if (bill.status === 'unpaid') {
                 const days = getDaysUntil(bill.dueDate);
-                if (days <= 3 && days >= -7) {
+                if (days <= LOOKAHEAD_DAYS && days >= -7) {
                     const date = parseLocalDate(bill.dueDate);
                     items.push({ type: 'bill', data: bill, date, daysUntil: days, sortDate: date.getTime() });
                 }
             }
         });
 
-        // Recurring Transactions (due in <= 3 days and >= -7 days)
+        // Recurring Transactions (due within the lookahead and >= -7 days)
         recurringTransactions.forEach(rt => {
             if (rt.type === 'income') return; // Only process bill/expense/transfer obligations
             if (rt.pausedAt) return;
@@ -85,7 +90,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                 const days = getDaysUntil(dateStr);
                 
                 // If we've scanned more than 3 days into the future, stop checking this transaction
-                if (days > 3) break;
+                if (days > LOOKAHEAD_DAYS) break;
                 if (endDateLocal && nextDue > endDateLocal) break;
 
                 const override = overrides.find(o => o.recurringTransactionId === rt.id && o.originalDate === dateStr);
@@ -94,7 +99,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                     const effectiveDateStr = override?.date || dateStr;
                     const effectiveDays = getDaysUntil(effectiveDateStr);
                     
-                    if (effectiveDays <= 3 && effectiveDays >= -7) {
+                    if (effectiveDays <= LOOKAHEAD_DAYS && effectiveDays >= -7) {
                         const effectiveData = override ? { 
                             ...rt, 
                             amount: override.amount ?? rt.amount, 
@@ -131,11 +136,11 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
             }
         });
 
-        // Goals (Deadline within 3 days)
+        // Goals (Deadline within the lookahead)
         goals.forEach(goal => {
             if (goal.type === 'one-time' && goal.date && goal.currentAmount < goal.amount) {
                 const days = getDaysUntil(goal.date);
-                if (days <= 3) {
+                if (days <= LOOKAHEAD_DAYS) {
                     const date = parseLocalDate(goal.date);
                     items.push({ type: 'goal', data: goal, date, daysUntil: days, sortDate: date.getTime() });
                 }
@@ -149,18 +154,25 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         if (daysUntil < 0) return <Badge tone="negative">{Math.abs(daysUntil) === 1 ? '1 day late' : `${Math.abs(daysUntil)} days late`}</Badge>;
         if (daysUntil === 0) return <Badge tone="attention">Today</Badge>;
         if (daysUntil === 1) return <Badge tone="neutral">Tomorrow</Badge>;
+        if (daysUntil > 7) return <Badge tone="neutral">{new Date(Date.now() + daysUntil * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Badge>;
         return <Badge tone="neutral">In {daysUntil} days</Badge>;
     };
 
     if (agendaItems.length === 0) {
-        return <EmptyState icon="checkmark-circle-02" title="Nothing due" description="No tasks, bills or payments in the next 3 days." className="h-full py-6" />;
+        return <EmptyState icon="checkmark-circle-02" title="Nothing due" description="No tasks, bills or payments in the next two weeks." className="h-full py-6" />;
     }
 
-    const visibleAgenda = size === 's' ? agendaItems.slice(0, 3) : size === 'm' ? agendaItems.slice(0, 6) : agendaItems;
+    const fallbackCount = size === 's' ? 3 : size === 'm' ? 6 : agendaItems.length;
+    // A row is 60px. When some are left out, the last line says how many, so one fewer row shows.
+    const fit = fitRows(box, 60, fallbackCount);
+    const count = box.height === 0 ? fallbackCount : fit >= agendaItems.length ? agendaItems.length : Math.max(1, fit - 1);
+    const visibleAgenda = agendaItems.slice(0, count);
+    const hiddenCount = agendaItems.length - visibleAgenda.length;
     const glyph = (icon: string) => <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-inset text-muted"><Icon name={icon} size={18} /></span>;
 
     return (
-        <ul className="no-scrollbar -mx-2 h-full divide-y divide-line overflow-y-auto">
+        <div className="flex h-full flex-col">
+        <ul className="no-scrollbar -mx-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto">
             {visibleAgenda.map(item => {
                 if (item.type === 'task') {
                     return (
@@ -212,6 +224,8 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                 );
             })}
         </ul>
+        {hiddenCount > 0 && <p className="type-caption mt-1 shrink-0 text-muted">+{hiddenCount} more coming up</p>}
+        </div>
     );
 };
 

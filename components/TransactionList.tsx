@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
+import { useWidgetBox } from './ui/WidgetGrid';
 import { Category, DisplayTransaction, Tag, Account } from '../types';
 import { convertToMain, parseLocalDate, formatDate as formatSharedDate, getMainCurrency } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
@@ -41,7 +42,9 @@ const TransactionList: React.FC<TransactionListProps> = ({
   size,
   className = ''
 }) => {
-  const effectiveMaxItems = size ? (size === 's' ? 4 : size === 'm' ? 8 : (maxItems ?? 15)) : maxItems;
+  // Inside a widget the list fills the room it is given and scrolls, so the widget decides how many rows show.
+  const inWidget = useWidgetBox().height > 0;
+  const effectiveMaxItems = inWidget ? undefined : size ? (size === 's' ? 4 : size === 'm' ? 8 : (maxItems ?? 15)) : maxItems;
   const { tags } = useTagsContext();
   const { accounts } = useAccountsContext();
   const userDateFormat = usePreferencesSelector(p => p.dateFormat);

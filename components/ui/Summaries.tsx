@@ -12,6 +12,12 @@ import { Amount, Change } from './Money';
 import { Popover } from './Overlays';
 import { EmptyState } from './States';
 import { cn } from '../../lib/utils';
+import { LogoTile } from '../EntityIcon';
+import { usePreferencesSelector } from '../../contexts/DomainProviders';
+import { getMerchantLogoUrl } from '../../utils/brandfetch';
+import { ACCOUNT_TYPE_STYLES } from '../../constants';
+import { ACCOUNT_TYPE_ORDER } from '../../utils/accountsModel';
+import { fitRows, useWidgetBox } from './WidgetGrid';
 
 /** The signature sentence: three facts at most, each linked to where you can act. */
 export const WrittenSummary: React.FC<{ facts: SummaryFact[]; onFact: (id: SummaryTarget) => void; isPrivate?: boolean; className?: string }> = ({ facts, onFact, isPrivate, className }) => (
@@ -152,6 +158,11 @@ export const SafeToSpendWidget: React.FC<{
     return <EmptyState className="py-4" icon="wallet" title="No spending account yet" description="Add a checking account to see what you can spend." />;
   }
 
+  const box = useWidgetBox();
+  // Side by side when there is width; stacked when there is not. The breakdown needs about 150px of height, the account line 190px.
+  const sideBySide = box.width > 0 ? box.width >= 460 : size !== 's';
+  const showBreakdown = box.height === 0 || box.height >= 150;
+  const showSource = box.height === 0 || box.height >= 190;
   const isOver = data.amount < 0;
   const untilText = data.untilReason === 'income' ? `your next income on ${formatDay(data.until)}` : `the end of the month`;
   const rows: { label: string; value: number }[] = [
@@ -161,7 +172,7 @@ export const SafeToSpendWidget: React.FC<{
   ];
 
   return (
-    <div className={cn('flex h-full gap-6', size === 's' ? 'flex-col justify-between gap-3' : 'items-stretch justify-between')}>
+    <div className={cn('flex h-full gap-6', sideBySide ? 'items-stretch justify-between' : 'flex-col justify-between gap-3')}>
       <div className="min-w-0">
         <p className={cn('type-figure-lg', isOver ? 'text-money-out' : 'text-ink')}>
           <Amount value={toDisplay(data.amount)} currency={currency} countUp={countUp} />
@@ -170,7 +181,7 @@ export const SafeToSpendWidget: React.FC<{
           {isOver ? <>Over by this much until {untilText}</> : <><Amount value={toDisplay(data.perDay)} currency={currency} /> a day until {untilText}</>}
         </p>
       </div>
-      <div className="min-w-0">
+      {showBreakdown && <div className="min-w-0">
         <dl className="space-y-1">
           {rows.map(row => (
             <div key={row.label} className="type-caption flex items-center justify-between gap-3">
@@ -199,13 +210,20 @@ export const SafeToSpendWidget: React.FC<{
             </div>
           ))}
         </dl>
-        <p className="type-caption mt-1 truncate text-muted">From {data.accounts.map(account => account.name).join(', ')}</p>
-      </div>
+        {showSource && <p className="type-caption mt-1 truncate text-muted">From {data.accounts.map(account => account.name).join(', ')}</p>}
+      </div>}
     </div>
   );
 };
 
-/** The biggest open accounts, with a route to the rest. */
+/** One account's logo, or the icon its owner picked, or its type's icon. Logos come from the account's institution. */
+const AccountMark: React.FC<{ account: Account; size?: number }> = ({ account, size = 28 }) => {
+  const clientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+  const logo = clientId && account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, clientId) : null;
+  return <LogoTile url={logo} label={account.name} size={size} fallbackIcon={account.icon || ACCOUNT_TYPE_STYLES[account.type]?.icon || 'bank'} />;
+};
+
+/** Every open account, grouped by type with a subtotal, whatever the page filter says. Scrolls when there are more than fit. */
 export const AccountsSummary: React.FC<{
   accounts: Account[];
   toDisplay: (amount: number, from: Currency) => number;
@@ -213,26 +231,59 @@ export const AccountsSummary: React.FC<{
   onOpen: (id: string) => void;
   onAll: () => void;
   size?: 's' | 'm' | 'l';
-}> = ({ accounts, toDisplay, currency, onOpen, onAll, size = 'm' }) => {
-  const top = [...accounts]
-    .filter(account => account.status !== 'closed')
-    .sort((a, b) => Math.abs(toDisplay(b.balance, b.currency)) - Math.abs(toDisplay(a.balance, a.currency)));
-  const limit = size === 's' ? 3 : size === 'l' ? 7 : 4;
+}> = ({ accounts, toDisplay, currency, onOpen, onAll }) => {
+  const groups = React.useMemo(() => {
+    const open = accounts.filter(account => account.status !== 'closed');
+    return ACCOUNT_TYPE_ORDER
+      .map(type => {
+        const members = open
+          .filter(account => account.type === type)
+          .sort((a, b) => Math.abs(toDisplay(b.balance, b.currency)) - Math.abs(toDisplay(a.balance, a.currency)));
+        return { type, members, total: members.reduce((sum, account) => sum + toDisplay(account.balance, account.currency), 0) };
+      })
+      .filter(group => group.members.length > 0);
+  }, [accounts, toDisplay]);
+  const count = groups.reduce((sum, group) => sum + group.members.length, 0);
+
+  if (count === 0) {
+    return <EmptyState className="h-full py-4" icon="wallet" title="No accounts yet" description="Add one and it shows up here." actionLabel="Add an account" onAction={onAll} />;
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <ul className="min-h-0 flex-1 divide-y divide-line overflow-hidden">
-        {top.slice(0, limit).map(account => (
-          <li key={account.id}>
-            <Row
-              title={account.name}
-              context={account.type}
-              trailing={<Amount value={toDisplay(account.balance, account.currency)} currency={currency} />}
-              onPress={() => onOpen(account.id)}
-            />
-          </li>
+      <div className="no-scrollbar -mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1">
+        {groups.map(group => (
+          <section key={group.type} aria-label={group.type}>
+            <h3 className="type-label sticky top-0 z-10 flex items-center justify-between gap-3 bg-solid/90 py-1 text-muted backdrop-blur-sm">
+              <span className="flex items-center gap-1.5">
+                <Icon name={ACCOUNT_TYPE_STYLES[group.type]?.icon || 'bank'} size={14} />
+                {group.type}
+                <span className="font-normal">· {group.members.length}</span>
+              </span>
+              <Amount value={group.total} currency={currency} className="text-ink" />
+            </h3>
+            <ul className="divide-y divide-line">
+              {group.members.map(account => (
+                <li key={account.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(account.id)}
+                    className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-[var(--radius-md)] px-1 py-1.5 text-left transition-colors hover:bg-inset focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
+                  >
+                    <AccountMark account={account} />
+                    <span className="min-w-0 flex-1">
+                      <span className="type-body-strong block truncate text-ink">{account.name}</span>
+                      {account.financialInstitution && <span className="type-caption block truncate text-muted">{account.financialInstitution}</span>}
+                    </span>
+                    <span className="type-figure-row shrink-0 text-ink"><Amount value={toDisplay(account.balance, account.currency)} currency={currency} /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
-      {top.length > limit && <Button variant="ghost" size="sm" className="mt-1 self-start" onPress={onAll}>All {top.length} accounts</Button>}
+      </div>
+      <Button variant="ghost" size="sm" className="mt-1 shrink-0 self-start" onPress={onAll}>Open Accounts</Button>
     </div>
   );
 };
@@ -241,17 +292,22 @@ export const AccountsSummary: React.FC<{
 export const KeyRatios: React.FC<{
   items: { label: string; value: React.ReactNode; context: string }[];
   size?: 's' | 'm' | 'l';
-}> = ({ items, size = 'm' }) => (
-  <dl className={cn(
-    "grid h-full gap-x-6 gap-y-3",
-    size === 's' ? "grid-cols-2" : size === 'l' ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 lg:grid-cols-4"
-  )}>
-    {items.map(item => (
-      <div key={item.label} className="min-w-0">
-        <dt className="type-caption text-muted">{item.label}</dt>
-        <dd className={cn("truncate text-ink", size === 's' ? "type-body-strong" : "type-figure-lg")}>{item.value}</dd>
-        <dd className="type-caption truncate text-muted">{item.context}</dd>
-      </div>
-    ))}
-  </dl>
-);
+}> = ({ items, size = 'm' }) => {
+  const box = useWidgetBox();
+  // Four across from 560px, two otherwise. The figures shrink and the context line goes when the rows get short.
+  const columns = box.width > 0 ? (box.width >= 560 ? 4 : 2) : size === 'l' ? 4 : 2;
+  const rowHeight = box.height > 0 ? box.height / Math.ceil(items.length / columns) : Infinity;
+  const small = rowHeight < 64;
+  const showContext = rowHeight >= 78;
+  return (
+    <dl className={cn("grid h-full content-center gap-x-6 gap-y-3", columns === 4 ? "grid-cols-4" : "grid-cols-2")}>
+      {items.map(item => (
+        <div key={item.label} className="min-w-0">
+          <dt className="type-caption truncate text-muted">{item.label}</dt>
+          <dd className={cn("truncate text-ink", small ? "type-body-strong" : "type-figure-lg")}>{item.value}</dd>
+          {showContext && <dd className="type-caption truncate text-muted">{item.context}</dd>}
+        </div>
+      ))}
+    </dl>
+  );
+};

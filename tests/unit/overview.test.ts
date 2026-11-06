@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Account, BillPayment, RecurringTransaction, Transaction } from '../../types';
-import { OVERVIEW_LAYOUT_KEY, resolveOverviewLayout, toConfig } from '../../utils/overviewLayout';
+import { OVERVIEW_LAYOUT_KEY, OVERVIEW_TABS, OVERVIEW_WIDGETS, overviewTabKey, resolveOverviewLayout, resolveTabLayout, toConfig, widgetsOfTab } from '../../utils/overviewLayout';
 import { sizeForDimensions, sizeForSpan } from '../../components/ui/WidgetGrid';
 import { buildSummaryFacts, isUncategorised, suggestCategories } from '../../utils/overviewSummary';
 import { computeSafeToSpend, spendingAccounts } from '../../utils/safeToSpend';
@@ -144,6 +144,44 @@ test('old tabs carry over in order, at half the column count, without removed wi
   assert.equal(layout[2].w, 6);
   assert.ok(!ids.includes('transactionMap'));
   assert.ok(ids.includes('wealthVelocity'));
+});
+
+test('every widget belongs to exactly one view, and every view has widgets', () => {
+  const homes = OVERVIEW_TABS.flatMap(view => widgetsOfTab(view.id));
+  assert.equal(homes.length, Object.keys(OVERVIEW_WIDGETS).length);
+  assert.equal(new Set(homes).size, homes.length);
+  OVERVIEW_TABS.forEach(view => assert.ok(widgetsOfTab(view.id).length > 0, view.label));
+});
+
+test('a new user gets each view its own defaults, only with widgets that belong to it', () => {
+  OVERVIEW_TABS.forEach(view => {
+    const layout = resolveTabLayout({}, false, view.id);
+    assert.ok(layout.length > 0);
+    assert.ok(layout.every(widget => OVERVIEW_WIDGETS[widget.id].tab === view.id));
+  });
+  assert.equal(resolveTabLayout({}, false, 'summary')[0].id, 'safeToSpend');
+});
+
+test('a view layout that was saved wins over everything else', () => {
+  const saved = [{ id: 'insights', title: '', x: 0, y: 0, w: 6, h: 3 }, { id: 'gone', title: '', x: 1, y: 0, w: 2, h: 2 }];
+  const layout = resolveTabLayout({ dashboardLayouts: { [overviewTabKey('upcoming', false)]: saved, [OVERVIEW_LAYOUT_KEY]: [] } }, false, 'upcoming');
+  assert.deepEqual(layout.map(widget => widget.id), ['insights']);
+});
+
+test('the single Overview someone arranged is split across the views, in their order and sizes', () => {
+  const prefs = {
+    dashboardLayouts: {
+      [OVERVIEW_LAYOUT_KEY]: [
+        { id: 'recentActivity', title: '', x: 0, y: 0, w: 6, h: 6 },
+        { id: 'outflowsByCategory', title: '', x: 1, y: 0, w: 6, h: 4 },
+        { id: 'safeToSpend', title: '', x: 2, y: 0, w: 3, h: 3 },
+      ],
+    },
+  };
+  assert.deepEqual(resolveTabLayout(prefs, false, 'summary').map(widget => [widget.id, widget.w]), [['recentActivity', 6], ['safeToSpend', 3]]);
+  assert.deepEqual(resolveTabLayout(prefs, false, 'spending').map(widget => widget.id), ['outflowsByCategory']);
+  // A view they never used falls back to its defaults rather than showing nothing.
+  assert.ok(resolveTabLayout(prefs, false, 'wealth').length > 1);
 });
 
 test('category suggestions put the rule first, then the merchant, then the kind, and never Transfer', () => {

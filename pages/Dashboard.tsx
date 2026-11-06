@@ -8,19 +8,16 @@ import { formatCurrency, convertCurrency, convertToMain, generateSyntheticLoanPa
 import AddTransactionModal from '../components/AddTransactionModal';
 import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
-import OutflowsChart from '../components/OutflowsChart';
+import SpendingByCategoryWidget from '../components/SpendingByCategoryWidget';
+import PeriodFlowWidget, { type FlowBucket } from '../components/PeriodFlowWidget';
 import DurationFilter from '../components/DurationFilter';
 import NetWorthChart from '../components/NetWorthChart';
-import AssetDebtDonutChart from '../components/AssetDebtDonutChart';
 import TransactionList from '../components/TransactionList';
 import MultiAccountFilter from '../components/MultiAccountFilter';
-import FinancialOverview from '../components/FinancialOverview';
 import ForecastOverview from '../components/ForecastOverview';
 import AddWidgetModal from '../components/AddWidgetModal';
 import { useReview } from '../contexts/ReviewContext';
-import { setUrlTab } from '../hooks/useUrlTab';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
-import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TodayWidget from '../components/TodayWidget';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext, usePreferencesSelector, useWarrantsContext } from '../contexts/DomainProviders';
@@ -28,7 +25,7 @@ import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleCont
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import BudgetModal from '../components/BudgetModal';
-import { Skeleton } from '../components/ui/States';
+import { EmptyState, Skeleton } from '../components/ui/States';
 import PullToRefresh from '../components/PullToRefresh';
 import AssetAllocationWidget from '../components/AssetAllocationWidget';
 import { Button, IconButton } from '../components/ui/Actions';
@@ -37,12 +34,14 @@ import { Amount, PrivacyContext, useFirstVisit } from '../components/ui/Money';
 import { BottomSheet, Popover } from '../components/ui/Overlays';
 import { MultiSelect, Select } from '../components/ui/Pickers';
 import { AccountsSummary, KeyRatios, NeedsYou, NetWorthHero, SafeToSpendWidget, WrittenSummary } from '../components/ui/Summaries';
-import WidgetGrid, { type WidgetGridItem, type WidgetLayoutItem } from '../components/ui/WidgetGrid';
+import WidgetGrid, { WidgetBody, useWidgetBox, type WidgetGridItem, type WidgetLayoutItem } from '../components/ui/WidgetGrid';
 import { Button as AriaButton } from 'react-aria-components';
 import { useBillNotifications } from '../hooks/useBillNotifications';
+import { resolveTransferInfo } from '../utils/transferDetails';
 import { computeSafeToSpend } from '../utils/safeToSpend';
 import { buildSummaryFacts, isUncategorised } from '../utils/overviewSummary';
-import { OVERVIEW_LAYOUT_KEY, OVERVIEW_PHONE_LAYOUT_KEY, OVERVIEW_WIDGETS, resolveOverviewLayout, toConfig } from '../utils/overviewLayout';
+import { OVERVIEW_TABS, OVERVIEW_WIDGETS, isOverviewTab, overviewTabKey, resolveTabLayout, toConfig } from '../utils/overviewLayout';
+import { setUrlTab, useUrlTab } from '../hooks/useUrlTab';
 
 // Analysis widgets
 import MerchantParetoWidget from '../components/MerchantParetoWidget';
@@ -106,10 +105,14 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
 
 const CreditCardStatementsWidget: React.FC<{ statements: any[]; size?: 's' | 'm' | 'l' }> = ({ statements, size = 'm' }) => {
+  const box = useWidgetBox();
   if (statements.length === 0) return null;
-  const displayed = size === 's' ? statements.slice(0, 1) : size === 'm' ? statements.slice(0, 2) : statements;
+  // A statement card is about 320px wide and 240px high: as many as fit across and down, the rest on the Accounts page.
+  const fallback = size === 's' ? 1 : size === 'm' ? 2 : statements.length;
+  const fitted = box.width > 0 && box.height > 0 ? Math.max(1, Math.floor(box.width / 320)) * Math.max(1, Math.floor(box.height / 240)) : fallback;
+  const displayed = statements.slice(0, Math.max(1, Math.min(statements.length, box.height > 0 ? Math.max(fitted, 1) : fallback)));
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-2.5 sm:gap-3 h-full items-stretch">
+    <div className="grid h-full grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] items-stretch gap-2.5 overflow-y-auto sm:gap-3">
       {displayed.map(statement => (
         <CreditCardStatementCard
           key={statement.accountId}
@@ -120,6 +123,13 @@ const CreditCardStatementsWidget: React.FC<{ statements: any[]; size?: 's' | 'm'
           cardNetwork={statement.cardNetwork}
           financialInstitution={statement.financialInstitution}
           currency={statement.currency}
+          previousStatement={{
+            period: statement.previous.period,
+            balance: statement.previous.balance,
+            dueDate: statement.previous.paymentDue,
+            // What settles the last statement is paid after it closes, so it shows in the current period.
+            amountPaid: statement.current.amountPaid
+          }}
           currentStatement={{
             period: statement.current.period,
             balance: statement.current.balance,
@@ -632,8 +642,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc.name; return map; }, {} as Record<string, string>), [accounts]);
 
   const recentTransactions = useMemo(() => {
+    // Spare change moves a few cents at a time between your own accounts. It is not activity worth listing.
     const sortedSourceTransactions = analyticsTransactions
-      .filter(tx => analyticsSelectedAccountIds.includes(tx.accountId))
+      .filter(tx => analyticsSelectedAccountIds.includes(tx.accountId) && !(tx.transferId && resolveTransferInfo(tx, accounts, transferLookup.get(tx.transferId)?.find(t => t.id !== tx.id))?.kind === 'spare_change'))
       .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
 
     const processedTransferIds = new Set<string>();
@@ -670,7 +681,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       }
     }
     return result;
-  }, [analyticsTransactions, analyticsSelectedAccountIds, accountMap, transferLookup]);
+  }, [analyticsTransactions, analyticsSelectedAccountIds, accountMap, transferLookup, accounts]);
 
   const { incomeSparkline, expenseSparkline } = useMemo(() => {
     const NUM_POINTS = 90;
@@ -702,6 +713,47 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     };
 
   }, [enrichedTransactions, duration, transactions]);
+
+  const eurToDisplay = useCallback((eur: number) => convertCurrency(eur, getMainCurrency(), preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
+
+  /** Money in and out for each stretch of the period: days for a short one, weeks for a few months, months beyond. Display currency. */
+  const periodFlowBuckets = useMemo<FlowBucket[]>(() => {
+    const { start, end } = getDateRange(duration, transactions);
+    const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
+    const unit: 'day' | 'week' | 'month' = days <= 14 ? 'day' : days <= 100 ? 'week' : 'month';
+    const keyOf = (date: Date) => {
+      if (unit === 'month') return new Date(date.getFullYear(), date.getMonth(), 1);
+      if (unit === 'week') {
+        const offset = Math.floor((date.getTime() - start.getTime()) / (7 * 86400000));
+        return new Date(start.getFullYear(), start.getMonth(), start.getDate() + offset * 7);
+      }
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    };
+    const labelOf = (date: Date) => unit === 'month' ? date.toLocaleDateString('en-GB', { month: 'short' }) : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const buckets = new Map<number, FlowBucket>();
+    const ensure = (date: Date) => {
+      const key = keyOf(date);
+      if (!buckets.has(key.getTime())) buckets.set(key.getTime(), { name: labelOf(key), 'Money in': 0, 'Money out': 0 });
+      return buckets.get(key.getTime())!;
+    };
+    // Every stretch in the range gets a bar, even an empty one, so gaps read as gaps.
+    for (let cursor = keyOf(start); cursor <= end; cursor = unit === 'month' ? new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1) : new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + (unit === 'week' ? 7 : 1))) {
+      ensure(cursor);
+    }
+    for (const tx of enrichedTransactions) {
+      if (tx.transferId) continue;
+      const bucket = ensure(tx.parsedDate);
+      const amount = eurToDisplay(tx.convertedAmount);
+      if (tx.type === 'income') bucket['Money in'] += amount;
+      else bucket['Money out'] += Math.abs(amount);
+    }
+    const ordered = Array.from(buckets.entries()).sort((a, b) => a[0] - b[0]).map(([, bucket]) => ({ ...bucket, 'Money in': safeRound(bucket['Money in'], 2), 'Money out': safeRound(bucket['Money out'], 2) }));
+    // A long range runs from where the money starts to where it ends, and shows at most the last two years of that.
+    const used = (bucket: FlowBucket) => bucket['Money in'] > 0 || bucket['Money out'] > 0;
+    const first = ordered.findIndex(used);
+    const last = ordered.length - 1 - [...ordered].reverse().findIndex(used);
+    return (duration === 'ALL' && first >= 0 ? ordered.slice(first, last + 1) : ordered).slice(-24);
+  }, [enrichedTransactions, duration, transactions, eurToDisplay]);
 
 
   /** The biggest four types get the chart colours in order and the rest share one grey. The list beside the chart names each. */
@@ -939,7 +991,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     return configuredCreditCards.map(account => {
       const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
 
-      const { statementBalance: prevBalance } = getCreditCardStatementDetails(account, periods.previous.start, periods.previous.end, transactions);
+      const { statementBalance: prevBalance, amountPaid: prevAmountPaid } = getCreditCardStatementDetails(account, periods.previous.start, periods.previous.end, transactions);
       const { statementBalance: currentBalance, amountPaid: currentAmountPaid } = getCreditCardStatementDetails(account, periods.current.start, periods.current.end, transactions);
       const { statementBalance: futureBalance, amountPaid: futureAmountPaid } = getCreditCardStatementDetails(account, periods.future.start, periods.future.end, transactions);
 
@@ -955,6 +1007,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         creditLimit: account.creditLimit,
         cardNetwork: account.cardNetwork,
         financialInstitution: account.financialInstitution,
+        previous: {
+          balance: prevBalance,
+          amountPaid: prevAmountPaid,
+          period: `${formatDate(periods.previous.start)} - ${formatDate(periods.previous.end)}`,
+          paymentDue: formatFullDate(periods.previous.paymentDue)
+        },
         current: {
           balance: currentBalance,
           amountPaid: currentAmountPaid,
@@ -1013,7 +1071,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
   }, [analyticsAccounts, analyticsTransactions, duration]);
 
-  const eurToDisplay = useCallback((eur: number) => convertCurrency(eur, getMainCurrency(), preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
   const displayToEur = useCallback((val: number) => convertCurrency(val, preferredCurrency, getMainCurrency(), conversionRates), [preferredCurrency, conversionRates]);
   const toPreferred = useCallback((amount: number, from: Currency) => convertCurrency(amount, from, preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
 
@@ -1070,21 +1127,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const allWidgets: Widget[] = useMemo(() => [
     {
       id: 'financialOverview',
-      name: 'Financial Overview',
+      name: 'This period',
       icon: 'pulse-01',
-      description: 'Money in, money out and what you saved',
+      description: 'What you kept, what came in and went out, and how it compares',
       defaultW: 6,
       defaultH: 2,
-      component: FinancialOverview,
+      component: PeriodFlowWidget,
       props: {
-        netWorth,
-        income,
-        expenses,
+        income: eurToDisplay(income),
+        expenses: eurToDisplay(expenses),
         incomeChange,
         expenseChange,
-        incomeSparkline,
-        expenseSparkline,
-        currency: getMainCurrency()
+        buckets: periodFlowBuckets,
+        currency: preferredCurrency,
       }
     },
     {
@@ -1105,7 +1160,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       defaultW: 2,
       defaultH: 4,
       component: AccountsSummary,
-      props: { accounts: selectedAccounts, toDisplay: toPreferred, currency: preferredCurrency, onOpen: onOpenAccount, onAll: () => setCurrentPage('Accounts') }
+      props: { accounts, toDisplay: toPreferred, currency: preferredCurrency, onOpen: onOpenAccount, onAll: () => setCurrentPage('Accounts') }
     },
     {
       id: 'overviewKpis',
@@ -1184,12 +1239,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       }
     },
     // Removed forecastChart
-    { id: 'outflowsByCategory', name: 'Outflows by Category', icon: 'pie-chart-01', description: 'Where your money went', defaultW: 6, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'chart-ring', description: 'What you own against what you owe', defaultW: 6, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
+    { id: 'outflowsByCategory', name: 'Spending by category', icon: 'pie-chart-01', description: 'Where your money went, against your budgets', defaultW: 6, defaultH: 2, component: SpendingByCategoryWidget, props: { data: outflowsByCategory, budgets, transactions, expenseCategories, accounts, duration, onCategoryClick: handleCategoryClick, onBudgetClick: handleBudgetClick } },
     { id: 'recentActivity', name: 'Recent Activity', icon: 'clock-03', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick, maxItems: 15 } },
     { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'bank', description: 'What you own, by account type', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'receipt', description: 'What you owe, by account type', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
-    { id: 'budgetOverview', name: 'Budget Overview', icon: 'sliders-horizontal', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick, onCategoryClick: handleCategoryClick } },
     { id: 'transactionMap', name: 'Transaction Map', icon: 'maps', description: 'Where you spent, on a map', defaultW: 6, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
     { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'hierarchy-square-01', description: 'How money flows from income to spending', defaultW: 12, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
 
@@ -1198,10 +1251,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'store-01', description: 'Where most of your spending goes', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions, currency: preferredCurrency, toDisplay: eurToDisplay } },
     { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'flash', description: 'What you saved each month', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts, currency: preferredCurrency, toDisplay: eurToDisplay } },
     { id: 'insights', name: 'Insights', icon: 'lightbulb', description: 'Low balances ahead, idle cash and unusual spending', defaultW: 6, defaultH: 2, component: InsightsWidget, props: { insights: activeInsights, onDismiss: dismissInsight, onNavigate: setCurrentPage } }
-  ], [activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
+  ], [periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
-  const layout = useMemo(() => resolveOverviewLayout(preferences, isMobile), [preferences.dashboardLayouts, preferences.dashboardHiddenWidgets, isMobile]);
-  const layoutKey = isMobile ? OVERVIEW_PHONE_LAYOUT_KEY : OVERVIEW_LAYOUT_KEY;
+  const urlTab = useUrlTab();
+  const activeTab = isOverviewTab(urlTab) ? urlTab : 'summary';
+  const activeView = OVERVIEW_TABS.find(view => view.id === activeTab)!;
+  const layout = useMemo(() => resolveTabLayout(preferences, isMobile, activeTab), [preferences.dashboardLayouts, preferences.dashboardHiddenWidgets, isMobile, activeTab]);
+  const layoutKey = overviewTabKey(activeTab, isMobile);
 
   const saveLayout = useCallback((next: WidgetConfig[]) => {
     setPreferences(prev => ({ ...prev, dashboardLayouts: { ...(prev.dashboardLayouts || {}), [layoutKey]: next } }));
@@ -1228,9 +1284,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const availableWidgetsToAdd = useMemo(() => {
     const shown = new Set(layout.map(widget => widget.id));
     return allWidgets
-      .filter(widget => !shown.has(widget.id) && OVERVIEW_WIDGETS[widget.id])
-      .map(widget => ({ ...widget, name: OVERVIEW_WIDGETS[widget.id].title }));
-  }, [layout, allWidgets]);
+      .filter(widget => !shown.has(widget.id) && OVERVIEW_WIDGETS[widget.id]?.tab === activeTab)
+      .map(widget => ({ ...widget, name: OVERVIEW_WIDGETS[widget.id].title, description: OVERVIEW_WIDGETS[widget.id].purpose }));
+  }, [layout, allWidgets, activeTab]);
 
 
   const dedupedTransferSuggestions = useMemo(() => (selectedAccountIds.length === 0 ? review.transfers : review.transfers.filter(s => selectedAccountIds.includes(s.expenseTx.accountId) || selectedAccountIds.includes(s.incomeTx.accountId))), [review.transfers, selectedAccountIds]);
@@ -1351,7 +1407,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         onEdit={handleEditTransaction}
         onDelete={handleDeleteTransactions}
       />
-      <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
+      <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} viewLabel={activeView.label} />
 
 
       {(() => {
@@ -1374,6 +1430,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
               ]}
               className="!mb-0"
             />
+            {activeTab !== 'summary' && <p className="type-sentence !mt-1 text-muted md:!mt-2">{activeView.blurb}.</p>}
+            {activeTab === 'summary' && <>
             <WrittenSummary
               facts={summaryFacts}
               isPrivate={isPrivate}
@@ -1415,6 +1473,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
                 )}
               />
             </div>
+            </>}
 
             <div className="relative z-30 flex flex-wrap items-center justify-between gap-2">
               {isMobile ? (
@@ -1459,20 +1518,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
               </div>
             </div>
 
-            {isMobile ? (
+            {gridItems.length === 0 ? (
+              <EmptyState
+                icon="dashboard-square-add"
+                title={`Nothing on ${activeView.label} yet`}
+                description={`${activeView.blurb}. Add a widget to build this view.`}
+                actionLabel="Add a widget"
+                onAction={() => setIsAddWidgetModalOpen(true)}
+                className="py-16"
+              />
+            ) : isMobile ? (
               <div className="space-y-4">
                 {gridItems.map(item => {
                   const height = OVERVIEW_WIDGETS[item.id].phoneHeight;
                   return (
                     <section key={item.id} aria-label={item.title} className="flex flex-col overflow-hidden rounded-[var(--radius-xl)] surface-card p-5" style={{ height }}>
                       <h2 className="type-card-title mb-3 shrink-0 text-ink">{item.title}</h2>
-                      <div className="min-h-0 flex-1">{item.render('m')}</div>
+                      <WidgetBody size="m" className="min-h-0 flex-1">{item.render('m')}</WidgetBody>
                     </section>
                   );
                 })}
               </div>
             ) : (
               <WidgetGrid
+                key={activeTab}
                 className={isFirstVisit ? 'crystal-stagger-grid' : undefined}
                 items={gridItems}
                 layout={gridLayout}
@@ -1490,7 +1559,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       <BottomSheet
         isOpen={isPhoneEditOpen}
         onClose={() => setPhoneEditOpen(false)}
-        title="Customise Overview"
+        title={`Customise ${activeView.label}`}
         footer={<Button block size="lg" variant="secondary" icon="add" onPress={() => setIsAddWidgetModalOpen(true)} isDisabled={availableWidgetsToAdd.length === 0}>Add a widget</Button>}
       >
         <ul className="divide-y divide-line">

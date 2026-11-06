@@ -16,6 +16,7 @@ import { formatCurrency, parseLocalDate, calculateTrendLine, getMainCurrency, cu
 import { FinancialGoal } from '../types';
 import Icon from './ui/Icon';
 import { EmptyState } from './ui/States';
+import { useWidgetBox } from './ui/WidgetGrid';
 
 interface ChartData {
   name: string;
@@ -60,14 +61,19 @@ const CustomTooltipContent: React.FC<{ markers: ChartMarker[] }> = ({ markers })
 
 const NetWorthChart: React.FC<NetWorthChartProps> = ({
   data,
-  lineColor = 'var(--chart-1)',
+  lineColor = 'var(--money-in)',
   showForecast = true,
   showGoals = true,
   goals = [],
   annotations = [],
-  margin = { top: 15, right: 15, bottom: 25, left: 55 },
-  minHeight = 'min-h-[220px]',
+  margin,
+  minHeight = 'min-h-[120px]',
 }) => {
+  const box = useWidgetBox();
+  // Small widgets give the plot back its room: tighter margins, no trend line, no goal and event markers.
+  const tight = box.height > 0 && (box.height < 200 || box.width < 340);
+  const plotMargin = margin ?? (tight ? { top: 10, right: 10, bottom: 22, left: 46 } : { top: 15, right: 15, bottom: 25, left: 55 });
+
   const { chartData, lastActualIndex } = useMemo(() => {
     if (!data || data.length === 0) {
       return { chartData: [], lastActualIndex: -1 };
@@ -173,22 +179,31 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
 
   if (!chartData || chartData.length === 0) {
     return (
-      <EmptyState icon="chart-line-data-01" title="No net worth to show yet" description="It appears once you have an account with a balance." className="min-h-[250px]" />
+      <EmptyState icon="chart-line-data-01" title="No net worth to show yet" description="It appears once you have an account with a balance." className="h-full min-h-[120px]" />
     );
   }
 
   const isDashedProjection = showForecast && lastActualIndex >= 0 && lastActualIndex < chartData.length - 1;
 
+  const legend = [
+    { label: 'Net worth', color: lineColor, dashed: false },
+    ...(isDashedProjection ? [{ label: 'Projected', color: projectionColor, dashed: true }] : []),
+    { label: 'Trend', color: 'var(--chart-3)', dashed: true },
+    ...(showGoals && goals.length > 0 ? [{ label: 'Goals', color: 'var(--chart-4)', dashed: false }] : []),
+  ];
+  const showLegend = !tight && (box.height === 0 || box.height >= 240);
+
   return (
-    <div className={`flex-grow relative h-full w-full ${minHeight}`}>
+    <div className="flex h-full w-full flex-col gap-2">
+    <div className={`relative min-h-0 w-full flex-1 ${minHeight}`}>
       <LineChart
         data={chartData}
         xDataKey="date"
         revealSignature={chartData.length.toString()}
         yDomainTween
         aspectRatio=""
-        className={`w-full h-full ${minHeight}`}
-        margin={margin}
+        className="h-full w-full"
+        margin={plotMargin}
       >
         <Grid
           horizontal
@@ -203,7 +218,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         {/* Combined Historic & Projection Line */}
         <Line
           dataKey="netWorth"
-          stroke="var(--money-in)"
+          stroke={lineColor}
           dashStroke={projectionColor}
           strokeWidth={3}
           dashFromIndex={isDashedProjection ? lastActualIndex : undefined}
@@ -211,25 +226,27 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
           fadeEdges
         />
 
-        <Line
-          dataKey="trend"
-          stroke="var(--chart-3)"
-          strokeWidth={2}
-          strokeDasharray="4,4"
-        />
+        {!tight && (
+          <Line
+            dataKey="trend"
+            stroke="var(--chart-3)"
+            strokeWidth={2}
+            strokeDasharray="4,4"
+          />
+        )}
 
         {isDashedProjection && (
           <LineSeriesTerminalMarker dataKey="netWorth" stroke={projectionColor} fill={projectionColor} />
         )}
 
-        {markers.length > 0 && <ChartMarkers items={markers} />}
+        {!tight && markers.length > 0 && <ChartMarkers items={markers} />}
 
         <ChartTooltip
           rows={(point) => {
             const isProjected = Boolean(point.isProjected);
             const label = isProjected ? 'Projected Net Worth' : 'Actual Net Worth';
             const val = typeof point.netWorth === 'number' ? point.netWorth : 0;
-            const strokeColor = isProjected ? projectionColor : 'var(--money-in)';
+            const strokeColor = isProjected ? projectionColor : lineColor;
             const rowsList = [
               {
                 color: strokeColor,
@@ -250,6 +267,17 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
           <CustomTooltipContent markers={markers} />
         </ChartTooltip>
       </LineChart>
+    </div>
+    {showLegend && (
+      <ul className="type-caption flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-muted">
+        {legend.map(item => (
+          <li key={item.label} className="flex items-center gap-2">
+            <span className={item.dashed ? 'w-4 border-t-2 border-dashed' : 'h-0.5 w-4 rounded-full'} style={item.dashed ? { borderColor: item.color } : { backgroundColor: item.color }} aria-hidden />
+            {item.label}
+          </li>
+        ))}
+      </ul>
+    )}
     </div>
   );
 };

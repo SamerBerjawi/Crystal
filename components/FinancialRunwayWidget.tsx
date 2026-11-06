@@ -4,6 +4,7 @@ import { convertToMain, parseLocalDate, getMainCurrency } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
 import { Badge } from './ui/Display';
 import { Amount } from './ui/Money';
+import { useWidgetBox } from './ui/WidgetGrid';
 
 interface FinancialRunwayWidgetProps {
   accounts: Account[];
@@ -28,13 +29,17 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
   }, [accounts, transactions]);
 
   const currency = getMainCurrency();
+  const box = useWidgetBox();
+  // The figure and bar always show. The two amounts need about 210px and the note about 290px.
+  const showAmounts = box.height === 0 || box.height >= 210;
+  const showNote = box.height === 0 || box.height >= 290;
   const status = months === null ? null
     : months < 3 ? { tone: 'negative' as const, label: 'Under 3 months' }
     : months > 12 ? { tone: 'positive' as const, label: 'Over a year' }
     : { tone: 'neutral' as const, label: '3 to 12 months' };
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className={`flex h-full flex-col ${showAmounts ? 'gap-4' : 'justify-center gap-3'}`}>
       <div className="flex items-start justify-between gap-3">
         {months === null ? (
           <p className="type-body-strong text-muted">Not enough spending to measure</p>
@@ -51,7 +56,7 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
         <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(((months ?? 0) / 12) * 100, 100)}%` }} />
       </div>
 
-      <dl className="divide-y divide-line">
+      {showAmounts && <dl className="divide-y divide-line">
         <div className="type-body flex justify-between gap-3 py-2">
           <dt className="text-muted">Cash you can reach</dt>
           <dd className="type-figure-row text-ink"><Amount value={liquidAssets} currency={currency} /></dd>
@@ -60,11 +65,13 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
           <dt className="text-muted">Spending a month</dt>
           <dd className="type-figure-row text-ink"><Amount value={monthlyBurn} currency={currency} /></dd>
         </div>
-      </dl>
+      </dl>}
 
-      <p className="type-caption mt-auto text-muted">
-        {months === null ? 'No spending in the last 3 months, so there’s nothing to measure against.' : 'At your average spending over the last 3 months, with no new income.'}
-      </p>
+      {showNote && (
+        <p className="type-caption mt-auto text-muted">
+          {months === null ? 'No spending in the last 3 months, so there’s nothing to measure against.' : 'At your average spending over the last 3 months, with no new income.'}
+        </p>
+      )}
     </div>
   );
 };
