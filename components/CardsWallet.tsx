@@ -48,6 +48,8 @@ interface CardsWalletProps {
   onSeeTransactions: (account: Account) => void;
   onAddCard: () => void;
   onReorder?: (activeId: string, overId: string) => void;
+  /** Only the row of cards; picking one opens its account. Used at the top of the All tab. */
+  stripOnly?: boolean;
 }
 
 const SortableCard: React.FC<{ card: Account; balance: number }> = ({ card, balance }) => {
@@ -80,15 +82,15 @@ const SortableCard: React.FC<{ card: Account; balance: number }> = ({ card, bala
 };
 
 /** Every account with a card: a row to pick from, then the chosen card's details and activity. */
-const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactionsByAccount, selectedId, onSelect, menuFor, onOpen, onSeeTransactions, onAddCard, onReorder }) => {
+const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactionsByAccount, selectedId, onSelect, menuFor, onOpen, onSeeTransactions, onAddCard, onReorder, stripOnly }) => {
   const { loanPaymentOverrides } = useScheduleContext();
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const selected = cards.find(card => card.id === selectedId) ?? cards[0];
   const balanceOf = (acc: Account) => computeAccountDisplayBalance(acc, transactionsByAccount[acc.id] ?? [], loanPaymentOverrides, { conversionRates });
 
   useEffect(() => {
-    if (selected && selected.id !== selectedId) onSelect(selected.id);
-  }, [selected, selectedId, onSelect]);
+    if (!stripOnly && selected && selected.id !== selectedId) onSelect(selected.id);
+  }, [stripOnly, selected, selectedId, onSelect]);
 
   const transactions = selected ? transactionsByAccount[selected.id] ?? [] : [];
   const days = useMemo(() => {
@@ -132,6 +134,27 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
       },
     ];
   }, [menuFor, selected, onReorder, cards, selectedIndex]);
+
+  if (stripOnly) {
+    if (cards.length === 0) return null;
+    return (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={cards.map(c => c.id)} strategy={rectSortingStrategy}>
+          <RadioGroup
+            aria-label="Your cards"
+            orientation="horizontal"
+            value={null}
+            onChange={onOpen}
+            className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-5"
+          >
+            {cards.map(card => (
+              <SortableCard key={card.id} card={card} balance={balanceOf(card)} />
+            ))}
+          </RadioGroup>
+        </SortableContext>
+      </DndContext>
+    );
+  }
 
   if (!selected) {
     return <EmptyState icon="credit-card" title="No cards yet" description="Add a card to a checking account, or a credit card or meal voucher." actionLabel="Add account" onAction={onAddCard} />;

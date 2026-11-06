@@ -37,11 +37,19 @@ export interface SentencePart {
   isValue?: boolean;
 }
 
+/** Turns a stored id into the name people see, for actions that store one (the property or vehicle). */
+export type NameOf = (id: string) => string;
+const ownName: NameOf = id => id;
+export const accountNameOf = (accounts: { id: string; name: string }[]): NameOf =>
+  id => accounts.find(account => account.id === id)?.name ?? 'a removed account';
+
+export const ACTION_LABELS: Record<RuleFieldAction, string> = { category: 'category', merchant: 'merchant', description: 'description', assetId: 'property or vehicle' };
+
 const word = (text: string): SentencePart => ({ text });
 const value = (text: string): SentencePart => ({ text, isValue: true });
 
 /** A rule in plain words (D-009). Values are marked so the page can emphasise them. */
-export const ruleSentence = (rule: TransactionRule): SentencePart[] => {
+export const ruleSentence = (rule: TransactionRule, nameOf: NameOf = ownName): SentencePart[] => {
   if (isAlwaysFile(rule)) {
     const category = rule.actions.find(action => action.field === 'category')?.value;
     const description = rule.actions.find(action => action.field === 'description')?.value;
@@ -55,12 +63,12 @@ export const ruleSentence = (rule: TransactionRule): SentencePart[] => {
     parts.push(word(`${FIELD_LABELS[condition.field]} ${OPERATOR_LABELS[condition.operator]} `), value(condition.value));
   });
   rule.actions.forEach((action, index) => {
-    parts.push(word(index === 0 ? ', set ' : ' and '), word(`${action.field} to `), value(action.value));
+    parts.push(word(index === 0 ? ', set ' : ' and '), word(`${ACTION_LABELS[action.field]} to `), value(action.field === 'assetId' ? nameOf(action.value) : action.value));
   });
   return parts;
 };
 
-export const sentenceText = (rule: TransactionRule) => ruleSentence(rule).map(part => part.text).join('');
+export const sentenceText = (rule: TransactionRule, nameOf: NameOf = ownName) => ruleSentence(rule, nameOf).map(part => part.text).join('');
 
 export const matchingTransactions = (rule: TransactionRule, transactions: Transaction[]) =>
   transactions.filter(tx => ruleMatches({ ...tx, amount: Number(tx.amount) || 0 }, rule));
@@ -75,23 +83,27 @@ export interface RuleChange {
 /** What running your rules on past transactions would change. It changes nothing itself. */
 export const previewChanges = (transactions: Transaction[], rules: TransactionRule[]): RuleChange[] =>
   transactions.flatMap(tx => {
-    const before = { description: tx.description || '', merchant: tx.merchant || '', category: tx.category || '' };
+    const before = { description: tx.description || '', merchant: tx.merchant || '', category: tx.category || '', assetId: tx.assetId || '' };
     const after = applyRules({ ...before, amount: Number(tx.amount) || 0, type: tx.type || 'expense', notes: tx.notes }, rules);
     const updates: RuleChange['updates'] = {};
-    (['merchant', 'description', 'category'] as const).forEach(field => {
-      if (after[field] !== before[field]) updates[field] = after[field];
+    (['merchant', 'description', 'category', 'assetId'] as const).forEach(field => {
+      const next = after[field] ?? '';
+      if (next !== before[field]) updates[field] = next;
     });
     if (Object.keys(updates).length === 0) return [];
     const ruleId = after.appliedRuleId ?? after.filingRuleId ?? '';
     return [{ transaction: tx, updates, ruleId, ruleName: rules.find(rule => rule.id === ruleId)?.name ?? 'Rule' }];
   });
 
-const FIELD_NAMES: Record<RuleFieldAction, string> = { merchant: 'Merchant', description: 'Description', category: 'Category' };
+const FIELD_NAMES: Record<RuleFieldAction, string> = { merchant: 'Merchant', description: 'Description', category: 'Category', assetId: 'Property or vehicle' };
 
-export const describeChange = ({ transaction, updates }: RuleChange) =>
-  (Object.keys(updates) as RuleFieldAction[]).map(field => `${FIELD_NAMES[field]}: ${transaction[field] || 'Empty'} → ${updates[field]}`).join(', ');
+export const describeChange = ({ transaction, updates }: RuleChange, nameOf: NameOf = ownName) =>
+  (Object.keys(updates) as RuleFieldAction[]).map(field => {
+    const shown = (text: string | undefined) => (text ? (field === 'assetId' ? nameOf(text) : text) : 'Empty');
+    return `${FIELD_NAMES[field]}: ${shown(transaction[field])} → ${shown(updates[field])}`;
+  }).join(', ');
 
-export const buildRun = (changes: RuleChange[], now: string) => {
+export const buildRun = (changes: RuleChange[], now: string, nameOf: NameOf = ownName) => {
   const batchId = `batch-${uuidv4()}`;
   const backup: RuleRunBackup = {
     id: batchId,
@@ -103,6 +115,7 @@ export const buildRun = (changes: RuleChange[], now: string) => {
       originalCategory: transaction.category || '',
       originalMerchant: transaction.merchant || '',
       originalDescription: transaction.description || '',
+      originalAssetId: transaction.assetId || '',
     })),
   };
   const logs: RuleExecutionLog[] = changes.map(change => ({
@@ -114,7 +127,7 @@ export const buildRun = (changes: RuleChange[], now: string) => {
     txId: change.transaction.id,
     txDescription: change.transaction.description || '',
     txAmount: Number(change.transaction.amount) || 0,
-    changeDetails: describeChange(change),
+    changeDetails: describeChange(change, nameOf),
   }));
   return { payload: changes.map(({ transaction, updates }) => ({ ...transaction, ...updates })), backup, logs };
 };
@@ -122,7 +135,11 @@ export const buildRun = (changes: RuleChange[], now: string) => {
 export const buildRevert = (backup: RuleRunBackup, transactions: Transaction[], now: string) => {
   const payload = backup.transactions.flatMap(saved => {
     const current = transactions.find(tx => tx.id === saved.id);
-    return current ? [{ ...current, category: saved.originalCategory, merchant: saved.originalMerchant, description: saved.originalDescription }] : [];
+    if (!current) return [];
+    const restored: Transaction = { ...current, category: saved.originalCategory, merchant: saved.originalMerchant, description: saved.originalDescription };
+    // Runs saved before rules could set a property or vehicle leave it alone.
+    if (saved.originalAssetId !== undefined) restored.assetId = saved.originalAssetId || undefined;
+    return [restored];
   });
   const logs: RuleExecutionLog[] = payload.map(tx => ({
     id: `log-${uuidv4()}`,
@@ -132,7 +149,7 @@ export const buildRevert = (backup: RuleRunBackup, transactions: Transaction[], 
     txId: tx.id,
     txDescription: tx.description || '',
     txAmount: Number(tx.amount) || 0,
-    changeDetails: 'Restored merchant, description and category',
+    changeDetails: 'Restored what the rules changed',
   }));
   return { payload, logs };
 };

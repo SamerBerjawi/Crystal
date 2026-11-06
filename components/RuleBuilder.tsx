@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Category, RuleFieldAction, RuleFieldCondition, RuleOperator, Transaction, TransactionRule, TransactionRuleAction, TransactionRuleCondition } from '../types';
+import { Account, Category, RuleFieldAction, RuleFieldCondition, RuleOperator, Transaction, TransactionRule, TransactionRuleAction, TransactionRuleCondition } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { flattenCategories } from '../utils';
-import { blankDraft, draftFromRule, FIELD_LABELS, findRuleProblem, matchingTransactions, OPERATOR_LABELS, operatorsFor, RULE_TEMPLATES, RuleDraft, ruleFromDraft } from '../utils/rulesModel';
+import { ACTION_LABELS, blankDraft, draftFromRule, FIELD_LABELS, findRuleProblem, matchingTransactions, OPERATOR_LABELS, operatorsFor, RULE_TEMPLATES, RuleDraft, ruleFromDraft } from '../utils/rulesModel';
 import { Button, IconButton } from './ui/Actions';
 import { TextInput } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
@@ -16,18 +16,20 @@ interface RuleBuilderProps {
   transactions: Transaction[];
   incomeCategories: Category[];
   expenseCategories: Category[];
+  /** Every account; rules can file transactions to a property or vehicle. */
+  accounts?: Account[];
   onClose: () => void;
   onSave: (rule: TransactionRule, replacesId?: string) => void;
 }
 
 const CONDITION_FIELDS: RuleFieldCondition[] = ['description', 'merchant', 'amount', 'type', 'category', 'text'];
-const ACTION_FIELDS: RuleFieldAction[] = ['category', 'merchant', 'description'];
+const TEXT_ACTION_FIELDS: RuleFieldAction[] = ['category', 'merchant', 'description'];
 const SAMPLE_COUNT = 3;
 
 const titled = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const fieldOption = (field: string, label: string = field) => ({ id: field, label: titled(label) });
 
-const RuleBuilder: React.FC<RuleBuilderProps> = ({ rule, rules, transactions, incomeCategories, expenseCategories, onClose, onSave }) => {
+const RuleBuilder: React.FC<RuleBuilderProps> = ({ rule, rules, transactions, incomeCategories, expenseCategories, accounts = [], onClose, onSave }) => {
   const [isOpen, setOpen] = useState(true);
   const [draft, setDraft] = useState<RuleDraft>(() => (rule ? draftFromRule(rule) : blankDraft()));
   const [step, setStep] = useState<1 | 2>(1);
@@ -53,6 +55,15 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ rule, rules, transactions, in
     if (draft.merchant) names.add(draft.merchant);
     return [...names].sort((a, b) => a.localeCompare(b)).map(name => ({ id: name, label: name }));
   }, [draft.merchant, transactions]);
+
+  const assetOptions = useMemo(() => {
+    const chosen = new Set(draft.actions.filter(action => action.field === 'assetId').map(action => action.value));
+    return accounts
+      .filter(account => (account.type === 'Property' || account.type === 'Vehicle') && (account.status !== 'closed' || chosen.has(account.id)))
+      .map(account => ({ id: account.id, label: account.name, description: account.type }));
+  }, [accounts, draft.actions]);
+  // Only offer the property or vehicle when there's one to pick, or a rule already sets it.
+  const ACTION_FIELDS: RuleFieldAction[] = assetOptions.length > 0 || draft.actions.some(action => action.field === 'assetId') ? [...TEXT_ACTION_FIELDS, 'assetId'] : TEXT_ACTION_FIELDS;
 
   const preview = useMemo(() => {
     if (findRuleProblem(draft)) return null;
@@ -175,13 +186,15 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({ rule, rules, transactions, in
                   <div key={index} className="grid gap-2 rounded-[var(--radius-md)] border border-line p-3 sm:grid-cols-[1fr_1.8fr_auto] sm:items-end">
                     <Select
                       label="Field"
-                      options={ACTION_FIELDS.map(field => fieldOption(field))}
+                      options={ACTION_FIELDS.filter(field => field === action.field || !draft.actions.some(other => other.field === field)).map(field => fieldOption(field, ACTION_LABELS[field]))}
                       value={action.field}
                       onChange={id => setAction(index, { field: id as RuleFieldAction, value: '' })}
                     />
                     {action.field === 'category'
                       ? <Combobox label="To" options={categoryOptions} value={action.value || null} onChange={id => setAction(index, { value: id ?? '' })} />
-                      : <TextInput label="To" value={action.value} onChange={text => setAction(index, { value: text })} />}
+                      : action.field === 'assetId'
+                        ? <Select label="To" options={assetOptions} value={action.value || null} onChange={id => setAction(index, { value: id })} />
+                        : <TextInput label="To" value={action.value} onChange={text => setAction(index, { value: text })} />}
                     <IconButton icon="delete-02" label={`Remove action ${index + 1}`} isDisabled={draft.actions.length === 1} onPress={() => update({ actions: draft.actions.filter((_, position) => position !== index) })} />
                   </div>
                 ))}

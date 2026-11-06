@@ -71,6 +71,7 @@ const AccountDetail: React.FC<{
             principal?: string;
             interest?: string;
             description?: string;
+            assetId?: string;
         }
     }>({});
     
@@ -84,7 +85,6 @@ const AccountDetail: React.FC<{
     const [isValuationModalOpen, setValuationModalOpen] = useState(false);
     const [isCloseModalOpen, setCloseModalOpen] = useState(false);
     const [isEditAccountModalOpen, setEditAccountModalOpen] = useState(false);
-    const [visibleTxLimit, setVisibleTxLimit] = useState(100);
     const [syncPrompt, setSyncPrompt] = useState<{
         connectionId: string;
         connectionOverride: EnableBankingConnection;
@@ -103,6 +103,9 @@ const AccountDetail: React.FC<{
                 from: account.type === 'Loan' ? account.linkedAccountId : account.id,
                 to: account.type === 'Loan' ? account.id : account.linkedAccountId
             });
+        } else if (!tx && (account.type === 'Property' || account.type === 'Vehicle')) {
+            // Money for an asset is paid from another account; the form starts tied to this asset.
+            setInitialModalState({ details: { assetId: account.id } });
         } else if (!tx) {
             setInitialModalState({
                 from: account.id,
@@ -294,14 +297,6 @@ const AccountDetail: React.FC<{
             }));
     }, [transactions, account.id, account.currency, showBalanceAdjustments, conversionRates]);
 
-    const displayTransactionsList: DisplayTransaction[] = useMemo(() => {
-        const sorted = [...accountTransactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime()).slice(0, visibleTxLimit);
-        return sorted.map(item => ({
-            ...item.tx,
-            accountName: account.name
-        }));
-    }, [accountTransactions, account.name, visibleTxLimit]);
-
     const handleTransactionClick = (tx: DisplayTransaction) => {
         setModalTransactions([tx]);
         setModalTitle('Transaction Details');
@@ -325,6 +320,7 @@ const AccountDetail: React.FC<{
             account.type === 'Loan' || account.type === 'Lending' || account.type === 'Other Liabilities' ? 'loans' :
             account.type === 'Property' || account.type === 'Vehicle' || (account.type === 'Other Assets' && account.otherSubType !== 'Cash') ? 'assets' :
             account.type === 'Checking' || account.type === 'Savings' || (account.type === 'Other Assets' && account.otherSubType === 'Cash') ? 'accounts' :
+            account.type === 'Credit Card' ? 'cards' :
             null
         );
 
@@ -456,7 +452,6 @@ const AccountDetail: React.FC<{
                     account={account}
                     transactions={transactions}
                     accountTransactions={accountTransactions}
-                    displayTransactions={displayTransactionsList}
                     categories={allCategories}
                     accounts={accounts}
                     loanOverrides={loanPaymentOverrides}
@@ -476,19 +471,11 @@ const AccountDetail: React.FC<{
                     onEditLog={handleOpenMileageModal}
                     onDeleteLog={handleDeleteMileageLog}
                     onEditAccount={() => setEditAccountModalOpen(true)}
+                    onSaveAccount={saveAccount}
+                    onOpenGoals={() => { setViewingAccountId(null); setCurrentPage('Goals'); }}
+                    onOpenInvestments={() => { setViewingAccountId(null); setCurrentPage('Investments'); }}
                 />
             </Suspense>
-            {accountTransactions.length > visibleTxLimit && (
-                <div className="flex justify-center pt-2">
-                    <button
-                        type="button"
-                        onClick={() => setVisibleTxLimit(prev => prev + 100)}
-                        className="type-body-strong cursor-pointer rounded-[var(--radius-md)] bg-inset px-4 py-2 text-ink hover:bg-line"
-                    >
-                        Show more transactions ({accountTransactions.length - visibleTxLimit} remaining)
-                    </button>
-                </div>
-            )}
         </>
     );
 };

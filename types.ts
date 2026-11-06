@@ -163,6 +163,7 @@ export interface Account {
   propertyType?: PropertyType;
   purchasePrice?: number; // Shared with Vehicle
   principalOwned?: number;
+  /** Legacy. The loan's `linkedAssetId` is the only link now; this is migrated on load and only sent by the form. */
   linkedLoanId?: string;
   propertySize?: number; // sq meters
   yearBuilt?: number;
@@ -194,6 +195,8 @@ export interface Account {
   isRental?: boolean;
   rentalIncomeAmount?: number;
   rentalIncomeFrequency?: RecurrenceFrequency;
+  /** Rentals: the months (YYYY-MM) the property stood empty. Rent isn't expected then. */
+  vacantMonths?: string[];
 
   // Other Assets/Liabilities
   notes?: string;
@@ -323,6 +326,8 @@ export interface Transaction {
   interestAmount?: number;
   tagIds?: string[];
   notes?: string;
+  /** A property or vehicle this money was for: rent received, repairs, fuel, insurance. Feeds the asset's page. */
+  assetId?: string;
   // Location & Physical Address data
   address?: string; // Full formatted address string
   placeName?: string; // Business / POI / Building name
@@ -586,7 +591,8 @@ export interface RegexCategorizationRule {
 
 export type RuleFieldCondition = 'description' | 'merchant' | 'amount' | 'type' | 'category' | 'text';
 export type RuleOperator = 'contains' | 'equals' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with' | 'matches' | 'is_merchant';
-export type RuleFieldAction = 'merchant' | 'description' | 'category';
+/** assetId's value is a Property or Vehicle account id (D-148). */
+export type RuleFieldAction = 'merchant' | 'description' | 'category' | 'assetId';
 
 export interface TransactionRuleCondition {
   field: RuleFieldCondition;
@@ -634,6 +640,8 @@ export interface RuleRunBackup {
     originalCategory: string;
     originalMerchant: string;
     originalDescription: string;
+    /** Only on runs that could set a property or vehicle. Older runs never changed it. */
+    originalAssetId?: string;
   }[];
 }
 

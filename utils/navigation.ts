@@ -35,8 +35,9 @@ export const HUBS: Hub[] = [
     icon: 'layers-01',
     home: 'Accounts',
     tabs: [
-      { label: 'Cards', page: 'Accounts', icon: 'credit-card' },
-      { label: 'Accounts', page: 'Accounts', tab: 'accounts', icon: 'wallet-02' },
+      { label: 'All', page: 'Accounts', icon: 'layers-01' },
+      { label: 'Cash', page: 'Accounts', tab: 'accounts', icon: 'wallet-02' },
+      { label: 'Cards', page: 'Accounts', tab: 'cards', icon: 'credit-card' },
       { label: 'Loans', page: 'Accounts', tab: 'loans', icon: 'agreement-01' },
       { label: 'Assets', page: 'Accounts', tab: 'assets', icon: 'home-01' },
     ],

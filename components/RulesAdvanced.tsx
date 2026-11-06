@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { RuleExecutionLog, RuleRunBackup, Transaction, TransactionRule } from '../types';
 import { formatCurrency, getMainCurrency } from '../utils';
 import { applyRules } from '../utils/rules';
-import { describeChange, previewChanges, RuleChange } from '../utils/rulesModel';
+import { useAccountsContext } from '../contexts/DomainProviders';
+import { accountNameOf, describeChange, previewChanges, RuleChange } from '../utils/rulesModel';
 import { Button } from './ui/Actions';
 import { Badge, ShowMore } from './ui/Display';
 import { Checkbox, TextInput } from './ui/Fields';
@@ -37,6 +38,8 @@ const Section: React.FC<{ title: string; description?: string; actions?: React.R
 
 const PreviewAndApply: React.FC<Pick<RulesAdvancedProps, 'rules' | 'transactions' | 'onApply'>> = ({ rules, transactions, onApply }) => {
   const changes = useMemo(() => previewChanges(transactions, rules), [rules, transactions]);
+  const { accounts } = useAccountsContext();
+  const nameOf = useMemo(() => accountNameOf(accounts), [accounts]);
   const [search, setSearch] = useState('');
   const [unticked, setUnticked] = useState<Set<string>>(new Set());
   const [visible, setVisible] = useState(PAGE);
@@ -84,7 +87,7 @@ const PreviewAndApply: React.FC<Pick<RulesAdvancedProps, 'rules' | 'transactions
                 <Checkbox isSelected={!unticked.has(change.transaction.id)} onChange={isOn => toggle(change.transaction.id, isOn)}>
                   <span className="type-body block truncate text-ink">{change.transaction.merchant || change.transaction.description}</span>
                   <span className="type-caption block text-muted">{change.transaction.date} · {change.ruleName}</span>
-                  <span className="type-caption block text-muted">{describeChange(change)}</span>
+                  <span className="type-caption block text-muted">{describeChange(change, nameOf)}</span>
                 </Checkbox>
               </li>
             ))}

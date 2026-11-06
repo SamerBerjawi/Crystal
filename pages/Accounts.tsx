@@ -16,6 +16,8 @@ import AccountsListSection from '../components/AccountsListSection';
 import AccountPot from '../components/AccountPot';
 import AccountsSplitBar from '../components/AccountsSplitBar';
 import CardsWallet from '../components/CardsWallet';
+import AllAccountsView from '../components/accounts/AllAccountsView';
+import { AssetsSummary, CardsSummary, LoansSummary } from '../components/accounts/HubSummaries';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
@@ -64,7 +66,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   
   const urlTab = useUrlTab();
-  const activeTab = (['accounts', 'loans', 'assets'].includes(urlTab ?? '') ? urlTab : 'cards') as AccountsTab;
+  const activeTab = (['accounts', 'cards', 'loans', 'assets'].includes(urlTab ?? '') ? urlTab : 'all') as AccountsTab;
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const visibleAccounts = useMemo(
@@ -73,7 +75,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   );
 
   // --- Metrics Calculation ---
-  const analyticsAccounts = useMemo(() => visibleAccounts.filter(acc => acc.includeInAnalytics ?? true), [visibleAccounts]);
+  const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
   const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
   const analyticsTransactions = useMemo(
     () => transactions.filter(tx => analyticsAccountIds.has(tx.accountId)),
@@ -81,7 +83,11 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   );
 
   const openAccounts = useMemo(() => visibleAccounts.filter(acc => acc.status !== 'closed'), [visibleAccounts]);
-  const tabAccounts = useMemo(() => accountsInTab(openAccounts, activeTab), [openAccounts, activeTab]);
+  // All shows every account, investments included; the other tabs keep the hub's own filter.
+  const tabAccounts = useMemo(
+    () => (activeTab === 'all' ? accounts.filter(acc => acc.status !== 'closed') : accountsInTab(openAccounts, activeTab)),
+    [accounts, openAccounts, activeTab]
+  );
   const closedAccounts = useMemo(() => visibleAccounts.filter(acc => acc.status === 'closed'), [visibleAccounts]);
 
   const toDisplay = (eur: number) => convertCurrency(eur, getMainCurrency(), preferredCurrency, conversionRates);
@@ -93,6 +99,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     const count = (label: string, icon: string, value: number, iconTone?: StatTone): PageStat => ({ label, icon, value, iconTone });
 
     switch (activeTab) {
+      case 'all':
+        return [money('Net worth', 'chart-line-data-01', totals.netWorth), money('Assets', 'home-01', totals.totalAssets, 'teal'), money('Debts', 'coins-01', Math.abs(totals.totalDebt), 'rose'), count('Accounts', 'layers-01', tabAccounts.length)];
       case 'accounts':
         return [money('Total balance', 'wallet-02', totals.netWorth), money('Net this month', 'chart-line-data-01', computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates })), count('Accounts', 'bank', tabAccounts.length)];
       case 'loans':
@@ -113,7 +121,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   }, {} as Record<string, Transaction[]>), [transactions]);
 
   const handleAccountClick = (accountId: string) => {
-    const tab = activeTab !== 'cards' ? activeTab : undefined;
+    const tab = activeTab !== 'all' ? activeTab : undefined;
     if (onViewAccount) {
       onViewAccount(accountId, tab);
     } else {
@@ -271,7 +279,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         stats={stats}
         actions={
           <>
-            {activeTab !== 'cards' && (
+            {activeTab !== 'cards' && activeTab !== 'all' && (
               <Popover title="View options" placement="bottom end" trigger={<IconButton icon="sliders-horizontal" label="View options" tooltipPlacement="bottom" />}>
                 {viewOptions}
               </Popover>
@@ -298,7 +306,32 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </section>
       )}
 
-      {activeTab === 'cards' ? (
+      {activeTab === 'all' ? (
+        <>
+          <CardsWallet
+            stripOnly
+            cards={accountsInTab(openAccounts, 'cards').sort((a, b) => (accountOrder || []).indexOf(a.id) - (accountOrder || []).indexOf(b.id))}
+            accounts={accounts}
+            transactionsByAccount={transactionsByAccount}
+            selectedId={null}
+            onSelect={() => undefined}
+            menuFor={menuFor}
+            onOpen={handleAccountClick}
+            onSeeTransactions={account => onNavigateToTransactions({ accountName: account.name })}
+            onAddCard={() => setAddModalOpen(true)}
+            onReorder={handleReorderCards}
+          />
+          <AllAccountsView
+            accounts={accounts}
+            transactions={transactions}
+            transactionsByAccount={transactionsByAccount}
+            onOpen={handleAccountClick}
+            onOpenTab={tab => (tab ? setCurrentPage('Accounts', tab) : setCurrentPage('Investments'))}
+            menuFor={menuFor}
+          />
+        </>
+      ) : activeTab === 'cards' ? (
+        <>
         <CardsWallet
           cards={sortedCards}
           accounts={accounts}
@@ -311,6 +344,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           onAddCard={() => setAddModalOpen(true)}
           onReorder={handleReorderCards}
         />
+        <CardsSummary cards={sortedCards} accounts={accounts} transactionsByAccount={transactionsByAccount} transactions={transactions} onOpen={handleAccountClick} />
+        </>
       ) : tabAccounts.length === 0 ? (
         <EmptyState icon="wallet-02" title="Nothing here yet" description="Accounts of this kind appear here." actionLabel="Add account" onAction={() => setAddModalOpen(true)} />
       ) : showPots ? (
@@ -328,6 +363,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             onOpen={handleAccountClick}
           />
         )}
+        {activeTab === 'loans' && <LoansSummary loans={tabAccounts} transactions={transactions} onOpen={handleAccountClick} />}
+        {activeTab === 'assets' && <AssetsSummary assets={tabAccounts.filter(acc => acc.type === 'Property' || acc.type === 'Vehicle')} accounts={accounts} transactionsByAccount={transactionsByAccount} onOpen={handleAccountClick} />}
         <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sortedPots.map(account => (
             <AccountPot

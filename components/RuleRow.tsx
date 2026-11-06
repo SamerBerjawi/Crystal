@@ -1,18 +1,22 @@
 import React from 'react';
 import { TransactionRule } from '../types';
 import { cn } from '../lib/utils';
-import { ruleSentence } from '../utils/rulesModel';
+import { useAccountsContext } from '../contexts/DomainProviders';
+import { accountNameOf, ruleSentence } from '../utils/rulesModel';
 import { IconButton } from './ui/Actions';
 import { Switch } from './ui/Fields';
 import Icon from './ui/Icon';
 import { Menu, MenuAction } from './ui/Menu';
 
 /** A rule in plain words, marking its values. */
-export const RuleSentence: React.FC<{ rule: TransactionRule; className?: string }> = ({ rule, className }) => (
-  <p className={cn('type-body text-muted', className)}>
-    {ruleSentence(rule).map((part, index) => (part.isValue ? <strong key={index} className="font-semibold text-ink">{part.text}</strong> : <span key={index}>{part.text}</span>))}
-  </p>
-);
+export const RuleSentence: React.FC<{ rule: TransactionRule; className?: string }> = ({ rule, className }) => {
+  const { accounts } = useAccountsContext();
+  return (
+    <p className={cn('type-body text-muted', className)}>
+      {ruleSentence(rule, accountNameOf(accounts)).map((part, index) => (part.isValue ? <strong key={index} className="font-semibold text-ink">{part.text}</strong> : <span key={index}>{part.text}</span>))}
+    </p>
+  );
+};
 
 interface RuleRowProps {
   rule: TransactionRule;

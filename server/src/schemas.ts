@@ -19,6 +19,7 @@ export const accountSchema = z.object({
     subType: z.string().optional(),
     status: z.string().optional(),
     includeInAnalytics: z.boolean().optional(),
+    vacantMonths: z.array(z.string()).optional(),
 }).passthrough();
 
 export const transactionSchema = z.object({
@@ -30,6 +31,7 @@ export const transactionSchema = z.object({
     category: z.string().optional(),
     type: z.string().optional(),
     currency: z.string().optional(),
+    assetId: z.string().optional(),
 }).passthrough();
 
 export const financialGoalSchema = z.object({
