@@ -32,7 +32,7 @@ Used often, or large enough that restyling would keep a poor structure.
 
 | Screen | Size | Old styling | Plan |
 |---|---|---|---|
-| `IconPicker` | 439 | 114 | Works and looks fine, but it's its own drawer. Rebuild on the shared panel |
+| `IconPicker` | 439 | 114 | Done in Phase 10: rebuilt on `SidePanel`, about 100 lines |
 
 ## Restyle
 

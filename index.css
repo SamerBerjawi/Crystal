@@ -322,6 +322,14 @@ img {
   --chart-3: #0B8379;
   --chart-4: #B8800E;
   --chart-5: #C6476D;
+  /* Logo: an amber crystal between two green ones, with an amber sparkle (D-153). */
+  --logo-green-1: #CDE7DA;
+  --logo-green-2: #6FA790;
+  --logo-green-3: #3F7A65;
+  --logo-amber-1: #FCEDB8;
+  --logo-amber-2: #F2C94C;
+  --logo-amber-3: #D9A92E;
+  --logo-spark: #F2C94C;
   --elev-sm: 0 4px 12px rgba(27, 24, 19, .10);
   --elev-md: 0 10px 30px rgba(27, 24, 19, .14);
   --elev-lg: 0 24px 60px rgba(27, 24, 19, .20);
@@ -400,6 +408,12 @@ img {
   --chart-3: #3DC3B6;
   --chart-4: #E6B45C;
   --chart-5: #EC7EA1;
+  --logo-green-1: #F2FAF6;
+  --logo-green-2: #A9D9C1;
+  --logo-green-3: #6CC59A;
+  --logo-amber-1: #FDF0C4;
+  --logo-amber-2: #F7D774;
+  --logo-amber-3: #F2C94C;
   --elev-sm: 0 4px 12px rgba(0, 0, 0, .40);
   --elev-md: 0 10px 30px rgba(0, 0, 0, .45);
   --elev-lg: 0 24px 60px rgba(0, 0, 0, .55);

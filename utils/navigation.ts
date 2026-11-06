@@ -50,7 +50,7 @@ export const HUBS: Hub[] = [
     home: 'Transactions',
     tabs: [
       { label: 'Ledger', page: 'Transactions', icon: 'logs' },
-      { label: 'Review queue', page: 'Transactions', tab: 'review', icon: 'tick-02' },
+      { label: 'Queue', page: 'Transactions', tab: 'review', icon: 'tick-02' },
       { label: 'Rules', page: 'Rules', icon: 'flash' },
       { label: 'Merchants', page: 'Merchants', icon: 'store-01' },
     ],

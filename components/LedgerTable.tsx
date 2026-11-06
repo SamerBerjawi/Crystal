@@ -87,7 +87,7 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string;
     <span
       className={cn(
         'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px]',
-        'bg-black/5 text-ink dark:bg-white/10 font-bold border border-line/40'
+        'bg-inset text-ink font-bold border border-line/40'
       )}
     >
       <Icon name={fallbackIcon} size={18} className="text-muted" />
@@ -182,16 +182,16 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
   const details = (tx: DisplayTransaction) => {
     if (tx.isTransfer) {
       if (tx.transferKind === 'credit_card_settlement') {
-        return { color: '#0284C7', icon: 'credit_card' };
+        return { color: 'var(--blue)', icon: 'credit_card' };
       }
       if (tx.transferKind === 'mortgage_payment') {
-        return { color: '#8B5CF6', icon: 'home' };
+        return { color: 'var(--rose)', icon: 'home' };
       }
       if (tx.transferKind === 'loan_payment') {
-        return { color: '#F59E0B', icon: 'request_quote' };
+        return { color: 'var(--chart-4)', icon: 'request_quote' };
       }
       if (tx.transferKind === 'spare_change') {
-        return { color: '#10B981', icon: 'piggy' };
+        return { color: 'var(--teal)', icon: 'piggy' };
       }
     }
     const category = getCategoryDetails(tx.category, categories);
@@ -280,7 +280,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                                 'ml-1 flex size-5 shrink-0 items-center justify-center rounded-[6px] border transition-colors duration-[var(--duration-fast)]',
                                 isSelected
                                   ? 'border-pill bg-pill text-on-pill'
-                                  : 'border-black/15 bg-black/[0.03] dark:border-white/20 dark:bg-white/[0.04]'
+                                  : 'border-line-strong bg-inset'
                               )}
                             >
                               {isSelected && <Icon name="check" size={13} className="stroke-[2.5]" />}
@@ -475,7 +475,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           <span
                             className="flex size-6 shrink-0 items-center justify-center rounded-md"
                             style={{
-                              backgroundColor: `${adaptColorForTheme(look.color, isDark)}22`,
+                              backgroundColor: `color-mix(in srgb, ${adaptColorForTheme(look.color, isDark)} 13%, transparent)`,
                               color: adaptColorForTheme(look.color, isDark),
                             }}
                           >
@@ -500,7 +500,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                       </button>
                     ) : (
                       <button type="button" onClick={() => onCategorise(tx)} className="type-body flex max-w-full min-w-0 cursor-pointer items-center gap-2 rounded-full text-ink hover:underline">
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${adaptColorForTheme(look.color, isDark)}22`, color: adaptColorForTheme(look.color, isDark) }}>
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `color-mix(in srgb, ${adaptColorForTheme(look.color, isDark)} 13%, transparent)`, color: adaptColorForTheme(look.color, isDark) }}>
                           <Icon name={look.icon} size={14} />
                         </span>
                         <span className="truncate">{tx.category}</span>

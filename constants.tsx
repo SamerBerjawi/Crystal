@@ -1,78 +1,50 @@
+import { useId } from 'react';
 
 import { CURRENCY_CODES, currencyPreference } from './utils/currencies';
 import { Category, Page, AccountType, Currency, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration, OtherAssetSubType, OtherLiabilitySubType } from './types';
 import { ICON_LIBRARY } from './utils/materialSymbols';
 
 
-// FIX: Renamed AuraFinanceLogo to CrystalLogo to finalize rebranding.
-export function CrystalLogo({ showText = true }: { showText?: boolean; }) {
-  const size = showText ? 120 : 40;
+/**
+ * The Crystal mark: a cluster of three crystals, an amber one between two green ones, with a
+ * sparkle (D-153). Colours come from the --logo-* tokens, so it follows light and dark. The amber
+ * crystal is cut out of the green ones with a thin gap, so the cluster reads on any background.
+ * public/favicon.svg is the same drawing without the sparkle and highlight, for 16 px.
+ */
+export function CrystalLogo({ showText = true, size }: { showText?: boolean; size?: number }) {
+  const px = size ?? (showText ? 120 : 40);
+  const maskId = `crystal-logo-${useId().replace(/:/g, '')}`;
 
   return (
-    <div className="flex items-center justify-center">
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 512 512"
-        role="img"
-        aria-label="Crystal ball logo"
-        xmlns="http://www.w3.org/2000/svg"
-        preserveAspectRatio="xMidYMid meet"
-        style={{
-          display: 'block',
-        }}
-      >
-        <defs>
-          <linearGradient id="base-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#f08b53" />
-            <stop offset="28%" stopColor="#f08b53" />
-            <stop offset="28.1%" stopColor="#fca065" />
-            <stop offset="100%" stopColor="#fca065" />
-          </linearGradient>
-
-          <linearGradient id="stand-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#fbda5c" />
-            <stop offset="34%" stopColor="#fbda5c" />
-            <stop offset="34.1%" stopColor="#fde675" />
-            <stop offset="100%" stopColor="#fde675" />
-          </linearGradient>
-
-          <linearGradient id="ball-bg-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#50256e" />
-            <stop offset="38%" stopColor="#50256e" />
-            <stop offset="38.1%" stopColor="#5f2d7b" />
-            <stop offset="100%" stopColor="#5f2d7b" />
-          </linearGradient>
-
-          <linearGradient id="cloud-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#a585c7" />
-            <stop offset="38%" stopColor="#a585c7" />
-            <stop offset="38.1%" stopColor="#bca2dc" />
-            <stop offset="100%" stopColor="#bca2dc" />
-          </linearGradient>
-
-          <clipPath id="ball-clip-logo">
-            <circle cx="256" cy="216" r="180" />
-          </clipPath>
-        </defs>
-
-        <path d="M 126 380 L 386 380 L 421 460 L 91 460 Z" fill="url(#stand-grad-logo)" />
-
-        <rect x="66" y="460" width="380" height="40" rx="20" fill="url(#base-grad-logo)" />
-
-        <g clipPath="url(#ball-clip-logo)">
-          <circle cx="256" cy="216" r="180" fill="url(#ball-bg-grad-logo)" />
-
-          <path d="M 70 230 C 110 160, 160 160, 180 200 C 210 130, 290 130, 320 200 C 350 150, 410 150, 442 230 L 442 410 L 70 410 Z" fill="url(#cloud-grad-logo)" />
-
-          <path d="M 175 60 Q 175 115 230 115 Q 175 115 175 170 Q 175 115 120 115 Q 175 115 175 60 Z" fill="#fee77d" />
-
-          <path d="M 370 175 Q 370 230 425 230 Q 370 230 370 285 Q 370 230 315 230 Q 370 230 370 175 Z" fill="#fee77d" />
-
-          <path d="M 220 255 Q 220 300 265 300 Q 220 300 220 345 Q 220 300 175 300 Q 220 300 220 255 Z" fill="#fee77d" />
+    <svg width={px} height={px} viewBox="3 2.2 58 58" role="img" aria-label="Crystal" className="block shrink-0">
+      <defs>
+        <mask id={maskId} maskUnits="userSpaceOnUse" x="-8" y="-8" width="80" height="80"><rect x="-8" y="-8" width="80" height="80" fill="#fff" /><polygon points="22.5,53 22.5,18.78 32,7 41.5,18.78 41.5,53 33.14,57.75" fill="#000" stroke="#000" strokeWidth="3" strokeLinejoin="round" /></mask>
+      </defs>
+      <g strokeWidth="1" strokeLinejoin="round">
+        <g mask={`url(#${maskId})`}>
+        <g transform="rotate(-26 22 48)">
+        <polygon points="14.5,27.3 22.9,30.3 22.9,51.75 14.5,48" fill="var(--logo-green-2)" stroke="var(--logo-green-2)" />
+        <polygon points="22.9,30.3 29.5,27.3 29.5,48 22.9,51.75" fill="var(--logo-green-3)" stroke="var(--logo-green-3)" />
+        <polygon points="14.5,27.3 22,18 22.9,30.3" fill="var(--logo-green-1)" stroke="var(--logo-green-1)" />
+        <polygon points="22,18 29.5,27.3 22.9,30.3" fill="var(--logo-green-2)" stroke="var(--logo-green-2)" />
         </g>
-      </svg>
-    </div>
+        <g transform="rotate(26 42 48)">
+        <polygon points="34.5,27.3 42.9,30.3 42.9,51.75 34.5,48" fill="var(--logo-green-2)" stroke="var(--logo-green-2)" />
+        <polygon points="42.9,30.3 49.5,27.3 49.5,48 42.9,51.75" fill="var(--logo-green-3)" stroke="var(--logo-green-3)" />
+        <polygon points="34.5,27.3 42,18 42.9,30.3" fill="var(--logo-green-1)" stroke="var(--logo-green-1)" />
+        <polygon points="42,18 49.5,27.3 42.9,30.3" fill="var(--logo-green-2)" stroke="var(--logo-green-2)" />
+        </g>
+        </g>
+        <g>
+        <polygon points="22.5,18.78 33.14,22.58 33.14,57.75 22.5,53" fill="var(--logo-amber-2)" stroke="var(--logo-amber-2)" />
+        <polygon points="33.14,22.58 41.5,18.78 41.5,53 33.14,57.75" fill="var(--logo-amber-3)" stroke="var(--logo-amber-3)" />
+        <polygon points="22.5,18.78 32,7 33.14,22.58" fill="var(--logo-amber-1)" stroke="var(--logo-amber-1)" />
+        <polygon points="32,7 41.5,18.78 33.14,22.58" fill="var(--logo-amber-2)" stroke="var(--logo-amber-2)" />
+        <rect x="26.3" y="25.43" width="1.9" height="19.32" rx="0.95" fill="var(--logo-amber-1)" stroke="var(--logo-amber-1)" opacity="0.85" />
+        </g>
+        <path d="M53 4.5Q53.88 9.12 58.5 10Q53.88 10.88 53 15.5Q52.12 10.88 47.5 10Q52.12 9.12 53 4.5Z" fill="var(--logo-spark)" stroke="var(--logo-spark)" />
+      </g>
+    </svg>
   );
 }
 

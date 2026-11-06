@@ -2597,7 +2597,9 @@ const App: React.FC = () => {
     // Update meta theme-color for iOS / Android PWA status bar
     const metaThemeColor = document.getElementById('theme-color-meta');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', isDark ? '#020617' : '#f8fafc');
+      // Read the canvas token after the class flips, so the bar always matches the page.
+      const canvas = getComputedStyle(root).getPropertyValue('--canvas').trim();
+      metaThemeColor.setAttribute('content', canvas || (isDark ? '#100F0C' : '#EBE8E1'));
     }
   }, [theme]);
 

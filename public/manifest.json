@@ -10,7 +10,7 @@
       "purpose": "any"
     },
     {
-      "src": "/favicon.svg",
+      "src": "/icon-maskable.svg",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "maskable"
@@ -18,8 +18,8 @@
   ],
   "start_url": "/",
   "scope": "/",
-  "background_color": "#050505",
-  "theme_color": "#fa9a1d",
+  "background_color": "#EBE8E1",
+  "theme_color": "#EBE8E1",
   "display": "standalone",
   "orientation": "portrait",
   "categories": ["finance", "productivity"],
