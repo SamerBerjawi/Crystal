@@ -17,26 +17,27 @@ export const BASEMAP_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors · <a href="https://versatiles.org" target="_blank" rel="noopener noreferrer">VersaTiles</a>';
 
 /**
- * Home Assistant's palettes (R11): navy with teal parks and blue streets in dark, cream with golden roads in light.
+ * Both are tuned to the app's own palette: the warm canvas, sage greens, a teal water and amber roads (R11 began from Home Assistant's).
  * They sit on top of `colorful` / `colorful-dark`, which supply every colour not named here.
  */
 const LIGHT_COLORS = {
-  background: '#f1e9d9', land: '#f1e9d9', water: '#a9d4ee',
-  naturePark: '#d3e5bd', natureGrass: '#dbe8c6', natureWood: '#cde0b4', natureLeisure: '#dbe8c6',
-  building: '#e7dccb', buildingBg: '#ddd1be',
-  roadStreet: '#ffffff', roadStreetBg: '#e4d9c6',
-  roadSecondary: '#fddba3', roadSecondaryBg: '#f1c986',
-  roadTrunk: '#fddba3', roadTrunkBg: '#f1c986', roadMotorway: '#fdd392', roadMotorwayBg: '#eebd72',
-  label: '#3b3a37', labelHalo: '#f6f0e4',
+  background: '#EEEAE1', land: '#EEEAE1', water: '#BFD8D4',
+  naturePark: '#D3E2C8', natureGrass: '#DBE6CF', natureWood: '#C9DABD', natureLeisure: '#D3E2C8',
+  building: '#E3DED2', buildingBg: '#D5CFC0',
+  roadStreet: '#FFFDF8', roadStreetBg: '#DDD7C9',
+  roadSecondary: '#F6E2B6', roadSecondaryBg: '#E6CB8C',
+  roadTrunk: '#F6E2B6', roadTrunkBg: '#E6CB8C', roadMotorway: '#F2D595', roadMotorwayBg: '#DDB566',
+  label: '#1B1813', labelHalo: '#FFFDF8',
 };
+/** Dark follows the app's own palette (warm near-black like --canvas and --solid, forest greens, a teal water) rather than navy. */
 const DARK_COLORS = {
-  background: '#191d36', land: '#191d36', water: '#2a3f94',
-  naturePark: '#1f4a45', natureGrass: '#1d423f', natureWood: '#1c443f', natureLeisure: '#1f4a45',
-  building: '#151932', buildingBg: '#111428',
-  roadStreet: '#2c3262', roadStreetBg: '#191d36',
-  roadSecondary: '#363c78', roadSecondaryBg: '#191d36',
-  roadTrunk: '#3a4180', roadTrunkBg: '#191d36', roadMotorway: '#3a4180', roadMotorwayBg: '#191d36',
-  label: '#e6e8f6', labelHalo: '#13162b',
+  background: '#171510', land: '#171510', water: '#173137',
+  naturePark: '#1D3328', natureGrass: '#1A2E24', natureWood: '#18291F', natureLeisure: '#1D3328',
+  building: '#1F1D17', buildingBg: '#16140F',
+  roadStreet: '#2A2820', roadStreetBg: '#171510',
+  roadSecondary: '#36322A', roadSecondaryBg: '#171510',
+  roadTrunk: '#403A2C', roadTrunkBg: '#171510', roadMotorway: '#4A4230', roadMotorwayBg: '#171510',
+  label: '#E4DFD3', labelHalo: '#12110D',
 };
 
 export const basemapTheme = (dark: boolean) => (dark ? 'colorful-dark' : 'colorful') as 'colorful' | 'colorful-dark';

@@ -19,6 +19,8 @@ import MultiAccountFilter from '../components/MultiAccountFilter';
 import CashHorizonWidget, { type HorizonNext30 } from '../components/CashHorizonWidget';
 import AddWidgetModal from '../components/AddWidgetModal';
 import { useReview } from '../contexts/ReviewContext';
+import CardsStackWidget from '../components/CardsStackWidget';
+import MoneyFlowWidget from '../components/MoneyFlowWidget';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TodayWidget from '../components/TodayWidget';
@@ -1306,6 +1308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       component: CashHorizonWidget,
       props: { next30, forecasts: lowestBalanceForecasts, currency: preferredCurrency, toDisplay: eurToDisplay }
     },
+    { id: 'cardsStack', name: 'Cards', icon: 'credit-card', description: 'Every card in a deck: tap one to see its spend or credit used', defaultW: 6, defaultH: 3, component: CardsStackWidget, props: { accounts, transactions, currency: preferredCurrency, toDisplay: toPreferred, onOpen: onOpenAccount, onAll: () => setCurrentPage('Accounts') } },
     {
       id: 'creditCardStatements',
       name: 'Credit Card Statements',
@@ -1317,6 +1320,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       props: { statements: creditCardStatements }
     },
     // Updated props for Net Worth chart to support toggles
+    { id: 'moneyFlow', name: 'Money flow', icon: 'chart-column', description: 'Money in and out by week, month or quarter, with the balance line', defaultW: 6, defaultH: 3, component: MoneyFlowWidget, props: { accounts, transactions: analyticsTransactions, selectedAccountIds: analyticsSelectedAccountIds, expenseCategories, currency: preferredCurrency, toDisplay: eurToDisplay, onCategoryClick: handleCategoryClick } },
     { id: 'spendingCalendar', name: 'Spending calendar', icon: 'calendar-03', description: 'A dot for every day, coloured by what went out', defaultW: 6, defaultH: 3, component: SpendingCalendarWidget, props: { transactions: calendarTransactions, currency: preferredCurrency, toDisplay: eurToDisplay, onDayClick: handleCalendarDay } },
     { id: 'goalsRings', name: 'Goals', icon: 'target-01', description: 'Progress towards each goal', defaultW: 6, defaultH: 3, component: GoalsRingsWidget, props: { goals: financialGoals, currency: preferredCurrency, toDisplay: toPreferred, onOpenGoals: () => setCurrentPage('Goals') } },
     {
@@ -1337,7 +1341,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       }
     },
     // Removed forecastChart
-    { id: 'outflowsByCategory', name: 'Spending by category', icon: 'pie-chart-01', description: 'Where your money went, against your budgets', defaultW: 6, defaultH: 2, component: SpendingByCategoryWidget, props: { data: outflowsByCategory, budgets, transactions, expenseCategories, accounts, duration, onCategoryClick: handleCategoryClick, onBudgetClick: handleBudgetClick } },
+    { id: 'outflowsByCategory', name: 'Spending by category', icon: 'pie-chart-01', description: 'Where your money went, against your budgets', defaultW: 6, defaultH: 2, component: SpendingByCategoryWidget, props: { selectedAccountIds: analyticsSelectedAccountIds, budgets, transactions, expenseCategories, accounts, duration, onCategoryClick: handleCategoryClick, onBudgetClick: handleBudgetClick } },
     { id: 'recentActivity', name: 'Recent Activity', icon: 'clock-03', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick, maxItems: 15 } },
     { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'bank', description: 'What you own, by account type', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'receipt', description: 'What you owe, by account type', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
@@ -1349,7 +1353,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'store-01', description: 'Where most of your spending goes', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions, currency: preferredCurrency, toDisplay: eurToDisplay } },
     { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'flash', description: 'What you saved each month', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts, currency: preferredCurrency, toDisplay: eurToDisplay } },
     { id: 'insights', name: 'Insights', icon: 'lightbulb', description: 'Low balances ahead, idle cash and unusual spending', defaultW: 6, defaultH: 2, component: InsightsWidget, props: { insights: activeInsights, onDismiss: dismissInsight, onNavigate: setCurrentPage } }
-  ], [next30, calendarTransactions, handleCalendarDay, conversionRates, periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
+  ], [next30, calendarTransactions, handleCalendarDay, conversionRates, periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, analyticsSelectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const urlTab = useUrlTab();
   const activeTab = isOverviewTab(urlTab) ? urlTab : 'summary';

@@ -513,8 +513,8 @@ const PensionPanel: React.FC<AccountPanelProps> = props => {
                       <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={56} tickFormatter={value => (value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value)} />
                       <Tooltip contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number) => formatCurrency(value, account.currency)} />
                       <Legend verticalAlign="bottom" iconType="circle" />
-                      <Area {...LINE_MOTION} type="monotone" dataKey="balance" name="Value" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.12} strokeWidth={2} />
-                      <Line {...LINE_MOTION} type="monotone" dataKey="contributions" name="Paid in" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
+                      <Area {...LINE_MOTION} type="natural" dataKey="balance" name="Value" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.12} strokeWidth={2} />
+                      <Line {...LINE_MOTION} type="natural" dataKey="contributions" name="Paid in" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
                       <ReferenceLine x={toLocalISOYearMonth(new Date())} stroke="var(--line-strong)" strokeDasharray="3 3" />
                     </ComposedChart>
                   </ResponsiveContainer>

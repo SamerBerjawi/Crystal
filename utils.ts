@@ -92,6 +92,9 @@ export function sanitizeString(str: string): string {
     return escapeHtml(str);
 }
 
+/** The three-letter code of a currency, for Intl. The app writes some as "EUR (€)", which Intl rejects. */
+export const currencyCode = (currency: string): string => currency.match(/^[A-Za-z]{3}/)?.[0].toUpperCase() ?? 'EUR';
+
 export function formatCurrency(amount: number, currency: Currency, options?: { showPlusSign?: boolean, compact?: boolean }): string {
     // Handle both "EUR" and "EUR (€)" formats
     const cleanCurrency = normalizeCurrency(currency);

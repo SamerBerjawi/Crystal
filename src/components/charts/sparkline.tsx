@@ -765,7 +765,7 @@ function LineOrArea<T>({
   variant: "line" | "area";
 }) {
   const {
-    curve = "monotone",
+    curve = "natural",
     strokeWidth = 1.5,
     endDot = false,
     fill = "gradient",

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { heroClassFor } from '../utils/accountHero';
+import CardFace from './CardFace';
 import { Radio, RadioGroup } from 'react-aria-components';
 import { Account, Transaction } from '../types';
 import { convertToMain, parseLocalDate, getMainCurrency } from '../utils';
@@ -30,22 +30,10 @@ const CardMoney: React.FC<{ account: Account; balance: number }> = ({ account, b
   ) : <Amount value={balance} currency={account.currency} />
 );
 
-/** A card drawn from what the account stores. Only ever the last four digits. */
-const BankCard: React.FC<{ account: Account; size?: 'small' | 'large' }> = ({ account, size = 'small' }) => (
-  <div className={cn('flex aspect-[1.586] w-full flex-col justify-between rounded-[var(--radius-lg)] text-on-pine', heroClassFor(account.type), size === 'large' ? 'p-5' : 'p-3', account.status === 'closed' && 'opacity-60')}>
-    <div className="flex items-start justify-between gap-2">
-      <span className="type-label truncate">{account.financialInstitution || account.name}</span>
-      <span className="type-caption shrink-0">{accountCardKind(account)}</span>
-    </div>
-    <div>
-      <p className={cn('tabular-nums tracking-wider', size === 'large' ? 'type-section-title' : 'type-label')} aria-label={account.last4 ? `Ending ${account.last4}` : undefined}>
-        •••• {account.last4 || '••••'}
-      </p>
-      <div className="type-caption mt-1 flex justify-between gap-2">
-        <span className="truncate">{account.cardholderName || account.name}</span>
-        {account.expirationDate && <span className="shrink-0 tabular-nums">{account.expirationDate}</span>}
-      </div>
-    </div>
+/** A card drawn from what the account stores, in the colour and pattern its owner chose. Only ever the last four digits. */
+const BankCard: React.FC<{ account: Account; size?: 'small' | 'large' }> = ({ account }) => (
+  <div className="aspect-[1.586] w-full">
+    <CardFace account={account} />
   </div>
 );
 

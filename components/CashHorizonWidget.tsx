@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { curveLinear } from '@visx/curve';
+import { curveNatural } from '@visx/curve';
 import type { Currency } from '../types';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { ChartTooltip, Grid, Line, LineChart, XAxis, YAxis } from '../src/components/charts';
@@ -91,7 +91,7 @@ const CashHorizonWidget: React.FC<CashHorizonWidgetProps> = ({ next30, forecasts
             <Grid horizontal numTicksRows={3} />
             <SpotlightIndicator seriesKey="total" color="var(--primary)" />
             <HorizonArea seriesKey="total" color="var(--primary)" />
-            <Line dataKey="total" label="Balance" stroke="var(--primary)" strokeWidth={2} curve={curveLinear} fadeEdges={false} />
+            <Line dataKey="total" label="Balance" stroke="var(--primary)" strokeWidth={2} curve={curveNatural} fadeEdges={false} />
             <XAxis numTicks={tight ? 3 : 5} />
             <YAxis numTicks={3} tickFormatter={compact} />
             <Layer today={days[0].date} lowest={lowest} buffer={buffer} compactLabels={tight} currency={currency} />

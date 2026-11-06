@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Page, Transaction } from '../types';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
@@ -16,6 +16,7 @@ const GROUPS = [{ id: 'merchant', label: 'Merchants' }, { id: 'category', label:
 const SLICE_COLORS = ['var(--chart-1)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-2)'];
 const PART_COLORS: Record<string, string> = { Needs: 'var(--chart-1)', Wants: 'var(--chart-4)', Others: 'var(--muted)' };
 const STEP = 12;
+const COMPARE = [{ id: 'now', label: 'This period' }, { id: 'compare', label: 'Vs period before' }];
 
 const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 const share = (part: number, whole: number) => (whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : '0.0%');
@@ -57,8 +58,8 @@ const SpendingChart: React.FC<{ report: Report }> = ({ report }) => (
           <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={48} />
           <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={48} />
           <Tooltip contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number, name: string) => [formatCurrency(value, getMainCurrency()), name === 'current' ? 'This period' : 'Period before']} />
-          <Line {...LINE_MOTION} type="monotone" dataKey="previous" stroke="var(--muted)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
-          <Line {...LINE_MOTION} type="monotone" dataKey="current" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
+          <Line {...LINE_MOTION} type="natural" dataKey="previous" stroke="var(--muted)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
+          <Line {...LINE_MOTION} type="natural" dataKey="current" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -67,6 +68,8 @@ const SpendingChart: React.FC<{ report: Report }> = ({ report }) => (
 
 const CategoryReport: React.FC<{ report: Report }> = ({ report }) => {
   const [shown, setShown] = useState(STEP);
+  const [compare, setCompare] = useState(false);
+  const before = useMemo(() => new Map(report.previousCategories.map(row => [row.category, row.totalEur])), [report.previousCategories]);
   const top = report.categories.slice(0, 5);
   const rest = report.totalSpend - top.reduce((sum, row) => sum + row.totalEur, 0);
   const slices = [...top.map((row, index) => ({ label: row.category, value: row.totalEur, color: SLICE_COLORS[index] })), ...(rest > 0.005 ? [{ label: 'Other', value: rest, color: 'var(--muted)' }] : [])];
@@ -87,19 +90,115 @@ const CategoryReport: React.FC<{ report: Report }> = ({ report }) => {
         </PieChart>
       </div>
       <div className="min-w-0">
+        <div className="mb-1 flex justify-end"><SegmentedControl items={COMPARE} activeId={compare ? 'compare' : 'now'} onChange={id => setCompare(id === 'compare')} /></div>
         <Rows>
           {report.categories.slice(0, shown).map((row, index) => (
             <Row
               key={row.category}
               title={<span className="flex items-center gap-2"><span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: SLICE_COLORS[index] ?? 'var(--muted)' }} /><span className="truncate">{row.category}</span></span>}
               value={<Amount value={row.totalEur} currency={getMainCurrency()} />}
-              note={share(row.totalEur, report.totalSpend)}
+              note={compare ? <Change current={row.totalEur} previous={before.get(row.category) ?? 0} /> : share(row.totalEur, report.totalSpend)}
             />
           ))}
         </Rows>
         <ShowMore remaining={report.categories.length - shown} onPress={() => setShown(count => count + STEP)} />
       </div>
     </div>
+  );
+};
+
+
+/** Compares one figure with the period before, as a percentage. More spending is bad, so it reads in the warning colour. */
+const Change: React.FC<{ current: number; previous: number }> = ({ current, previous }) => {
+  if (previous <= 0) return <span className="type-caption text-muted">New</span>;
+  const pct = ((current - previous) / previous) * 100;
+  if (Math.abs(pct) < 0.5) return <span className="type-caption text-muted">No change</span>;
+  return <span className={pct > 0 ? 'type-caption text-tomato' : 'type-caption text-pine'}>{pct > 0 ? '+' : '−'}{Math.abs(pct).toFixed(0)}% vs before</span>;
+};
+
+const monthLabel = (key: string) => new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+const compactMoney = (value: number) => formatCurrency(value, getMainCurrency(), { compact: true });
+
+/** Every category against every month. The darker the cell, the more went out; the biggest cell is the darkest. */
+const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
+  const [shown, setShown] = useState(STEP);
+  const { months, table, monthTotals, max } = report.byMonth;
+  if (table.length === 0) return <Empty>There is no spending in this period.</Empty>;
+  return (
+    <>
+      <div className="-mx-1 overflow-x-auto px-1">
+        <table className="w-full min-w-[480px] border-separate border-spacing-y-1 text-left">
+          <thead>
+            <tr>
+              <th scope="col" className="type-label sticky left-0 bg-surface py-1 pr-3 text-muted">Category</th>
+              {months.map(key => <th key={key} scope="col" className="type-label px-1 py-1 text-right text-muted">{monthLabel(key)}</th>)}
+              <th scope="col" className="type-label py-1 pl-3 text-right text-muted">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {table.slice(0, shown).map(row => (
+              <tr key={row.category}>
+                <th scope="row" className="type-body sticky left-0 max-w-[160px] truncate bg-surface py-1 pr-3 text-left font-normal text-ink">{row.category}</th>
+                {months.map(key => {
+                  const value = row.cells[key] ?? 0;
+                  const strength = max > 0 ? Math.round((value / max) * 70) : 0;
+                  return (
+                    <td key={key} className="px-0.5 py-0">
+                      <span
+                        title={`${row.category}, ${monthLabel(key)}: ${formatCurrency(value, getMainCurrency())}`}
+                        className="type-caption block rounded-md px-2 py-1.5 text-right tabular-nums text-ink"
+                        style={{ background: value > 0 ? `color-mix(in srgb, var(--chart-1) ${Math.max(8, strength)}%, transparent)` : 'transparent' }}
+                      >
+                        {value > 0 ? compactMoney(value) : '–'}
+                      </span>
+                    </td>
+                  );
+                })}
+                <td className="type-figure-row py-1 pl-3 text-right text-ink"><Amount value={row.totalEur} currency={getMainCurrency()} /></td>
+              </tr>
+            ))}
+            <tr>
+              <th scope="row" className="type-body-strong sticky left-0 bg-surface pt-2 pr-3 text-left text-ink">All spending</th>
+              {monthTotals.map((value, index) => <td key={months[index]} className="type-caption px-2 pt-2 text-right tabular-nums text-ink">{value > 0 ? compactMoney(value) : '–'}</td>)}
+              <td className="type-figure-row pl-3 pt-2 text-right text-ink"><Amount value={report.totalSpend} currency={getMainCurrency()} /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ShowMore remaining={table.length - shown} onPress={() => setShown(count => count + STEP)} />
+    </>
+  );
+};
+
+/** Money in: the sources, and how it came month by month. */
+const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
+  const { total, sources, months } = report.incomeReport;
+  if (total <= 0) return <Empty>No money came in during this period.</Empty>;
+  const top = Math.max(...months.map(month => month.totalEur), 1);
+  const kept = report.income - report.totalSpend;
+  return (
+    <>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 min-[900px]:grid-cols-3">
+        <Figure label="Money in"><Amount value={total} currency={getMainCurrency()} /></Figure>
+        <Figure label="Money out"><Amount value={report.totalSpend} currency={getMainCurrency()} /></Figure>
+        <Figure label="Kept"><Amount value={kept} currency={getMainCurrency()} tone="flow" /></Figure>
+      </dl>
+      {months.length > 1 && (
+        <div className="mt-5 flex h-32 items-end gap-2" role="img" aria-label="Money in by month">
+          {months.map(month => (
+            <div key={month.key} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" title={`${monthLabel(month.key)}: ${formatCurrency(month.totalEur, getMainCurrency())}`}>
+              <div className="w-full rounded-t-md bg-chart-1" style={{ height: `${Math.max(2, (month.totalEur / top) * 100)}%` }} />
+              <span className="type-caption text-muted">{monthLabel(month.key)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-4 border-t border-line pt-2">
+        <Rows>
+          {sources.map(row => <Row key={row.category} title={row.category} value={<Amount value={row.totalEur} currency={getMainCurrency()} />} note={share(row.totalEur, total)} />)}
+        </Rows>
+      </div>
+    </>
   );
 };
 
@@ -243,6 +342,10 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ id, report, cashflowTransacti
           {report.unusual.map(row => <Row key={row.id} title={row.merchant} detail={`${row.category}, ${shortDate(row.date)}`} value={<Amount value={row.amountEur} currency={getMainCurrency()} />} />)}
         </Rows>
       );
+    case 'categoryMonths':
+      return <CategoryMonthsReport report={report} />;
+    case 'income':
+      return <IncomeReport report={report} />;
     case 'forecast':
       return (
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 min-[900px]:grid-cols-4">
