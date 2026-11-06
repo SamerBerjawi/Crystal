@@ -33,7 +33,7 @@ export const HELP_SECTIONS: HelpSection[] = [
     id: 'transactions',
     title: 'Transactions',
     points: [
-      { title: 'Review queue', text: 'Crystal gathers what needs a decision, such as possible transfers, bill matches and transactions with no category.' },
+      { title: 'Queue', text: 'Crystal gathers what needs a decision, such as possible transfers, bill matches and transactions with no category.' },
       { title: 'Merchants', text: 'Crystal remembers each merchant, so new transactions can fill in by themselves. Rules give you more control.' },
     ],
   },

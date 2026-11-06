@@ -396,7 +396,7 @@ const FactSection: React.FC<{
                     <Icon name="arrow-data-transfer-horizontal" size={28} />
                   </span>
                 ) : mainAccount ? (
-                  <span className="flex size-full items-center justify-center bg-black/5 dark:bg-white/10 text-muted">
+                  <span className="flex size-full items-center justify-center bg-inset text-muted">
                     <Icon name={accountIcon(mainAccount)} size={28} />
                   </span>
                 ) : (
@@ -640,7 +640,7 @@ const FactSection: React.FC<{
                                       key={i}
                                       className={cn(
                                         'h-full flex-1 rounded-full transition-colors',
-                      isActive ? 'bg-amber' : 'bg-primary/30 dark:bg-primary/30'
+                      isActive ? 'bg-amber' : 'bg-primary/30'
                                       )}
                                     />
                                   );

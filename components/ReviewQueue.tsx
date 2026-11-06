@@ -285,7 +285,7 @@ const ReviewQueue: React.FC = () => {
     <div className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="type-page-title text-ink">Review queue</h1>
+          <h1 className="type-page-title text-ink">Queue</h1>
           <p className="type-body text-muted">{allItems.length === 0 ? 'All clear.' : `${allItems.length} waiting. Work through them one at a time.`}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

@@ -12,10 +12,10 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 |---|---|---|---|
 | 0 | Foundation | Tokens, Manrope, Hugeicons, colour bridge | Done |
 | 1 | Primitives | Buttons, fields, menus, overlays, table, states | Done |
-| 2 | App shell | Pills, tab row, rail, phone bar, More, top bar | Done, with the gaps listed below |
+| 2 | App shell | Pills, tab row, rail, phone bar, More, top bar | Done |
 | 3 | Overview | Summary, hero, Needs you, Safe to spend, grid | Done |
 | 4 | Accounts | Hub tabs, account frame, one account form | Done |
-| 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Done, with the detail panel left |
+| 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Done. The detail panel followed in old-screens step 2 (`D-115`) |
 | 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Done, committed on `feat/redesign-planning` |
 | 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Done, committed on `feat/redesign-investments` |
 | 8 | Reports | Reports, Invoices, Challenges | Done, committed on `feat/redesign-reports` |
@@ -565,3 +565,5 @@ Not covered by either sweep: the Export dialog's contents and the card and impor
 **Forecast list, 2026-11-05 (`D-141`).** Checked in dark with demo data at 1440 (months, columns, an amber Month's lowest row in each month, the red Global lowest row in the last month) and at 390 (no overflow, stacked rows). Not checked: light mode, search, Show more, and a lowest day with no event on it (that case shows only in the month heading).
 
 **Goals schedule, 2026-11-05 (`D-142`).** Both views were opened in light at 1440 with demo data and the figures agree with the model test. Not checked: dark mode, a phone width, and demo goals with spending or income (the demo only has savings goals).
+
+**Last leftovers, 2026-11-06.** A scan for raw colours after Phase 10 found five. The browser bar colour (`theme-color` in `index.html`, the manifest and `App.tsx`) still used the old slate and orange values; it now reads `--canvas`, so it matches the page in light and dark. The chart date ticker used zinc greys and is now `pill` and `on-pill`. The Ledger's card, mortgage, loan and round-up rows used hard-coded hex; they're now `blue`, `rose`, `chart-4` and `teal`. Their tints appended a hex alpha to the colour, which gave no tint at all for plain transfers (`var(--muted)` plus `22` isn't a colour), so tints now use `color-mix`. The Ledger's empty select box and the fallback logo tiles in the Ledger and transaction panel use `inset` and `line-strong` instead of black and white alpha. Left on purpose: the white tile behind merchant logos, the dark scrim over a receipt photo, the licence plate, and default colours for new items, which are data.
