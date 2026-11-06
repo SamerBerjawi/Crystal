@@ -436,9 +436,11 @@ function buildDomainTicks({
   marginLeft,
   numTicks,
   xScale,
+  format = (date: Date) => shortDateFmt.format(date),
 }: {
   marginLeft: number;
   numTicks: number;
+  format?: (date: Date) => string;
   xScale: {
     domain: () => Date[];
     (date: Date): number | undefined;
@@ -462,7 +464,7 @@ function buildDomainTicks({
   for (let i = 0; i < tickCount; i++) {
     const t = i / (tickCount - 1);
     const date = new Date(startTime + t * timeRange);
-    const label = shortDateFmt.format(date);
+    const label = format(date);
     if (seenLabels.has(label)) {
       continue;
     }
@@ -578,10 +580,16 @@ const XAxisInner = memo(function XAxisInner({
   numTicks = 5,
   tickerHalfWidth = 50,
   tickMode = "data",
+  tickFormatter,
   container,
 }: XAxisProps & { container: HTMLDivElement }) {
-  const { xScale, margin, tooltipData, data, xAccessor, dateLabels, xDomain } =
+  const { xScale, margin, tooltipData, data, xAccessor, dateLabels: contextLabels, xDomain } =
     useChart();
+  // A caller's formatter replaces the default day labels on data-aligned ticks.
+  const dateLabels = useMemo(
+    () => (tickFormatter ? data.map((point) => tickFormatter(xAccessor(point))) : contextLabels),
+    [tickFormatter, data, xAccessor, contextLabels]
+  );
 
   const labelsToShow = useMemo(() => {
     const projectionExtendsScale =
@@ -592,6 +600,7 @@ const XAxisInner = memo(function XAxisInner({
         marginLeft: margin.left,
         numTicks,
         xScale,
+        format: tickFormatter,
       });
     }
 
@@ -628,6 +637,7 @@ const XAxisInner = memo(function XAxisInner({
     return dataTicks;
   }, [
     tickMode,
+    tickFormatter,
     xDomain,
     data,
     dateLabels,

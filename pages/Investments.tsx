@@ -11,8 +11,13 @@ import { fetchBestQuote } from '../src/services/twelveDataService';
 import { usePreferencesContext } from '../contexts/DomainProviders';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useSafeState } from '../hooks/useSafeState';
-import { useUrlTab } from '../hooks/useUrlTab';
-import { Panel, ValueChart } from '../components/AccountFrame';
+import { setUrlTab, useUrlTab } from '../hooks/useUrlTab';
+import { diversification, monthlyFlows, netInvestedOn, recentMonths } from '../utils/portfolioInsights';
+import { Bars, Board, Donut, Section } from '../components/accounts/charts';
+import { BrandMark as BrandMarkFor } from '../components/ServiceCard';
+import PortfolioHero from '../components/investments/PortfolioHero';
+import HoldingsTreemap from '../components/investments/HoldingsTreemap';
+import { DiversificationCard, Movers, PositionStrip, WinRate, signedPct } from '../components/investments/PortfolioCards';
 import AccountCard from '../components/AccountCard';
 import AccountForm from '../components/AccountForm';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
@@ -22,10 +27,10 @@ import InvestmentModal from '../components/InvestmentModal';
 import PageHeader, { type PageStat } from '../components/PageHeader';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { Button, IconButton } from '../components/ui/Actions';
-import { Badge, ShowMore } from '../components/ui/Display';
-import { Switch } from '../components/ui/Fields';
+import { Badge, DayGroup, ShowMore } from '../components/ui/Display';
+import { Switch, TextInput } from '../components/ui/Fields';
 import { Menu, type MenuAction } from '../components/ui/Menu';
-import { Amount, Change } from '../components/ui/Money';
+import { Amount } from '../components/ui/Money';
 import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
@@ -62,22 +67,13 @@ const RANGE_WORDS: Record<string, string> = { '30': 'in a month', '91': 'in 3 mo
 const SUPPORTED_CURRENCIES = CURRENCY_OPTIONS.map(option => option.split(' ')[0]);
 const ACTIVITY_STEP = 25;
 const ALLOCATION_ROWS = 6;
+const POSITION_CARDS = 8;
+const ACTIVITY_KINDS = [{ id: 'all', label: 'All' }, { id: 'Buy', label: 'Buys' }, { id: 'Sell', label: 'Sells' }, { id: 'Grant', label: 'Grants' }];
+const monthName = (month: string) => parseLocalDate(`${month}-01`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+const monthShort = (month: string) => parseLocalDate(`${month}-01`).toLocaleDateString(undefined, { month: 'short' });
 
 const shortDate = (date: string) => parseLocalDate(date.slice(0, 10)).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 const percentOf = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100 : 0);
-
-const AllocationRow: React.FC<{ label: string; value: number; total: number; color: string }> = ({ label, value, total, color }) => {
-  const share = percentOf(value, total);
-  return (
-    <li>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="type-body min-w-0 truncate text-ink">{label}</span>
-        <span className="type-caption shrink-0 text-muted"><Amount value={value} currency={getMainCurrency()} />, {share.toFixed(1)}%</span>
-      </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-inset"><div className="h-full rounded-full" style={{ width: `${share}%`, background: color }} /></div>
-    </li>
-  );
-};
 
 /** Rivet's portfolio view with warrants, pension and spare change, on one page for every screen (D-025). */
 const Investments: React.FC<InvestmentsProps> = ({
@@ -224,6 +220,63 @@ const Investments: React.FC<InvestmentsProps> = ({
     })),
   ].sort((a, b) => (a.date < b.date ? 1 : -1)), [tradesInView, grantsInView]);
 
+  // What the page draws, beyond the figures above.
+  const [activityKind, setActivityKind] = useState('all');
+  const pricedCost = current.cost - current.unpricedCost;
+  const heroPoints = useMemo(() => {
+    // Net invested only means something when every position in view came from trades and grants.
+    const invested = accountRows.length === 0 && (tradesInView.length > 0 || grantsInView.length > 0)
+      ? netInvestedOn(chartWindow.points.map(point => point.date), tradesInView, grantsInView, toEur, getMainCurrency())
+      : null;
+    return chartWindow.points.map((point, index) => ({ date: point.date, value: point.price, invested: invested?.[index] }));
+  }, [chartWindow, accountRows.length, tradesInView, grantsInView, toEur]);
+  const trendOf = useCallback((symbol: string, days: number) => historyWindow(logFor(symbol), days, new Date()).points.map(point => point.price), [logFor]);
+  const returnOf = (holding: { priceUnavailable?: boolean; currentValue: number; totalCost: number }) => (holding.priceUnavailable || holding.totalCost <= 0 ? null : ((holding.currentValue - holding.totalCost) / holding.totalCost) * 100);
+  const positions = useMemo(() => heldHoldings.slice().sort((a, b) => b.currentValue - a.currentValue).slice(0, POSITION_CARDS).map(holding => {
+    const trend = trendOf(holding.symbol, 90);
+    return {
+      holding,
+      trend,
+      returnPct: returnOf(holding),
+      trendPct: trend.length > 1 && trend[0] > 0 ? ((trend[trend.length - 1] - trend[0]) / trend[0]) * 100 : null,
+      weight: percentOf(holding.currentValue, current.value),
+    };
+  }), [heldHoldings, trendOf, current.value]);
+  const moverRows = useMemo(() => movers.map(({ holding, gain: holdingGain }) => ({ holding, gain: holdingGain, pct: percentOf(holdingGain, holding.totalCost), trend: trendOf(holding.symbol, 30) })), [movers, trendOf]);
+  const treemapItems = useMemo(() => [
+    ...heldHoldings.map(holding => ({ id: holding.symbol, label: holding.symbol, sublabel: holding.name, value: holding.currentValue, returnPct: returnOf(holding) })),
+    ...accountRows.map(account => ({ id: `account:${account.id}`, label: account.name, sublabel: account.subType || 'Account', value: toEur(account.balance, account.currency), returnPct: null })),
+  ], [heldHoldings, accountRows, toEur]);
+  const spread = useMemo(() => diversification(treemapItems.map(item => item.value)), [treemapItems]);
+  // The last 12 months, or the 12 up to the latest trade when nothing happened this year.
+  const flowMonths = useMemo(() => {
+    const latest = [...tradesInView.map(trade => trade.date), ...grantsInView.map(grant => grant.grantDate)].filter(Boolean).sort().pop();
+    const recent = recentMonths(12);
+    if (!latest || latest.slice(0, 7) >= recent[0]) return recent;
+    return recentMonths(12, parseLocalDate(latest.slice(0, 10)));
+  }, [tradesInView, grantsInView]);
+  const flowPeriod = flowMonths[flowMonths.length - 1] === recentMonths(1)[0] ? 'Last 12 months' : `${monthShort(flowMonths[0])} ${flowMonths[0].slice(0, 4)} to ${monthShort(flowMonths[11])} ${flowMonths[11].slice(0, 4)}`;
+  const flows = useMemo(() => monthlyFlows(tradesInView, grantsInView, toEur, flowMonths, getMainCurrency()), [tradesInView, grantsInView, toEur, flowMonths]);
+  const hasFlows = flows.some(row => row.bought || row.sold || row.granted);
+  const flowBars = useMemo(() => flows.map(row => ({ name: monthShort(row.month), Bought: row.bought, Sold: row.sold, ...(grantsInView.length ? { Granted: row.granted } : {}) })), [flows, grantsInView.length]);
+  const flowTotals = useMemo(() => flows.reduce((sum, row) => ({ bought: sum.bought + row.bought, sold: sum.sold + row.sold, granted: sum.granted + row.granted }), { bought: 0, sold: 0, granted: 0 }), [flows]);
+  const shownActivity = useMemo(() => (activityKind === 'all' ? activity : activity.filter(item => item.kind === activityKind)), [activity, activityKind]);
+  const activityByMonth = useMemo(() => {
+    const groups: { month: string; items: typeof activity }[] = [];
+    shownActivity.slice(0, activityShown).forEach(item => {
+      const month = item.date.slice(0, 7);
+      const last = groups[groups.length - 1];
+      if (last && last.month === month) last.items.push(item);
+      else groups.push({ month, items: [item] });
+    });
+    return groups;
+  }, [shownActivity, activityShown]);
+  const openTile = (id: string) => {
+    if (id.startsWith('account:')) onViewAccount?.(id.slice('account:'.length));
+    else setOpenSymbol(id);
+  };
+  const segmentByLabel = useMemo(() => new Map(SEGMENT_NAMES.map(name => [SEGMENT_LABELS[name], name])), []);
+
   const openHolding = useMemo(() => (openSymbol ? everything.holdings.find(holding => holding.symbol === openSymbol) ?? null : null), [openSymbol, everything]);
   const closeHolding = () => {
     setOpenSymbol(null);
@@ -285,6 +338,12 @@ const Investments: React.FC<InvestmentsProps> = ({
     ],
   })), [shownHoldings, logFor]);
 
+  const [holdingQuery, setHoldingQuery] = useState('');
+  const filteredHoldingRows = useMemo(() => {
+    const query = holdingQuery.trim().toLowerCase();
+    return query ? holdingRows.filter(row => `${row.holding.symbol} ${row.holding.name}`.toLowerCase().includes(query)) : holdingRows;
+  }, [holdingRows, holdingQuery]);
+
   const accountMenu = (account: Account): MenuAction[] => [
     { id: 'open', label: 'Open account', icon: 'link-square-02', onAction: () => onViewAccount?.(account.id) },
     { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setAccountForm(account) },
@@ -310,7 +369,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     <div className="space-y-6 pb-8 max-md:space-y-4">
       <PageHeader
         title="Investments"
-        stats={stats}
+        stats={tab === 'portfolio' && !hasNothing ? [] : stats}
         actions={
           <div className="flex gap-2">
             <Button variant="secondary" icon="refresh" isBusy={isUpdatingPrices} isDisabled={heldHoldings.length === 0} onPress={updateAllPrices}>Update prices</Button>
@@ -327,76 +386,114 @@ const Investments: React.FC<InvestmentsProps> = ({
           {current.unpricedValue > 0 && <p className="type-caption text-muted">{formatCurrency(current.unpricedValue, getMainCurrency())} is valued at its last trade, because there's no current price. It's left out of the gain.</p>}
 
           {tab === 'portfolio' && (
-            <div className="grid grid-cols-1 gap-5 min-[1100px]:grid-cols-3">
-              <section aria-label="Performance" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 min-[1100px]:col-span-2">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="type-card-title text-ink">Performance</h2>
-                    {chartData.length > 1 && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Change value={chartWindow.change} currency={getMainCurrency()} period={RANGE_WORDS[range]} className="type-caption text-muted" />
-                        {chartWindow.points[0]?.price > 0 && (
-                          <Badge tone={chartWindow.change >= 0 ? 'positive' : 'negative'}>
-                            {chartWindow.change >= 0 ? '+' : '−'}{Math.abs(percentOf(chartWindow.change, chartWindow.points[0].price)).toFixed(1)}%
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <SegmentedControl items={RANGES} activeId={range} onChange={setRange} />
-                </div>
-                {chartData.length > 1 ? <ValueChart data={chartData} currency={getMainCurrency()} dataKey="value" fitValues /> : <p className="type-body py-10 text-center text-muted">Log prices or add trades to see this over time.</p>}
-              </section>
-              <section aria-label="Allocation" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="type-card-title text-ink">Allocation</h2>
-                  {currencyAllocation.length > 1 && (
-                    <SegmentedControl
-                      items={[{ id: 'type', label: 'By type' }, { id: 'currency', label: 'By currency' }]}
-                      activeId={allocationView}
-                      onChange={id => setAllocationView(id as 'type' | 'currency')}
-                    />
-                  )}
-                </div>
-                <ul className="mt-3 space-y-3">
-                  {(allocationView === 'currency' && currencyAllocation.length > 1 ? currencyAllocation : allocation).map(row => (
-                    <AllocationRow key={row.id} label={row.label} value={row.value} total={current.value} color={row.color} />
-                  ))}
-                </ul>
-                {biggest && biggest.value > 0 && <p className="type-caption mt-4 border-t border-line pt-3 text-muted">Biggest single position: {biggest.label}, {percentOf(biggest.value, current.value).toFixed(1)}% of this view.</p>}
-              </section>
-              {movers.length > 0 && (
-                <section aria-label="Performance by holding" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 min-[1100px]:col-span-3">
-                  <h2 className="type-card-title text-ink">Performance by holding</h2>
-                  <ul className="mt-1 divide-y divide-line">
-                    {movers.map(({ holding, gain: holdingGain }) => (
-                      <li key={holding.symbol}>
-                        <button type="button" onClick={() => setOpenSymbol(holding.symbol)} className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 text-left">
-                          <span className="min-w-0">
-                            <span className="type-body-strong block truncate text-ink">{holding.name || holding.symbol}</span>
-                            <span className="type-caption block text-muted">{holding.symbol}, {holding.type === 'Warrant' ? 'Warrant' : formatHoldingType(holding.subType)}</span>
-                          </span>
-                          <span className="shrink-0 text-right">
-                            <span className="type-figure-row block"><Amount value={holdingGain} currency={getMainCurrency()} tone="flow" /></span>
-                            <span className="type-caption block text-muted">{holdingGain >= 0 ? '+' : '−'}{Math.abs(percentOf(holdingGain, holding.totalCost)).toFixed(1)}%</span>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+            <Board>
+              <PortfolioHero
+                className="col-span-12 @4xl:col-span-8 @4xl:row-span-2"
+                points={heroPoints}
+                currency={getMainCurrency()}
+                value={current.value}
+                gain={gain}
+                gainPct={gainPct}
+                ranges={RANGES}
+                range={range}
+                onRangeChange={setRange}
+                rangeWords={RANGE_WORDS[range]}
+                figures={[
+                  { label: 'Cost basis', value: <Amount value={pricedCost} currency={getMainCurrency()} />, note: `${heldHoldings.length + accountRows.length} positions` },
+                  { label: 'Realised', value: <Amount value={realized.total} currency={getMainCurrency()} tone="flow" />, note: realized.sales.length ? `${realized.sales.length} ${realized.sales.length === 1 ? 'sale' : 'sales'}` : 'No sales yet' },
+                  { label: 'Total return', value: <Amount value={gain + realized.total} currency={getMainCurrency()} tone="flow" />, note: pricedCost > 0 ? `${signedPct(percentOf(gain + realized.total, pricedCost))} on cost` : undefined },
+                ]}
+              />
+
+              <Section
+                span="side"
+                rows={2}
+                title="Allocation"
+                subtitle={allocationView === 'type' && activeSegment === 'all' ? 'Pick a slice to focus on it' : undefined}
+                action={currencyAllocation.length > 1 ? (
+                  <SegmentedControl items={[{ id: 'type', label: 'Type' }, { id: 'currency', label: 'Currency' }]} activeId={allocationView} onChange={id => setAllocationView(id as 'type' | 'currency')} />
+                ) : undefined}
+              >
+                <Donut
+                  stacked
+                  size={190}
+                  centerLabel={activeSegment === 'all' ? 'Portfolio' : SEGMENT_LABELS[activeSegment]}
+                  currency={getMainCurrency()}
+                  items={(allocationView === 'currency' && currencyAllocation.length > 1 ? currencyAllocation : allocation).map(row => ({ label: row.label, value: row.value, color: row.color }))}
+                  onPick={allocationView === 'type' && activeSegment === 'all' ? label => { const name = segmentByLabel.get(label); if (name) setSegment(name); } : undefined}
+                />
+              </Section>
+
+              {positions.length > 0 && (
+                <Section
+                  span="full"
+                  title="Top positions"
+                  subtitle="Largest first, with the last 90 days of prices"
+                  action={<Button variant="ghost" size="sm" icon="arrow-right-01" onPress={() => setUrlTab('holdings')}>All holdings</Button>}
+                >
+                  <PositionStrip items={positions} currency={getMainCurrency()} onOpen={setOpenSymbol} />
+                </Section>
               )}
-            </div>
+
+              {treemapItems.length > 0 && (
+                <Section span={moverRows.length > 0 ? 'wide' : 'full'} title="Portfolio map" subtitle={`${treemapItems.length} positions, sized by value`}>
+                  <HoldingsTreemap items={treemapItems} currency={getMainCurrency()} total={current.value} onOpen={openTile} height={isPhone ? 260 : 320} />
+                </Section>
+              )}
+
+              {moverRows.length > 0 && (
+                <Section span="side" title="Movers" subtitle="Return on what you paid">
+                  <Movers rows={moverRows} currency={getMainCurrency()} onOpen={setOpenSymbol} />
+                </Section>
+              )}
+
+              {hasFlows && (
+                <Section
+                  span="half"
+                  title="Money in and out"
+                  subtitle={<>{flowPeriod}: bought <Amount value={flowTotals.bought} currency={getMainCurrency()} />, sold <Amount value={flowTotals.sold} currency={getMainCurrency()} /></>}
+                >
+                  <Bars
+                    data={flowBars}
+                    currency={getMainCurrency()}
+                    bars={[
+                      { key: 'Bought', label: 'Bought', color: 'var(--chart-1)' },
+                      { key: 'Sold', label: 'Sold', color: 'var(--chart-4)' },
+                      ...(grantsInView.length ? [{ key: 'Granted', label: 'Granted', color: 'var(--chart-3)' }] : []),
+                    ]}
+                  />
+                </Section>
+              )}
+
+              {spread.count > 0 && (
+                <Section span={hasFlows ? 'half' : 'full'} title="Diversification" subtitle="How many equal positions your spread is worth">
+                  <DiversificationCard figures={spread} biggest={biggest && biggest.value > 0 ? { label: biggest.label, share: percentOf(biggest.value, current.value) } : undefined} />
+                </Section>
+              )}
+            </Board>
           )}
 
           {tab === 'holdings' && (
             <>
               <section aria-label="Holdings" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="type-card-title text-ink">Holdings</h2>
-                  <Switch isSelected={showInactive} onChange={setShowInactive}>Show sold holdings</Switch>
+                <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="type-card-title text-ink">Holdings</h2>
+                    <p className="type-caption text-muted">
+                      {heldHoldings.length} held · {moverRows.filter(row => row.gain >= 0).length} up · {moverRows.filter(row => row.gain < 0).length} down on cost
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <TextInput label={<span className="sr-only">Search holdings</span>} placeholder="Search by name or symbol" value={holdingQuery} onChange={setHoldingQuery} className="w-64 max-sm:w-full [&_label]:mb-0" />
+                    <Switch isSelected={showInactive} onChange={setShowInactive}>Show sold</Switch>
+                  </div>
                 </div>
-                {holdingRows.length > 0 ? <HoldingsTable rows={holdingRows} isPhone={isPhone} onOpen={holding => setOpenSymbol(holding.symbol)} /> : <p className="type-body py-8 text-center text-muted">No holdings in this view.</p>}
+                <HoldingsTable
+                  rows={filteredHoldingRows}
+                  total={current.value}
+                  onOpen={holding => setOpenSymbol(holding.symbol)}
+                  empty={<p className="type-body py-8 text-center text-muted">{holdingQuery ? `Nothing matches “${holdingQuery}”.` : 'No holdings in this view.'}</p>}
+                />
               </section>
               {accountRows.length > 0 && (
                 <section aria-label="Accounts" className="space-y-3">
@@ -414,44 +511,79 @@ const Investments: React.FC<InvestmentsProps> = ({
           )}
 
           {tab === 'activity' && (
-            <div className="grid grid-cols-1 gap-5 min-[1100px]:grid-cols-3">
-              <section aria-label="Activity" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 min-[1100px]:col-span-2">
-                <h2 className="type-card-title text-ink">Activity</h2>
-                {activity.length === 0 ? <p className="type-body py-8 text-center text-muted">No trades or grants in this view.</p> : (
+            <Board>
+              {hasFlows && (
+                <Section
+                  span="full"
+                  title="Trading by month"
+                  subtitle={<>{flowPeriod}: bought <Amount value={flowTotals.bought} currency={getMainCurrency()} />, sold <Amount value={flowTotals.sold} currency={getMainCurrency()} />{flowTotals.granted > 0 && <>, granted <Amount value={flowTotals.granted} currency={getMainCurrency()} /></>}</>}
+                >
+                  <Bars
+                    data={flowBars}
+                    currency={getMainCurrency()}
+                    bars={[
+                      { key: 'Bought', label: 'Bought', color: 'var(--chart-1)' },
+                      { key: 'Sold', label: 'Sold', color: 'var(--chart-4)' },
+                      ...(grantsInView.length ? [{ key: 'Granted', label: 'Granted', color: 'var(--chart-3)' }] : []),
+                    ]}
+                  />
+                </Section>
+              )}
+
+              <Section
+                span="wide"
+                rows={2}
+                title="Activity"
+                subtitle={`${shownActivity.length} ${shownActivity.length === 1 ? 'entry' : 'entries'}`}
+                action={<SegmentedControl items={ACTIVITY_KINDS} activeId={activityKind} onChange={id => { setActivityKind(id); setActivityShown(ACTIVITY_STEP); }} />}
+              >
+                {shownActivity.length === 0 ? <p className="type-body py-8 text-center text-muted">No {activityKind === 'all' ? 'trades or grants' : ACTIVITY_KINDS.find(kind => kind.id === activityKind)?.label.toLowerCase()} in this view.</p> : (
                   <>
-                    <ul className="mt-1 divide-y divide-line">
-                      {activity.slice(0, activityShown).map(item => (
-                        <li key={item.id} className="flex min-h-14 items-center gap-2 py-1">
-                          <Badge tone={item.kind === 'Sell' ? 'attention' : item.kind === 'Grant' ? 'neutral' : 'positive'}>{item.kind}</Badge>
-                          <span className="min-w-0 flex-1">
-                            <span className="type-body-strong block truncate text-ink">{item.name || item.symbol}</span>
-                            <span className="type-caption block truncate text-muted">{item.quantity.toLocaleString()} at {formatCurrency(item.price, item.currency)}, {shortDate(item.date)}</span>
-                          </span>
-                          <span className="type-figure-row shrink-0 text-ink"><Amount value={item.quantity * item.price} currency={item.currency} /></span>
-                          <Menu
-                            title={item.symbol}
-                            trigger={<IconButton icon="more-horizontal" label={`Actions for ${item.kind.toLowerCase()} of ${item.symbol}`} tooltipPlacement="left" />}
-                            items={[
-                              { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setTradeForm({ trade: item.trade, grant: item.grant }) },
-                              { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setActivityToDelete({ id: item.id, isGrant: !!item.grant, label: `${item.kind.toLowerCase()} of ${item.symbol}` }) },
-                            ]}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                    <ShowMore remaining={activity.length - activityShown} onPress={() => setActivityShown(count => count + ACTIVITY_STEP)} />
+                    <div className="space-y-3">
+                      {activityByMonth.map(group => {
+                        const net = group.items.reduce((sum, item) => sum + toEur(item.quantity * item.price, item.currency) * (item.kind === 'Sell' ? -1 : 1), 0);
+                        return (
+                          <DayGroup key={group.month} label={monthName(group.month)} total={<>net <Amount value={net} currency={getMainCurrency()} tone="flow" /></>}>
+                            <ul className="divide-y divide-line">
+                              {group.items.map(item => (
+                                <li key={item.id} className="flex min-h-14 items-center gap-3 py-1">
+                                  <BrandMarkFor name={item.name || item.symbol} />
+                                  <span className="min-w-0 flex-1">
+                                    <span className="flex items-center gap-2">
+                                      <span className="type-body-strong truncate text-ink">{item.name || item.symbol}</span>
+                                      <Badge tone={item.kind === 'Sell' ? 'attention' : item.kind === 'Grant' ? 'blue' : 'positive'}>{item.kind}</Badge>
+                                    </span>
+                                    <span className="type-caption block truncate text-muted">{item.quantity.toLocaleString()} at {formatCurrency(item.price, item.currency)}, {shortDate(item.date)}</span>
+                                  </span>
+                                  <span className="type-figure-row shrink-0 text-ink"><Amount value={item.quantity * item.price} currency={item.currency} /></span>
+                                  <Menu
+                                    title={item.symbol}
+                                    trigger={<IconButton icon="more-horizontal" label={`Actions for ${item.kind.toLowerCase()} of ${item.symbol}`} tooltipPlacement="left" />}
+                                    items={[
+                                      { id: 'open', label: 'Open holding', icon: 'view', onAction: () => setOpenSymbol(item.symbol) },
+                                      { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setTradeForm({ trade: item.trade, grant: item.grant }) },
+                                      { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setActivityToDelete({ id: item.id, isGrant: !!item.grant, label: `${item.kind.toLowerCase()} of ${item.symbol}` }) },
+                                    ]}
+                                  />
+                                </li>
+                              ))}
+                            </ul>
+                          </DayGroup>
+                        );
+                      })}
+                    </div>
+                    <ShowMore remaining={shownActivity.length - activityShown} onPress={() => setActivityShown(count => count + ACTIVITY_STEP)} />
                   </>
                 )}
-              </section>
-              <section aria-label="Realised gains" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
-                <h2 className="type-card-title text-ink">Realised gains</h2>
-                {realized.sales.length === 0 ? <p className="type-body mt-1 text-muted">Gains appear here when you sell.</p> : (
+              </Section>
+
+              <Section span="side" rows={2} title="Realised gains" subtitle={realized.sales.length ? <>Total <Amount value={realized.total} currency={getMainCurrency()} tone="flow" /></> : undefined}>
+                {realized.sales.length === 0 ? <p className="type-body text-muted">Gains appear here when you sell.</p> : (
                   <>
-                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-                      <div><dt className="type-label text-muted">Winning sales</dt><dd className="type-figure-row text-ink">{realized.wins}</dd></div>
-                      <div><dt className="type-label text-muted">Losing sales</dt><dd className="type-figure-row text-ink">{realized.losses}</dd></div>
-                      {realized.biggestWin && <div><dt className="type-label text-muted">Biggest win</dt><dd className="type-figure-row"><Amount value={realized.biggestWin.gain} currency={getMainCurrency()} tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestWin.symbol}</dd></div>}
-                      {realized.biggestLoss && <div><dt className="type-label text-muted">Biggest loss</dt><dd className="type-figure-row"><Amount value={realized.biggestLoss.gain} currency={getMainCurrency()} tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestLoss.symbol}</dd></div>}
+                    <WinRate wins={realized.wins} losses={realized.losses} />
+                    <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-4">
+                      {realized.biggestWin && <div><dt className="type-label text-muted">Biggest win</dt><dd className="type-figure-row text-money-in"><Amount value={realized.biggestWin.gain} currency={getMainCurrency()} tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestWin.symbol}</dd></div>}
+                      {realized.biggestLoss && <div><dt className="type-label text-muted">Biggest loss</dt><dd className="type-figure-row text-money-out"><Amount value={realized.biggestLoss.gain} currency={getMainCurrency()} tone="flow" /></dd><dd className="type-caption text-muted">{realized.biggestLoss.symbol}</dd></div>}
                     </dl>
                     <ul className="mt-3 divide-y divide-line border-t border-line">
                       {realized.sales.slice(0, 10).map(sale => (
@@ -461,16 +593,16 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <span className="type-caption block text-muted">{sale.quantity.toLocaleString()} sold {shortDate(sale.date)}</span>
                           </span>
                           <span className="shrink-0 text-right">
-                            <span className="type-figure-row block"><Amount value={sale.gain} currency={getMainCurrency()} tone="flow" /></span>
-                            <span className="type-caption block text-muted">{sale.gainPercent >= 0 ? '+' : '−'}{Math.abs(sale.gainPercent).toFixed(1)}%</span>
+                            <span className={`type-figure-row block ${sale.gain >= 0 ? 'text-money-in' : 'text-money-out'}`}>{signedPct(sale.gainPercent)}</span>
+                            <span className="type-caption block text-muted"><Amount value={sale.gain} currency={getMainCurrency()} tone="flow" /></span>
                           </span>
                         </li>
                       ))}
                     </ul>
                   </>
                 )}
-              </section>
-            </div>
+              </Section>
+            </Board>
           )}
         </>
       )}
@@ -488,6 +620,7 @@ const Investments: React.FC<InvestmentsProps> = ({
           onTrade={() => setTradeForm({ mode: 'trade', symbol: openHolding.symbol })}
           onEditTrade={trade => setTradeForm({ trade })}
           onEditGrant={grant => setTradeForm({ grant })}
+          weight={percentOf(openHolding.currentValue, figures.all.value)}
         />
       )}
       {tradeForm && (

@@ -52,6 +52,8 @@ export interface LineChartProps {
   yDomainTweenDuration?: number;
   /** Animate y-domain when status or target domain changes. Default: true */
   yDomainTween?: boolean;
+  /** Fit the y-axis to the data (padded min..max) instead of anchoring positive series at zero. */
+  fitYDomain?: boolean;
   /** Visible x-domain for brush zoom. */
   xDomain?: [Date, Date];
   /** Full dataset length for x-scale padding when `xDomain` is set. */
@@ -156,6 +158,7 @@ interface ChartInnerProps {
   xDomain?: [Date, Date];
   xDomainSlotCount?: number;
   tweenYDomainOnXDomainChange?: boolean;
+  fitYDomain?: boolean;
   children: ReactNode;
   containerRef: React.RefObject<HTMLDivElement | null>;
   onPhaseChange: (phase: ChartPhase) => void;
@@ -178,6 +181,7 @@ function ChartInner({
   xDomain,
   xDomainSlotCount,
   tweenYDomainOnXDomainChange,
+  fitYDomain,
   children,
   containerRef,
   onPhaseChange,
@@ -202,6 +206,7 @@ function ChartInner({
       onPhaseChange={onPhaseChange}
       revealSignature={revealSignature}
       tweenYDomainOnXDomainChange={tweenYDomainOnXDomainChange}
+      fitYDomain={fitYDomain}
       width={width}
       xDataKey={xDataKey}
       xDomain={xDomain}
@@ -231,6 +236,7 @@ export function LineChart({
   xDomain,
   xDomainSlotCount,
   tweenYDomainOnXDomainChange = false,
+  fitYDomain = false,
   style,
   onPhaseChange,
   children,
@@ -287,6 +293,7 @@ export function LineChart({
             onPhaseChange={handlePhaseChange}
             revealSignature={effectiveRevealSignature}
             tweenYDomainOnXDomainChange={tweenYDomainOnXDomainChange}
+            fitYDomain={fitYDomain}
             width={width}
             xDataKey={xDataKey}
             xDomain={xDomain}
