@@ -6,6 +6,7 @@ import { ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CARD_NETWORKS, CURRENCIES, FREQ
 import { toLocalISOString } from '../utils';
 import CardFace from './CardFace';
 import CardStylePicker from './CardStylePicker';
+import { loansForAsset } from '../utils/accountLinks';
 import { buildAccount, defaultIcon, draftFromAccount, emptyDraft, reconcileLoan, type AccountDraft, type SwitchField, type TextField } from '../utils/accountForm';
 import { sortAccountsByType } from '../utils/accountsModel';
 import IconPicker from './IconPicker';
@@ -54,7 +55,10 @@ interface AccountFormProps {
 /** One form for adding and editing (D-023): pick the type, then short sections for that type. */
 const AccountForm: React.FC<AccountFormProps> = ({ account, accounts, warrants = [], onClose, onSave, onDelete, onToggleStatus }) => {
   const isEditing = !!account;
-  const initial = useRef(account ? draftFromAccount(account) : emptyDraft());
+  // The mortgage lives on the loan (its linkedAssetId); the property's picker starts from it.
+  const initial = useRef(account
+    ? { ...draftFromAccount(account), ...(account.type === 'Property' ? { linkedLoanId: loansForAsset(account, accounts)[0]?.id ?? '' } : {}) }
+    : emptyDraft());
   const [draft, setDraft] = useState<AccountDraft>(initial.current);
   const [isChoosingType, setChoosingType] = useState(!isEditing);
   const [isIconPickerOpen, setIconPickerOpen] = useState(false);

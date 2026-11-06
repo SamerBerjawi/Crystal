@@ -70,7 +70,7 @@ interface DashboardProps {
   loanPaymentOverrides: LoanPaymentOverrides;
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
-  setCurrentPage: (page: Page) => void;
+  setCurrentPage: (page: Page, tab?: string | null) => void;
   onOpenAccount: (id: string) => void;
   onSyncBanks?: () => void | Promise<void>;
   isSyncingBanks?: boolean;
@@ -1308,7 +1308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       component: CashHorizonWidget,
       props: { next30, forecasts: lowestBalanceForecasts, currency: preferredCurrency, toDisplay: eurToDisplay }
     },
-    { id: 'cardsStack', name: 'Cards', icon: 'credit-card', description: 'Every card in a deck: tap one to see its spend or credit used', defaultW: 6, defaultH: 3, component: CardsStackWidget, props: { accounts, transactions, currency: preferredCurrency, toDisplay: toPreferred, onOpen: onOpenAccount, onAll: () => setCurrentPage('Accounts') } },
+    { id: 'cardsStack', name: 'Cards', icon: 'credit-card', description: 'Every card in a deck: tap one to see its spend or credit used', defaultW: 6, defaultH: 3, component: CardsStackWidget, props: { accounts, transactions, currency: preferredCurrency, toDisplay: toPreferred, onOpen: onOpenAccount, onAll: () => setCurrentPage('Accounts', 'cards') } },
     {
       id: 'creditCardStatements',
       name: 'Credit Card Statements',

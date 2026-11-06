@@ -137,3 +137,9 @@ test('a location joins a merchant as a new branch, or updates the same address',
   assert.equal(again.locations?.[0].label, 'Renamed');
   assert.equal(again.locations?.[0].id, 'n');
 });
+
+test('autofill fills the property or vehicle from a rule, unless you picked one', () => {
+  const rules = { ...ctx, transactionRules: [{ id: 'fuel', name: 'Fuel', isActive: true, conditions: [{ field: 'merchant' as const, operator: 'equals' as const, value: 'TotalEnergies' }], actions: [{ field: 'assetId' as const, value: 'car' }] }] };
+  assert.equal(autofill(blank({ merchant: 'TotalEnergies' }), rules).assetId, 'car');
+  assert.equal(autofill(blank({ merchant: 'TotalEnergies', assetId: 'van' }), rules).assetId, undefined);
+});

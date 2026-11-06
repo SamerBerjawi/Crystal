@@ -24,7 +24,7 @@ import { Button, IconButton } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { AmountInput, DateInput, Radio, RadioGroup, Switch, Textarea, TextInput, controlStyles } from './ui/Fields';
 import { SidePanel } from './ui/Overlays';
-import { Combobox, type PickerOption } from './ui/Pickers';
+import { Combobox, Select, type PickerOption } from './ui/Pickers';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   ArrowDataTransferHorizontalIcon,
@@ -319,6 +319,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       .filter((t): t is Tag => !!t);
   }, [form.tagIds, allAvailableTags]);
 
+  // Properties and vehicles a payment can be for (rent, repairs, fuel). Closed ones only when already chosen.
+  const assetOptions = useMemo<PickerOption[]>(() => {
+    const assets = accounts.filter(item => (item.type === 'Property' || item.type === 'Vehicle') && (item.status !== 'closed' || item.id === form.assetId));
+    return assets.length ? [{ id: '', label: 'None' }, ...assets.map(item => ({ id: item.id, label: item.name, description: item.type }))] : [];
+  }, [accounts, form.assetId]);
+
   const extrasSummary = useMemo(() => {
     if (selectedTags.length === 0 && !form.notes) return null;
     return (
@@ -577,6 +583,9 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
           <Expander title="Tags and notes" summary={extrasSummary}>
             <TagPicker tags={tagsContext?.tags?.length ? tagsContext.tags : tags} selected={form.tagIds} onChange={tagIds => update({ tagIds })} saveTag={tagsContext?.saveTag} />
+            {assetOptions.length > 0 && (
+              <Select label="For a property or vehicle" help="Shows on its page: rent, repairs, fuel, insurance." options={assetOptions} value={form.assetId} onChange={assetId => update({ assetId })} />
+            )}
             <Textarea label="Notes" value={form.notes} onChange={notes => update({ notes })} />
           </Expander>
 

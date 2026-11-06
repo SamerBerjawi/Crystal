@@ -140,3 +140,11 @@ test('when a keyword rule detects a merchant, that merchant always-file rule sup
   assert.equal(result.appliedRuleId, 'detect-colruyt');
   assert.equal(result.filingRuleId, colruyt.id);
 });
+
+test('a rule sets the property or vehicle, on new records too', () => {
+  const fuel = rule('fuel', { conditions: [{ field: 'merchant', operator: 'equals', value: 'TotalEnergies' }], actions: [{ field: 'assetId', value: 'car' }] });
+  assert.equal(applyRules(tx({ merchant: 'TotalEnergies' }), [fuel]).assetId, 'car');
+  assert.equal(applyRules(tx({ merchant: 'Other' }), [fuel]).assetId, undefined);
+  assert.equal(applySavedRules({ merchant: 'TotalEnergies', description: '', category: '', amount: -60 }, { transactionRules: [fuel] }).assetId, 'car');
+  assert.equal(applySavedRules({ merchant: 'Shell', assetId: 'van', amount: -60 }, { transactionRules: [fuel] }).assetId, 'van');
+});

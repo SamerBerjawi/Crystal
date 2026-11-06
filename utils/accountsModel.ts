@@ -357,7 +357,7 @@ export const computeCashSegmentNetFlow = (
     }, 0);
 };
 
-export type AccountsTab = 'cards' | 'accounts' | 'loans' | 'assets';
+export type AccountsTab = 'all' | 'cards' | 'accounts' | 'loans' | 'assets';
 
 /** Read from the account itself: any card detail on it, a credit card, or a meal voucher, which is a card by nature. */
 export const accountHasCard = (a: Account): boolean =>
@@ -371,6 +371,7 @@ const isCashAccount = (a: Account) => a.type === 'Checking' || a.type === 'Savin
 /** Cards comes first. An account with a card also shows as a pot, except credit cards and meal vouchers, which only exist as cards. */
 export const accountsInTab = (accounts: Account[], tab: AccountsTab): Account[] => {
   switch (tab) {
+    case 'all': return accounts;
     case 'cards': return accounts.filter(accountHasCard);
     case 'accounts': return accounts.filter(a => isCashAccount(a) && !isMealVoucherAccount(a));
     case 'loans': return accounts.filter(a => a.type === 'Loan' || a.type === 'Lending' || a.type === 'Other Liabilities');

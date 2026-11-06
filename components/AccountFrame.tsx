@@ -1,18 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { toast } from 'sonner';
-import { heroClassFor } from '../utils/accountHero';
 import { motion } from 'motion/react';
-import type { Account, Category, Currency, DisplayTransaction, FinancialGoal, Transaction } from '../types';
-import { LINE_MOTION } from '../src/components/charts/animation';
-import { ResponsiveContainer, Area, AreaChart, CartesianGrid, Line, Tooltip, XAxis, YAxis } from 'recharts';
-import { Bar, BarChart, BarXAxis, BarYAxis, ChartTooltip, Grid } from '../src/components/charts';
-import { formatCurrency } from '../utils';
-import { AccountLogo } from './AccountCard';
-import HistoricalBalanceTrend from './HistoricalBalanceTrend';
+import type { Category, Currency, DisplayTransaction, FinancialGoal } from '../types';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, Line, LineChart, XAxis, YAxis } from '../src/components/charts';
+import { formatCurrency, parseLocalDate } from '../utils';
 import TransactionList from './TransactionList';
-import { Button, IconButton } from './ui/Actions';
-import { Menu, type MenuAction } from './ui/Menu';
-import { Amount } from './ui/Money';
+import { IconButton } from './ui/Actions';
 import { EmptyState } from './ui/States';
 import { cn } from '../lib/utils';
 
@@ -93,131 +86,23 @@ export const MonthlyBars: React.FC<{ data: Record<string, unknown>[]; currency: 
       <Grid horizontal vertical={false} strokeOpacity={0.06} />
       {bars.map(bar => <Bar key={bar.key} dataKey={bar.key} fill={bar.color} lineCap="round" />)}
       <BarXAxis />
-      <BarYAxis />
       <ChartTooltip valueFormatter={(value: number) => formatCurrency(value, currency)} />
     </BarChart>
   </div>
 );
 
-export const ValueChart: React.FC<{ data: Record<string, unknown>[]; currency: Currency; dataKey: string; trendKey?: string; fitValues?: boolean }> = ({ data, currency, dataKey, trendKey, fitValues }) => (
-  <div className="h-[220px] md:h-[280px]">
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data}>
-        <CartesianGrid vertical={false} stroke="var(--line)" />
-        <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={48} />
-        <YAxis domain={fitValues ? ['auto', 'auto'] : undefined} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={56} tickFormatter={value => (value >= 1000 ? `${(value / 1000).toFixed(fitValues ? 1 : 0)}k` : value)} />
-        <Tooltip contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number) => [formatCurrency(value, currency), 'Value']} />
-        <Area {...LINE_MOTION} type="natural" dataKey={dataKey} stroke="var(--chart-1)" strokeWidth={2} fill="var(--chart-1)" fillOpacity={0.12} />
-        {trendKey && <Line {...LINE_MOTION} type="natural" dataKey={trendKey} stroke="var(--chart-3)" strokeWidth={2} strokeDasharray="4 4" dot={false} />}
-      </AreaChart>
-    </ResponsiveContainer>
-  </div>
-);
-
-export interface FrameTab {
-  id: string;
-  label: string;
-  content: React.ReactNode;
-}
-
-export interface FrameAction {
-  id: string;
-  label: string;
-  icon: string;
-  onPress: () => void;
-}
-
-export interface AccountFrameProps {
-  account: Account;
-  /** Shown under the name. */
-  context: string;
-  /** The hero figure. Defaults to the account's balance. */
-  value?: number;
-  valueLabel?: string;
-  /** Small figures in the hero. */
-  highlights?: FrameMetric[];
-  /** Extra hero content, such as a progress bar or a photo. */
-  heroExtra?: React.ReactNode;
-  banner?: React.ReactNode;
-  mainAction?: FrameAction;
-  actions?: FrameAction[];
-  tabs: FrameTab[];
-  transactionsForChart: Transaction[];
-  onBack: () => void;
-}
-
-/** One frame for every account type (D-038): hero, chart, then tabs. */
-const AccountFrame: React.FC<AccountFrameProps> = ({ account, context, value, valueLabel = 'Balance', highlights = [], heroExtra, banner, mainAction, actions = [], tabs, transactionsForChart, onBack }) => {
-  const [activeId, setActiveId] = useState(tabs[0]?.id);
-  const active = tabs.find(tab => tab.id === activeId) ?? tabs[0];
-  const menuItems = useMemo<MenuAction[]>(() => actions.map(action => ({ id: action.id, label: action.label, icon: action.icon, onAction: action.onPress })), [actions]);
-
+/** A value over time (holdings, portfolio). Rows carry a `date` as YYYY-MM-DD and the value under `dataKey`. */
+export const ValueChart: React.FC<{ data: Record<string, unknown>[]; currency: Currency; dataKey: string; trendKey?: string; fitValues?: boolean }> = ({ data, currency, dataKey, trendKey }) => {
+  const rows = useMemo(() => data.map(row => ({ ...row, date: typeof row.date === 'string' ? parseLocalDate(row.date) : row.date })), [data]);
   return (
-    <div className="space-y-6 max-md:space-y-4">
-      <header className="flex items-center gap-2">
-        <IconButton icon="ArrowLeft" label="Back to accounts" onPress={onBack} tooltipPlacement="bottom" />
-        <AccountLogo account={account} />
-        <div className="min-w-0 flex-1">
-          <h1 className="type-section-title truncate text-ink">{account.name}</h1>
-          <p className="type-caption truncate text-muted">{context}</p>
-        </div>
-        {actions.length > 0 && <div className="flex shrink-0 gap-2 max-md:hidden">{actions.map(action => <Button key={action.id} variant="secondary" icon={action.icon} onPress={action.onPress}>{action.label}</Button>)}</div>}
-        {mainAction && <Button icon={mainAction.icon} className="shrink-0 max-md:hidden" onPress={mainAction.onPress}>{mainAction.label}</Button>}
-      </header>
-
-      {banner}
-
-      <section aria-label={valueLabel} className={cn('space-y-4 rounded-[var(--radius-xl)] p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]', heroClassFor(account.type))}>
-        <div>
-          <p className="type-label">{valueLabel}</p>
-          <p className="type-figure-hero break-words"><Amount value={value ?? account.balance} currency={account.currency} /></p>
-        </div>
-        {heroExtra}
-        {highlights.length > 0 && (
-          <dl className="flex flex-wrap gap-x-8 gap-y-2">
-            {highlights.map(item => (
-              <div key={item.label}>
-                <dt className="type-caption">{item.label}</dt>
-                <dd className="type-figure-row">{item.value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-      </section>
-
-      {(mainAction || actions.length > 0) && (
-        <div className="flex gap-2 md:hidden">
-          {mainAction && <Button icon={mainAction.icon} className="min-w-0 flex-1" onPress={mainAction.onPress}>{mainAction.label}</Button>}
-          {menuItems.length === 1 && <Button variant="secondary" icon={actions[0].icon} className="min-w-0 flex-1" onPress={actions[0].onPress}>{actions[0].label}</Button>}
-          {menuItems.length > 1 && <Menu title="Account actions" trigger={<IconButton icon="more-horizontal" label="More actions" />} items={menuItems} />}
-        </div>
-      )}
-
-      <HistoricalBalanceTrend account={account} transactions={transactionsForChart} />
-
-      {tabs.length > 1 && (
-        <div role="tablist" aria-label={`${account.name} sections`} className="no-scrollbar flex gap-5 overflow-x-auto border-b border-line">
-          {tabs.map(tab => {
-            const isActive = tab.id === active?.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setActiveId(tab.id)}
-                className={cn('relative h-11 shrink-0 cursor-pointer whitespace-nowrap text-sm font-bold', isActive ? 'text-ink' : 'text-muted hover:text-ink')}
-              >
-                {tab.label}
-                {isActive && <motion.span layoutId="account-tab" className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-pill" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <div role="tabpanel" className="space-y-4">{active?.content}</div>
-    </div>
+    <LineChart data={rows} xDataKey="date" yDomainTween aspectRatio="" className="h-[220px] w-full md:h-[280px]" margin={{ top: 16, right: 16, bottom: 24, left: 52 }}>
+      <Grid horizontal stroke="var(--line)" />
+      <XAxis />
+      <YAxis tickFormatter={(value: number) => (Math.abs(value) >= 1000 ? `${(value / 1000).toFixed(Math.abs(value) >= 10000 ? 0 : 1)}k` : String(Math.round(value)))} />
+      <Line dataKey={dataKey} stroke="var(--chart-1)" strokeWidth={2} />
+      {trendKey && <Line dataKey={trendKey} stroke="var(--chart-3)" strokeWidth={1.5} strokeDasharray="4,4" />}
+      <ChartTooltip rows={point => [{ color: 'var(--chart-1)', label: 'Value', value: formatCurrency(typeof point[dataKey] === 'number' ? (point[dataKey] as number) : 0, currency) }]} />
+    </LineChart>
   );
 };
 
@@ -228,4 +113,3 @@ export const AccountTransactions: React.FC<{ transactions: DisplayTransaction[];
     : <EmptyState icon="receipt" title="No transactions yet" description="They appear here as you add them or sync your bank." actionLabel={emptyAction ? 'Add a transaction' : undefined} onAction={emptyAction} />
 );
 
-export default AccountFrame;

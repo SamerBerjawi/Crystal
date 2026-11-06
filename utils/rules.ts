@@ -8,6 +8,7 @@ interface RuleTarget {
   type?: string;
   category?: string;
   notes?: string;
+  assetId?: string;
 }
 
 export function evaluateRuleCondition(tx: RuleTarget, condition: TransactionRuleCondition): boolean {
@@ -66,6 +67,8 @@ export interface RuleResult {
   description: string;
   merchant: string;
   category: string;
+  /** A Property or Vehicle account id, when a rule set one or the transaction had one. */
+  assetId?: string;
   /** The rule that ran after any always file. */
   appliedRuleId?: string;
   filingRuleId?: string;
@@ -75,8 +78,8 @@ export interface RuleResult {
  * The one way rules run (D-105). A merchant's always file sets what it sets. The first rule that matches and still
  * has something to set then fills the rest, so an always file never silently stops a rule.
  */
-export function applyRules(tx: { description: string; merchant: string; category: string; amount: number; type: string; notes?: string }, rules: TransactionRule[] = []): RuleResult {
-  const result: RuleResult = { merchant: tx.merchant, description: tx.description, category: tx.category };
+export function applyRules(tx: { description: string; merchant: string; category: string; amount: number; type: string; notes?: string; assetId?: string }, rules: TransactionRule[] = []): RuleResult {
+  const result: RuleResult = { merchant: tx.merchant, description: tx.description, category: tx.category, ...(tx.assetId ? { assetId: tx.assetId } : {}) };
   const locked = new Set<RuleFieldAction>();
   const setField = (field: RuleFieldAction, value: string) => { result[field] = value; };
 
@@ -117,12 +120,12 @@ export function applyRules(tx: { description: string; merchant: string; category
 }
 
 /** Runs saved rules on a new record, including one that arrives from a bank with its own id. */
-export function applySavedRules<T extends RuleTarget>(tx: T, rules: { transactionRules?: TransactionRule[] }): T {
+export function applySavedRules<T extends RuleTarget>(tx: T, rules: { transactionRules?: TransactionRule[] }): T & Pick<RuleTarget, 'assetId'> {
   const result = applyRules(
-    { description: tx.description || '', merchant: tx.merchant || '', category: tx.category || '', amount: Number(tx.amount) || 0, type: tx.type || 'expense', notes: tx.notes },
+    { description: tx.description || '', merchant: tx.merchant || '', category: tx.category || '', amount: Number(tx.amount) || 0, type: tx.type || 'expense', notes: tx.notes, assetId: tx.assetId },
     rules.transactionRules,
   );
-  return { ...tx, merchant: result.merchant, description: result.description, category: result.category };
+  return { ...tx, merchant: result.merchant, description: result.description, category: result.category, ...(result.assetId ? { assetId: result.assetId } : {}) };
 }
 
 export interface Filing {

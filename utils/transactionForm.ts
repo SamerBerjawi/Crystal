@@ -32,6 +32,8 @@ export interface TxForm extends TxLocation {
   description: string;
   notes: string;
   tagIds: string[];
+  /** The property or vehicle this is for, or ''. */
+  assetId: string;
   excludeFromBudget: boolean;
   /** What you changed yourself. Autofill leaves these alone (AUT-04). */
   descriptionEdited: boolean;
@@ -55,6 +57,7 @@ export interface TxInitial {
   description?: string;
   merchant?: string;
   tagIds?: string[];
+  assetId?: string;
   locationString?: string;
   locationData?: { city?: string; country?: string; lat?: number; lon?: number; address?: string; placeName?: string; street?: string; postalCode?: string; state?: string; label?: string };
   notes?: string;
@@ -105,6 +108,7 @@ export const initialTxForm = (
     description: details?.description || '',
     notes: details?.notes || '',
     tagIds: details?.tagIds || [],
+    assetId: details?.assetId || '',
     excludeFromBudget: false,
     descriptionEdited: !!details?.description,
     categoryEdited: !!options.category,
@@ -149,7 +153,7 @@ export const initialTxForm = (
     locationLabel: edit.locationLabel || '',
   } : EMPTY_LOCATION;
 
-  const base = { ...form, ...location, date: edit.date, notes: edit.notes || '', tagIds: edit.tagIds || [], excludeFromBudget: !!edit.excludeFromBudget, categoryEdited: !!edit.category, descriptionEdited: !!edit.description, locationEdited: !!edit.address };
+  const base = { ...form, ...location, date: edit.date, notes: edit.notes || '', tagIds: edit.tagIds || [], assetId: edit.assetId || '', excludeFromBudget: !!edit.excludeFromBudget, categoryEdited: !!edit.category, descriptionEdited: !!edit.description, locationEdited: !!edit.address };
   const extras = { existingRoundUpId: findRoundUp(edit, ctx.transactions)?.id };
   const split = (tx: Transaction) => ({ principal: String(tx.principalAmount || ''), interest: String(tx.interestAmount || ''), autoLoanSplit: !(tx.principalAmount || tx.interestAmount) });
 
@@ -249,6 +253,8 @@ export const autofill = (form: TxForm, ctx: Pick<TxFormContext, 'merchantRules' 
   }
 
   const result = applyRules({ description, merchant, category, amount: parseFloat(amount) || 0, type }, ordinaryRules(ctx.transactionRules));
+  // A rule only fills the property or vehicle when you haven't picked one.
+  if (result.assetId && !form.assetId) patch.assetId = result.assetId;
   if (result.category && !rule?.category && (force.category || !form.categoryEdited || !category)) patch.category = result.category;
   if (result.merchant && result.merchant !== merchant) patch.merchant = result.merchant;
   if (result.description && !rule?.defaultDescription && (force.description || !form.descriptionEdited || !description.trim())) {
@@ -347,6 +353,8 @@ export type TxSavePlan =
 /** Everything a save writes: the transaction or transfer pair, its loan split, its round-up, and a merchant branch. */
 export const planTransactionSave = (form: TxForm, edit: Transaction | null | undefined, ctx: Pick<TxFormContext, 'accounts' | 'transactions'>): TxSavePlan => {
   const { type, date, description, merchant, category, notes, tagIds, fromAccountId, toAccountId } = form;
+  // Cleared with undefined so an edit that drops the asset removes it.
+  const assetId = form.assetId || undefined;
   const { accounts, transactions } = ctx;
   const loan = loanAccountFor(form, accounts);
   const total = loan ? safeRound((parseFloat(form.principal) || 0) + (parseFloat(form.interest) || 0), 2) : safeRound(parseFloat(form.amount) || 0, 2);
@@ -376,7 +384,7 @@ export const planTransactionSave = (form: TxForm, edit: Transaction | null | und
     const transferId = edit && wasTransfer ? edit.transferId! : `xfer-${uuidv4()}`;
     const amount = safeRound(Math.abs(total), 2);
     const incomeAmount = from.currency !== to.currency ? safeRound(convertCurrency(amount, from.currency, to.currency), 2) : amount;
-    const shared = { date, merchant: merchant || 'Internal Transfer', category: category || 'Transfer', transferId, tagIds, notes, ...location };
+    const shared = { date, merchant: merchant || 'Internal Transfer', category: category || 'Transfer', transferId, tagIds, notes, assetId, ...location };
     const expense: TxDraftSave = { ...shared, accountId: fromAccountId, description: description || `Transfer to ${to.name}`, amount: -amount, type: 'expense', currency: from.currency };
     const income: TxDraftSave = { ...shared, accountId: toAccountId, description: description || `Transfer from ${from.name}`, amount: incomeAmount, type: 'income', currency: to.currency };
     if (loan) Object.assign(expense.accountId === loan.id ? expense : income, loanFields);
@@ -394,7 +402,7 @@ export const planTransactionSave = (form: TxForm, edit: Transaction | null | und
     if (!account || !category) return { ok: false, error: 'Pick an account and a category' };
     const signed = safeRound(Math.abs(total), 2);
     toSave.push({
-      accountId, date, description, merchant, amount: type === 'expense' ? -signed : signed, category, type, currency: account.currency, tagIds, notes, ...location,
+      accountId, date, description, merchant, amount: type === 'expense' ? -signed : signed, category, type, currency: account.currency, tagIds, notes, assetId, ...location,
       // Only spending is budgeted, so only an expense carries the flag; clearing it removes it.
       excludeFromBudget: type === 'expense' && form.excludeFromBudget ? true : undefined,
       ...(loan?.id === accountId ? loanFields : {}),

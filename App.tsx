@@ -95,6 +95,7 @@ import { linkBudgetsToCategories } from './utils/budgetModel';
 import { missingRates, setMainCurrency, convertCurrency, convertToMain, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound, getMainCurrency } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { applySavedRules, spareChangeFor } from './utils/rules';
+import { applyAssetLoanChoice, normalizeLoanAssetLinks } from './utils/accountLinks';
 import { upsertEntity, removeEntityById } from './utils/collection';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
@@ -784,7 +785,7 @@ const App: React.FC = () => {
         }
         return acc;
       });
-      setAccounts(migratedAccounts);
+      setAccounts(normalizeLoanAssetLinks(migratedAccounts));
       setTransactions(dataToLoad.transactions || []);
       setInvestmentTransactions(dataToLoad.investmentTransactions || []);
       setRecurringTransactions(dataToLoad.recurringTransactions || []);
@@ -1500,54 +1501,13 @@ const App: React.FC = () => {
         });
       }
 
-      // 3. Bidirectional Linking Logic
-      // If savedAccount is a Loan, link to its Asset
-      if (savedAccount.type === 'Loan' && savedAccount.linkedAssetId) {
-        nextAccounts = nextAccounts.map(acc => {
-          if (acc.id === savedAccount.linkedAssetId) {
-            return { ...acc, linkedLoanId: savedAccount.id };
-          }
-          // Clear previous links if this asset was linked to another loan
-          if (acc.linkedLoanId === savedAccount.id && acc.id !== savedAccount.linkedAssetId) {
-            return { ...acc, linkedLoanId: undefined };
-          }
-          return acc;
-        });
+      // 3. Loan and asset links (12-account-pages, question 5). The loan's `linkedAssetId` is the only link. A
+      // property form still offers a mortgage picker; its choice is written to the loan here. A save that carries
+      // no `linkedLoanId` key (a valuation, a mileage reading) leaves the links alone.
+      if (savedAccount.type === 'Property' && 'linkedLoanId' in savedAccount) {
+        nextAccounts = applyAssetLoanChoice(nextAccounts, savedAccount.id, savedAccount.linkedLoanId || undefined);
       }
-
-      // If savedAccount is an Asset (Property/Vehicle), link to its Loan
-      if ((savedAccount.type === 'Property' || savedAccount.type === 'Vehicle') && savedAccount.linkedLoanId) {
-        nextAccounts = nextAccounts.map(acc => {
-          if (acc.id === savedAccount.linkedLoanId) {
-            return { ...acc, linkedAssetId: savedAccount.id };
-          }
-          // Clear previous links if this loan was linked to another asset
-          if (acc.linkedAssetId === savedAccount.id && acc.id !== savedAccount.linkedLoanId) {
-            return { ...acc, linkedAssetId: undefined };
-          }
-          return acc;
-        });
-      }
-
-      // 4. Handle Link Removals
-      // If it's a Loan and linkedAssetId was removed
-      if (savedAccount.type === 'Loan' && !savedAccount.linkedAssetId) {
-        nextAccounts = nextAccounts.map(acc => {
-          if (acc.linkedLoanId === savedAccount.id) {
-            return { ...acc, linkedLoanId: undefined };
-          }
-          return acc;
-        });
-      }
-      // If it's an Asset and linkedLoanId was removed
-      if ((savedAccount.type === 'Property' || savedAccount.type === 'Vehicle') && !savedAccount.linkedLoanId) {
-        nextAccounts = nextAccounts.map(acc => {
-          if (acc.linkedAssetId === savedAccount.id) {
-            return { ...acc, linkedAssetId: undefined };
-          }
-          return acc;
-        });
-      }
+      nextAccounts = normalizeLoanAssetLinks(nextAccounts);
 
       return nextAccounts;
     });
@@ -1646,7 +1606,6 @@ const App: React.FC = () => {
     const impactedRecurringIds = new Set(recurringTransactions.filter(rt => rt.accountId === accountId || rt.toAccountId === accountId).map(rt => rt.id));
     setAccounts(prev => prev.filter(acc => acc.id !== accountId).map(acc => {
       if (acc.linkedAssetId === accountId) return { ...acc, linkedAssetId: undefined };
-      if (acc.linkedLoanId === accountId) return { ...acc, linkedLoanId: undefined };
       return acc;
     }));
     setTransactions(prev => prev.filter(tx => tx.accountId !== accountId));

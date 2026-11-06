@@ -12,7 +12,8 @@ import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 import { isAlwaysFile, ordinaryRules, ruleMatches } from '../utils/rules';
-import { buildRevert, buildRun, moveRule, previewChanges, RuleChange, ruleSuggestions, sentenceText, shiftRule } from '../utils/rulesModel';
+import { useAccountsContext } from '../contexts/DomainProviders';
+import { accountNameOf, buildRevert, buildRun, moveRule, previewChanges, RuleChange, ruleSuggestions, sentenceText, shiftRule } from '../utils/rulesModel';
 
 interface RulesProps {
   preferences: AppPreferences;
@@ -40,6 +41,8 @@ const RuleGroup: React.FC<{ title: string; description: string; children: React.
 
 const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions, saveTransaction, incomeCategories, expenseCategories }) => {
   const rules = preferences.transactionRules ?? EMPTY_RULES;
+  const { accounts } = useAccountsContext();
+  const nameOf = useMemo(() => accountNameOf(accounts), [accounts]);
   const [tab, setTab] = useState<'rules' | 'advanced'>('rules');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<{ rule: TransactionRule | null } | null>(null);
@@ -58,7 +61,7 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
   }, [rules, transactions]);
   const suggestions = useMemo(() => ruleSuggestions(transactions, rules), [rules, transactions]);
 
-  const matchesSearch = (rule: TransactionRule) => sentenceText(rule).toLowerCase().includes(search.toLowerCase().trim());
+  const matchesSearch = (rule: TransactionRule) => sentenceText(rule, nameOf).toLowerCase().includes(search.toLowerCase().trim());
   const filings = rules.filter(rule => isAlwaysFile(rule) && matchesSearch(rule)).sort((a, b) => a.name.localeCompare(b.name));
   const ordered = ordinaryRules(rules).filter(matchesSearch);
 
@@ -83,7 +86,7 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
   };
 
   const applyChanges = (changes: RuleChange[]) => {
-    const { payload, backup, logs } = buildRun(changes, new Date().toISOString());
+    const { payload, backup, logs } = buildRun(changes, new Date().toISOString(), nameOf);
     setPreferences(prev => ({
       ...prev,
       lastRuleRunBackup: backup,
@@ -141,6 +144,7 @@ const Rules: React.FC<RulesProps> = ({ preferences, setPreferences, transactions
           transactions={transactions}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}
+          accounts={accounts}
           onClose={() => setEditing(null)}
           onSave={saveRule}
         />

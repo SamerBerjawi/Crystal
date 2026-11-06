@@ -1,3 +1,4 @@
+import { assetForLoan, loansForAsset } from './accountLinks';
 import {
   Account,
   BillPayment,
@@ -129,21 +130,11 @@ export function resolveRealTodayBalance(
  * Bidirectional link resolution between a Loan and its financed Asset (Property or Vehicle).
  */
 export function findLinkedLoanForAsset(asset: Account, allAccounts: Account[]): Account | undefined {
-  if (asset.linkedLoanId) {
-    const direct = allAccounts.find(a => a.id === asset.linkedLoanId);
-    if (direct) return direct;
-  }
-  return allAccounts.find(a => a.type === 'Loan' && a.linkedAssetId === asset.id);
+  return loansForAsset(asset, allAccounts)[0];
 }
 
 export function findLinkedAssetForLoan(loan: Account, allAccounts: Account[]): Account | undefined {
-  if (loan.linkedAssetId) {
-    const direct = allAccounts.find(a => a.id === loan.linkedAssetId);
-    if (direct) return direct;
-  }
-  return allAccounts.find(
-    a => (a.type === 'Property' || a.type === 'Vehicle') && a.linkedLoanId === loan.id
-  );
+  return assetForLoan(loan, allAccounts);
 }
 
 /**

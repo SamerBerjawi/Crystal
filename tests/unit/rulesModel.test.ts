@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { RuleRunBackup, Transaction, TransactionRule } from '../../types';
 import { alwaysFileRule } from '../../utils/rules';
 import {
-  blankDraft, buildRevert, buildRun, draftFromRule, findRuleProblem, matchingTransactions, moveRule, previewChanges, ruleFromDraft, ruleSentence, ruleSuggestions, sentenceText, shiftRule,
+  accountNameOf, blankDraft, buildRevert, describeChange, buildRun, draftFromRule, findRuleProblem, matchingTransactions, moveRule, previewChanges, ruleFromDraft, ruleSentence, ruleSuggestions, sentenceText, shiftRule,
 } from '../../utils/rulesModel';
 
 const tx = (id: string, extra: Partial<Transaction> = {}) => ({ id, description: 'UBER trip', merchant: '', category: 'Other', amount: -9, type: 'expense', date: '2026-10-01', ...extra }) as Transaction;
@@ -36,7 +36,7 @@ test('a run saves changes, a backup and a readable log', () => {
   const rules = [rule('r', 1)];
   const { payload, backup, logs } = buildRun(previewChanges([tx('1')], rules), NOW);
   assert.equal(payload[0].category, 'Transport');
-  assert.deepEqual(backup.transactions, [{ id: '1', originalCategory: 'Other', originalMerchant: '', originalDescription: 'UBER trip' }]);
+  assert.deepEqual(backup.transactions, [{ id: '1', originalCategory: 'Other', originalMerchant: '', originalDescription: 'UBER trip', originalAssetId: '' }]);
   assert.equal(logs[0].batchId, backup.batchId);
   assert.equal(logs[0].changeDetails, 'Category: Other → Transport');
 });
@@ -119,4 +119,26 @@ test('a merchant filed two ways is suggested once, the most common way', () => {
 test('one-offs and uncategorised merchants are not suggested', () => {
   assert.equal(ruleSuggestions([tx('1', { merchant: 'Once', category: 'Food' })], []).filter(item => item.rule.kind === 'always').length, 0);
   assert.equal(ruleSuggestions([tx('1', { merchant: 'A', category: '' }), tx('2', { merchant: 'A', category: '' })], []).filter(item => item.rule.kind === 'always').length, 0);
+});
+
+test('a rule can file transactions to a property or vehicle, by name', () => {
+  const toFlat = rule('rent', 1, { conditions: [{ field: 'merchant', operator: 'equals', value: 'Tenant' }], actions: [{ field: 'category', value: 'Rent income' }, { field: 'assetId', value: 'home' }] });
+  const nameOf = accountNameOf([{ id: 'home', name: 'Ixelles flat' }]);
+  assert.equal(sentenceText(toFlat, nameOf), 'When merchant is Tenant, set category to Rent income and property or vehicle to Ixelles flat');
+  assert.equal(accountNameOf([])('gone'), 'a removed account');
+
+  const changes = previewChanges([tx('1', { merchant: 'Tenant' }), tx('2', { merchant: 'Tenant', category: 'Rent income', assetId: 'home' })], [toFlat]);
+  assert.deepEqual(changes.map(change => change.transaction.id), ['1']);
+  assert.deepEqual(changes[0].updates, { category: 'Rent income', assetId: 'home' });
+  assert.equal(describeChange(changes[0], nameOf), 'Category: Other → Rent income, Property or vehicle: Empty → Ixelles flat');
+
+  const { payload, backup, logs } = buildRun(changes, NOW, nameOf);
+  assert.equal(payload[0].assetId, 'home');
+  assert.match(logs[0].changeDetails, /→ Ixelles flat$/);
+  assert.equal(buildRevert(backup, payload, NOW).payload[0].assetId, undefined);
+});
+
+test('undoing a run saved before rules set assets leaves the asset alone', () => {
+  const old: RuleRunBackup = { timestamp: NOW, transactions: [{ id: '1', originalCategory: 'Other', originalMerchant: '', originalDescription: 'x' }] };
+  assert.equal(buildRevert(old, [tx('1', { assetId: 'car' })], NOW).payload[0].assetId, 'car');
 });
