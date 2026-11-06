@@ -40,13 +40,15 @@ export const OVERVIEW_WIDGETS: Record<string, OverviewWidgetMeta> = {
   outflowsByCategory: { title: 'Spending by category', tab: 'spending', purpose: 'Where your money went, by category, against your budgets', icon: 'pie_chart', span: 3, rows: 4, phoneHeight: 400 },
   creditCardStatements: { title: 'Credit card statements', tab: 'upcoming', purpose: 'Last, this and next statement for each card', icon: 'credit_card', span: 6, rows: 4 },
   financialOverview: { title: 'This period', tab: 'spending', purpose: 'Money in, money out and what you kept this period', icon: 'Activity', span: 3, rows: 4 },
-  overviewKpis: { title: 'Key ratios', tab: 'wealth', purpose: 'Liquidity, savings rate, debt ratio and net flow', icon: 'scale', span: 6, rows: 2 },
+  overviewKpis: { title: 'Key ratios', tab: 'wealth', purpose: 'Liquidity, savings rate, debt ratio and net flow', icon: 'scale', span: 6, rows: 3 },
   assetAllocation: { title: 'Asset allocation', tab: 'wealth', purpose: 'Everything you own and owe, grouped, with the split', icon: 'circle_cut', span: 6, rows: 7 },
   assetBreakdown: { title: 'Assets', tab: 'wealth', purpose: 'What you own, by account type', icon: 'account_balance', span: 3, rows: 4 },
   liabilityBreakdown: { title: 'Debts', tab: 'wealth', purpose: 'What you owe, by account type', icon: 'bank_note', span: 3, rows: 4 },
   transactionMap: { title: 'Transaction map', tab: 'spending', purpose: 'Where you spent, on a map', icon: 'marker_pin', span: 6, rows: 5, phoneHeight: 360 },
   cashflowSankey: { title: 'Cash flow', tab: 'spending', purpose: 'How income flows into spending and savings', icon: 'git_branch', span: 6, rows: 5, phoneHeight: 420 },
   financialRunway: { title: 'Runway', tab: 'upcoming', purpose: 'How many months your cash would last', icon: 'hourglass', span: 3, rows: 4 },
+  spendingCalendar: { title: 'Spending calendar', tab: 'spending', purpose: 'A dot for every day, coloured by what went out', icon: 'calendar_check', span: 6, rows: 3 },
+  goalsRings: { title: 'Goals', tab: 'wealth', purpose: 'Progress towards each goal you are saving for', icon: 'target', span: 3, rows: 4 },
   merchantPareto: { title: 'Top merchants', tab: 'spending', purpose: 'The merchants that take most of your spending', icon: 'shopping_bag', span: 3, rows: 4 },
   wealthVelocity: { title: 'Wealth velocity', tab: 'wealth', purpose: 'What you saved each month against its average', icon: 'zap', span: 3, rows: 4 },
   insights: { title: 'Insights', tab: 'upcoming', purpose: 'Low balances ahead, idle cash and unusual spending', icon: 'lightbulb', span: 3, rows: 4 },
@@ -62,8 +64,8 @@ const DEFAULT_PHONE_ORDER = ['safeToSpend', 'forecastHorizon', 'accountsSummary'
 type TabDefault = string | [string, number, number];
 const TAB_DEFAULTS: Record<OverviewTab, TabDefault[]> = {
   summary: [['safeToSpend', 2, 4], ['netWorthOverTime', 4, 4], ['accountsSummary', 2, 4], ['recentActivity', 4, 4]],
-  spending: [['financialOverview', 3, 4], ['merchantPareto', 3, 4], ['outflowsByCategory', 6, 4], 'cashflowSankey'],
-  wealth: ['overviewKpis', ['assetAllocation', 6, 6], ['wealthVelocity', 6, 4]],
+  spending: [['financialOverview', 3, 4], ['merchantPareto', 3, 4], 'spendingCalendar', ['outflowsByCategory', 6, 4], 'cashflowSankey'],
+  wealth: [['overviewKpis', 6, 3], ['assetAllocation', 6, 6], ['goalsRings', 3, 4], ['wealthVelocity', 3, 4]],
   upcoming: [['forecastHorizon', 4, 3], ['todayWidget', 2, 6], ['financialRunway', 2, 3], ['insights', 2, 3], 'creditCardStatements'],
 };
 

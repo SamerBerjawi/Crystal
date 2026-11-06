@@ -9,6 +9,8 @@ import AddTransactionModal from '../components/AddTransactionModal';
 import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import SpendingByCategoryWidget from '../components/SpendingByCategoryWidget';
+import SpendingCalendarWidget from '../components/SpendingCalendarWidget';
+import GoalsRingsWidget from '../components/GoalsRingsWidget';
 import PeriodFlowWidget, { type FlowBucket } from '../components/PeriodFlowWidget';
 import DurationFilter from '../components/DurationFilter';
 import NetWorthChart from '../components/NetWorthChart';
@@ -274,6 +276,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       else flow.spending += Math.abs(eur);
       return flow;
     }, { income: 0, spending: 0 });
+  }, [analyticsTransactions]);
+
+  /** The last 30 days, one point a day, for the trends beside the header figures. EUR. */
+  const dayTrends = useMemo(() => {
+    const days = 30;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (days - 1));
+    const first = toLocalISOString(start);
+    const income = Array<number>(days).fill(0);
+    const spending = Array<number>(days).fill(0);
+    for (const tx of analyticsTransactions) {
+      if (tx.transferId || tx.date < first) continue;
+      const index = Math.round((parseLocalDate(tx.date).getTime() - start.getTime()) / 86400000);
+      if (index < 0 || index >= days) continue;
+      const eur = convertToMain(tx.amount, tx.currency);
+      if (tx.type === 'income') income[index] += eur;
+      else spending[index] += Math.abs(eur);
+    }
+    const toSeries = (values: number[]) => values.map(value => ({ value }));
+    return { income: toSeries(income), spending: toSeries(spending) };
   }, [analyticsTransactions]);
 
   const { allRecurringItems } = useMemo(() => {
@@ -638,6 +661,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     setModalTitle(`Transactions for ${categoryName}`);
     setDetailModalOpen(true);
   }, [filteredTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup, accountLookup]);
+
+  /** What the spending calendar counts: the accounts in view, whatever the period. */
+  const calendarTransactions = useMemo(
+    () => analyticsTransactions.filter(tx => analyticsSelectedAccountIds.includes(tx.accountId)),
+    [analyticsTransactions, analyticsSelectedAccountIds]
+  );
+
+  const handleCalendarDay = useCallback((date: string) => {
+    setModalTransactions(calendarTransactions.filter(tx => tx.date === date && tx.type === 'expense' && !tx.transferId));
+    setModalTitle(`Spending on ${parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}`);
+    setDetailModalOpen(true);
+  }, [calendarTransactions]);
 
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc.name; return map; }, {} as Record<string, string>), [accounts]);
 
@@ -1089,10 +1124,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
   const keyRatios = useMemo(() => {
     const { totalAssets: assets, totalDebt: debt } = calculateAccountTotals(analyticsAccounts, analyticsTransactions);
+    const debtRatio = assets > 0 ? (Math.abs(debt) / assets) * 100 : 0;
+    // Each ratio is read against a target: runway against a year, savings against 40%, debt against half of what you own.
+    const runway = liquidityRatio < 3 ? { tone: 'loss' as const, status: 'Low' } : liquidityRatio < 6 ? { tone: 'amber' as const, status: 'Building' } : { tone: 'pine' as const, status: 'Healthy' };
+    const saving = savingsRate < 0 ? { tone: 'loss' as const, status: 'Overspending' } : savingsRate < 10 ? { tone: 'amber' as const, status: 'Thin' } : { tone: 'pine' as const, status: 'On track' };
+    const owing = debtRatio > 60 ? { tone: 'loss' as const, status: 'High' } : debtRatio > 35 ? { tone: 'amber' as const, status: 'Watch' } : { tone: 'pine' as const, status: 'Low' };
     return [
-      { label: 'Liquidity', value: `${liquidityRatio.toFixed(1)} months`, context: 'Runway at your average spend' },
-      { label: 'Savings rate', value: `${savingsRate.toFixed(0)}%`, context: 'Of income this period' },
-      { label: 'Debt ratio', value: `${(assets > 0 ? (Math.abs(debt) / assets) * 100 : 0).toFixed(1)}%`, context: 'Debts against assets' },
+      { label: 'Liquidity', value: `${liquidityRatio.toFixed(1)} months`, context: 'Runway at your average spend', gauge: { fill: (liquidityRatio / 12) * 100, display: liquidityRatio.toFixed(1), ...runway, status: `${runway.status} · months` } },
+      { label: 'Savings rate', value: `${savingsRate.toFixed(0)}%`, context: 'Of income this period', gauge: { fill: (savingsRate / 40) * 100, display: `${savingsRate.toFixed(0)}%`, ...saving } },
+      { label: 'Debt ratio', value: `${debtRatio.toFixed(1)}%`, context: 'Debts against assets', gauge: { fill: (debtRatio / 100) * 100, display: `${debtRatio.toFixed(0)}%`, ...owing } },
       { label: 'Net flow', value: <Amount value={eurToDisplay(safeRound(income - expenses, 2))} currency={preferredCurrency} tone="flow" />, context: 'Income less spending this period' },
     ];
   }, [analyticsAccounts, analyticsTransactions, liquidityRatio, savingsRate, income, expenses, eurToDisplay, preferredCurrency]);
@@ -1160,7 +1200,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       defaultW: 2,
       defaultH: 4,
       component: AccountsSummary,
-      props: { accounts, toDisplay: toPreferred, currency: preferredCurrency, onOpen: onOpenAccount, onAll: () => setCurrentPage('Accounts') }
+      props: { accounts, transactions, conversionRates, toDisplay: toPreferred, currency: preferredCurrency, onOpen: onOpenAccount, onAll: () => setCurrentPage('Accounts') }
     },
     {
       id: 'overviewKpis',
@@ -1221,6 +1261,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       props: { statements: creditCardStatements }
     },
     // Updated props for Net Worth chart to support toggles
+    { id: 'spendingCalendar', name: 'Spending calendar', icon: 'calendar-03', description: 'A dot for every day, coloured by what went out', defaultW: 6, defaultH: 3, component: SpendingCalendarWidget, props: { transactions: calendarTransactions, currency: preferredCurrency, toDisplay: eurToDisplay, onDayClick: handleCalendarDay } },
+    { id: 'goalsRings', name: 'Goals', icon: 'target-01', description: 'Progress towards each goal', defaultW: 6, defaultH: 3, component: GoalsRingsWidget, props: { goals: financialGoals, currency: preferredCurrency, toDisplay: toPreferred, onOpenGoals: () => setCurrentPage('Goals') } },
     {
       id: 'netWorthOverTime',
       name: 'Net Worth Over Time',
@@ -1251,7 +1293,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'store-01', description: 'Where most of your spending goes', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions, currency: preferredCurrency, toDisplay: eurToDisplay } },
     { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'flash', description: 'What you saved each month', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts, currency: preferredCurrency, toDisplay: eurToDisplay } },
     { id: 'insights', name: 'Insights', icon: 'lightbulb', description: 'Low balances ahead, idle cash and unusual spending', defaultW: 6, defaultH: 2, component: InsightsWidget, props: { insights: activeInsights, onDismiss: dismissInsight, onNavigate: setCurrentPage } }
-  ], [periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
+  ], [calendarTransactions, handleCalendarDay, conversionRates, periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const urlTab = useUrlTab();
   const activeTab = isOverviewTab(urlTab) ? urlTab : 'summary';
@@ -1424,8 +1466,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
             <PageHeader
               title="Overview"
               stats={[
-                { label: 'Money in this month', icon: 'arrow_downward', value: eurToDisplay(monthFlow.income), format: 'money', currency: preferredCurrency },
-                { label: 'Money out this month', icon: 'arrow_upward', value: eurToDisplay(monthFlow.spending), format: 'money', currency: preferredCurrency },
+                { label: 'Money in this month', icon: 'arrow_downward', value: eurToDisplay(monthFlow.income), format: 'money', currency: preferredCurrency, trend: dayTrends.income },
+                { label: 'Money out this month', icon: 'arrow_upward', value: eurToDisplay(monthFlow.spending), format: 'money', currency: preferredCurrency, trend: dayTrends.spending },
                 { label: 'Saved this month', icon: 'savings', value: monthFlow.income > 0 ? ((monthFlow.income - monthFlow.spending) / monthFlow.income) * 100 : 0, format: 'percent' },
               ]}
               className="!mb-0"

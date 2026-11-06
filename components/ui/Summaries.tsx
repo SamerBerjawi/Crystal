@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button as AriaButton } from 'react-aria-components';
-import type { Account, Currency } from '../../types';
+import type { Account, Currency, Transaction } from '../../types';
 import type { SafeToSpend } from '../../utils/safeToSpend';
 import type { SummaryFact, SummaryTarget } from '../../utils/overviewSummary';
 import { parseLocalDate } from '../../utils';
 import Icon from './Icon';
 import { Button, TextLink } from './Actions';
-import { CountPill, Row } from './Display';
+import { CountPill, Row, Sparkline } from './Display';
 import { AmountInput } from './Fields';
 import { Amount, Change } from './Money';
 import { Popover } from './Overlays';
@@ -16,8 +16,9 @@ import { LogoTile } from '../EntityIcon';
 import { usePreferencesSelector } from '../../contexts/DomainProviders';
 import { getMerchantLogoUrl } from '../../utils/brandfetch';
 import { ACCOUNT_TYPE_STYLES } from '../../constants';
-import { ACCOUNT_TYPE_ORDER } from '../../utils/accountsModel';
+import { ACCOUNT_TYPE_ORDER, computeAccount90dSparkline } from '../../utils/accountsModel';
 import { fitRows, useWidgetBox } from './WidgetGrid';
+import { StatGauge, type GaugeTone } from './StatGauge';
 
 /** The signature sentence: three facts at most, each linked to where you can act. */
 export const WrittenSummary: React.FC<{ facts: SummaryFact[]; onFact: (id: SummaryTarget) => void; isPrivate?: boolean; className?: string }> = ({ facts, onFact, isPrivate, className }) => (
@@ -231,7 +232,27 @@ export const AccountsSummary: React.FC<{
   onOpen: (id: string) => void;
   onAll: () => void;
   size?: 's' | 'm' | 'l';
-}> = ({ accounts, toDisplay, currency, onOpen, onAll }) => {
+  /** With these, each row carries its 90-day balance trend. */
+  transactions?: Transaction[];
+  conversionRates?: Partial<Record<Currency, number>>;
+}> = ({ accounts, toDisplay, currency, onOpen, onAll, transactions, conversionRates }) => {
+  const box = useWidgetBox();
+  const showTrend = !!transactions && (box.width === 0 || box.width >= 300);
+  const trends = React.useMemo(() => {
+    if (!showTrend || !transactions) return new Map<string, { data: { value: number }[]; isPositive: boolean }>();
+    const byAccount = new Map<string, Transaction[]>();
+    for (const tx of transactions) {
+      const list = byAccount.get(tx.accountId);
+      if (list) list.push(tx); else byAccount.set(tx.accountId, [tx]);
+    }
+    const result = new Map<string, { data: { value: number }[]; isPositive: boolean }>();
+    for (const account of accounts) {
+      if (account.status === 'closed') continue;
+      const spark = computeAccount90dSparkline(account, byAccount.get(account.id) ?? [], undefined, { conversionRates });
+      if (spark.sparklineData.length > 1) result.set(account.id, { data: spark.sparklineData.map(point => ({ value: point.value })), isPositive: spark.isPositiveTrend });
+    }
+    return result;
+  }, [showTrend, transactions, accounts, conversionRates]);
   const groups = React.useMemo(() => {
     const open = accounts.filter(account => account.status !== 'closed');
     return ACCOUNT_TYPE_ORDER
@@ -275,6 +296,7 @@ export const AccountsSummary: React.FC<{
                       <span className="type-body-strong block truncate text-ink">{account.name}</span>
                       {account.financialInstitution && <span className="type-caption block truncate text-muted">{account.financialInstitution}</span>}
                     </span>
+                    {trends.has(account.id) && <Sparkline data={trends.get(account.id)!.data} isPositive={trends.get(account.id)!.isPositive} width={44} height={20} />}
                     <span className="type-figure-row shrink-0 text-ink"><Amount value={toDisplay(account.balance, account.currency)} currency={currency} /></span>
                   </button>
                 </li>
@@ -288,23 +310,41 @@ export const AccountsSummary: React.FC<{
   );
 };
 
-/** Liquidity, savings rate, debt ratio and net flow. */
+export interface RatioGauge {
+  /** 0 to 100. */
+  fill: number;
+  tone: GaugeTone;
+  /** The figure for the middle of the gauge. */
+  display: string;
+  /** What the colour means, in a word. */
+  status: string;
+}
+
+/** Liquidity, savings rate, debt ratio and net flow. Ratios with a target are gauges when there is room, figures when there is not. */
 export const KeyRatios: React.FC<{
-  items: { label: string; value: React.ReactNode; context: string }[];
+  items: { label: string; value: React.ReactNode; context: string; gauge?: RatioGauge }[];
   size?: 's' | 'm' | 'l';
 }> = ({ items, size = 'm' }) => {
   const box = useWidgetBox();
-  // Four across from 560px, two otherwise. The figures shrink and the context line goes when the rows get short.
+  // Four across from 560px, two otherwise. A gauge needs about 150px of height; below that the ratios are figures.
   const columns = box.width > 0 ? (box.width >= 560 ? 4 : 2) : size === 'l' ? 4 : 2;
   const rowHeight = box.height > 0 ? box.height / Math.ceil(items.length / columns) : Infinity;
+  const useGauges = rowHeight >= 150;
   const small = rowHeight < 64;
   const showContext = rowHeight >= 78;
+  const gaugeSize = Math.max(96, Math.min(150, Math.round(rowHeight - 44), box.width > 0 ? Math.floor(box.width / columns) - 24 : 150));
   return (
     <dl className={cn("grid h-full content-center gap-x-6 gap-y-3", columns === 4 ? "grid-cols-4" : "grid-cols-2")}>
       {items.map(item => (
-        <div key={item.label} className="min-w-0">
+        <div key={item.label} className={cn('min-w-0', useGauges && 'flex flex-col items-center text-center')}>
           <dt className="type-caption truncate text-muted">{item.label}</dt>
-          <dd className={cn("truncate text-ink", small ? "type-body-strong" : "type-figure-lg")}>{item.value}</dd>
+          {useGauges && item.gauge ? (
+            <dd>
+              <StatGauge fill={item.gauge.fill} tone={item.gauge.tone} display={item.gauge.display} caption={item.gauge.status} size={gaugeSize} label={item.label} />
+            </dd>
+          ) : (
+            <dd className={cn("truncate text-ink", small ? "type-body-strong" : "type-figure-lg")}>{item.value}</dd>
+          )}
           {showContext && <dd className="type-caption truncate text-muted">{item.context}</dd>}
         </div>
       ))}

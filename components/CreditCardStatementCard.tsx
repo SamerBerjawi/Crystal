@@ -6,6 +6,7 @@ import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
 import { LogoTile } from './EntityIcon';
 import { Badge } from './ui/Display';
 import { Amount } from './ui/Money';
+import { LinearGauge } from './ui/StatGauge';
 
 interface StatementInfo {
     period: string;
@@ -100,7 +101,6 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
     }, [cardNetwork, financialInstitution, brandfetchClientId]);
 
     const used = creditLimit && creditLimit > 0 ? (-accountBalance / creditLimit) * 100 : null;
-    const usedColour = used === null ? '' : used > 90 ? 'bg-money-out' : used > 75 ? 'bg-amber' : 'bg-primary';
 
     // The last statement comes from what the current one carries when the caller did not pass it separately.
     const last: StatementInfo = previousStatement ?? {
@@ -124,9 +124,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                                 <span>Limit used</span>
                                 <span className="tabular-nums text-ink">{used.toFixed(0)}%</span>
                             </div>
-                            <div className="h-1.5 overflow-hidden rounded-full bg-inset" aria-hidden>
-                                <div className={`h-full rounded-full ${usedColour}`} style={{ width: `${Math.min(Math.max(used, 0), 100)}%` }} />
-                            </div>
+                            <LinearGauge fill={used} tone={used > 90 ? 'loss' : used > 75 ? 'amber' : 'pine'} label="Limit used" height={12} />
                         </div>
                     )}
                 </div>
