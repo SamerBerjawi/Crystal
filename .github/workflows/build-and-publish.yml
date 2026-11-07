@@ -60,6 +60,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -106,6 +109,7 @@ jobs:
         with:
           context: ./server
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.B_TAG1 }}
             ${{ steps.meta.outputs.B_TAG2 != '' && format('{0}/{1}:{2}', env.REGISTRY, env.IMAGE_NAME, steps.meta.outputs.B_TAG2) || '' }}
@@ -118,6 +122,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.F_TAG1 }}
             ${{ steps.meta.outputs.F_TAG2 != '' && format('{0}/{1}:{2}', env.REGISTRY, env.IMAGE_NAME, steps.meta.outputs.F_TAG2) || '' }}

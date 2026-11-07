@@ -4,97 +4,104 @@
 
 Designed for data sovereignty, Crystal ensures your financial data remains yours while offering predictive capabilities typically found only in enterprise wealth management software. Crystal analyzes your historical financial velocity and merges it with expected future transactions to project your true liquidity, net worth, and cashflow trajectory up to 2 years ahead.
 
-<img width="3565" height="1879" alt="Crystal Dashboard" src="https://github.com/user-attachments/assets/fdcd513b-f0c2-492c-9124-b34453fbf196" />
+![Crystal overview](docs/screenshots/overview.jpg)
+
+> **v3.0** is a full redesign with a new app shell, rebuilt Forecast, Accounts and Investments, a server-enforced PIN lock and multi-arch (amd64 + arm64) images. See the [changelog](CHANGELOG.md).
+
+## 📸 Screenshots
+
+| Forecast: cash horizon | Accounts: net worth |
+| --- | --- |
+| ![Forecast](docs/screenshots/forecasting.jpg) | ![Accounts](docs/screenshots/accounts.jpg) |
+
+| Investments: portfolio |
+| --- |
+| ![Investments](docs/screenshots/investments.jpg) |
+
+*Screenshots use the built-in demo dataset.*
 
 ## 🌟 Key Features
 
-### 🏦 Open Banking & Integrations
-* **Real Bank Sync:** Connect to 2,500+ European banks via **Enable Banking** (beta feature) to automatically import transactions and balances.
-* **Live Market Data:** Real-time stock, ETF, and crypto pricing via **Twelve Data**.
-* **Merchant Intelligence:** Automatically profile entities and fetch branding via **Brandfetch**.
-
-### 🔮 Predictive Wealth & Cashflow Forecasting
-* **Deterministic Cashflow Simulation:** Daily balance and net worth projections up to 2 years into the future.
-* **Historic & Forward Synthesis:** Merges historical cash velocity with upcoming expected transactions (salaries, recurring subscriptions, credit card statement cycles, and loan amortizations).
-* **Liquidity Horizon Warnings:** Pinpoints future lowest-balance dates to avert cash crunches before they happen.
-* **Dynamic Goal Projections:** Realistic goal completion timelines calculated from forward cashflow models rather than static averages.
-
-### 🧠 Financial Intelligence
-* **Taxonomy Blueprint:** Define complex hierarchical categories for rigid data structure.
-* **Semantic Overlays:** Layer flat tags (#trip, #project) to cluster data across categories without breaking your taxonomy.
-* **Auto-Categorization:** Intelligent suggestions based on merchant profile and temporal patterns.
+- 🔮 **Forecast your cash, not just track it.** A deterministic simulation projects daily balances and net worth up to 2 years ahead from your history, scheduled bills, recurring income, loan amortisation and card statement cycles. It flags your lowest point before it happens and suggests a cash buffer.
+- 🏦 **Everything in one place.** Cash, savings, cards, loans, mortgages, property, vehicles, investments, crypto, pensions, warrants and other assets or liabilities, in any of 150+ currencies (plus BTC), with live exchange-rate conversion.
+- 🔒 **Yours alone.** Self-hosted with your own PostgreSQL. A server-enforced PIN lock, one-click privacy blur, rate-limited sign-in and encrypted bank credentials.
+- 🤖 **Less manual work.** Bank sync, rules, merchant detection, duplicate and transfer matching, and subscription detection do the busywork.
+- 📱 **Desktop and mobile.** Responsive layouts, keyboard shortcuts (⌘K command center, `N` to add), pull-to-refresh and swipe actions, light and dark themes.
 
 ---
 
-## 🧭 Core Application Views (The Financial Operating System)
+## 🧭 What's inside
 
-Crystal is organized around powerful views that provide both a high-level pulse and granular control over your finances.
+### 📊 Overview
+* **Summary, Spending, Wealth and Coming up** tabs, each with size-responsive widgets you can rearrange and resize.
+* Net worth with a cash / investments / property / debts breakdown, **Safe to spend** (a daily allowance until month end), money in/out/saved with period deltas, spending calendar, money-flow Sankey, goal rings and a "Needs you" card for bills and items to review.
+* Spending map of where your money goes, drawn with MapLibre and OpenStreetMap (no API key).
 
-### 📊 Dashboard - Command Center
-* **Modular Widgets:** Fully customizable grid (Drag & Drop) including Net Worth, Cash Flow, and Recent Activity.
-* **Interface Modification Mode:** Reorganize, resize, and prioritize data widgets on the fly.
-* **Privacy Mode:** One-click blur for sensitive numbers when viewing in public spaces.
-* **Geospatial Analysis:** Visualize spending hotspots on an interactive map.
+### 💰 Accounts
+* **Cash, Cards, Loans and Assets** views with per-type layouts and a wallet-style card view you can reorder by drag and drop.
+* **Credit cards:** statement cycles, APR and fees, utilisation.
+* **Loans and mortgages:** amortisation schedules, early repayments, deferred payments, bulk edits, future interest.
+* **Property and vehicles:** valuation history, leases, mileage logs and limits, depreciation.
+* Linked accounts, balance adjustments and reconciliation, closing assets, per-account analytics inclusion.
 
-### 💰 Accounts - Money Map
-* Bank, card, and lending balances with tools to rebalance, reorder, and reconcile on the fly.
+### 📝 Transactions
+* Fast ledger with filters, bulk edit and bulk categorise, splitting and combining, transfers between accounts, and a **review queue** for imported items.
+* Merchant logos, location tagging, a transaction scatter chart and a places map.
+* **Import** from CSV with a guided mapping wizard and **export** to JSON or CSV.
 
-### 📝 Transactions - Activity Feed
-* Every inflow and outflow with powerful filters, transaction splitting, and custom tagging to keep your history audit-ready.
+### 🔮 Planning
+* **Forecast:** cash-horizon chart and monthly ledger list, lowest-point marker, buffer suggestions, goal markers, and the items that move the line.
+* **Budgets:** category budgets with exclusions, sub-goals and pace tracking.
+* **Goals:** realistic completion dates from forward cashflow, monthly targets by account and month, and what-if scenarios.
+* **Calendar and bills:** recurring transactions with overrides, bills and payments, automatic matching of bank transactions to scheduled items.
+* **Subscriptions:** smart detection from your transactions, renewal timeline, monthly and annual commitment, plus a loyalty-card wallet.
+* **Tasks:** a board and heatmap for follow-ups and chores.
 
-### ✅ Action Board - Operational Tasks
-* A telemetric Kanban board for tracking follow-ups, recursive obligations, and semantic chores.
-* **Temporal Density Map:** Heatmap visualization of task distribution.
-* **Manual Sequencing:** Precise drag-and-drop prioritization for operational execution.
+### 📈 Investments
+* **Portfolio, Holdings and Activity** with allocation by class, performance over time, realised and unrealised gain, cost basis and top positions.
+* Stocks, ETFs and crypto with live prices via **Twelve Data**; **warrants and equity grants** with strike prices and vesting; **spare change** round-ups; **pension** tracking.
+* Positions without a current price are valued at their last trade and left out of the gain, rather than guessed.
 
-### 📈 Investments - Portfolio Lab
-* Performance, risk, and allocation snapshots with drill-downs into individual holdings and transactions.
-* **Warrants & Grants:** Specialized tracking for employee equity, including strike prices and vesting.
+### 📑 Reports
+* Spending velocity, category allocation, needs vs wants, merchant loyalty, budget vs actual, month-end forecast, anomaly and recurring-pattern detection, saved views and rule-based insights.
 
-### 🔮 Forecasting - Predictive Wealth & Cashflow Lab
-* **Deterministic Cashflow Simulation:** Daily account balance and wealth projection bridging historical spending behavior with scheduled future inflows and outflows.
-* **Liquidity Horizon & Dip Detection:** Identifies future lowest-balance thresholds and pinpoint dates to prevent overdrafts and liquidity crunches months in advance.
-* **Goal Trajectory Projections:** Projects exact completion dates for financial goals based on real expected forward cash accumulation rather than static linear models.
-* **Synthetic Obligation Modeling:** Automatically incorporates loan amortization schedules, credit card payment cycles, and recurring obligations into future balances.
-* **Scenario Playground:** Stress-test decisions (e.g. major expenditures, income disruptions, payment deferrals) against your future trajectory.
+### 🧾 Quotes & invoices
+* Create quotes and invoices with line items, tax and discounts, convert a quote to an invoice, and track the billing pipeline.
+
+### 🕹️ Challenges
+* A 0-100 **financial health score** from savings rate, liquidity and debt, day streaks, badges, savings sprints, spending predictions and personal records.
 
 ---
 
-## 💼 Wealth & Asset Management
+## 🔌 Integrations & automation
 
-Crystal handles complex portfolios beyond simple bank accounts.
+* **Enable Banking (beta):** connect 2,500+ European banks to import transactions and balances, with consent-expiry handling, re-authorisation, webhooks and a credential self-test. Bank sync never overwrites your manual edits.
+* **Rules:** one rule model to categorise, tag and rename transactions automatically, with suggestions drawn from your history.
+* **Merchant intelligence:** detect and profile merchants, fetch logos via **Brandfetch**, and manage branches and keyword rules.
+* **Taxonomy:** hierarchical categories plus flat tags (`#trip`, `#project`) that cut across them.
 
-* **Property & Real Estate:** Mortgages, equity tracking, and market valuation.
-* **Vehicles:** Lease management, mileage limits, and depreciation tracking.
-* **Spare Change:** Virtual "Round-up" simulations for micro-investing.
-* **Pension Funds:** Retirement tracking with target year projections.
+## 🛠️ Data & security
 
-## 🕹️ Gamification & Behavioral Finance
-
-* **Financial Health Score:** A dynamic 0-100 score calculated from your Savings Rate, Liquidity, and Debt.
-* **Boss Battles:** RPG-style battles against debt (The Nemesis) or for savings (The Guardian).
-* **Savings Sprints:** Short-term challenges to curb impulse spending.
-
-## 🛠️ Data Sovereignty & Settings
-
-### Advanced Data Management
-* **Granular Export:** Extract specific nodes (Accounts, Transactions, Taxonomy) in JSON or CSV.
-* **Merge Restorations:** Import backup nodes without overwriting current data, resolving conflicts via ID matching.
-* **Privacy-First:** All data persists in your local browser sandbox or personal self-hosted node.
-
-### System Configuration
-* **Operational Control:** Refine themes, regional standards, and integration keys.
-* **Taxonomy Blueprinting:** Manage the logical tree of your income and expenses.
-* **Merchant Intelligence Registry:** Manually override or refine detected merchant profiles.
+* **Backup and restore:** export selected parts (accounts, transactions, taxonomy) as JSON or CSV, then restore by merging, with conflicts resolved by ID, or by replacing.
+* **Sync safely across devices:** autosave with conflict detection and a three-way merge when two devices edit at once.
+* **Security:** server-enforced PIN lock, session cookies, rate limiting, request validation, SSRF-guarded fetching and encrypted bank keys. See the [changelog](CHANGELOG.md) for what changed in 3.0.
+* **Administration:** no email service is needed; admins reset passwords with a CLI, and registration can be switched off with `ALLOW_REGISTRATION=false`.
+* **Preferences:** main currency, display currency, language, time zone, date format, financial-year start, default period, and a Settings search.
 
 ---
 
 ## Tech Stack
-* **Frontend:** React 19, TypeScript, Vite, Tailwind CSS.
-* **Visualization:** Recharts, Leaflet (Maps).
-* **State Management:** Context API + React Query.
+* **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, React Aria Components, Motion.
+* **Charts and maps:** visx (including Sankey), Recharts, MapLibre GL.
+* **State and data:** Context API + TanStack Query; money maths with big.js.
+* **Backend:** Express 4, PostgreSQL (one JSON document per user), zod validation.
+* **Delivery:** Docker images for linux/amd64 and linux/arm64, Umbrel packaging.
 
 ## Installation
+
+### Umbrel
+
+Crystal is packaged for the Umbrel App Store (see [`crystal/`](crystal/)). It installs with its own PostgreSQL database and generated secrets; no configuration needed.
 
 ### Self-hosted (recommended)
 
@@ -105,7 +112,7 @@ export DATA_ROOT=./data JWT_SECRET="$(openssl rand -hex 32)" POSTGRES_PASSWORD="
 docker compose up -d
 ```
 
-Then open `http://localhost:7157`. `JWT_SECRET` (a long random value; it signs session tokens) and `POSTGRES_PASSWORD` are required — the stack and the production server refuse to start without them.
+Then open `http://localhost:7157`. Images are published for `linux/amd64` and `linux/arm64`; pin `backend-v3.0.0` / `frontend-v3.0.0` in `docker-compose.yml` for a fixed version. `JWT_SECRET` (a long random value; it signs session tokens) and `POSTGRES_PASSWORD` are required — the stack and the production server refuse to start without them.
 
 ### Local development
 
