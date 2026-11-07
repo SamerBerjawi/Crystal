@@ -115,7 +115,7 @@ const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal
 const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
-import { PhoneBar, PhoneTopBar, Sidebar, SkipLink, TabRow, ToolRail, TopBar, type ShellProps } from './components/ui/Shell';
+import { PhoneBar, PhoneTopBar, Sidebar, SkipLink, TabRow, ToolRail, TopBar, usePageTabSwipe, type ShellProps } from './components/ui/Shell';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import {
   computeSyncDateFrom,
@@ -451,6 +451,7 @@ const App: React.FC = () => {
     },
     onToggleShortcutsModal: () => setIsShortcutsModalOpen(prev => !prev),
     onCloseShortcutsModal: () => setIsShortcutsModalOpen(false),
+    isShortcutsModalOpen,
     onLock: hasPin ? () => {
       setIsShortcutsModalOpen(false);
       lockRef.current();
@@ -685,6 +686,8 @@ const App: React.FC = () => {
     if (page !== 'AccountDetail') { setViewingAccountId(null); }
     if (page !== 'HoldingDetail') { setViewingHoldingSymbol(null); }
   }, [navigateToPath, viewingAccountId, viewingHoldingSymbol]);
+
+  const pageSwipe = usePageTabSwipe(currentPage, setCurrentPage);
 
   const handleOpenAccountDetail = useCallback((accountId: string, tab?: string | null) => {
     setViewingAccountId(accountId);
@@ -2847,7 +2850,7 @@ const App: React.FC = () => {
               )}
             </header>
             {!isPhone && <ToolRail {...shellProps} />}
-            <main className="relative min-h-0 flex-1 overflow-y-auto scroll-touch focus:outline-none" id="main-content" tabIndex={-1}>
+            <main className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden scroll-touch focus:outline-none" id="main-content" tabIndex={-1} {...(isPhone ? pageSwipe : {})}>
               <div className="mx-auto w-full max-w-[1488px] px-4 pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-4 md:pb-24 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
                 <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
                   {ratelessCurrencies.length > 0 && (

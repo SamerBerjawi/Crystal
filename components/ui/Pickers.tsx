@@ -141,7 +141,11 @@ export const Select: React.FC<FieldProps & {
             aria-label={name}
             selectionMode="single"
             selectedKeys={value ? [value] : []}
-            onAction={id => { onChange(String(id)); setOpen(false); }}
+            onSelectionChange={keys => {
+              const id = keys === 'all' ? null : [...keys][0];
+              if (id != null) onChange(String(id));
+              setOpen(false);
+            }}
             className="outline-hidden"
           >
             {renderOptions(options)}
@@ -273,7 +277,11 @@ export const Combobox: React.FC<FieldProps & {
             aria-label={name}
             selectionMode="single"
             selectedKeys={value ? [value] : []}
-            onAction={pick}
+            onSelectionChange={keys => {
+              const id = keys === 'all' ? null : [...keys][0];
+              if (id != null) pick(id);
+              else { setOpen(false); setQuery(''); }
+            }}
             renderEmptyState={empty}
             className="outline-hidden"
           >

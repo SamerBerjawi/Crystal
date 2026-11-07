@@ -43,6 +43,10 @@ export const PositionStrip: React.FC<{ items: PositionCardData[]; currency: Curr
               <span className="type-body-strong block truncate text-ink">{holding.symbol}</span>
               <span className="type-caption block truncate text-muted">{holding.name || kindOf(holding)}</span>
             </span>
+            <span className="shrink-0 text-right">
+              <span className="type-figure-row block text-ink"><Amount value={holding.currentPrice} currency={holding.currency ?? currency} /></span>
+              <span className="type-caption block text-muted">per unit</span>
+            </span>
           </span>
           <span className="block h-10">
             {trend.length > 1
@@ -83,6 +87,7 @@ export const Movers: React.FC<{ rows: MoverRow[]; currency: Currency; onOpen: (s
               <button type="button" onClick={() => onOpen(row.holding.symbol)} className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-[var(--radius-sm)] py-1.5 text-left hover:bg-inset">
                 <span className="min-w-0 flex-1">
                   <span className="type-body-strong block truncate text-ink">{row.holding.name || row.holding.symbol}</span>
+                  <span className="type-caption block truncate text-muted"><Amount value={row.holding.currentPrice} currency={row.holding.currency ?? currency} /> per unit</span>
                   <span className="mt-1 block"><ShareBar value={(Math.abs(row.pct) / widest) * 100} label={`${row.holding.symbol} return`} tone={row.gain >= 0 ? 'ok' : 'bad'} /></span>
                 </span>
                 <span className="w-16 shrink-0">

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import CardFace from './CardFace';
@@ -67,7 +67,7 @@ const SortableCard: React.FC<{ card: Account; balance: number }> = ({ card, bala
       style={style}
       {...attributes}
       {...listeners}
-      className="w-[200px] shrink-0 snap-start touch-none md:w-auto"
+      className="w-[200px] shrink-0 snap-start md:w-auto md:touch-none"
     >
       <Radio
         value={card.id}
@@ -101,7 +101,8 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
   const merchants = useMemo(() => topMerchantsThisMonth(transactions, 3, new Date(), selected?.currency), [transactions, selected?.currency]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 

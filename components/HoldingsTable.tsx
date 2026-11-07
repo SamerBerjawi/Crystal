@@ -95,7 +95,7 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, total, onOpen, empt
       ),
     },
     {
-      id: 'price', label: 'Price', align: 'right', isSortable: true, render: row => (
+      id: 'price', label: 'Unit price', align: 'right', isSortable: true, render: row => (
         <span className="inline-flex flex-col items-end">
           <Amount value={row.holding.currentPrice} currency={row.holding.currency ?? 'EUR'} />
           <span className="type-caption text-muted">
@@ -134,6 +134,7 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, total, onOpen, empt
             <Identity holding={row.holding} />
             <span className="shrink-0 text-right">
               <span className="type-figure-row block text-ink"><Amount value={row.holding.currentValue} currency={getMainCurrency()} /></span>
+              <span className="type-caption block text-muted">{row.holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} × <Amount value={row.holding.currentPrice} currency={row.holding.currency ?? 'EUR'} /></span>
               <GainCell row={row} />
             </span>
           </button>

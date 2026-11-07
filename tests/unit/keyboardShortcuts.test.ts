@@ -136,3 +136,26 @@ test('supports Shift+P, extended G chords (F, B, G, C, R), and suppresses single
 
   if (state.gTimer) clearTimeout(state.gTimer);
 });
+
+test('chord ignores modifier combos like Cmd+R and bare modifier presses', () => {
+  const navigated: string[] = [];
+  const state: KeyboardShortcutsState = { gKeyPressed: false, gTimer: null };
+  const options = { onNavigate: (p: any) => navigated.push(p), onOpenNewTransaction: () => {}, onToggleShortcutsModal: () => {} };
+
+  handleShortcutKeyDown({ key: 'g' }, state, options, null);
+  handleShortcutKeyDown({ key: 'Shift', shiftKey: true }, state, options, null);
+  assert.equal(state.gKeyPressed, true);
+  handleShortcutKeyDown({ key: 'r', metaKey: true }, state, options, null);
+  assert.deepEqual(navigated, []);
+  assert.equal(state.gKeyPressed, false);
+  if (state.gTimer) clearTimeout(state.gTimer);
+});
+
+test('auto-repeat and composing events are ignored', () => {
+  const state: KeyboardShortcutsState = { gKeyPressed: false, gTimer: null };
+  let opened = 0;
+  const options = { onNavigate: () => {}, onOpenNewTransaction: () => { opened += 1; }, onToggleShortcutsModal: () => {} };
+  handleShortcutKeyDown({ key: 'n', repeat: true }, state, options, null);
+  handleShortcutKeyDown({ key: 'n', isComposing: true }, state, options, null);
+  assert.equal(opened, 0);
+});
