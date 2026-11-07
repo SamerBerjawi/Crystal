@@ -85,3 +85,18 @@ export const stripKeysFromBlob = (data: Record<string, any>): { data: Record<str
     }
     return { data: out, found };
 };
+
+/** The callback URL the user saved in settings, or null. */
+export const loadSavedRedirectUrl = async (userId: number | string): Promise<string | null> => {
+    const result = await db.query(`SELECT redirect_url FROM enable_banking_settings WHERE user_id = $1`, [userId]);
+    return result.rows?.[0]?.redirect_url || null;
+};
+
+/** Saves the callback URL, or clears it when `redirectUrl` is null. */
+export const saveRedirectUrl = async (userId: number | string, redirectUrl: string | null): Promise<void> => {
+    await db.query(
+        `INSERT INTO enable_banking_settings (user_id, redirect_url) VALUES ($1, $2)
+         ON CONFLICT (user_id) DO UPDATE SET redirect_url = EXCLUDED.redirect_url, updated_at = NOW()`,
+        [userId, redirectUrl]
+    );
+};

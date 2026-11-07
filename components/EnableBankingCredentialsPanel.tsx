@@ -5,7 +5,7 @@ import { Textarea, TextInput } from './ui/Fields';
 import { ConfirmDialog } from './ui/Overlays';
 import { Banner } from './ui/States';
 import { parseApiError } from '../utils/apiError';
-import { fetchCredentialStatus, fetchRedirectUrl } from '../utils/enableBankingStorage';
+import { fetchCredentialStatus, fetchRedirectUrl, type RedirectUrlSource } from '../utils/enableBankingStorage';
 import { pemProblem } from '../utils/pem';
 
 /** Any country works: the call only proves Enable Banking accepts the application ID and key. */
@@ -19,7 +19,10 @@ interface EnableBankingCredentialsPanelProps {
 /** The Enable Banking application ID and private key. The key is stored encrypted on the server, never in the browser. */
 const EnableBankingCredentialsPanel: React.FC<EnableBankingCredentialsPanelProps> = ({ onChanged }) => {
   const [status, setStatus] = useState<{ configured: boolean; applicationId: string } | null>(null);
-  const [callback, setCallback] = useState<{ redirectUrl: string | null; configured: boolean } | null>(null);
+  const [callback, setCallback] = useState<{ redirectUrl: string | null; configured: boolean; source: RedirectUrlSource } | null>(null);
+  const [callbackDraft, setCallbackDraft] = useState('');
+  const [callbackError, setCallbackError] = useState<string | null>(null);
+  const [callbackBusy, setCallbackBusy] = useState(false);
   const [isEditing, setEditing] = useState(false);
   const [applicationId, setApplicationId] = useState('');
   const [privateKey, setPrivateKey] = useState('');
@@ -37,7 +40,7 @@ const EnableBankingCredentialsPanel: React.FC<EnableBankingCredentialsPanelProps
       setApplicationId(next.applicationId);
       setEditing(!next.configured);
     });
-    fetchRedirectUrl().then(next => { if (!cancelled) setCallback(next); });
+    fetchRedirectUrl().then(next => { if (!cancelled) { setCallback(next); setCallbackDraft(next.source === 'saved' ? next.redirectUrl ?? '' : ''); } });
     return () => { cancelled = true; };
   }, []);
 
@@ -101,6 +104,23 @@ const EnableBankingCredentialsPanel: React.FC<EnableBankingCredentialsPanelProps
     }
   };
 
+  /** Saves the callback URL typed here, or clears it (null) to go back to the address Crystal is opened at. */
+  const saveCallback = async (value: string | null) => {
+    setCallbackBusy(true);
+    setCallbackError(null);
+    try {
+      const response = await request('/api/enable-banking/redirect-url', { method: 'PUT', body: JSON.stringify({ redirectUrl: value }) });
+      const body = await response.json();
+      setCallback({ redirectUrl: body.redirectUrl ?? null, configured: Boolean(body.configured), source: body.source === 'saved' ? 'saved' : 'request' });
+      setCallbackDraft(body.source === 'saved' ? body.redirectUrl ?? '' : '');
+      onChanged();
+    } catch (err) {
+      setCallbackError(parseApiError(err, 'Could not save the callback URL.').message);
+    } finally {
+      setCallbackBusy(false);
+    }
+  };
+
   if (!status) return null;
 
   return (
@@ -145,15 +165,36 @@ const EnableBankingCredentialsPanel: React.FC<EnableBankingCredentialsPanelProps
         </div>
       )}
 
-      {callback?.redirectUrl && (
-        <div className="border-t border-line pt-4">
-          <p className="type-caption text-muted">Callback URL to register in your Enable Banking application</p>
-          <p className="type-body break-all text-ink">{callback.redirectUrl}</p>
-          <p className="type-caption mt-1 text-muted">
-            {callback.configured
-              ? 'Set by ENABLE_BANKING_REDIRECT_URL on the server.'
-              : 'Built from the address you opened Crystal at. Set ENABLE_BANKING_REDIRECT_URL on the server to fix it to the URL you registered.'}
-          </p>
+      {callback && (
+        <div className="space-y-3 border-t border-line pt-4">
+          <div>
+            <p className="type-body-strong text-ink">Callback URL</p>
+            <p className="type-caption text-muted">Register this exact URL in your Enable Banking application. The bank sends you back to it after you approve access.</p>
+          </div>
+          {callbackError && <Banner tone="error">{callbackError}</Banner>}
+          {callback.source === 'env' ? (
+            <>
+              <p className="type-body break-all text-ink">{callback.redirectUrl}</p>
+              <p className="type-caption text-muted">Set by ENABLE_BANKING_REDIRECT_URL on the server, so it can’t be changed here.</p>
+            </>
+          ) : (
+            <>
+              <TextInput
+                label="Callback URL"
+                autoComplete="off"
+                value={callbackDraft}
+                onChange={setCallbackDraft}
+                placeholder={callback.source === 'request' ? callback.redirectUrl ?? 'https://crystal.example.com/enable-banking/callback' : 'https://crystal.example.com/enable-banking/callback'}
+                help={callback.source === 'request'
+                  ? 'Empty: built from the address you opened Crystal at, shown above as the placeholder. Enter the registered URL to fix it.'
+                  : 'Saved. Clear it to go back to the address you opened Crystal at.'}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" isBusy={callbackBusy} isDisabled={!callbackDraft.trim() || callbackDraft.trim() === (callback.source === 'saved' ? callback.redirectUrl : '')} onPress={() => saveCallback(callbackDraft.trim())}>Save callback URL</Button>
+                {callback.source === 'saved' && <Button size="sm" variant="ghost" isDisabled={callbackBusy} onPress={() => saveCallback(null)}>Use automatic</Button>}
+              </div>
+            </>
+          )}
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { redirectNotAllowedMessage, resolveRedirectUrl } from './ebRedirect';
+import { redirectNotAllowedMessage, resolveRedirectUrl, sanitizeCallbackUrl } from './ebRedirect';
 
 test('configured redirect URL always wins', () => {
   assert.equal(resolveRedirectUrl({ configuredUrl: 'https://crystal.example/enable-banking/callback', protocol: 'http', host: 'evil.test' }), 'https://crystal.example/enable-banking/callback');
@@ -28,4 +28,14 @@ test('redirectNotAllowedMessage names the URL and how to fix it', () => {
   assert.doesNotMatch(configured, /set ENABLE_BANKING_REDIRECT_URL/);
   assert.doesNotMatch(configured, /plain http/);
   assert.doesNotMatch(redirectNotAllowedMessage('http://localhost:3000/enable-banking/callback', true), /plain http/);
+});
+
+test('sanitizeCallbackUrl accepts only a plain https URL (http for localhost)', () => {
+  const ok = 'https://crystal.example.com/enable-banking/callback';
+  assert.equal(sanitizeCallbackUrl(`  ${ok}  `), ok);
+  assert.equal(sanitizeCallbackUrl('http://localhost:3000/enable-banking/callback'), 'http://localhost:3000/enable-banking/callback');
+  for (const bad of ['http://crystal.example.com/cb', 'ftp://x.test/cb', 'https://user:pw@x.test/cb', 'https://x.test/cb?a=1', 'https://x.test/cb#f', 'not a url', '', 5, null]) {
+    assert.equal(sanitizeCallbackUrl(bad), null, String(bad));
+  }
+  assert.equal(sanitizeCallbackUrl(`https://x.test/${'a'.repeat(300)}`), null);
 });

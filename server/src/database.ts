@@ -65,6 +65,17 @@ export const initializeDatabase = async () => {
             )
         `);
 
+        // Per-user Enable Banking settings. `redirect_url` is the callback URL registered in Enable Banking; the
+        // ENABLE_BANKING_REDIRECT_URL environment variable still wins when it is set.
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS enable_banking_settings (
+                user_id INTEGER PRIMARY KEY,
+                redirect_url TEXT,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+
         // Enable Banking signing key, encrypted at rest and never returned to the client (AUD-13).
         await db.query(`
             CREATE TABLE IF NOT EXISTS enable_banking_credentials (

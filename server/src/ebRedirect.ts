@@ -32,6 +32,23 @@ export const resolveRedirectUrl = (input: RedirectInputs): string | null => {
   return `${proto}://${host}/enable-banking/callback`;
 };
 
+/**
+ * A callback URL typed into the settings. It must be the exact URL registered in Enable Banking, so it is not rewritten:
+ * only checked to be a plain https URL (http only for localhost), with no credentials, query or fragment.
+ * Returns the URL unchanged, or null when it is not acceptable.
+ */
+export const sanitizeCallbackUrl = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  if (!text || text.length > 300) return null;
+  let url: URL;
+  try { url = new URL(text); } catch { return null; }
+  const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.hostname === '::1';
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocal)) return null;
+  if (url.username || url.password || url.search || url.hash) return null;
+  return text;
+};
+
 /** What to tell the user when Enable Banking answers REDIRECT_URI_NOT_ALLOWED for the URL we sent. */
 export const redirectNotAllowedMessage = (redirectUrl: string, isConfigured: boolean): string => {
   const local = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(redirectUrl);
@@ -40,6 +57,6 @@ export const redirectNotAllowedMessage = (redirectUrl: string, isConfigured: boo
     : '';
   const fix = isConfigured
     ? 'Add exactly this URL to your application\'s redirect URLs in the Enable Banking control panel.'
-    : 'Add exactly this URL to your application\'s redirect URLs in the Enable Banking control panel, or set ENABLE_BANKING_REDIRECT_URL on the server to a URL you already registered.';
+    : 'Add exactly this URL to your application\'s redirect URLs in the Enable Banking control panel, or enter a URL you already registered under Connections, Enable Banking (or set ENABLE_BANKING_REDIRECT_URL on the server).';
   return `Enable Banking does not allow the callback URL ${redirectUrl}. ${fix}${httpsNote}`;
 };
