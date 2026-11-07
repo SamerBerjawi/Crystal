@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions, Page } from '../types';
+import EnableBankingCredentialsPanel from '../components/EnableBankingCredentialsPanel';
 import EnableBankingIntegrationCard from '../components/EnableBankingIntegrationCard';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
@@ -78,6 +79,8 @@ const Integrations: React.FC<IntegrationsProps> = ({
   onTriggerSync,
 }) => {
   const [isConnectOpen, setConnectOpen] = useState(false);
+  // Bumped when the saved application changes, so the connect dialog reloads what it knows about it.
+  const [credentialsRevision, setCredentialsRevision] = useState(0);
   const connected = useMemo(() => enableBankingConnections.filter(connection => connection.status === 'ready').length, [enableBankingConnections]);
   const linked = useMemo(
     () => enableBankingConnections.reduce((sum, connection) => sum + connection.accounts.filter(account => account.linkedAccountId).length, 0),
@@ -96,10 +99,15 @@ const Integrations: React.FC<IntegrationsProps> = ({
         actions={<Button icon="add-01" onPress={() => setConnectOpen(true)}>Connect a bank</Button>}
       />
 
+      <SettingsGroup title="Enable Banking" description="The application that signs requests to your banks.">
+        <EnableBankingCredentialsPanel onChanged={() => setCredentialsRevision(revision => revision + 1)} />
+      </SettingsGroup>
+
       <SettingsGroup isPlain title="Banks" description="Live balances and transactions through Enable Banking.">
         <EnableBankingIntegrationCard
           connections={enableBankingConnections}
           accounts={accounts}
+          credentialsRevision={credentialsRevision}
           isConnectOpen={isConnectOpen}
           onConnectOpenChange={setConnectOpen}
           onCreateConnection={onCreateConnection}
