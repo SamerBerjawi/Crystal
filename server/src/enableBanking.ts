@@ -274,7 +274,9 @@ const sendUpstreamError = (res: express.Response, error: any, fallback: string) 
   const upstream = error instanceof EnableBankingError ? error : undefined;
   const upstreamStatus = upstream?.status;
   if (upstream?.retryAfterSeconds) res.setHeader('Retry-After', String(upstream.retryAfterSeconds));
-  res.status(upstreamStatus === 429 ? 429 : upstreamStatus && upstreamStatus >= 400 && upstreamStatus < 500 ? 502 : 500).json({
+  // Not 502/504: a proxy in front of the server (Cloudflare, nginx) replaces those with its own HTML error page, which
+  // hides the real reason. 424 passes through untouched.
+  res.status(upstreamStatus === 429 ? 429 : upstreamStatus && upstreamStatus >= 400 && upstreamStatus < 500 ? 424 : 500).json({
     message: toPublicMessage(error, fallback),
     upstreamStatus,
     errorCode: upstream?.code,
