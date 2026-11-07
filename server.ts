@@ -129,6 +129,11 @@ async function startServer() {
     return null;
   }
 
+  let mockAlerts: { enabled: boolean; channel: { kind: string; url: string; topic?: string; token?: string } | null; rules: Record<string, number | boolean> } = {
+    enabled: false,
+    channel: null,
+    rules: { consent: true, budget: true, budgetThreshold: 0.8, duplicate: true, lowBalance: true, lowBalanceFloor: 0, lowBalanceDays: 7, priceHike: true },
+  };
   const mockLockedSessions = new Set<string>();
   const mockPins = new Map<number, string>();
   const mockPinFailures = new Map<string, number>();
@@ -252,6 +257,29 @@ async function startServer() {
       } catch (err: any) {
         if (err instanceof urlGuard.UrlBlockedError) return res.status(400).json({ error: err.message });
         return res.status(502).json({ error: 'Failed to fetch page' });
+      }
+    }
+
+    if (subpath.startsWith('/alerts')) {
+      if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
+      const view = () => ({
+        enabled: mockAlerts.enabled,
+        channel: mockAlerts.channel ? { kind: mockAlerts.channel.kind, url: mockAlerts.channel.url, topic: mockAlerts.channel.topic ?? '', hasToken: Boolean(mockAlerts.channel.token) } : null,
+        rules: mockAlerts.rules,
+        privateUrlsAllowed: false,
+      });
+      if (subpath === '/alerts' && req.method === 'GET') return res.json(view());
+      if (subpath === '/alerts' && req.method === 'PUT') {
+        const { enabled, channel, rules } = req.body ?? {};
+        mockAlerts = {
+          enabled: Boolean(enabled),
+          channel: channel ? { ...channel, token: channel.token === undefined ? mockAlerts.channel?.token : channel.token } : null,
+          rules: { ...mockAlerts.rules, ...(rules ?? {}) },
+        };
+        return res.json(view());
+      }
+      if (subpath === '/alerts/test' && req.method === 'POST') {
+        return mockAlerts.channel ? res.json({ message: 'Test sent' }) : res.status(400).json({ message: 'Save a way to send alerts first.' });
       }
     }
 

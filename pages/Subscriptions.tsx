@@ -8,6 +8,7 @@ import PageHeader, { type PageStat } from '../components/PageHeader';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import RenewalTimeline from '../components/RenewalTimeline';
 import ServiceCard, { BrandMark } from '../components/ServiceCard';
+import SubscriptionAuditCard from '../components/SubscriptionAuditCard';
 import { Button } from '../components/ui/Actions';
 import { Badge } from '../components/ui/Display';
 import { Amount } from '../components/ui/Money';
@@ -18,6 +19,7 @@ import { useAccountsContext, usePreferencesContext, useTransactionsContext } fro
 import { useCategoryContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { nextDates } from '../utils/scheduleModel';
+import { subscriptionAudit } from '../utils/subscriptionAudit';
 import {
   cancelService, detectSubscriptions, expiringCards, pauseService, priceChanges, renewals, resumeService, savedByPausing, seriesFromDetected, serviceStatus, serviceTotals, services,
   type DetectedSubscription,
@@ -74,6 +76,7 @@ const Subscriptions: React.FC = () => {
   const saved = useMemo(() => savedByPausing(paused, convert), [paused]);
   const expiring = useMemo(() => expiringCards(memberships, today), [memberships, today]);
   const changes = useMemo(() => priceChanges(active, transactions, ignored), [active, transactions, ignored]);
+  const audit = useMemo(() => subscriptionAudit(active, transactions, today, convert, ignored), [active, transactions, today, ignored]);
 
   const cardGroups = useMemo(() => {
     const groups = new Map<string, Membership[]>();
@@ -143,6 +146,15 @@ const Subscriptions: React.FC = () => {
 
       {tab === 'active' && (
         <>
+          {active.length > 0 && (
+            <SubscriptionAuditCard
+              audit={audit}
+              onOpen={openForm}
+              onPause={pause}
+              onCancel={cancel}
+              onDismiss={key => setPreferences(prev => ({ ...prev, ignoredSubscriptions: [...(prev.ignoredSubscriptions ?? []), key] }))}
+            />
+          )}
           {changes.length > 0 && (
             <section aria-label="Price changes" className="surface-card rounded-[var(--radius-xl)] p-5">
               <h2 className="type-card-title text-ink">Price changes spotted</h2>

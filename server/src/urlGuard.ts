@@ -54,13 +54,16 @@ export const isPrivateIp = (ip: string): boolean => {
 const BLOCKED_HOST_SUFFIXES = ['.localhost', '.local', '.internal', '.lan', '.home.arpa'];
 
 /** Validates scheme and (if a literal IP or obviously internal name) host; DNS is checked at connect time. */
-export const parsePublicHttpUrl = (raw: string): URL => {
+export const parsePublicHttpUrl = (raw: string, allowPrivate = false): URL => {
     let url: URL;
     try { url = new URL(raw); } catch { throw new UrlBlockedError('Invalid URL.'); }
     if (!['http:', 'https:'].includes(url.protocol)) throw new UrlBlockedError('Only http and https URLs are allowed.');
     if (url.username || url.password) throw new UrlBlockedError('URLs with credentials are not allowed.');
     const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
-    if (!host || host === 'localhost' || BLOCKED_HOST_SUFFIXES.some(s => host.endsWith(s))) {
+    if (!host) throw new UrlBlockedError('That address is not allowed.');
+    // The operator can allow LAN targets (a self-hosted ntfy or Gotify). Everything else stays blocked.
+    if (allowPrivate) return url;
+    if (host === 'localhost' || BLOCKED_HOST_SUFFIXES.some(s => host.endsWith(s))) {
         throw new UrlBlockedError('That address is not allowed.');
     }
     if (net.isIP(host) && isPrivateIp(host)) throw new UrlBlockedError('That address is not allowed.');
@@ -88,14 +91,20 @@ export interface SafeFetchOptions {
     timeoutMs?: number;
     maxBytes?: number;
     maxRedirects?: number;
+    method?: 'GET' | 'POST';
+    /** Request body for POST. */
+    body?: string;
+    /** Skip the private-address checks. Only for destinations the server operator has approved. */
+    allowPrivate?: boolean;
 }
 
 export interface SafeFetchResult { status: number; body: string; finalUrl: string }
 
-const requestOnce = (url: URL, opts: Required<SafeFetchOptions>): Promise<{ status: number; location?: string; body: string }> =>
+const requestOnce = (url: URL, opts: Required<Omit<SafeFetchOptions, 'body'>> & { body?: string }): Promise<{ status: number; location?: string; body: string }> =>
     new Promise((resolve, reject) => {
         const lib = url.protocol === 'https:' ? https : http;
-        const req = lib.request(url, { method: 'GET', headers: opts.headers, lookup: guardedLookup as any, timeout: opts.timeoutMs }, res => {
+        const headers = opts.body !== undefined ? { ...opts.headers, 'Content-Length': String(Buffer.byteLength(opts.body)) } : opts.headers;
+        const req = lib.request(url, { method: opts.method, headers, ...(opts.allowPrivate ? {} : { lookup: guardedLookup as any }), timeout: opts.timeoutMs }, res => {
             const status = res.statusCode || 0;
             if (status >= 300 && status < 400 && res.headers.location) {
                 res.resume();
@@ -113,22 +122,28 @@ const requestOnce = (url: URL, opts: Required<SafeFetchOptions>): Promise<{ stat
         });
         req.on('timeout', () => req.destroy(new FetchTimeoutError('Request timed out.')));
         req.on('error', reject);
-        req.end();
+        req.end(opts.body);
     });
 
-/** GET a public http(s) URL as text: blocks internal targets (incl. via redirects/DNS), bounds time and size. */
+/** Fetch a public http(s) URL as text: blocks internal targets (incl. via redirects/DNS), bounds time and size. */
 export const safeFetchText = async (rawUrl: string, options: SafeFetchOptions = {}): Promise<SafeFetchResult> => {
-    const opts: Required<SafeFetchOptions> = {
+    const opts: Required<Omit<SafeFetchOptions, 'body'>> & { body?: string } = {
         headers: options.headers ?? {},
         timeoutMs: options.timeoutMs ?? 10_000,
         maxBytes: options.maxBytes ?? 2 * 1024 * 1024,
         maxRedirects: options.maxRedirects ?? 3,
+        method: options.method ?? 'GET',
+        body: options.body,
+        allowPrivate: options.allowPrivate ?? false,
     };
-    let url = parsePublicHttpUrl(rawUrl);
+    let url = parsePublicHttpUrl(rawUrl, opts.allowPrivate);
     for (let hop = 0; hop <= opts.maxRedirects; hop++) {
         const res = await requestOnce(url, opts);
         if (res.location) {
-            url = parsePublicHttpUrl(new URL(res.location, url).toString());
+            // A redirect never carries a POST body along, and never leaves a destination the checks have approved.
+            url = parsePublicHttpUrl(new URL(res.location, url).toString(), opts.allowPrivate);
+            opts.method = 'GET';
+            opts.body = undefined;
             continue;
         }
         return { status: res.status, body: res.body, finalUrl: url.toString() };

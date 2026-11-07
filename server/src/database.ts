@@ -98,6 +98,30 @@ export const initializeDatabase = async () => {
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+        // Alerts sent from the server (ntfy, Gotify or a webhook). The token is encrypted and never sent to the browser.
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS alert_settings (
+                user_id INTEGER PRIMARY KEY,
+                enabled BOOLEAN NOT NULL DEFAULT FALSE,
+                kind TEXT,
+                url TEXT,
+                topic TEXT,
+                encrypted_token TEXT,
+                rules JSONB NOT NULL DEFAULT '{}',
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+        // What was already sent, so each event alerts once.
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS alert_log (
+                user_id INTEGER NOT NULL,
+                alert_key TEXT NOT NULL,
+                sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (user_id, alert_key),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
         // PIN lock: the hash sits on the user, and locks and failed tries on each session.
         await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_hash TEXT`);
         await db.query(`ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ`);
