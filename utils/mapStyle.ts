@@ -12,6 +12,10 @@ export const OSM_VECTOR_TILES = 'https://vector.openstreetmap.org/shortbread_v1/
 /** Where VersaTiles publishes the fonts and the icon sprite its styles use. */
 export const VERSATILES_ASSETS = 'https://tiles.versatiles.org';
 
+/** Plain OpenStreetMap raster tiles, used only when the vector map cannot run (no WebGL, blocked worker or host). */
+export const RASTER_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const RASTER_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
+
 /** Required attribution for the OSM data and the cartography. */
 export const BASEMAP_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors · <a href="https://versatiles.org" target="_blank" rel="noopener noreferrer">VersaTiles</a>';

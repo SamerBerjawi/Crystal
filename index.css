@@ -231,6 +231,11 @@ img {
   border-bottom-color: var(--solid) !important;
 }
 
+/* Raster fallback tiles are light only; in dark mode they are inverted to sit on the dark canvas. */
+.leaflet-container .crystal-raster-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+}
+
 /* Map credits. OpenStreetMap's licence requires them, so they stay on every map, small and out of the way. */
 .leaflet-container .leaflet-control-attribution {
   background: var(--glass);

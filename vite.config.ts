@@ -1,8 +1,26 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { defineConfig, loadEnv, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import process from 'process';
 import tailwindcss from "@tailwindcss/vite";
+
+/**
+ * MapLibre starts its worker from a file next to its own chunk (`new URL('./maplibre-gl-worker.mjs', import.meta.url)`).
+ * Rollup does not see that reference, so the production build left the file out and every map stayed blank
+ * (dev worked, because Vite serves it from node_modules). Emit it, and its shared sibling, into `assets/` beside the chunk.
+ */
+const emitMaplibreWorker = (): PluginOption => ({
+  name: 'emit-maplibre-worker',
+  apply: 'build',
+  generateBundle() {
+    const dist = path.resolve(process.cwd(), 'node_modules/maplibre-gl/dist');
+    for (const file of ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs']) {
+      const source = path.join(dist, file);
+      if (fs.existsSync(source)) this.emitFile({ type: 'asset', fileName: `assets/${file}`, source: fs.readFileSync(source) });
+    }
+  },
+});
 
 const createBundleAnalyzerPlugin = (): PluginOption => ({
   name: 'bundle-size-analyzer',
@@ -46,6 +64,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       tailwindcss(),
       react(),
+      emitMaplibreWorker(),
       shouldAnalyze && createBundleAnalyzerPlugin(),
     ].filter(Boolean) as PluginOption[],
     // MapLibre locates its worker file relative to its own module, which pre-bundling would break.
