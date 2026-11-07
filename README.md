@@ -4,7 +4,21 @@
 
 Designed for data sovereignty, Crystal ensures your financial data remains yours while offering predictive capabilities typically found only in enterprise wealth management software. Crystal analyzes your historical financial velocity and merges it with expected future transactions to project your true liquidity, net worth, and cashflow trajectory up to 2 years ahead.
 
-<img width="3565" height="1879" alt="Crystal Dashboard" src="https://github.com/user-attachments/assets/fdcd513b-f0c2-492c-9124-b34453fbf196" />
+![Crystal overview](docs/screenshots/overview.jpg)
+
+> **v3.0** is a full redesign with a new app shell, rebuilt Forecast, Accounts and Investments, a server-enforced PIN lock and multi-arch (amd64 + arm64) images. See the [changelog](CHANGELOG.md).
+
+## 📸 Screenshots
+
+| Forecast: cash horizon | Accounts: net worth |
+| --- | --- |
+| ![Forecast](docs/screenshots/forecasting.jpg) | ![Accounts](docs/screenshots/accounts.jpg) |
+
+| Investments: portfolio |
+| --- |
+| ![Investments](docs/screenshots/investments.jpg) |
+
+*Screenshots use the built-in demo dataset.*
 
 ## 🌟 Key Features
 
@@ -96,6 +110,10 @@ Crystal handles complex portfolios beyond simple bank accounts.
 
 ## Installation
 
+### Umbrel
+
+Crystal is packaged for the Umbrel App Store (see [`crystal/`](crystal/)). It installs with its own PostgreSQL database and generated secrets; no configuration needed.
+
 ### Self-hosted (recommended)
 
 Crystal is meant to run with its PostgreSQL backend via Docker:
@@ -105,7 +123,7 @@ export DATA_ROOT=./data JWT_SECRET="$(openssl rand -hex 32)" POSTGRES_PASSWORD="
 docker compose up -d
 ```
 
-Then open `http://localhost:7157`. `JWT_SECRET` (a long random value; it signs session tokens) and `POSTGRES_PASSWORD` are required — the stack and the production server refuse to start without them.
+Then open `http://localhost:7157`. Images are published for `linux/amd64` and `linux/arm64`; pin `backend-v3.0.0` / `frontend-v3.0.0` in `docker-compose.yml` for a fixed version. `JWT_SECRET` (a long random value; it signs session tokens) and `POSTGRES_PASSWORD` are required — the stack and the production server refuse to start without them.
 
 ### Local development
 

@@ -12,6 +12,15 @@ const todayDateStr = `${yy}${mm}${dd}`;
 
 let currentVersion = 'v2.260729.1';
 
+// Release versions (vX.Y.Z, e.g. v3.0.0) are managed by hand: leave them untouched.
+if (fs.existsSync(versionFilePath)) {
+  const existing = fs.readFileSync(versionFilePath, 'utf8').match(/APP_VERSION\s*=\s*['"](v\d+\.\d+\.\d+)['"]/);
+  if (existing && !/^v2\.\d{6}\.\d+$/.test(existing[1])) {
+    console.log(`Release version ${existing[1]} kept as is`);
+    process.exit(0);
+  }
+}
+
 if (fs.existsSync(versionFilePath)) {
   try {
     const content = fs.readFileSync(versionFilePath, 'utf8');
