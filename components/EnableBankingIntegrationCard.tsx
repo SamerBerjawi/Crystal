@@ -8,7 +8,7 @@ import {
   EnableBankingSyncOptions,
 } from '../types';
 import { toLocalISOString } from '../utils';
-import { fetchCredentialStatus, loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
+import { fetchCredentialStatus, fetchRedirectUrl, loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
 import BankConnectDialog, { BankForm, BankOption } from './BankConnectDialog';
 import BankConnectionCard from './BankConnectionCard';
 import BankLinkDialog from './BankLinkDialog';
@@ -73,6 +73,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
 
   // The private key is held by the server; the field below is only for entering or replacing it.
   const [hasStoredKey, setHasStoredKey] = useState(false);
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
   const hasCredentials = Boolean(formState.applicationId.trim() && (formState.clientCertificate.trim() || hasStoredKey));
   const [linking, setLinking] = useState<{ connectionId: string; account: EnableBankingAccount } | null>(null);
   const [deleting, setDeleting] = useState<EnableBankingConnection | null>(null);
@@ -110,6 +111,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
         updateFormState(prev => ({ ...prev, applicationId: prev.applicationId || status.applicationId }));
       }
       });
+    fetchRedirectUrl().then(result => { if (!cancelled) setCallbackUrl(result.redirectUrl); });
     return () => { cancelled = true; };
   }, []);
 
@@ -293,6 +295,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
         form={formState}
         onChange={updates => updateFormState(prev => ({ ...prev, ...updates }))}
         hasStoredKey={hasStoredKey}
+        callbackUrl={callbackUrl}
         banks={bankOptions}
         isLoadingBanks={banksLoading}
         banksError={banksError}

@@ -42,6 +42,9 @@ services:
       DATABASE_USER: ${POSTGRES_USER:-crystal_user}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
       DATABASE_NAME: ${POSTGRES_DB:-crystal}
+      # Enable Banking. The callback URL must match one registered in the Enable Banking control panel exactly; when it
+      # is empty the server builds it from the address you opened Crystal at, which is rarely the registered one.
+      ENABLE_BANKING_REDIRECT_URL: ${ENABLE_BANKING_REDIRECT_URL:-}
     volumes:
       # If your backend needs persistent storage for logs, configuration, etc.
       # Create an empty directory inside the container if it's not needed, e.g., /app/config
