@@ -14,6 +14,7 @@ import {
   AiAutoRotateIcon,
   LogsIcon,
   ChartEvaluationIcon,
+  ChartCandlestickIcon,
   Settings05Icon,
   Sun01Icon,
   Moon02Icon,
@@ -372,6 +373,57 @@ export const TopPills: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage
   );
 };
 
+
+/** True when a swipe starting on this element belongs to something else: a scrolling strip, field, chart or dialog. */
+const ownsHorizontalSwipe = (start: EventTarget | null): boolean => {
+  let el = start instanceof Element ? start : null;
+  while (el && el !== document.body) {
+    if (el.matches('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="slider"], [data-no-swipe], svg')) return true;
+    if (el.scrollWidth > el.clientWidth + 1) {
+      const overflowX = getComputedStyle(el).overflowX;
+      if (overflowX === 'auto' || overflowX === 'scroll') return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
+};
+
+/** Phone: swipe the page sideways to move to the next or previous tab of the current hub. */
+export const usePageTabSwipe = (currentPage: Page, setCurrentPage: ShellProps['setCurrentPage']) => {
+  const urlTab = useUrlTab();
+  const start = useRef<{ x: number; y: number; blocked: boolean } | null>(null);
+
+  const hub = hubForPage(currentPage);
+  const effectivePage: Page =
+    currentPage === 'AccountDetail' ? 'Accounts' :
+    currentPage === 'HoldingDetail' ? 'Investments' :
+    currentPage;
+  const exactMatch = hub.tabs.some(t => t.page === effectivePage && (t.tab ?? null) === urlTab);
+  const index = hub.tabs.findIndex(tab => tab.page === effectivePage && (exactMatch ? (tab.tab ?? null) === urlTab : !tab.tab));
+  const isDetail = currentPage === 'AccountDetail' || currentPage === 'HoldingDetail';
+
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      const t = e.touches[0];
+      start.current = { x: t.clientX, y: t.clientY, blocked: e.touches.length > 1 || ownsHorizontalSwipe(e.target) };
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const s0 = start.current;
+      start.current = null;
+      if (!s0 || s0.blocked || isDetail || index < 0 || hub.tabs.length < 2) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - s0.x;
+      const dy = t.clientY - s0.y;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+      const next = hub.tabs[index + (dx < 0 ? 1 : -1)];
+      if (!next) return;
+      setCurrentPage(next.page, next.tab ?? null);
+      setUrlTab(next.tab ?? null);
+    },
+    onTouchCancel: () => { start.current = null; },
+  };
+};
+
 /** Mobile top pill row for the active hub's page tabs. */
 export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = ({ currentPage, setCurrentPage }) => {
   const hub = hubForPage(currentPage);
@@ -525,6 +577,15 @@ export const ToolRail: React.FC<ShellProps> = ({
         isActive={currentPage === 'Transactions'}
         onPress={() => {
           setCurrentPage('Transactions');
+          setUrlTab(null);
+        }}
+      />
+      <DockTool
+        icon={ChartCandlestickIcon}
+        label="Portfolio"
+        isActive={currentPage === 'Investments' || currentPage === 'HoldingDetail'}
+        onPress={() => {
+          setCurrentPage('Investments');
           setUrlTab(null);
         }}
       />

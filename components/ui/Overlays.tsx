@@ -93,7 +93,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
                 <IconButton icon="cancel-01" label="Close" onPress={onClose} onPointerDown={e => e.stopPropagation()} />
               </header>
             )}
-            <div className={cn("scroll-touch min-h-0 flex-1 overflow-y-auto", contentPadding !== false && "px-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))]")}>{children}</div>
+            <div className={cn("scroll-touch min-h-0 flex-1 overflow-y-auto overflow-x-hidden", contentPadding !== false && "px-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))]")}>{children}</div>
             {footer && (
               <footer className="shrink-0 border-t border-line px-5 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3">{footer}</footer>
             )}
@@ -196,7 +196,7 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
                 <IconButton icon="cancel-01" label="Close" onPress={requestClose} />
               </header>
             )}
-            <div className={cn("min-h-0 flex-1 overflow-y-auto", contentPadding !== false && "px-6 pb-6")}>
+            <div className={cn("min-h-0 flex-1 overflow-y-auto overflow-x-hidden", contentPadding !== false && "px-6 pb-6")}>
               <div className={cn(kind === 'full' && 'mx-auto max-w-[960px]')}>{children}</div>
             </div>
             {footerContent && (

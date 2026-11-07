@@ -75,7 +75,7 @@ export const HUBS: Hub[] = [
     icon: 'chart-increase',
     home: 'Investments',
     tabs: [
-      { label: 'Portfolio', page: 'Investments', icon: 'chart-line-data-01' },
+      { label: 'Portfolio', page: 'Investments', icon: 'chart-candlestick' },
       { label: 'Holdings', page: 'Investments', tab: 'holdings', icon: 'coins-01' },
       { label: 'Activity', page: 'Investments', tab: 'activity', icon: 'clock-01' },
     ],
