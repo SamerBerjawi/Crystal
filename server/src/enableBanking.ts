@@ -6,7 +6,7 @@ import { authenticateToken, AuthRequest } from './middleware';
 import { db } from './database';
 import { derivePsuId, sanitizeAuthMethod, sanitizeCredentials } from './ebAuthOptions';
 import { EnableBankingError, RATE_LIMIT_RETRY_SECONDS, buildPsuHeaders, parseErrorCode, parseRetryAfter, publicMessageFor, requiresReauthorization, sanitizeRequiredPsuHeaders } from './ebErrors';
-import { resolveRedirectUrl } from './ebRedirect';
+import { redirectNotAllowedMessage, resolveRedirectUrl } from './ebRedirect';
 import { deleteCredentials, loadCredentials, saveCredentials, stripKeyFromConnection } from './ebCredentials';
 
 const ENABLE_BANKING_API = process.env.ENABLE_BANKING_API || 'https://api.enablebanking.com';
@@ -248,6 +248,19 @@ const resolveCredentials = async (req: AuthRequest) => {
   return null;
 };
 
+/** The callback URL this server sends to Enable Banking (and the user must have registered there). */
+const callbackUrlFor = (req: express.Request): string | null => resolveRedirectUrl({
+  configuredUrl: process.env.ENABLE_BANKING_REDIRECT_URL,
+  forwardedProto: req.headers['x-forwarded-proto'],
+  forwardedHost: req.headers['x-forwarded-host'],
+  protocol: req.protocol,
+  host: req.get('host'),
+});
+
+router.get('/redirect-url', authenticateToken, (req: AuthRequest, res) => {
+  res.json({ redirectUrl: callbackUrlFor(req), configured: Boolean(process.env.ENABLE_BANKING_REDIRECT_URL) });
+});
+
 const MISSING_CREDENTIALS = 'Enable Banking credentials are not configured. Enter your application ID and private key first.';
 
 router.get('/credentials', authenticateToken, async (req: AuthRequest, res) => {
@@ -330,13 +343,7 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ message: creds ? 'countryCode and aspspId/aspspName are required' : MISSING_CREDENTIALS });
     }
     const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
-    const redirectUrl = resolveRedirectUrl({
-      configuredUrl: process.env.ENABLE_BANKING_REDIRECT_URL,
-      forwardedProto: req.headers['x-forwarded-proto'],
-      forwardedHost: req.headers['x-forwarded-host'],
-      protocol: req.protocol,
-      host: req.get('host'),
-    });
+    const redirectUrl = callbackUrlFor(req);
     if (!redirectUrl) {
       return res.status(400).json({ message: 'Could not determine a valid callback URL. Set ENABLE_BANKING_REDIRECT_URL on the server.' });
     }
@@ -357,6 +364,16 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
     res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id, redirectUrl });
   } catch (error: any) {
     console.error('Failed to start authorization', error);
+    const sentRedirectUrl = callbackUrlFor(req);
+    if (error instanceof EnableBankingError && error.code === 'REDIRECT_URI_NOT_ALLOWED' && sentRedirectUrl) {
+      return res.status(424).json({
+        message: redirectNotAllowedMessage(sentRedirectUrl, Boolean(process.env.ENABLE_BANKING_REDIRECT_URL)),
+        upstreamStatus: error.status,
+        errorCode: error.code,
+        requiresReauth: false,
+        redirectUrl: sentRedirectUrl,
+      });
+    }
     sendUpstreamError(res, error, 'Unable to start authorization');
   }
 });

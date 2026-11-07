@@ -92,6 +92,8 @@ interface BankConnectDialogProps {
   form: BankForm;
   onChange: (updates: Partial<BankForm>) => void;
   hasStoredKey: boolean;
+  /** The callback URL Enable Banking must have registered for the application. */
+  callbackUrl?: string | null;
   banks: BankOption[];
   isLoadingBanks: boolean;
   banksError: string | null;
@@ -100,7 +102,7 @@ interface BankConnectDialogProps {
 }
 
 /** Enable Banking credentials, then the bank. Saved credentials stay out of the way. */
-const BankConnectDialog: React.FC<BankConnectDialogProps> = ({ isOpen, onClose, form, onChange, hasStoredKey, banks, isLoadingBanks, banksError, onFindBanks, onConnect }) => {
+const BankConnectDialog: React.FC<BankConnectDialogProps> = ({ isOpen, onClose, form, onChange, hasStoredKey, callbackUrl, banks, isLoadingBanks, banksError, onFindBanks, onConnect }) => {
   const [isEditingCredentials, setEditingCredentials] = useState(false);
   const showCredentials = !hasStoredKey || !form.applicationId || isEditingCredentials;
   const currentBank = banks.find(b => b.id === form.selectedBank);
@@ -147,6 +149,12 @@ const BankConnectDialog: React.FC<BankConnectDialogProps> = ({ isOpen, onClose, 
             </div>
             <Button variant="secondary" size="sm" onPress={() => setEditingCredentials(true)}>Change</Button>
           </div>
+        )}
+
+        {callbackUrl && (
+          <p className="type-caption text-muted">
+            Callback URL to register in your Enable Banking application: <span className="break-all text-ink">{callbackUrl}</span>
+          </p>
         )}
 
         <div className="flex items-end gap-2">

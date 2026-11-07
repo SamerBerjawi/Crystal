@@ -35,6 +35,8 @@ export const publicMessageFor = (status: number, code?: string, retryAfterSecond
     case 'ASPSP_ACCOUNT_NOT_ACCESSIBLE':
     case 'ACCOUNT_DOES_NOT_EXIST':
       return 'The bank does not allow access to this account right now.';
+    case 'REDIRECT_URI_NOT_ALLOWED':
+      return 'Enable Banking does not allow this callback URL. Register it in the Enable Banking control panel.';
     case 'ASPSP_TIMEOUT':
       return 'The bank did not respond in time. Try again later.';
     case 'ASPSP_PSU_ACTION_REQUIRED':
