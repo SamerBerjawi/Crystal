@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { EnableBankingConnection, EnableBankingSyncOptions, Page } from '../types';
+import { parseApiError } from '../utils/apiError';
 import { loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 import Icon from '../components/ui/Icon';
 import { Button } from '../components/ui/Actions';
@@ -144,13 +145,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           let session: any = null;
           if (!response.ok) {
             const text = await response.text();
-            try {
-              const parsed = JSON.parse(text);
-              throw new Error(parsed?.message || 'Unable to create session');
-            } catch {
-              const fallback = text?.replace(/<[^>]+>/g, '').trim() || 'Unable to create session';
-              throw new Error(fallback);
-            }
+            throw new Error(parseApiError(new Error(text), 'Unable to create session').message);
           } else {
             try {
               session = await response.json();

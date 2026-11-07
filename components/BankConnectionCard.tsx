@@ -7,6 +7,7 @@ import { Menu } from './ui/Menu';
 import { Amount } from './ui/Money';
 import { Banner } from './ui/States';
 import { accountKindLabel, getBankCoverageNote } from '../utils/bankCoverage';
+import { parseApiError } from '../utils/apiError';
 import { countDeleted } from '../utils/deletedSync';
 import { describeConsentExpiry, getConsentExpiry } from '../utils/consentExpiry';
 
@@ -77,7 +78,7 @@ const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, acc
         </Banner>
       )}
       {coverageNote && connection.status === 'ready' && <Banner tone="info" className="mt-4">{coverageNote}</Banner>}
-      {connection.lastError && <Banner tone="error" className="mt-4">The last sync failed: {connection.lastError.slice(0, 200)}</Banner>}
+      {connection.lastError && <Banner tone="error" className="mt-4">The last sync failed: {parseApiError(new Error(connection.lastError)).message.slice(0, 200)}</Banner>}
 
       {connection.accounts.length === 0 ? (
         <p className="type-body mt-4 text-muted">No accounts yet. Sync to fetch them from your bank.</p>

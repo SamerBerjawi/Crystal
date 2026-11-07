@@ -116,6 +116,7 @@ const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransact
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { PhoneBar, PhoneTopBar, Sidebar, SkipLink, TabRow, ToolRail, TopBar, usePageTabSwipe, type ShellProps } from './components/ui/Shell';
+import { parseApiError } from './utils/apiError';
 import { mapWithConcurrency } from './utils/concurrency';
 import { getConsentExpiry, describeConsentExpiry } from './utils/consentExpiry';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
@@ -2025,7 +2026,8 @@ const App: React.FC = () => {
 
   const handleFetchEnableBankingBanks = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; }) => {
     if (!isAuthenticated) throw new Error('You must be signed in to load banks.');
-    const response = await fetchWithAuth('/api/enable-banking/aspsps', { method: 'POST', body: JSON.stringify({ applicationId: payload.applicationId.trim(), countryCode: payload.countryCode.trim().toUpperCase(), clientCertificate: payload.clientCertificate.trim(), }), });
+    const response = await fetchWithAuth('/api/enable-banking/aspsps', { method: 'POST', body: JSON.stringify({ applicationId: payload.applicationId.trim(), countryCode: payload.countryCode.trim().toUpperCase(), clientCertificate: payload.clientCertificate.trim(), }), })
+      .catch(error => { throw new Error(parseApiError(error, 'Unable to load banks.').message); });
     const data = await response.json();
     const items: any[] = Array.isArray(data) ? data : data?.aspsps || [];
     if (items.length === 0) throw new Error('No banks returned.');
@@ -2127,7 +2129,9 @@ const App: React.FC = () => {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, authorizationId: data.authorizationId, lastError: undefined, } : conn));
       if (data.authorizationUrl) { window.location.href = data.authorizationUrl; }
     } catch (error: any) {
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Unable to start authorization', } : conn));
+      const { message } = parseApiError(error, 'Unable to start authorization');
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: message, } : conn));
+      toast.error('Could not start the bank connection', { description: message.length > 200 ? `${message.slice(0, 197)}…` : message });
     }
   }, [enableBankingConnections, fetchWithAuth, isDataLoaded, isDemoMode, savePartialDataWithRetry, isAuthenticated]);
 
@@ -2436,20 +2440,13 @@ const App: React.FC = () => {
         });
       }
     } catch (error: any) {
-      const rawMessage = error?.message || 'Sync failed';
-      let cleanMessage = rawMessage;
-      let requiresReauth = true;
-      try {
-        const parsed = JSON.parse(rawMessage);
-        if (typeof parsed?.message === 'string') cleanMessage = parsed.message;
-        if (typeof parsed?.requiresReauth === 'boolean') requiresReauth = parsed.requiresReauth;
-        if (parsed?.errorCode === 'ASPSP_RATE_LIMIT_EXCEEDED') {
-          const waitSeconds = Number(parsed.retryAfterSeconds) > 0 ? Number(parsed.retryAfterSeconds) : 6 * 60 * 60;
-          bankRateLimitedUntilRef.current.set(connectionId, Date.now() + waitSeconds * 1000);
-        }
-      } catch {
-        // Not a JSON body (network failure etc.): the session was not shown to be bad, so don't force a reconnect.
-        requiresReauth = false;
+      const parsedError = parseApiError(error, 'Sync failed');
+      const cleanMessage = parsedError.message;
+      // A reply that isn't ours (network failure, proxy error page) says nothing about the session, so don't force a reconnect.
+      const requiresReauth = parsedError.requiresReauth ?? false;
+      if (parsedError.errorCode === 'ASPSP_RATE_LIMIT_EXCEEDED') {
+        const waitSeconds = parsedError.retryAfterSeconds ?? 6 * 60 * 60;
+        bankRateLimitedUntilRef.current.set(connectionId, Date.now() + waitSeconds * 1000);
       }
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
         ...conn,
