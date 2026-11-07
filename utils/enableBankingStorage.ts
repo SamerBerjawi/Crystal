@@ -112,14 +112,20 @@ export const fetchCredentialStatus = async (): Promise<{ configured: boolean; ap
   }
 };
 
+export type RedirectUrlSource = 'env' | 'saved' | 'request';
+
 /** The callback URL the server sends to Enable Banking, which must be registered in the control panel. */
-export const fetchRedirectUrl = async (): Promise<{ redirectUrl: string | null; configured: boolean }> => {
+export const fetchRedirectUrl = async (): Promise<{ redirectUrl: string | null; configured: boolean; source: RedirectUrlSource }> => {
   try {
     const res = await fetch('/api/enable-banking/redirect-url', { credentials: 'include' });
-    if (!res.ok) return { redirectUrl: null, configured: false };
+    if (!res.ok) return { redirectUrl: null, configured: false, source: 'request' };
     const body = await res.json();
-    return { redirectUrl: typeof body.redirectUrl === 'string' ? body.redirectUrl : null, configured: Boolean(body.configured) };
+    return {
+      redirectUrl: typeof body.redirectUrl === 'string' ? body.redirectUrl : null,
+      configured: Boolean(body.configured),
+      source: body.source === 'env' || body.source === 'saved' ? body.source : 'request',
+    };
   } catch {
-    return { redirectUrl: null, configured: false };
+    return { redirectUrl: null, configured: false, source: 'request' };
   }
 };

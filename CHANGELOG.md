@@ -2,6 +2,18 @@
 
 All notable changes to Crystal are documented here. Versions before 3.0.0 were tagged `v1.x`–`v2.x`.
 
+## [3.0.1] - 2026-11-07
+
+Enable Banking fixes and settings.
+
+### Fixed
+- **Enable Banking errors are no longer hidden.** When Enable Banking rejected a request, a proxy in front of the server (Cloudflare, nginx) replaced the answer with its own HTML page, so renewing or adding a bank showed a wall of HTML. The server now answers with a status proxies pass through, and the app shows the real message.
+- **Callback URL.** A `REDIRECT_URI_NOT_ALLOWED` answer now names the exact URL that was sent and how to fix it. The URL can be set in Connections, Enable Banking (saved on the server) as well as with `ENABLE_BANKING_REDIRECT_URL`, which still wins. The connect dialog shows the URL to register.
+- `docker-compose.yml` now passes `ENABLE_BANKING_REDIRECT_URL` to the backend; a value in `.env` was previously ignored.
+
+### Added
+- **Enable Banking application settings** on the Connections page: enter or change the application ID and private key (paste it or choose the `.pem` file), verified with Enable Banking before it is saved, with a clear message when a certificate is chosen instead of the private key. Remove them again at any time.
+
 ## [3.0.0] - 2026-11-07
 
 Crystal 3.0 is a ground-up visual and structural redesign ("Rapport" look), plus a security hardening pass on the server and a rebuilt Enable Banking integration. It is the first release published as a multi-architecture (`linux/amd64` + `linux/arm64`) image and the first one packaged for the Umbrel App Store.
