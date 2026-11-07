@@ -116,11 +116,14 @@ const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransact
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { PhoneBar, PhoneTopBar, Sidebar, SkipLink, TabRow, ToolRail, TopBar, usePageTabSwipe, type ShellProps } from './components/ui/Shell';
+import { mapWithConcurrency } from './utils/concurrency';
+import { getConsentExpiry, describeConsentExpiry } from './utils/consentExpiry';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import {
   computeSyncDateFrom,
   extractProviderAccountIdentifiers,
   mapEnableBankingTransaction,
+  getLegacyEnableBankingTransactionId,
   matchExistingProviderAccount,
   matchKnownBrand,
   resolveEnableBankingBalance,
@@ -473,6 +476,10 @@ const App: React.FC = () => {
   const saveAgainRef = useRef(false);
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const syncingConnectionIdsRef = useRef<Set<string>>(new Set());
+  /** connectionId -> epoch ms until which the bank asked us to stop (ASPSP_RATE_LIMIT_EXCEEDED); in memory only. */
+  const bankRateLimitedUntilRef = useRef<Map<string, number>>(new Map());
+  /** `${connectionId}:${level}` pairs already announced this session, so each warning shows once. */
+  const consentWarnedRef = useRef<Set<string>>(new Set());
   const lastSaveFailureRef = useRef<{ ok: boolean; status?: number } | null>(null);
   const retryDelayRef = useRef(5000);
   const [loadGeneration, setLoadGeneration] = useState(0);
@@ -1144,6 +1151,24 @@ const App: React.FC = () => {
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
+
+  // Warn once per session as each bank consent nears its end (14 days, 7 days, last day, expired).
+  useEffect(() => {
+    if (!isDataLoaded || isDemoMode) return;
+    for (const connection of enableBankingConnections) {
+      if (!connection.sessionId) continue;
+      const expiry = getConsentExpiry(connection.sessionExpiresAt);
+      if (!expiry) continue;
+      const key = `${connection.id}:${expiry.level}`;
+      if (consentWarnedRef.current.has(key)) continue;
+      consentWarnedRef.current.add(key);
+      const show = expiry.level === 'expired' || expiry.level === 'last-day' ? toast.error : toast.warning;
+      show(describeConsentExpiry(connection.selectedBank || 'Your bank', expiry), {
+        duration: 10000,
+        action: { label: 'Open connections', onClick: () => setCurrentPage('Integrations') },
+      });
+    }
+  }, [enableBankingConnections, isDataLoaded, isDemoMode, setCurrentPage]);
 
   const savePartialDataWithRetry = useCallback(
     async (data: Partial<FinancialData>, options?: { attempts?: number }): Promise<boolean> => {
@@ -2013,10 +2038,28 @@ const App: React.FC = () => {
       maximumConsentValidity: Number.isFinite(Number(item.maximum_consent_validity ?? item.maximumConsentValidity))
         ? Number(item.maximum_consent_validity ?? item.maximumConsentValidity)
         : undefined,
+      beta: item.beta === true,
+      requiredPsuHeaders: Array.isArray(item.required_psu_headers) ? item.required_psu_headers.filter((h: unknown): h is string => typeof h === 'string') : undefined,
+      authMethods: Array.isArray(item.auth_methods)
+        ? item.auth_methods
+            .filter((method: any) => method && typeof method.name === 'string')
+            .map((method: any) => ({
+              name: method.name as string,
+              title: typeof method.title === 'string' ? method.title : method.name,
+              psuType: typeof method.psu_type === 'string' ? method.psu_type : undefined,
+              approach: typeof method.approach === 'string' ? method.approach : undefined,
+              hidden: method.hidden_method === true,
+              credentials: Array.isArray(method.credentials)
+                ? method.credentials
+                    .filter((c: any) => c && typeof c.name === 'string')
+                    .map((c: any) => ({ name: c.name as string, title: typeof c.title === 'string' ? c.title : c.name, required: c.required === true, description: typeof c.description === 'string' ? c.description : undefined }))
+                : [],
+            }))
+        : undefined,
     }));
   }, [fetchWithAuth, isAuthenticated]);
 
-  const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string; }) => {
+  const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string; authMethod?: string; credentials?: Record<string, string>; }) => {
     if (!isAuthenticated) return;
 
     let selectedBankId = '';
@@ -2024,6 +2067,7 @@ const App: React.FC = () => {
     let bankLogoUrl: string | undefined;
     let psuType: 'personal' | 'business' | undefined;
     let maximumConsentValidity: number | undefined;
+    let requiredPsuHeaders: string[] | undefined;
     try {
       const bankData = JSON.parse(payload.selectedBank);
       selectedBankId = bankData.id;
@@ -2031,6 +2075,7 @@ const App: React.FC = () => {
       if (typeof bankData.logo === 'string') bankLogoUrl = bankData.logo;
       if (bankData.psuType === 'personal' || bankData.psuType === 'business') psuType = bankData.psuType;
       if (Number.isFinite(Number(bankData.maximumConsentValidity))) maximumConsentValidity = Number(bankData.maximumConsentValidity);
+      if (Array.isArray(bankData.requiredPsuHeaders)) requiredPsuHeaders = bankData.requiredPsuHeaders.filter((h: unknown): h is string => typeof h === 'string');
     } catch (e) {
       selectedBankName = payload.selectedBank;
     }
@@ -2047,7 +2092,9 @@ const App: React.FC = () => {
       selectedBankId: selectedBankId || existingConnection?.selectedBankId,
       bankLogoUrl: bankLogoUrl || existingConnection?.bankLogoUrl,
       psuType: psuType || existingConnection?.psuType || 'personal',
+      authMethod: payload.authMethod || existingConnection?.authMethod || undefined,
       maximumConsentValidity: maximumConsentValidity ?? existingConnection?.maximumConsentValidity,
+      requiredPsuHeaders: requiredPsuHeaders ?? existingConnection?.requiredPsuHeaders,
       accounts: existingConnection?.accounts || [],
     };
     let nextConnections: EnableBankingConnection[] = [];
@@ -2070,6 +2117,8 @@ const App: React.FC = () => {
           aspspName: baseConnection.selectedBank,
           aspspId: baseConnection.selectedBankId,
           psuType: baseConnection.psuType,
+          authMethod: baseConnection.authMethod,
+          credentials: baseConnection.authMethod ? payload.credentials : undefined,
           maximumConsentValidity: baseConnection.maximumConsentValidity,
           state: connectionId,
         }),
@@ -2096,7 +2145,7 @@ const App: React.FC = () => {
       // The status is deliberately not set to 'pending' here: 'pending' is persisted, so a tab closed
       // mid-sync used to leave the connection stuck and excluded from "Sync all" forever.
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, lastError: undefined } : conn));
-      const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, }), }).then(res => res.json());
+      const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, requiredPsuHeaders: connection.requiredPsuHeaders }), }).then(res => res.json());
       const accountsFromSession: any[] = session?.accounts || [];
       const updatedAccounts: EnableBankingAccount[] = [];
       const importedTransactions: Transaction[] = [];
@@ -2132,8 +2181,12 @@ const App: React.FC = () => {
         demoUser ? `${demoUser.firstName} ${demoUser.lastName}`.trim() : undefined,
       ].filter((v): v is string => Boolean(v));
 
-      const prefetchedAccounts = await Promise.all(
-        accountsFromSession.map(async (account: any) => {
+      const existingTxById = new Map<string, Transaction>(transactions.map(tx => [tx.id, tx]));
+
+      // At most two accounts of this bank at a time: banks rate limit hard and every account costs two bank calls.
+      const prefetchedAccounts = await mapWithConcurrency(
+        accountsFromSession, 2,
+        async (account: any) => {
           const initialIds = extractProviderAccountIdentifiers(account);
           if (!initialIds.uid) {
             console.warn('Enable Banking account missing provider account id. Skipping.', account);
@@ -2144,12 +2197,12 @@ const App: React.FC = () => {
           const needsDetailsFetch = !preMatchedAccount || (!preMatchedAccount.accountNumber && !initialIds.accountNumber);
           const [details, balances] = await Promise.all([
             needsDetailsFetch
-              ? fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId }) }).then(res => res.json()).catch(() => null)
+              ? fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, requiredPsuHeaders: connection.requiredPsuHeaders }) }).then(res => res.json()).catch(() => null)
               : Promise.resolve(null),
-            fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId }) }).then(res => res.json()),
+            fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, requiredPsuHeaders: connection.requiredPsuHeaders }) }).then(res => res.json()),
           ]);
           return { account, providerAccountId, preMatchedAccount, details, balances };
-        })
+        }
       );
 
       for (const prefetched of prefetchedAccounts) {
@@ -2172,6 +2225,7 @@ const App: React.FC = () => {
           id: providerAccountId,
           identificationHash: identifiers.identificationHash || existingLinkedAccount?.identificationHash,
           accountNumber: identifiers.accountNumber || existingLinkedAccount?.accountNumber,
+          cashAccountType: (typeof account?.cash_account_type === 'string' && account.cash_account_type) || (typeof details?.cash_account_type === 'string' && details.cash_account_type) || existingLinkedAccount?.cashAccountType || undefined,
           name: accountName,
           bankName: connection.selectedBank || 'Enable Banking',
           currency,
@@ -2213,6 +2267,7 @@ const App: React.FC = () => {
             body: JSON.stringify({
               applicationId: connection.applicationId,
               sessionId: connection.sessionId,
+              requiredPsuHeaders: connection.requiredPsuHeaders,
               dateFrom,
               continuationKey,
               strategy,
@@ -2233,7 +2288,12 @@ const App: React.FC = () => {
               linkedIbanToAccountName,
               ownAccountNumbers: identifiers.accountNumber ? [identifiers.accountNumber] : [],
             });
-            if (mappedTx) importedTransactions.push(mappedTx);
+            if (mappedTx) {
+              // Rows imported when transaction_id was the key keep their original id, so they are updated, not duplicated.
+              const legacyId = getLegacyEnableBankingTransactionId(providerTx, connectionId, providerAccountId);
+              const legacyExisting = legacyId ? existingTxById.get(legacyId) : undefined;
+              importedTransactions.push(legacyExisting ? { ...mappedTx, id: legacyExisting.id, sureId: legacyExisting.sureId ?? mappedTx.sureId } : mappedTx);
+            }
           });
 
           const nextContinuationKey = txResponse?.continuation_key || txResponse?.continuationKey;
@@ -2383,7 +2443,14 @@ const App: React.FC = () => {
         const parsed = JSON.parse(rawMessage);
         if (typeof parsed?.message === 'string') cleanMessage = parsed.message;
         if (typeof parsed?.requiresReauth === 'boolean') requiresReauth = parsed.requiresReauth;
-      } catch { /* raw string message */ }
+        if (parsed?.errorCode === 'ASPSP_RATE_LIMIT_EXCEEDED') {
+          const waitSeconds = Number(parsed.retryAfterSeconds) > 0 ? Number(parsed.retryAfterSeconds) : 6 * 60 * 60;
+          bankRateLimitedUntilRef.current.set(connectionId, Date.now() + waitSeconds * 1000);
+        }
+      } catch {
+        // Not a JSON body (network failure etc.): the session was not shown to be bad, so don't force a reconnect.
+        requiresReauth = false;
+      }
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
         ...conn,
         status: requiresReauth ? 'requires_update' : conn.status,
@@ -2396,7 +2463,13 @@ const App: React.FC = () => {
   }, [accounts, enableBankingConnections, fetchWithAuth, handleSaveTransaction, isAuthenticated, preferences.merchantRules, transactions, user, demoUser]);
 
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
-    const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
+    const now = Date.now();
+    const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending' && (bankRateLimitedUntilRef.current.get(c.id) ?? 0) <= now);
+    const skippedForRateLimit = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending' && (bankRateLimitedUntilRef.current.get(c.id) ?? 0) > now);
+    if (activeConnections.length === 0 && skippedForRateLimit.length > 0) {
+      toast.info('Banks are rate limited', { description: `${skippedForRateLimit.map(c => c.selectedBank || 'A bank').join(', ')} limit${skippedForRateLimit.length === 1 ? 's' : ''} automatic requests. Try again in a few hours.` });
+      return;
+    }
     if (activeConnections.length === 0) {
       toast.info('No connected banks to sync yet', { description: 'Add a bank under Settings → Connections.' });
       return;
@@ -2423,7 +2496,7 @@ const App: React.FC = () => {
     if (existing?.sessionId) {
       fetchWithAuth(`/api/enable-banking/session/${encodeURIComponent(existing.sessionId)}`, {
         method: 'DELETE',
-        body: JSON.stringify({ applicationId: existing.applicationId }),
+        body: JSON.stringify({ applicationId: existing.applicationId, requiredPsuHeaders: existing.requiredPsuHeaders }),
       }).catch(() => { /* best-effort upstream consent revocation */ });
     }
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));

@@ -27,6 +27,8 @@ interface EnableBankingIntegrationCardProps {
     clientCertificate: string;
     selectedBank: string;
     connectionId?: string;
+    authMethod?: string;
+    credentials?: Record<string, string>;
   }) => void;
   onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
     BankOption[]
@@ -212,8 +214,13 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
         logo: selectedOption?.logo,
         psuType: formState.psuType || 'personal',
         maximumConsentValidity: selectedOption?.maximumConsentValidity,
+        requiredPsuHeaders: selectedOption?.requiredPsuHeaders,
       }),
+      authMethod: formState.authMethod || undefined,
+      credentials: formState.authMethod ? formState.credentials : undefined,
     });
+    // Login details are single-use: don't keep them in the form after they have been sent.
+    setFormState(prev => ({ ...prev, credentials: {} }));
   };
 
   const handleReauthorize = (connection: EnableBankingConnection) => {
@@ -240,8 +247,10 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
         logo: connection.bankLogoUrl || matchedBank?.logo,
         psuType: connection.psuType || formState.psuType || 'personal',
         maximumConsentValidity: connection.maximumConsentValidity || matchedBank?.maximumConsentValidity,
+        requiredPsuHeaders: matchedBank?.requiredPsuHeaders ?? connection.requiredPsuHeaders,
       }),
       connectionId: connection.id,
+      authMethod: connection.authMethod,
     });
   };
 

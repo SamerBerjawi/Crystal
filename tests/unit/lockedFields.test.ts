@@ -52,3 +52,11 @@ test('a sync fills empty fields but never a locked one', () => {
   // Filled fields are never overwritten.
   assert.equal(syncFill(tx(), incoming), undefined);
 });
+
+test('sync corrects a merchant that was wrongly set to Apple, unless you locked it', () => {
+  const wrong = { ...tx(), merchant: 'Apple' };
+  assert.equal(syncFill(wrong, { merchant: 'Delhaize', description: wrong.description })?.merchant, 'Delhaize');
+  assert.equal(syncFill(wrong, { merchant: 'Apple', description: wrong.description }), undefined);
+  assert.equal(syncFill({ ...wrong, lockedFields: ['merchant'] }, { merchant: 'Delhaize', description: wrong.description }), undefined);
+  assert.equal(syncFill({ ...tx(), merchant: 'Shop' }, { merchant: 'Delhaize', description: 'x' }), undefined);
+});

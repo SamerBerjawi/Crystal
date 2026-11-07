@@ -225,11 +225,26 @@ export function mapMccToCategory(mcc?: string | number | null): string | undefin
 }
 
 /**
+ * Mobile wallets show up in card remittance text as the payment method ("... via Apple Pay"), not the merchant.
+ * Left in, "Apple Pay" matches the Apple brand and every tap-to-pay purchase becomes an Apple purchase.
+ */
+const PAYMENT_WALLET_PATTERN = /(?:\b(?:via|met|with|using|par|mit|door|per)\s+)?\b(?:apple|google|samsung|garmin|fitbit|curve|paypal\s+in\s+store)\s*pay\b|\bg[\s-]?pay\b|\bapple\s+wallet\b/gi;
+
+/** Removes mobile-wallet payment method wording and tidies the separators left behind. */
+export function stripPaymentWallet(text: string): string {
+  return text
+    .replace(PAYMENT_WALLET_PATTERN, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s\-:*/,]+|[\s\-:*/,]+$/g, '')
+    .trim();
+}
+
+/**
  * Matches a merchant name or raw description against the known brand knowledge base.
  */
 export function matchKnownBrand(text?: string | null): KnownBrand | undefined {
   if (!text) return undefined;
-  const lower = text.trim().toLowerCase();
+  const lower = stripPaymentWallet(text).toLowerCase();
   if (!lower || lower.length < 2) return undefined;
 
   for (const brand of KNOWN_BRANDS) {
@@ -441,13 +456,13 @@ export function parseEuropeanBankRemittance(text?: string): { merchant?: string;
   if (!singleLine) return {};
 
   // Dutch/Flemish: "Betaling met bankkaart bij <MERCHANT> te <CITY>..." or "Aankoop met bankkaart bij <MERCHANT>"
-  const nlMatch = singleLine.match(/(?:betaling|aankoop)\s+(?:met\s+(?:bankkaart|debetkaart|kredietkaart|kaart)(?:\s*\([^)]*\))?\s+)?(?:bij|aan)\s+(.+?)(?:\s+te\s+([A-Za-zÀ-ÿ-]+))?(?:\s+(?:op\s+)?\d{2}[/.-]\d{2}[/.-]\d{2,4}|\s+om\s+\d{2}[:.]\d{2}|\s+met\s+kaart|$)/i);
+  const nlMatch = singleLine.match(/(?:betaling|aankoop)\s+(?:met\s+(?:bankkaart|debetkaart|kredietkaart|kaart)(?:\s*\([^)]*\))?\s+)?(?:\([^)]*\)\s+)?(?:bij|aan)\s+(.+?)(?:\s+te\s+([A-Za-zÀ-ÿ-]+))?(?:\s+(?:op\s+)?\d{2}[/.-]\d{2}[/.-]\d{2,4}|\s+om\s+\d{2}[:.]\d{2}|\s+met\s+kaart|$)/i);
   if (nlMatch?.[1]) {
     return { merchant: nlMatch[1].trim(), city: nlMatch[2]?.trim() };
   }
 
   // French: "Paiement par carte chez <MERCHANT> à <CITY>..." or "Achat par carte chez <MERCHANT>"
-  const frMatch = singleLine.match(/(?:paiement|achat)\s+(?:par\s+carte(?:\s+bancaire)?(?:\s*\([^)]*\))?\s+)?(?:chez|auprès\s+de)\s+(.+?)(?:\s+[àa]\s+([A-Za-zÀ-ÿ-]+))?(?:\s+(?:le\s+)?\d{2}[/.-]\d{2}|\s+\d{2}[/.-]\d{2}[/.-]\d{2,4}|$)/i);
+  const frMatch = singleLine.match(/(?:paiement|achat)\s+(?:par\s+carte(?:\s+bancaire)?(?:\s*\([^)]*\))?\s+)?(?:\([^)]*\)\s+)?(?:chez|auprès\s+de)\s+(.+?)(?:\s+[àa]\s+([A-Za-zÀ-ÿ-]+))?(?:\s+(?:le\s+)?\d{2}[/.-]\d{2}|\s+\d{2}[/.-]\d{2}[/.-]\d{2,4}|$)/i);
   if (frMatch?.[1]) {
     return { merchant: frMatch[1].trim(), city: frMatch[2]?.trim() };
   }
@@ -480,7 +495,8 @@ export function sanitizeBankMerchant(
   },
 ): string | undefined {
   if (!candidate || typeof candidate !== 'string') return undefined;
-  const trimmed = candidate.trim();
+  // "Apple Pay" / "Google Pay" is how the card was used, never who was paid.
+  const trimmed = stripPaymentWallet(candidate);
   if (!trimmed) return undefined;
 
   // Filter out raw IBANs and long numeric IDs
@@ -962,8 +978,10 @@ export function mapEnableBankingTransaction(
     providerTx?.booking_text,
     providerTx?.bookingText,
     providerTx?.description,
+    providerTx?.bank_transaction_code?.description,
     providerTx?.proprietary_bank_transaction_code?.description,
     providerTx?.proprietaryBankTransactionCode?.description,
+    providerTx?.reference_number,
     merchant,
   ) || 'Transaction';
 
@@ -1034,6 +1052,10 @@ export function mapEnableBankingTransaction(
     notes = `Original amount: ${instructedAmount} ${instructedCurrency}${exchangeRateVal ? ` (rate: ${exchangeRateVal})` : ''}`;
   }
 
+  // The note the account holder wrote at their bank (`note` in the API) is kept alongside any FX details.
+  const psuNote = pickFirstText(providerTx?.note);
+  if (psuNote) notes = notes ? `${psuNote}\n${notes}` : psuNote;
+
   const date = resolveEnableBankingTransactionDate(providerTx, options.todayOverride);
 
   const stableIdFromFallback = (...parts: (string | number | undefined)[]) => {
@@ -1046,11 +1068,13 @@ export function mapEnableBankingTransaction(
     return `fallback-${Math.abs(hash)}`;
   };
 
+  // `entry_reference` is stable across retrievals and sessions; `transaction_id` can change between fetches,
+  // so it is only a fallback. See getLegacyEnableBankingTransactionId for rows imported before this change.
   const providerTransactionId = pickFirstText(
-    providerTx?.transaction_id,
-    providerTx?.transactionId,
     providerTx?.entry_reference,
     providerTx?.entryReference,
+    providerTx?.transaction_id,
+    providerTx?.transactionId,
     providerTx?.end_to_end_id,
     providerTx?.endToEndId,
     providerTx?.internal_transaction_id,
@@ -1073,4 +1097,37 @@ export function mapEnableBankingTransaction(
     ...(country ? { country } : {}),
     ...(notes ? { notes } : {}),
   };
+}
+
+/**
+ * The id the mapper produced before `entry_reference` was preferred (it used `transaction_id` first).
+ * Returns undefined when it would be identical to the current id. Callers use it to keep already-imported
+ * rows matched instead of importing them a second time.
+ */
+export function getLegacyEnableBankingTransactionId(
+  providerTx: any,
+  connectionId: string,
+  providerAccountId: string,
+): string | undefined {
+  const pick = (...values: any[]) => values.find(v => typeof v === 'string' && v.trim())?.trim() as string | undefined;
+  const legacy = pick(providerTx?.transaction_id, providerTx?.transactionId);
+  const current = pick(providerTx?.entry_reference, providerTx?.entryReference);
+  if (!legacy || !current || legacy === current) return undefined;
+  return `eb-${connectionId}-${providerAccountId}-${legacy}`;
+}
+
+/**
+ * Crystal account type suggested for a bank account. Uses ISO 20022 `cash_account_type`
+ * (CARD, SVGS, LOAN, ...) and falls back to wording in the product name, since many banks omit the type.
+ */
+export function suggestAccountType(account: { cash_account_type?: string; cashAccountType?: string; product?: string; name?: string } | undefined): 'Checking' | 'Savings' | 'Credit Card' | 'Loan' {
+  const type = String(account?.cash_account_type ?? account?.cashAccountType ?? '').toUpperCase();
+  if (type === 'SVGS') return 'Savings';
+  if (type === 'CARD') return 'Credit Card';
+  if (type === 'LOAN') return 'Loan';
+  if (type) return 'Checking';
+  const label = `${account?.product ?? ''} ${account?.name ?? ''}`.toLowerCase();
+  if (/\b(savings?|spaar|épargne|epargne|sparen|sparkonto)\b/.test(label)) return 'Savings';
+  if (/\b(credit\s*card|kredietkaart|carte\s+de\s+cr[ée]dit|visa|mastercard|amex)\b/.test(label)) return 'Credit Card';
+  return 'Checking';
 }

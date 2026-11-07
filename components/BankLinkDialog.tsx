@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Account, AccountType, EnableBankingAccount, EnableBankingLinkPayload } from '../types';
 import { Button } from './ui/Actions';
 import { DateInput, TextInput } from './ui/Fields';
+import { suggestAccountType } from '../utils/enableBankingMapper';
 import { Dialog } from './ui/Overlays';
 import { Select } from './ui/Pickers';
 import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
@@ -46,7 +47,7 @@ const BankLinkDialog: React.FC<BankLinkDialogProps> = ({ account, accounts, take
     setMode(account.linkedAccountId ? 'existing' : 'create');
     setAccountId(account.linkedAccountId ?? '');
     setName(account.name);
-    setType('Checking');
+    setType(suggestAccountType({ cashAccountType: account.cashAccountType, product: account.name }));
     const fallbackStart = daysAgo(90) >= minDate ? daysAgo(90) : minDate;
     setStartDate(account.syncStartDate && account.syncStartDate >= minDate ? account.syncStartDate : fallbackStart);
   }, [account, minDate]);

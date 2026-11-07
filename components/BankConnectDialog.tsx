@@ -11,6 +11,26 @@ export interface BankForm {
   clientCertificate: string;
   selectedBank: string;
   psuType?: 'personal' | 'business';
+  /** Sign-in method name; empty means the bank's default. */
+  authMethod?: string;
+  /** Typed login details for the chosen method. Sent once to start authorization; never persisted. */
+  credentials?: Record<string, string>;
+}
+
+export interface BankCredentialField {
+  name: string;
+  title: string;
+  required: boolean;
+  description?: string;
+}
+
+export interface BankAuthMethod {
+  name: string;
+  title: string;
+  psuType?: string;
+  approach?: string;
+  hidden: boolean;
+  credentials: BankCredentialField[];
 }
 
 export interface BankOption {
@@ -20,6 +40,10 @@ export interface BankOption {
   logo?: string;
   psuTypes?: string[];
   maximumConsentValidity?: number;
+  authMethods?: BankAuthMethod[];
+  requiredPsuHeaders?: string[];
+  /** The bank's integration is still in beta at Enable Banking. */
+  beta?: boolean;
 }
 
 const PSU_TYPE_OPTIONS = [
@@ -83,6 +107,11 @@ const BankConnectDialog: React.FC<BankConnectDialogProps> = ({ isOpen, onClose, 
   const availablePsuTypes = currentBank?.psuTypes?.length
     ? PSU_TYPE_OPTIONS.filter(opt => currentBank.psuTypes!.includes(opt.id))
     : PSU_TYPE_OPTIONS;
+  const consentDays = currentBank?.maximumConsentValidity ? Math.floor(currentBank.maximumConsentValidity / 86400) : null;
+  // Methods the user may pick: not hidden, and for the chosen account holder type.
+  const authMethods = (currentBank?.authMethods ?? []).filter(method => !method.hidden && (!method.psuType || method.psuType === (form.psuType || 'personal')));
+  const selectedMethod = authMethods.find(method => method.name === form.authMethod);
+  const methodOptions = [{ id: '', label: 'Bank default' }, ...authMethods.map(method => ({ id: method.name, label: method.title || method.name }))];
 
   return (
     <Dialog
@@ -139,16 +168,35 @@ const BankConnectDialog: React.FC<BankConnectDialogProps> = ({ isOpen, onClose, 
               label="Bank"
               options={banks.map(bank => ({ id: bank.id, label: bank.name, description: bank.country }))}
               value={form.selectedBank || null}
-              onChange={id => onChange({ selectedBank: id ?? '' })}
+              onChange={id => onChange({ selectedBank: id ?? '', authMethod: '', credentials: {} })}
             />
             {availablePsuTypes.length > 1 && (
               <Select
                 label="Account holder type"
                 options={availablePsuTypes}
                 value={form.psuType || 'personal'}
-                onChange={id => onChange({ psuType: (id as 'personal' | 'business') || 'personal' })}
+                onChange={id => onChange({ psuType: (id as 'personal' | 'business') || 'personal', authMethod: '', credentials: {} })}
               />
             )}
+            {currentBank?.beta && <Banner tone="attention">This bank’s connection is still in beta. Some data may be missing or slow.</Banner>}
+            {authMethods.length > 1 && (
+              <Select
+                label="Sign-in method"
+                options={methodOptions}
+                value={form.authMethod || ''}
+                onChange={id => onChange({ authMethod: id, credentials: {} })}
+              />
+            )}
+            {selectedMethod?.credentials.map(field => (
+              <TextInput
+                key={field.name}
+                label={field.title || field.name}
+                help={field.description || (field.required ? undefined : 'Optional. Skips this step at the bank.')}
+                value={form.credentials?.[field.name] ?? ''}
+                onChange={value => onChange({ credentials: { ...(form.credentials ?? {}), [field.name]: value } })}
+              />
+            ))}
+            {consentDays && <p className="type-caption text-muted">Access can last up to {consentDays} days. You’ll be asked to renew it before it ends.</p>}
           </>
         )}
       </div>

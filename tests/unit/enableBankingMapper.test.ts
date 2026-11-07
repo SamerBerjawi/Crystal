@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   computeSyncDateFrom,
   extractProviderAccountIdentifiers,
+  getLegacyEnableBankingTransactionId,
   guessBrandDomain,
   mapEnableBankingTransaction,
   mapMccToCategory,
@@ -10,6 +11,8 @@ import {
   matchKnownBrand,
   parseEuropeanBankRemittance,
   resolveEnableBankingBalance,
+  stripPaymentWallet,
+  suggestAccountType,
   sanitizeBankMerchant,
 } from '../../utils/enableBankingMapper';
 import { EnableBankingAccount } from '../../types';
@@ -232,4 +235,69 @@ test('mapMccToCategory and matchKnownBrand / guessBrandDomain cover major Europe
   assert.equal(matchKnownBrand('COLRUYT GROUP')?.canonicalName, 'Colruyt');
   assert.equal(guessBrandDomain('Albert Heijn'), 'ah.nl');
   assert.equal(guessBrandDomain('Delhaize'), 'delhaize.be');
+});
+
+test('transaction ids prefer the stable entry_reference over transaction_id', () => {
+  const opts = { linkedAccountId: 'acc-1', providerAccountId: 'uid-1', currency: 'EUR' as const, connectionId: 'eb-1' };
+  const tx = { entry_reference: 'ref-9', transaction_id: 'volatile-1', transaction_amount: { amount: '5.00' }, credit_debit_indicator: 'DBIT', booking_date: '2026-05-10' };
+  const mapped = mapEnableBankingTransaction(tx, opts);
+  assert.equal(mapped?.sureId, 'ref-9');
+  assert.equal(mapped?.id, 'eb-eb-1-uid-1-ref-9');
+  // Without entry_reference it still falls back to transaction_id.
+  assert.equal(mapEnableBankingTransaction({ ...tx, entry_reference: undefined }, opts)?.sureId, 'volatile-1');
+});
+
+test('getLegacyEnableBankingTransactionId returns the old transaction_id based id only when it differs', () => {
+  assert.equal(getLegacyEnableBankingTransactionId({ entry_reference: 'r', transaction_id: 't' }, 'c', 'a'), 'eb-c-a-t');
+  assert.equal(getLegacyEnableBankingTransactionId({ entry_reference: 'same', transaction_id: 'same' }, 'c', 'a'), undefined);
+  assert.equal(getLegacyEnableBankingTransactionId({ transaction_id: 't' }, 'c', 'a'), undefined);
+});
+
+test('mapEnableBankingTransaction uses bank_transaction_code, reference_number and the holder note from the API schema', () => {
+  const opts = { linkedAccountId: 'acc-1', providerAccountId: 'uid-1', currency: 'EUR' as const, connectionId: 'eb-1' };
+  const base = { entry_reference: 'r1', transaction_amount: { amount: '12.00' }, credit_debit_indicator: 'DBIT', booking_date: '2026-05-10' };
+  assert.equal(mapEnableBankingTransaction({ ...base, bank_transaction_code: { description: 'Card payment' } }, opts)?.description, 'Card payment');
+  assert.equal(mapEnableBankingTransaction({ ...base, reference_number: 'RF18539007547034' }, opts)?.description, 'RF18539007547034');
+  assert.equal(mapEnableBankingTransaction({ ...base, note: 'Birthday gift' }, opts)?.notes, 'Birthday gift');
+});
+
+test('an account keeps its link when the session renews with a new uid and no identification hash', () => {
+  const existing = [{ id: 'old-uid', name: 'Current', bankName: 'B', currency: 'EUR' as const, balance: 0, accountNumber: 'BE68 5390 0754 7034', linkedAccountId: 'acc-1' }];
+  const match = matchExistingProviderAccount(existing, { uid: 'new-uid', accountNumber: 'BE68539007547034' });
+  assert.equal(match?.linkedAccountId, 'acc-1');
+  assert.equal(matchExistingProviderAccount(existing, { uid: 'new-uid', accountNumber: 'BE00000000000000' }), undefined);
+});
+
+test('mobile wallet wording is not read as the merchant (Apple Pay is not Apple)', () => {
+  assert.equal(stripPaymentWallet('Betaling met Apple Pay bij JUMBO'), 'Betaling bij JUMBO');
+  assert.equal(matchKnownBrand('PAYMENT VIA APPLE PAY'), undefined);
+  assert.equal(matchKnownBrand('Apple Pay'), undefined);
+  assert.equal(matchKnownBrand('APPLE.COM/BILL')?.canonicalName, 'Apple');
+  assert.equal(sanitizeBankMerchant('Apple Pay'), undefined);
+  assert.equal(sanitizeBankMerchant('GOOGLE PAY'), undefined);
+  assert.equal(sanitizeBankMerchant('Apple Pay DELHAIZE BRUXELLES'), 'Delhaize');
+  assert.equal(sanitizeBankMerchant('APPLE.COM/BILL'), 'Apple');
+});
+
+test('a card payment made with Apple Pay resolves to the shop, not Apple', () => {
+  const opts = { linkedAccountId: 'acc-1', providerAccountId: 'uid-1', currency: 'EUR' as const, connectionId: 'eb-1' };
+  const base = { entry_reference: 'r1', transaction_amount: { amount: '23.40' }, credit_debit_indicator: 'DBIT', booking_date: '2026-05-10' };
+  const viaTemplate = mapEnableBankingTransaction({ ...base, remittance_information: ['Betaling met Apple Pay (Visa debet) bij BAKKERIJ JANSSENS te GENT'] }, opts);
+  assert.equal(viaTemplate?.merchant, 'Bakkerij Janssens');
+  const viaRemittanceBrand = mapEnableBankingTransaction({ ...base, remittance_information: ['APPLE PAY COLRUYT 4321 BRUSSELS'] }, opts);
+  assert.equal(viaRemittanceBrand?.merchant, 'Colruyt');
+  const apple = mapEnableBankingTransaction({ ...base, creditor: { name: 'Apple Pay' }, remittance_information: ['APPLE PAY DELHAIZE'] }, opts);
+  assert.equal(apple?.merchant, 'Delhaize');
+  const genuine = mapEnableBankingTransaction({ ...base, creditor: { name: 'APPLE.COM/BILL' } }, opts);
+  assert.equal(genuine?.merchant, 'Apple');
+});
+
+test('suggestAccountType reads cash_account_type, then the product name', () => {
+  assert.equal(suggestAccountType({ cash_account_type: 'SVGS' }), 'Savings');
+  assert.equal(suggestAccountType({ cashAccountType: 'CARD' }), 'Credit Card');
+  assert.equal(suggestAccountType({ cash_account_type: 'CACC', product: 'Savings plus' }), 'Checking');
+  assert.equal(suggestAccountType({ product: 'KBC Spaarrekening' }), 'Checking');
+  assert.equal(suggestAccountType({ product: 'Savings Account' }), 'Savings');
+  assert.equal(suggestAccountType({ name: 'Mastercard Gold' }), 'Credit Card');
+  assert.equal(suggestAccountType(undefined), 'Checking');
 });
