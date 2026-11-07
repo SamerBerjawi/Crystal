@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { EnableBankingConnection, EnableBankingSyncOptions, Page } from '../types';
-import { loadAllPendingConnections, loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
+import { loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 import Icon from '../components/ui/Icon';
 import { Button } from '../components/ui/Actions';
 
@@ -11,6 +11,8 @@ interface EnableBankingCallbackProps {
   onSync: (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => Promise<void>;
   setCurrentPage: (page: Page) => void;
 }
+
+const CONNECTION_LOOKUP_GRACE_MS = 6000;
 
 const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   connections,
@@ -22,35 +24,26 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const hasProcessed = useRef(false);
+  // The single-use code must be exchanged once: the effect re-runs whenever `connections` changes while we resolve.
+  const resolving = useRef(false);
+  // Saved connections can arrive after this page mounts; only report a missing one after a short wait.
+  const notFoundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackParamsRef = useRef<{ code: string | null; state: string | null; error: string | null; errorDescription: string | null } | null>(null);
 
+  useEffect(() => () => { if (notFoundTimer.current) clearTimeout(notFoundTimer.current); }, []);
+
   useEffect(() => {
-    if (hasProcessed.current) return;
+    if (hasProcessed.current || resolving.current) return;
 
     if (!callbackParamsRef.current) {
       const params = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      // Enable Banking redirects back with exactly: code, state, error, error_description.
       callbackParamsRef.current = {
-        code:
-          params.get('code')
-          || params.get('authorization_code')
-          || hashParams.get('code')
-          || hashParams.get('authorization_code'),
-        state:
-          params.get('state')
-          || params.get('connection_id')
-          || params.get('connectionId')
-          || hashParams.get('state')
-          || hashParams.get('connection_id')
-          || hashParams.get('connectionId'),
-        error:
-          params.get('error')
-          || hashParams.get('error'),
-        errorDescription:
-          params.get('error_description')
-          || params.get('message')
-          || hashParams.get('error_description')
-          || hashParams.get('message'),
+        code: params.get('code') || hashParams.get('code'),
+        state: params.get('state') || hashParams.get('state'),
+        error: params.get('error') || hashParams.get('error'),
+        errorDescription: params.get('error_description') || hashParams.get('error_description'),
       };
     }
 
@@ -79,8 +72,13 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
       setError('Missing authorization code in callback.');
       return;
     }
+    if (!state) {
+      setError('The bank did not return a connection reference. Start the connection again.');
+      return;
+    }
 
     const resolveConnection = async () => {
+      resolving.current = true;
       let connection: EnableBankingConnection | undefined;
 
       if (state) {
@@ -116,18 +114,15 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
       }
 
       if (!connection) {
-        const localPendingConnections = loadAllPendingConnections();
-        if (localPendingConnections.length === 1) {
-          connection = localPendingConnections[0];
-          setConnections(prev => prev.some(conn => conn.id === connection?.id) ? prev : [...prev, connection!]);
-        }
-      }
-
-      if (!connection) {
-        setError('Missing code or connection reference in callback.');
+        // Connections may still be loading; the effect runs again when they arrive.
+        resolving.current = false;
+        if (notFoundTimer.current) clearTimeout(notFoundTimer.current);
+        notFoundTimer.current = setTimeout(() => setError('Missing code or connection reference in callback.'), CONNECTION_LOOKUP_GRACE_MS);
         return;
       }
 
+      if (notFoundTimer.current) clearTimeout(notFoundTimer.current);
+      setError(null);
       hasProcessed.current = true;
 
       const exchangeSession = async () => {
@@ -141,6 +136,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
             },
             body: JSON.stringify({
               applicationId: connection.applicationId,
+              requiredPsuHeaders: connection.requiredPsuHeaders,
               code,
             }),
           });
@@ -179,6 +175,15 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           };
 
           setConnections(prev => prev.map(conn => conn.id === connection.id ? updatedConnection : conn));
+          // Reconnecting creates a new session; close the previous one so its consent doesn't linger at the bank.
+          if (connection.sessionId && connection.sessionId !== sessionId) {
+            fetch(`/api/enable-banking/session/${encodeURIComponent(connection.sessionId)}`, {
+              method: 'DELETE',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ applicationId: connection.applicationId, requiredPsuHeaders: connection.requiredPsuHeaders }),
+            }).catch(error => console.warn('Failed to revoke the previous Enable Banking session', error));
+          }
           removePendingConnection(connection.id);
           fetch(`/api/enable-banking/pending/${encodeURIComponent(connection.id)}`, {
             method: 'DELETE',

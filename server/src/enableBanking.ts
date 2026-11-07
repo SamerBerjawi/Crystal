@@ -1,51 +1,25 @@
 
 import express from 'express';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { authenticateToken, AuthRequest } from './middleware';
 import { db } from './database';
+import { derivePsuId, sanitizeAuthMethod, sanitizeCredentials } from './ebAuthOptions';
+import { EnableBankingError, RATE_LIMIT_RETRY_SECONDS, buildPsuHeaders, parseErrorCode, parseRetryAfter, publicMessageFor, requiresReauthorization, sanitizeRequiredPsuHeaders } from './ebErrors';
+import { resolveRedirectUrl } from './ebRedirect';
 import { deleteCredentials, loadCredentials, saveCredentials, stripKeyFromConnection } from './ebCredentials';
 
 const ENABLE_BANKING_API = process.env.ENABLE_BANKING_API || 'https://api.enablebanking.com';
-const DEFAULT_REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:5173/enable-banking/callback';
-
-/** Error whose message is safe to show to the user; upstream details stay in the server log. */
-class EnableBankingError extends Error {
-  constructor(public status: number, message: string, public code?: string) { super(message); }
-}
-
-const publicMessageFor = (status: number): string => {
-  if (status === 401 || status === 403) return `Enable Banking rejected the request (HTTP ${status}). Check the application ID and private key.`;
-  if (status === 404) return 'Enable Banking could not find the requested resource (HTTP 404).';
-  if (status === 422) return 'Enable Banking could not process the bank request (HTTP 422). The bank may require reauthorization or updated consent parameters.';
-  if (status === 429) return 'Enable Banking is rate limiting requests (HTTP 429). Try again in a few minutes.';
-  if (status >= 500) return `Enable Banking is currently unavailable (HTTP ${status}). Try again later.`;
-  return `Enable Banking request failed (HTTP ${status}).`;
-};
-
-const isAuthFailureStatus = (status: number): boolean => status === 401 || status === 403 || status === 404;
 
 /** Maps any thrown error to a client-safe message (never upstream bodies or internal error text). */
 const toPublicMessage = (error: any, fallback: string): string => {
   if (error instanceof EnableBankingError) return error.message;
   if (error?.name === 'TimeoutError' || error?.name === 'AbortError') return 'Enable Banking did not respond in time. Try again.';
-  if (/PEM|private key|asn1|DECODER|key/i.test(String(error?.message || ''))) return 'The private key could not be read. Check that it is a PEM private key.';
+  if (/PEM|private key|asn1|DECODER|secretOrPrivateKey|unsupported/i.test(String(error?.message || ''))) return 'The private key could not be read. Check that it is a PEM private key.';
   return fallback;
 };
 
-/** Extracts client IP and User-Agent so banks requiring PSU context headers (HTTP 422 PSU_HEADER_NOT_PROVIDED) succeed. */
-const extractPsuHeaders = (req: express.Request): Record<string, string> => {
-  const headers: Record<string, string> = {};
-  const ua = req.headers['user-agent'];
-  if (typeof ua === 'string' && ua.trim()) {
-    headers['Psu-User-Agent'] = ua.trim().slice(0, 512);
-  }
-  const rawIp = (req.ip || '').replace(/^::ffff:/, '').trim();
-  if (rawIp && rawIp !== '127.0.0.1' && rawIp !== '::1') {
-    headers['Psu-Ip-Address'] = rawIp;
-  }
-  return headers;
-};
-
+const JWT_CACHE_LIMIT = 50;
 const jwtCache = new Map<string, { token: string; expiresAt: number }>();
 
 class EnableBankingClient {
@@ -71,7 +45,7 @@ class EnableBankingClient {
   private generateJwt() {
     const now = Math.floor(Date.now() / 1000);
     const key = this.getFormattedKey();
-    const cacheKey = `${this.applicationId}:${key.slice(-32)}`;
+    const cacheKey = `${this.applicationId}:${crypto.createHash('sha256').update(key).digest('hex')}`;
     const cached = jwtCache.get(cacheKey);
     if (cached && cached.expiresAt > now + 60) {
       return cached.token;
@@ -90,13 +64,17 @@ class EnableBankingClient {
         keyid: this.applicationId,
       },
     );
+    if (jwtCache.size >= JWT_CACHE_LIMIT) {
+      for (const [k, v] of jwtCache) if (v.expiresAt <= now) jwtCache.delete(k);
+      if (jwtCache.size >= JWT_CACHE_LIMIT) jwtCache.clear();
+    }
     jwtCache.set(cacheKey, { token, expiresAt: now + 3600 });
     return token;
   }
 
   private async request<T>(
     path: string,
-    init: RequestInit & { retryUnauthorized?: boolean; sessionId?: string } = {},
+    init: RequestInit = {},
   ): Promise<T> {
     const token = this.generateJwt();
     const url = `${ENABLE_BANKING_API}${path}`;
@@ -106,7 +84,6 @@ class EnableBankingClient {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
-        ...(init.sessionId ? { 'Session-ID': init.sessionId } : {}),
         ...this.psuHeaders,
         ...(init.headers || {}),
       },
@@ -115,7 +92,9 @@ class EnableBankingClient {
     if (!response.ok) {
       const text = await response.text();
       console.error(`Enable Banking request to ${path.split('?')[0]} failed (${response.status}): ${text.slice(0, 500)}`);
-      throw new EnableBankingError(response.status, publicMessageFor(response.status));
+      const code = parseErrorCode(text);
+      const retryAfterSeconds = response.status === 429 ? (parseRetryAfter(response.headers.get('retry-after')) ?? RATE_LIMIT_RETRY_SECONDS) : undefined;
+      throw new EnableBankingError(response.status, publicMessageFor(response.status, code, retryAfterSeconds), code, retryAfterSeconds);
     }
 
     if (response.status === 204) {
@@ -144,6 +123,9 @@ class EnableBankingClient {
     psuType,
     maximumConsentValidity,
     language,
+    authMethod,
+    credentials,
+    psuId,
   }: {
     aspspId?: string;
     aspspName?: string;
@@ -153,6 +135,9 @@ class EnableBankingClient {
     psuType?: 'personal' | 'business';
     maximumConsentValidity?: number;
     language?: string;
+    authMethod?: string;
+    credentials?: Record<string, string>;
+    psuId?: string;
   }) {
     const resolvedName = (aspspName || aspspId || '').trim();
     if (!resolvedName) {
@@ -182,6 +167,9 @@ class EnableBankingClient {
         redirect_url: redirectUrl,
         state: state || `eb-${Date.now()}`,
         ...(language ? { language: language.slice(0, 2).toLowerCase() } : {}),
+        ...(authMethod ? { auth_method: authMethod } : {}),
+        ...(authMethod && credentials ? { credentials } : {}),
+        ...(psuId ? { psu_id: psuId } : {}),
       }),
     });
   }
@@ -203,12 +191,12 @@ class EnableBankingClient {
     });
   }
 
-  getAccountBalances(accountId: string, sessionId: string) {
-    return this.request(`/accounts/${encodeURIComponent(accountId)}/balances`, { sessionId });
+  getAccountBalances(accountId: string) {
+    return this.request(`/accounts/${encodeURIComponent(accountId)}/balances`);
   }
 
-  getAccountDetails(accountId: string, sessionId: string) {
-    return this.request(`/accounts/${encodeURIComponent(accountId)}/details`, { sessionId });
+  getAccountDetails(accountId: string) {
+    return this.request(`/accounts/${encodeURIComponent(accountId)}/details`);
   }
 
   getAccountTransactions({
@@ -216,7 +204,6 @@ class EnableBankingClient {
     dateFrom,
     dateTo,
     continuationKey,
-    sessionId,
     strategy,
     transactionStatus,
   }: {
@@ -224,7 +211,6 @@ class EnableBankingClient {
     dateFrom?: string;
     dateTo?: string;
     continuationKey?: string;
-    sessionId?: string;
     strategy?: 'default' | 'longest';
     transactionStatus?: 'BOOK' | 'PDNG';
   }) {
@@ -235,11 +221,14 @@ class EnableBankingClient {
     if (strategy) params.set('strategy', strategy);
     if (continuationKey) params.set('continuation_key', continuationKey);
 
-    return this.request(`/accounts/${encodeURIComponent(accountId)}/transactions?${params.toString()}`, { sessionId });
+    return this.request(`/accounts/${encodeURIComponent(accountId)}/transactions?${params.toString()}`);
   }
 }
 
 const router = express.Router();
+
+/** PSU context headers for a bank request, shaped by the bank's `required_psu_headers` when the client sends them. */
+const psuHeadersFor = (req: express.Request) => buildPsuHeaders(req, sanitizeRequiredPsuHeaders(req.body?.requiredPsuHeaders));
 
 /**
  * Resolves the Enable Banking application id and signing key for a request.
@@ -282,12 +271,15 @@ router.delete('/credentials', authenticateToken, async (req: AuthRequest, res) =
 });
 
 const sendUpstreamError = (res: express.Response, error: any, fallback: string) => {
-  const upstreamStatus = error instanceof EnableBankingError ? error.status : undefined;
-  const requiresReauth = upstreamStatus ? isAuthFailureStatus(upstreamStatus) : false;
-  res.status(upstreamStatus && upstreamStatus >= 400 && upstreamStatus < 500 ? 502 : 500).json({
+  const upstream = error instanceof EnableBankingError ? error : undefined;
+  const upstreamStatus = upstream?.status;
+  if (upstream?.retryAfterSeconds) res.setHeader('Retry-After', String(upstream.retryAfterSeconds));
+  res.status(upstreamStatus === 429 ? 429 : upstreamStatus && upstreamStatus >= 400 && upstreamStatus < 500 ? 502 : 500).json({
     message: toPublicMessage(error, fallback),
     upstreamStatus,
-    requiresReauth,
+    errorCode: upstream?.code,
+    retryAfterSeconds: upstream?.retryAfterSeconds,
+    requiresReauth: upstream ? requiresReauthorization(upstream) : false,
   });
 };
 
@@ -298,7 +290,7 @@ router.post('/aspsps', authenticateToken, async (req: AuthRequest, res) => {
     if (!creds || !creds.applicationId || !countryCode) {
       return res.status(400).json({ message: creds ? 'applicationId and countryCode are required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
     const data = await client.getAspsps(countryCode);
     if (creds.isNew) await saveCredentials(creds.userId, creds.applicationId, creds.clientCertificate);
     res.json(data);
@@ -317,8 +309,8 @@ router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthR
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
 
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
-    const details = await client.getAccountDetails(accountId, sessionId);
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
+    const details = await client.getAccountDetails(accountId);
     res.json(details);
   } catch (error: any) {
     console.error('Failed to fetch account details', error);
@@ -329,20 +321,22 @@ router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthR
 router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { countryCode, aspspName, aspspId, state, psuType, maximumConsentValidity, language } = req.body;
+    const authMethod = sanitizeAuthMethod(req.body.authMethod);
+    const credentials = sanitizeCredentials(req.body.credentials, authMethod);
     const creds = await resolveCredentials(req);
     if (!creds || !creds.applicationId || !countryCode || (!aspspName && !aspspId)) {
       return res.status(400).json({ message: creds ? 'countryCode and aspspId/aspspName are required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
-    const forwardedProto = (Array.isArray(req.headers['x-forwarded-proto']) ? req.headers['x-forwarded-proto'][0] : req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim();
-    const protocol = forwardedProto || req.protocol;
-    const forwardedHost = (Array.isArray(req.headers['x-forwarded-host']) ? req.headers['x-forwarded-host'][0] : req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
-    const host = forwardedHost || req.get('host');
-    const redirectUrl =
-      process.env.ENABLE_BANKING_REDIRECT_URL ||
-      (host ? `${protocol}://${host.replace(/\s/g, '')}/enable-banking/callback` : DEFAULT_REDIRECT);
-    if (!process.env.ENABLE_BANKING_REDIRECT_URL && !host) {
-      console.warn('Enable Banking redirect URL falling back to default because host is missing');
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
+    const redirectUrl = resolveRedirectUrl({
+      configuredUrl: process.env.ENABLE_BANKING_REDIRECT_URL,
+      forwardedProto: req.headers['x-forwarded-proto'],
+      forwardedHost: req.headers['x-forwarded-host'],
+      protocol: req.protocol,
+      host: req.get('host'),
+    });
+    if (!redirectUrl) {
+      return res.status(400).json({ message: 'Could not determine a valid callback URL. Set ENABLE_BANKING_REDIRECT_URL on the server.' });
     }
     const data = await client.startAuthorization({
       aspspId,
@@ -353,6 +347,9 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
       psuType,
       maximumConsentValidity: typeof maximumConsentValidity === 'number' ? maximumConsentValidity : undefined,
       language: typeof language === 'string' ? language : undefined,
+      authMethod,
+      credentials,
+      psuId: derivePsuId(creds.userId),
     });
     if (creds.isNew) await saveCredentials(creds.userId, creds.applicationId, creds.clientCertificate);
     res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id, redirectUrl });
@@ -369,7 +366,7 @@ router.post('/session', authenticateToken, async (req: AuthRequest, res) => {
     if (!creds || !creds.applicationId || !code) {
       return res.status(400).json({ message: creds ? 'code is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
     const session = await client.createSession(code);
     res.json(session);
   } catch (error: any) {
@@ -385,7 +382,7 @@ router.post('/session/fetch', authenticateToken, async (req: AuthRequest, res) =
     if (!creds || !creds.applicationId || !sessionId) {
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
     const session = await client.getSession(sessionId);
     res.json(session);
   } catch (error: any) {
@@ -401,7 +398,7 @@ router.delete('/session/:sessionId', authenticateToken, async (req: AuthRequest,
     if (!creds || !creds.applicationId || !sessionId) {
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
     await client.deleteSession(sessionId);
     res.json({ message: 'Session revoked' });
   } catch (error: any) {
@@ -418,8 +415,8 @@ router.post('/accounts/:accountId/balances', authenticateToken, async (req: Auth
     if (!creds || !creds.applicationId || !sessionId) {
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
-    const balances = await client.getAccountBalances(accountId, sessionId);
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
+    const balances = await client.getAccountBalances(accountId);
     res.json(balances);
   } catch (error: any) {
     console.error('Failed to fetch balances', error);
@@ -442,13 +439,12 @@ router.post('/accounts/:accountId/transactions', authenticateToken, async (req: 
     if (!creds || !creds.applicationId || !sessionId) {
       return res.status(400).json({ message: creds ? 'sessionId is required' : MISSING_CREDENTIALS });
     }
-    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, extractPsuHeaders(req));
+    const client = new EnableBankingClient(creds.applicationId, creds.clientCertificate, psuHeadersFor(req));
     const transactions = await client.getAccountTransactions({
       accountId,
       dateFrom,
       dateTo,
       continuationKey,
-      sessionId,
       strategy,
       transactionStatus,
     });

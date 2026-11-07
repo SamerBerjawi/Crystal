@@ -29,11 +29,14 @@ export const withEditLocks = <T extends Partial<Transaction>>(previous: Transact
 };
 
 /**
- * What a sync may fill on an existing transaction: an empty merchant or description from the bank's record,
- * never a locked field. Undefined when there is nothing to change.
+ * What a sync may fill on an existing transaction: an empty merchant or description from the bank's record
+ * (and a merchant that earlier syncs wrongly set to Apple), never a locked field. Undefined when there is nothing to change.
  */
 export const syncFill = (existing: Transaction, incoming: Pick<Transaction, 'merchant' | 'description'>): Transaction | undefined => {
-  const merchant = !existing.merchant && incoming.merchant && !isLocked(existing, 'merchant') ? incoming.merchant : existing.merchant;
+  // Earlier syncs read "Apple Pay" in card text as the merchant Apple. When the bank record now resolves to a
+  // different merchant and you never edited it, correct it. A real Apple purchase resolves to Apple again.
+  const wrongApple = existing.merchant === 'Apple' && !!incoming.merchant && incoming.merchant !== 'Apple';
+  const merchant = (!existing.merchant || wrongApple) && incoming.merchant && !isLocked(existing, 'merchant') ? incoming.merchant : existing.merchant;
   const description = !existing.description && incoming.description && !isLocked(existing, 'description') ? incoming.description : existing.description;
   if (merchant === existing.merchant && description === existing.description) return undefined;
   return { ...existing, merchant, description };

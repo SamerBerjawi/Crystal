@@ -6,7 +6,9 @@ import { Badge } from './ui/Display';
 import { Menu } from './ui/Menu';
 import { Amount } from './ui/Money';
 import { Banner } from './ui/States';
+import { accountKindLabel, getBankCoverageNote } from '../utils/bankCoverage';
 import { countDeleted } from '../utils/deletedSync';
+import { describeConsentExpiry, getConsentExpiry } from '../utils/consentExpiry';
 
 const STATUS: Record<EnableBankingConnection['status'], { label: string; tone: 'neutral' | 'attention' | 'positive' | 'negative' }> = {
   disconnected: { label: 'Disconnected', tone: 'neutral' },
@@ -31,10 +33,11 @@ const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, acc
   const heldBack = countDeleted(connection);
   const status = STATUS[connection.status] ?? STATUS.disconnected;
   const name = connection.selectedBank || 'Bank';
-  const expiresMs = connection.sessionExpiresAt ? new Date(connection.sessionExpiresAt).getTime() : NaN;
-  const daysUntilExpiry = Number.isFinite(expiresMs) ? Math.ceil((expiresMs - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-  const isExpired = daysUntilExpiry !== null && daysUntilExpiry <= 0;
-  const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry > 0 && daysUntilExpiry <= 7;
+  const expiry = getConsentExpiry(connection.sessionExpiresAt);
+  const daysUntilExpiry = expiry?.daysLeft ?? null;
+  const isExpired = expiry?.level === 'expired';
+  const isExpiringSoon = !!expiry && !isExpired;
+  const coverageNote = getBankCoverageNote(connection.selectedBank, connection.accounts);
   const needsReconnect = connection.status === 'requires_update' || !connection.sessionId || isExpired;
   const facts = [
     connection.lastSyncedAt ? `Synced ${shortDate(connection.lastSyncedAt)}` : 'Never synced',
@@ -68,6 +71,12 @@ const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, acc
         </div>
       </header>
 
+      {expiry && (
+        <Banner tone={isExpired || expiry.level === 'last-day' ? 'error' : 'attention'} className="mt-4" actionLabel={isExpired ? 'Reconnect' : 'Renew access'} onAction={onReconnect}>
+          {describeConsentExpiry(name, expiry)}
+        </Banner>
+      )}
+      {coverageNote && connection.status === 'ready' && <Banner tone="info" className="mt-4">{coverageNote}</Banner>}
       {connection.lastError && <Banner tone="error" className="mt-4">The last sync failed: {connection.lastError.slice(0, 200)}</Banner>}
 
       {connection.accounts.length === 0 ? (
@@ -81,9 +90,12 @@ const BankConnectionCard: React.FC<BankConnectionCardProps> = ({ connection, acc
               <li key={account.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
                 <div className="min-w-0 flex-1 basis-44">
                   <p className="type-body truncate text-ink">{account.name}{lastFour ? ` ·· ${lastFour}` : ''}</p>
-                  {linked
-                    ? <p className="type-caption truncate text-muted">Linked to {linked.name}</p>
-                    : <Badge tone="attention" className="mt-1">Not linked</Badge>}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {accountKindLabel(account.cashAccountType) && <Badge tone="neutral">{accountKindLabel(account.cashAccountType)}</Badge>}
+                    {linked
+                      ? <p className="type-caption truncate text-muted">Linked to {linked.name}</p>
+                      : <Badge tone="attention">Not linked</Badge>}
+                  </div>
                 </div>
                 <Amount value={account.balance} currency={account.currency} className="type-figure-row text-ink" />
                 <div className="flex items-center gap-1">

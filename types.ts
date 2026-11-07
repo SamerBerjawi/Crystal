@@ -222,6 +222,8 @@ export interface EnableBankingAccount {
   currency: Currency;
   balance: number;
   accountNumber?: string;
+  /** ISO 20022 account type reported by the bank: CACC (current), SVGS (savings), CARD, LOAN, ... */
+  cashAccountType?: string;
   linkedAccountId?: string;
   syncStartDate?: string;
   lastSyncedAt?: string;
@@ -240,7 +242,11 @@ export interface EnableBankingConnection {
   selectedBankId?: string;
   bankLogoUrl?: string;
   psuType?: 'personal' | 'business';
+  /** Name of the bank's sign-in method chosen when connecting (from /aspsps `auth_methods`); reused on reconnect. */
+  authMethod?: string;
   maximumConsentValidity?: number;
+  /** The bank's `required_psu_headers` from /aspsps; the server sends all of them or none (see server/src/ebErrors.ts). */
+  requiredPsuHeaders?: string[];
   sessionId?: string;
   sessionExpiresAt?: string;
   authorizationId?: string;
