@@ -19,6 +19,8 @@ import { EmptyState } from './ui/States';
 interface EnableBankingIntegrationCardProps {
   connections: EnableBankingConnection[];
   accounts: Account[];
+  /** Changes when the saved application ID or key changes elsewhere on the page. */
+  credentialsRevision?: number;
   isConnectOpen: boolean;
   onConnectOpenChange: (isOpen: boolean) => void;
   onCreateConnection: (payload: {
@@ -46,6 +48,7 @@ interface EnableBankingIntegrationCardProps {
 export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> = ({
   connections,
   accounts,
+  credentialsRevision = 0,
   isConnectOpen,
   onConnectOpenChange,
   onCreateConnection,
@@ -113,7 +116,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
       });
     fetchRedirectUrl().then(result => { if (!cancelled) setCallbackUrl(result.redirectUrl); });
     return () => { cancelled = true; };
-  }, []);
+  }, [credentialsRevision]);
 
   const clampSyncDate = (value?: string) => {
     if (!value) return value;
