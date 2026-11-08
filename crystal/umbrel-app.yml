@@ -24,6 +24,8 @@ description: >-
   - Complete Privacy & Sovereignty: 100% self-hosted with dedicated local PostgreSQL persistence. Your financial records never leave your Umbrel node.
 
   - Modern Responsive Interface: Fluid, interactive desktop and mobile views with one-click privacy blur modes for public viewing.
+releaseNotes: ""
+
 developer: Samer Berjawi
 website: https://github.com/SamerBerjawi/Crystal
 dependencies: []
