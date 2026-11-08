@@ -64,6 +64,7 @@ export const HUBS: Hub[] = [
       { label: 'Forecast', page: 'Forecasting', icon: 'chart-evaluation' },
       { label: 'Budget', page: 'Budget', icon: 'pie-chart-01' },
       { label: 'Goals', page: 'Goals', icon: 'target-01' },
+      { label: 'FIRE', page: 'FIRE', icon: 'flag-01' },
       { label: 'Calendar', page: 'Schedule & Bills', icon: 'calendar-03' },
       { label: 'Subscriptions', page: 'Subscriptions', icon: 'repeat-one-01' },
       { label: 'Tasks', page: 'Tasks', icon: 'task-01' },

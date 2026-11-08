@@ -61,12 +61,14 @@ const pageRegistry = {
   'Quotes & Invoices': { path: '/invoices', loader: () => import('./pages/Invoices') },
   Merchants: { path: '/merchants', loader: () => import('./pages/Merchants') },
   Rules: { path: '/rules', loader: () => import('./pages/Rules') },
+  FIRE: { path: '/fire', loader: () => import('./pages/Fire') },
 } as const;
 
 const Dashboard = lazyWithRetry(pageRegistry.Dashboard.loader);
 const Accounts = lazyWithRetry(pageRegistry.Accounts.loader);
 const Transactions = lazyWithRetry(pageRegistry.Transactions.loader);
 const ReportsPage = lazyWithRetry(pageRegistry.Reports.loader);
+const FirePage = lazyWithRetry(pageRegistry.FIRE.loader);
 const Budgeting = lazyWithRetry(pageRegistry.Budget.loader);
 const Forecasting = lazyWithRetry(pageRegistry.Forecasting.loader);
 const GoalsPage = lazyWithRetry(pageRegistry.Goals.loader);
@@ -2760,6 +2762,7 @@ const App: React.FC = () => {
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Transactions': return <Transactions user={currentUser!} initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Reports': return <ReportsPage setCurrentPage={setCurrentPage} />;
+      case 'FIRE': return <FirePage />;
       case 'Budget': return <Budgeting />;
       case 'Forecasting': return <Forecasting />;
       case 'Goals': return <GoalsPage />;

@@ -55,6 +55,17 @@ export const HELP_SECTIONS: HelpSection[] = [
     ],
   },
   {
+    id: 'fire',
+    title: 'Financial independence',
+    points: [
+      { title: 'Your FI number', text: 'Planning, FIRE. It is a year of spending divided by the share of your portfolio you expect to spend each year (4% by default), so 30,000 a year needs 750,000. Spending comes from your last 12 months unless you enter your own.' },
+      { title: 'The date', text: 'It grows what you have, and adds what you save each month, until it reaches that number. Everything is in today’s money, after inflation, and shows a range for a return two points higher and lower. Move the sliders to see what changes it, and keep the numbers you like.' },
+      { title: 'Coast FI', text: 'Add your age and the age you want to retire. Coast FI is what you need invested now so that growth alone, with no more saving, reaches your FI number by then.' },
+      { title: 'What counts', text: 'Cash, savings and investments, by default. A home or a car is left out unless you add it. Money moved between your own accounts is saving, not spending.' },
+      { title: 'Take it as a guide', text: 'It assumes steady saving and a steady return, ignores tax, and follows what was paid in and out, not market moves. It is arithmetic on your own figures, not advice.' },
+    ],
+  },
+  {
     id: 'investments',
     title: 'Investments',
     points: [

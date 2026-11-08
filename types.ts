@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // Financial data and page definitions
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'FIRE' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
   type: AccountType;
@@ -691,6 +691,8 @@ export interface InvestmentPriceConfig {
 }
 
 export interface AppPreferences {
+  /** Financial independence settings (utils/fireModel.ts). Missing values use the defaults. */
+  fire?: Partial<import('./utils/fireModel').FireSettings>;
   savedReportViews?: import('./utils/reportsModel').SavedReportView[];
   // Choices that follow you across devices (S-002).
   ignoredSubscriptions?: string[];

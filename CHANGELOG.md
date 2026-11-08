@@ -2,6 +2,15 @@
 
 All notable changes to Crystal are documented here. Versions before 3.0.0 were tagged `v1.x`–`v2.x`.
 
+## [Unreleased]
+
+### Added
+- **Financial independence** (Planning, FIRE). Your FI number (a year of spending divided by a withdrawal rate, 4% by default), how far along you are, and the month your portfolio is on course to reach it, with a range for a return two points higher and lower. Move sliders for what you save, what you spend and the return to see what changes your date, and keep the numbers you like. Everything is in today's money, after inflation.
+- **Coast FI.** Give your age and the age you want to retire, and see the amount that grows into your FI number by then with no more saving, and when you reach it.
+- **Savings rate over time.** Income less spending as a share of income, month by month. Money moved into savings or investments counts as saved, not spent.
+- **Stages and net-worth milestones.** 25%, half way, Lean FI (70%), FI and Fat FI (150%), and round-number net-worth milestones (50,000, 100,000, 250,000 ...), each with the month you passed it, or when you will at your current pace.
+- The accounts that count default to cash, savings and investments, and can be chosen in the settings. A home or a car is left out unless you add it.
+
 ## [3.1.0] - 2026-11-08
 
 Annual Wrapped, alerts from the server and a subscription audit.
