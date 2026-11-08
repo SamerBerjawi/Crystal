@@ -112,6 +112,18 @@ export const initializeDatabase = async () => {
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+        // How Ask Crystal reaches a language model: the built-in engine, or the user's own server. The key is encrypted.
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS assistant_settings (
+                user_id INTEGER PRIMARY KEY,
+                provider TEXT NOT NULL DEFAULT 'builtin',
+                base_url TEXT,
+                model TEXT,
+                encrypted_key TEXT,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
         // What was already sent, so each event alerts once.
         await db.query(`
             CREATE TABLE IF NOT EXISTS alert_log (

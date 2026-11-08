@@ -7,7 +7,7 @@ Crystal is a self-hosted personal finance app (React 19 + Vite + Tailwind v4 fro
 ## Commands
 
 Frontend (repo root):
-- `npm run dev`: runs `server.ts` via tsx on http://localhost:3000. This is an Express server with Vite middleware. It also hosts `/api/ai/proxy`. All other `/api` traffic goes to `VITE_BACKEND_URL` when that's set; otherwise an **in-memory mock backend** inside `server.ts` handles it.
+- `npm run dev`: runs `server.ts` via tsx on http://localhost:3000. This is an Express server with Vite middleware. `/api` traffic goes to `VITE_BACKEND_URL` when that's set (streamed answers and downloads are piped through, not buffered); otherwise an **in-memory mock backend** inside `server.ts` handles it, including a scripted stand-in for a language model (`dev/fakeLlm.ts`) so Ask Crystal works with no model installed.
 - `npm run lint`: `tsc --noEmit`. This is the only type and lint check.
 - `npm run build`: **bumps the version first** (`scripts/bump-version.cjs` rewrites `version.ts` and `package.json` to `2.YYMMDD.N`), then runs `vite build`. Expect those two files to change on every build.
 - `npm run analyze`: production build that also writes `dist/stats/bundle-report.json`.
@@ -32,6 +32,8 @@ Tests: there's no test runner. Each `*.test.ts` is a standalone script that logs
 - Components consume these through `use*Context()` hooks, not prop drilling.
 
 **Demo/dev mode.** Demo mode runs entirely on the client from `demoData.ts` and doesn't save to the backend. In dev it can restore a cached dataset (`saveDevCache`/`loadDevCache`).
+
+**Ask Crystal.** Plain-language questions answered from the user's own data. The answers are worked out **in the browser**: `utils/assistantTools.ts` wraps the existing functions (`reportsModel`, `forecastModel`, `safeToSpend`, ...) as tools, and `utils/assistantAgent.ts` lets a model call them in a loop, so every figure is one Crystal already computes. The model only picks tools and words the answer. The server (`server/src/assistant.ts`) holds the connection (an encrypted key, per user) and relays chat to the model, either the optional built-in Ollama container (which can download models from the app) or any OpenAI-compatible server the user already runs. See `docs/ask_crystal.md`.
 
 **Domain logic.** Financial math lives in `utils.ts`: `safeAdd`/`safeMultiply`/`round2`/`toCents` (backed by big.js), currency conversion, credit card statement cycles, synthetic card/loan payments for forecasting, and account totals. More logic is split across `utils/` (`investments.ts`, `rules.ts`, `backup.ts`, `collection.ts`'s `upsertEntity`/`removeEntityById`, and others). Use the safe-math helpers for money; don't use raw float arithmetic.
 

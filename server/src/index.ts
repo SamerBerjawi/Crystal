@@ -8,6 +8,7 @@ import usersRouter from './users';
 import enableBankingRouter from './enableBanking';
 import smartFetcherRouter from './smartFetcher';
 import alertsRouter, { startAlertScheduler } from './alerts';
+import assistantRouter from './assistant';
 import { initializeDatabase, db, purgeStaleSessions } from './database';
 import { authenticateToken } from './middleware';
 import { exit } from 'process';
@@ -105,7 +106,12 @@ const startServer = async () => {
         // an anonymous client cannot make the server buffer and parse tens of megabytes.
         const smallJson = express.json({ limit: process.env.API_SMALL_BODY_LIMIT || '100kb' });
         const bigJson = express.json({ limit: process.env.API_BODY_LIMIT || '50mb' });
-        app.use((req, res, next) => (req.path.startsWith('/api/data') ? next() : smallJson(req, res, next)));
+        // A chat turn carries the conversation and the figures looked up so far, so it gets a middle-sized limit.
+        const chatJson = express.json({ limit: process.env.API_CHAT_BODY_LIMIT || '2mb' });
+        app.use((req, res, next) => {
+            if (req.path.startsWith('/api/data')) return next();
+            return (req.path === '/api/assistant/chat' ? chatJson : smallJson)(req, res, next);
+        });
         app.use('/api/data', authenticateToken, bigJson);
 
         app.get('/api', (req, res) => {
@@ -137,6 +143,7 @@ const startServer = async () => {
         app.use('/api/lock', lockRouter);
         app.use('/api/smart-fetch', smartFetcherRouter);
         app.use('/api/alerts', alertsRouter);
+        app.use('/api/assistant', assistantRouter);
 
         // Last line of defence: anything that escapes a route becomes a JSON 500, never a crash or an HTML page.
         app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {

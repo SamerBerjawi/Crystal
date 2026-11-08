@@ -14,6 +14,7 @@ const GROUPS: { title: string; items: { keys: string[]; label: string }[] }[] = 
     title: 'Anywhere',
     items: [
       { keys: [isMac ? '⌘' : 'Ctrl', 'K'], label: 'Search' },
+      { keys: [isMac ? '⌘' : 'Ctrl', '/'], label: 'Ask Crystal a question' },
       { keys: ['N'], label: 'Add a transaction' },
       { keys: ['⇧', 'P'], label: 'Hide or show amounts' },
       { keys: ['L'], label: 'Lock Crystal, once you have a PIN' },

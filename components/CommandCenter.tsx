@@ -22,6 +22,7 @@ interface CommandCenterProps {
   onLock?: () => void;
   onOpenShortcuts?: () => void;
   onOpenSetupWizard?: () => void;
+  onOpenAssistant?: () => void;
 }
 
 const CommandCenter: React.FC<CommandCenterProps> = ({
@@ -40,6 +41,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
   onLock,
   onOpenShortcuts,
   onOpenSetupWizard,
+  onOpenAssistant,
 }) => {
   const items: CommandItem[] = useMemo(() => {
     const list: CommandItem[] = [];
@@ -73,6 +75,17 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
     });
 
     // Quick Actions
+    if (onOpenAssistant) {
+      list.push({
+        id: 'action-ask-crystal',
+        label: 'Ask Crystal…',
+        group: 'Actions',
+        icon: <Icon name="sparkles" size={16} />,
+        keywords: ['ask', 'question', 'assistant', 'ai', 'chat', 'how much', 'can i afford', 'what did i spend', 'help'],
+        shortcut: ['⌘', '/'],
+      });
+    }
+
     if (onCreateTransaction) {
       list.push({
         id: 'action-new-tx',
@@ -226,6 +239,11 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
       } else {
         setCurrentPage('Transactions');
       }
+      onClose();
+      return;
+    }
+    if (item.id === 'action-ask-crystal') {
+      onOpenAssistant?.();
       onClose();
       return;
     }
