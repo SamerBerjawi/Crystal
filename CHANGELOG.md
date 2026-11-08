@@ -2,6 +2,20 @@
 
 All notable changes to Crystal are documented here. Versions before 3.0.0 were tagged `v1.x`–`v2.x`.
 
+## [3.1.0] - 2026-11-08
+
+Annual Wrapped, alerts from the server and a subscription audit.
+
+### Added
+- **Annual Wrapped** (Reports, Wrapped). A year in review built from your ledger: what you kept, income and spending, net-worth change, best and toughest month, top merchants and categories, biggest purchase, busiest spending day, longest no-spend streak and kilometres driven. Pick any year with data, and copy a short summary.
+- **Alerts from the server** (Settings, Connections). The server checks your data every 30 minutes and sends each alert once to ntfy, Gotify or a webhook, so it reaches you with Crystal closed. Alerts cover a checking account about to run low, a monthly budget nearly used or used up, the same payment charged twice, a recurring payment that costs more than expected, and a bank connection about to expire. The access token is stored encrypted on the server and never sent to the browser.
+- **Subscription audit** (Subscriptions, Active). Yearly cost and its share of your income, the three biggest costs, and findings you can act on: price creep since a service started, a service with no recent charge, a trial about to end, and overlapping services (for example two streaming plans), with how much could be saved.
+
+### Configuration
+- `ALERTS_ENABLED` (default `true`) switches the alert scheduler on or off, and `ALERTS_INTERVAL_MINUTES` (default `30`, minimum `5`) sets how often it runs.
+- `ALERTS_ALLOW_PRIVATE_URLS` (default `false`) allows alert destinations on your own network, such as a self-hosted ntfy or Gotify. Leave it off if other people use your server.
+- New tables `alert_settings` and `alert_log` are created on startup.
+
 ## [3.0.1] - 2026-11-07
 
 Enable Banking fixes and settings.
