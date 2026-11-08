@@ -27,7 +27,7 @@ const failure = async (response: Response, fallback: string): Promise<AssistantE
     if (typeof body?.message === 'string' && body.message.trim()) message = body.message.trim();
     if (typeof body?.errorCode === 'string') code = body.errorCode;
   } catch { /* not JSON: keep the fallback */ }
-  return new AssistantError(message, code);
+  return new AssistantError(message, code, response.status);
 };
 
 const call = async (path: string, init: RequestInit = {}, fallback = 'Something went wrong. Try again.'): Promise<Response> => {
@@ -36,7 +36,7 @@ const call = async (path: string, init: RequestInit = {}, fallback = 'Something 
     response = await fetch(`/api/assistant${path}`, { credentials: 'include', ...init, headers: { 'Content-Type': 'application/json', ...init.headers } });
   } catch (error) {
     if ((error as Error)?.name === 'AbortError') throw error;
-    throw new AssistantError('Could not reach your Crystal server.');
+    throw new AssistantError('Could not reach your Crystal server.', 'NETWORK');
   }
   if (!response.ok) throw await failure(response, fallback);
   return response;

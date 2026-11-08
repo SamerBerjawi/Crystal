@@ -169,7 +169,9 @@ test('the prompt knows the date and the currency, and quiets qwen3', () => {
   assert.doesNotMatch(systemPrompt(new Date(), 'EUR', 'llama3.1:8b'), /no_think/);
 });
 
-import { createPullTracker, describePullStatus } from '../../utils/assistantApi';
+import { createPullTracker, describePullStatus, fetchAssistantSettings } from '../../utils/assistantApi';
+import { explainUnavailable } from '../../utils/apiError';
+import { AssistantError } from '../../utils/assistantAgent';
 
 test('a download shows one steady percentage across its layers', () => {
   const track = createPullTracker();
@@ -194,4 +196,49 @@ test('the engine\'s status lines are put in plain words', () => {
   assert.equal(describePullStatus('writing manifest'), 'Finishing');
   assert.equal(describePullStatus('removing any unused layers'), 'Finishing');
   assert.equal(describePullStatus('success'), 'Done');
+});
+
+test('when Ask Crystal cannot be set up, the reason is said, not hidden', async () => {
+  const real = globalThis.fetch;
+  const answer = (status: number, body: unknown) => { globalThis.fetch = (async () => new Response(JSON.stringify(body), { status })) as typeof fetch; };
+  try {
+    // The server's status survives into the explanation.
+    answer(404, { error: 'Not found' });
+    const missing = await fetchAssistantSettings().catch(error => error);
+    assert.ok(missing instanceof AssistantError);
+    assert.equal(missing.status, 404);
+    assert.match(explainUnavailable(missing, 'Ask Crystal').title, /does not have Ask Crystal yet/);
+    assert.match(explainUnavailable(missing, 'Ask Crystal').detail, /Update the Crystal backend/);
+
+    answer(503, { message: 'No API backend is configured.' });
+    const down = await fetchAssistantSettings().catch(error => error);
+    assert.equal(down.status, 503);
+    assert.match(explainUnavailable(down, 'Ask Crystal').title, /not answering/);
+    assert.match(explainUnavailable(down, 'Ask Crystal').detail, /demo/, 'the demo, which has no server, is named as a cause');
+
+    answer(401, { message: 'Authentication required.' });
+    assert.match(explainUnavailable(await fetchAssistantSettings().catch(error => error), 'Ask Crystal').title, /Sign in/);
+
+    globalThis.fetch = (async () => { throw new TypeError('Failed to fetch'); }) as typeof fetch;
+    const offline = await fetchAssistantSettings().catch(error => error);
+    assert.equal(offline.code, 'NETWORK');
+    assert.equal(offline.status, undefined);
+    assert.match(explainUnavailable(offline, 'Ask Crystal').title, /not answering/);
+  } finally {
+    globalThis.fetch = real;
+  }
+  assert.match(explainUnavailable(new AssistantError('x', undefined, 423), 'Ask Crystal').title, /locked/);
+  assert.match(explainUnavailable(new AssistantError('x', undefined, 429), 'Ask Crystal').title, /Too many/);
+  const odd = explainUnavailable(new AssistantError('database exploded', undefined, 500), 'Ask Crystal');
+  assert.match(odd.title, /\(500\)/);
+  assert.match(odd.detail, /database exploded/, 'an unexpected failure shows what the server said');
+  assert.match(explainUnavailable('not even an error', 'Ask Crystal').title, /not answering/, 'anything unrecognised still gets a message');
+});
+
+test('the same explanation serves other features that need the server, and names them', () => {
+  const plain = Object.assign(new Error('{"message":"x"}'), { status: 404 });
+  assert.equal(explainUnavailable(plain, 'Alerts').title, 'This Crystal server does not have Alerts yet');
+  assert.equal(explainUnavailable(Object.assign(new Error('x'), { status: 401 }), 'Alerts').title, 'Sign in to use Alerts');
+  assert.match(explainUnavailable(new TypeError('Failed to fetch'), 'Alerts').detail, /^Alerts needs your Crystal server/);
+  assert.match(explainUnavailable(Object.assign(new Error('x'), { status: '404' }), 'Alerts').title, /not answering/, 'a status that is not a number is not trusted');
 });

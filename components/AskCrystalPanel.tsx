@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { formatCurrency, getMainCurrency } from '../utils';
 import { AssistantError, runAssistantTurn, systemPrompt, type ChatMessage, type ToolStep } from '../utils/assistantAgent';
 import { fetchAssistantSettings, serverChat, type AssistantSettings } from '../utils/assistantApi';
+import { explainUnavailable, type Unavailable } from '../utils/apiError';
 import { buildAssistantTools, type AssistantData } from '../utils/assistantTools';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
@@ -68,6 +69,8 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
 
   const [readiness, setReadiness] = useState<Readiness>('loading');
   const [settings, setSettings] = useState<AssistantSettings | null>(null);
+  const [problem, setProblem] = useState<Unavailable | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [isBusy, setBusy] = useState(false);
@@ -79,6 +82,7 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
+    setProblem(null);
     setReadiness(current => (current === 'ready' ? current : 'loading'));
     fetchAssistantSettings()
       .then(next => {
@@ -87,9 +91,9 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
         const connected = next.provider === 'custom' ? !!next.baseUrl : next.builtin.reachable;
         setReadiness(connected && next.model ? 'ready' : 'setup');
       })
-      .catch(() => { if (!cancelled) setReadiness('unavailable'); });
+      .catch(error => { if (!cancelled) { setProblem(explainUnavailable(error, 'Ask Crystal')); setReadiness('unavailable'); } });
     return () => { cancelled = true; };
-  }, [isOpen]);
+  }, [isOpen, attempt]);
 
   useEffect(() => { if (isOpen && readiness === 'ready') setTimeout(() => input.current?.focus(), 50); }, [isOpen, readiness]);
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [messages]);
@@ -174,7 +178,9 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
         {readiness === 'loading' && <p className="type-caption text-muted">Checking the assistant...</p>}
 
         {readiness === 'unavailable' && (
-          <Banner tone="attention">Ask Crystal needs your Crystal server, so it isn't available in the demo or when the server can't be reached.</Banner>
+          <Banner tone="attention" actionLabel="Try again" onAction={() => setAttempt(count => count + 1)}>
+            <span className="type-body-strong">{problem?.title ?? 'Ask Crystal is not available'}.</span> {problem?.detail ?? 'Ask Crystal needs your Crystal server.'}
+          </Banner>
         )}
 
         {readiness === 'setup' && (

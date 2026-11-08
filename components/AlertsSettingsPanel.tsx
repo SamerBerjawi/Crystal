@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { Switch, TextInput } from './ui/Fields';
 import { Select } from './ui/Pickers';
 import { Banner } from './ui/States';
-import { parseApiError } from '../utils/apiError';
+import { explainUnavailable, parseApiError, type Unavailable } from '../utils/apiError';
 
 type ChannelKind = 'ntfy' | 'gotify' | 'webhook';
 
@@ -42,7 +42,12 @@ const RULE_ROWS: { key: 'consent' | 'budget' | 'duplicate' | 'lowBalance' | 'pri
 
 const request = async (path: string, init?: RequestInit) => {
   const response = await fetch(path, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...init });
-  if (!response.ok) throw new Error(await response.text());
+  if (!response.ok) {
+    // Keep the status: it is what tells the demo, an older server and a stopped one apart.
+    const failure = new Error(await response.text()) as Error & { status?: number };
+    failure.status = response.status;
+    throw failure;
+  }
   return response;
 };
 
@@ -54,7 +59,8 @@ const toNumber = (text: string, fallback: number) => {
 /** Sends alerts from the server, so they arrive when Crystal is closed. The access token is stored encrypted there. */
 const AlertsSettingsPanel: React.FC = () => {
   const [saved, setSaved] = useState<AlertSettings | null>(null);
-  const [unavailable, setUnavailable] = useState(false);
+  const [problem, setProblem] = useState<Unavailable | null>(null);
+  const alive = useRef(true);
   const [enabled, setEnabled] = useState(false);
   const [kind, setKind] = useState<ChannelKind>('ntfy');
   const [url, setUrl] = useState('https://ntfy.sh');
@@ -79,16 +85,31 @@ const AlertsSettingsPanel: React.FC = () => {
     setDays(String(next.rules.lowBalanceDays));
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    request('/api/alerts')
-      .then(response => response.json())
-      .then((next: AlertSettings) => { if (!cancelled) apply(next); })
-      .catch(() => { if (!cancelled) setUnavailable(true); });
-    return () => { cancelled = true; };
+  const load = useCallback(async () => {
+    setProblem(null);
+    try {
+      const next = await (await request('/api/alerts')).json();
+      if (alive.current) apply(next);
+    } catch (err) {
+      if (alive.current) setProblem(explainUnavailable(err, 'Alerts'));
+    }
   }, []);
 
-  if (unavailable || !saved || !rules) return null;
+  useEffect(() => {
+    alive.current = true;
+    void load();
+    return () => { alive.current = false; };
+  }, [load]);
+
+  // Never a blank box: say why this cannot be set up here.
+  if (problem) {
+    return (
+      <Banner tone="attention" actionLabel="Try again" onAction={() => void load()}>
+        <span className="type-body-strong">{problem.title}.</span> {problem.detail}
+      </Banner>
+    );
+  }
+  if (!saved || !rules) return <p className="type-caption text-muted" role="status">Checking alerts...</p>;
 
   const needsTopic = kind === 'ntfy';
   const tokenLabel = kind === 'gotify' ? 'Application token' : kind === 'ntfy' ? 'Access token (optional)' : 'Bearer token (optional)';

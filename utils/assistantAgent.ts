@@ -35,7 +35,9 @@ export interface ToolStep {
 
 export class AssistantError extends Error {
   code?: string;
-  constructor(message: string, code?: string) { super(message); this.code = code; }
+  /** The HTTP status of the server's answer, when there was one. */
+  status?: number;
+  constructor(message: string, code?: string, status?: number) { super(message); this.code = code; this.status = status; }
 }
 
 /** Lookups in one answer. A question that needs more than this is too big for a small model to hold together. */

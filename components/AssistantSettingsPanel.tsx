@@ -4,6 +4,7 @@ import {
   describePullStatus, fetchAssistantSettings, listInstalledModels, modelSupportsTools, pullModel, removeModel, saveAssistantSettings, testAssistant,
   type AssistantSettings, type InstalledModel, type PullProgress,
 } from '../utils/assistantApi';
+import { explainUnavailable, type Unavailable } from '../utils/apiError';
 import { Button } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { TextInput } from './ui/Fields';
@@ -30,7 +31,8 @@ const Progress: React.FC<{ percent: number | null; label: string }> = ({ percent
 /** Which language model Ask Crystal uses: one Crystal runs for you, or one you already have. */
 const AssistantSettingsPanel: React.FC = () => {
   const [settings, setSettings] = useState<AssistantSettings | null>(null);
-  const [unavailable, setUnavailable] = useState(false);
+  const [problem, setProblem] = useState<Unavailable | null>(null);
+  const alive = useRef(true);
   const [provider, setProvider] = useState<'builtin' | 'custom'>('builtin');
   const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -57,19 +59,33 @@ const AssistantSettingsPanel: React.FC = () => {
     setApiKey('');
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchAssistantSettings()
-      .then(next => {
-        if (cancelled) return;
-        apply(next);
-        if ((next.provider === 'builtin' && next.builtin.reachable) || (next.provider === 'custom' && next.baseUrl)) void refreshModels();
-      })
-      .catch(() => { if (!cancelled) setUnavailable(true); });
-    return () => { cancelled = true; abort.current?.abort(); };
+  const load = useCallback(async () => {
+    setProblem(null);
+    try {
+      const next = await fetchAssistantSettings();
+      if (!alive.current) return;
+      apply(next);
+      if ((next.provider === 'builtin' && next.builtin.reachable) || (next.provider === 'custom' && next.baseUrl)) void refreshModels();
+    } catch (err) {
+      if (alive.current) setProblem(explainUnavailable(err, 'Ask Crystal'));
+    }
   }, [apply, refreshModels]);
 
-  if (unavailable || !settings) return null;
+  useEffect(() => {
+    alive.current = true;
+    void load();
+    return () => { alive.current = false; abort.current?.abort(); };
+  }, [load]);
+
+  // Never a blank box: say what is happening, or why this cannot be set up here.
+  if (problem) {
+    return (
+      <Banner tone="attention" actionLabel="Try again" onAction={() => void load()}>
+        <span className="type-body-strong">{problem.title}.</span> {problem.detail}
+      </Banner>
+    );
+  }
+  if (!settings) return <p className="type-caption text-muted" role="status">Checking the assistant...</p>;
 
   const clearMessages = () => { setError(null); setWarning(null); setNotice(null); };
 
