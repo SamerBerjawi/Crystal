@@ -7,6 +7,7 @@ import dataRouter from './data';
 import usersRouter from './users';
 import enableBankingRouter from './enableBanking';
 import smartFetcherRouter from './smartFetcher';
+import alertsRouter, { startAlertScheduler } from './alerts';
 import { initializeDatabase, db, purgeStaleSessions } from './database';
 import { authenticateToken } from './middleware';
 import { exit } from 'process';
@@ -135,6 +136,7 @@ const startServer = async () => {
         app.use('/api/users', usersRouter);
         app.use('/api/lock', lockRouter);
         app.use('/api/smart-fetch', smartFetcherRouter);
+        app.use('/api/alerts', alertsRouter);
 
         // Last line of defence: anything that escapes a route becomes a JSON 500, never a crash or an HTML page.
         app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -146,6 +148,7 @@ const startServer = async () => {
         });
 
         void purgeStaleSessions();
+        startAlertScheduler();
         setInterval(() => void purgeStaleSessions(), 6 * 60 * 60 * 1000).unref();
 
         const server = app.listen(port, () => {
