@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Button as AriaButton } from 'react-aria-components';
 import type { Account, Category, DisplayTransaction, Tag } from '../types';
 import { convertToMain, getMainCurrency } from '../utils';
@@ -178,6 +178,18 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
   const pressTimer = useRef<number>(0);
   const didLongPress = useRef(false);
   const [contextMenu, setContextMenu] = useState<{ tx: DisplayTransaction; x: number; y: number } | null>(null);
+  const tagsById = useMemo(() => new Map(tags.map(tag => [tag.id, tag])), [tags]);
+  const categoryDetailsByName = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof getCategoryDetails>>();
+    const walk = (list: Category[]) => {
+      for (const cat of list) {
+        map.set(cat.name, getCategoryDetails(cat.name, categories));
+        if (cat.subCategories?.length) walk(cat.subCategories);
+      }
+    };
+    walk(categories);
+    return map;
+  }, [categories]);
 
   const details = (tx: DisplayTransaction) => {
     if (tx.isTransfer) {
@@ -194,7 +206,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
         return { color: 'var(--teal)', icon: 'piggy' };
       }
     }
-    const category = getCategoryDetails(tx.category, categories);
+    const category = categoryDetailsByName.get(tx.category) ?? getCategoryDetails(tx.category, categories);
     const isPlainTransfer = tx.isTransfer && (!tx.category || tx.category === 'Transfer');
     return {
       color: isPlainTransfer ? 'var(--muted)' : category.color || 'var(--muted)',
@@ -251,7 +263,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
               {rows.map(tx => {
                 const isSelected = selectedIds.has(tx.id);
                 return (
-                  <li key={tx.id}>
+                  <li key={tx.id} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 68px' }}>
                     <SwipeableRow
                       disabled={isSelecting}
                       leftActions={[{ icon: 'category', label: 'Categorise', bgClass: 'bg-primary-soft', colorClass: 'text-ink', onAction: () => onCategorise(tx) }]}
@@ -425,13 +437,14 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
               const account = accountOf(tx);
               const look = details(tx);
               const location = locationOf(tx);
-              const firstTag = tags.find(tag => tag.id === tx.tagIds?.[0]);
+              const firstTag = tx.tagIds?.[0] ? tagsById.get(tx.tagIds[0]) : undefined;
               const isSelected = selectedIds.has(tx.id);
               const isUncategorized = !tx.isTransfer && (!tx.category || tx.category === 'Uncategorised');
 
               return (
                 <tr
                   key={tx.id}
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: isCompact ? 'auto 40px' : 'auto 56px' }}
                   onContextMenu={e => { e.preventDefault(); setContextMenu({ tx, x: e.clientX, y: e.clientY }); }}
                   className={cn('group hover:bg-inset', isSelected && 'bg-primary-soft hover:bg-primary-soft')}
                 >

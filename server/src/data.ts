@@ -1,11 +1,92 @@
 
 import express from 'express';
 import { db } from './database';
-import { validateFinancialDataPayload } from './schemas';
+import { validateFinancialDataPayload, validateJsonPatchPayload, type JsonPatchOperation } from './schemas';
 import { loadCredentials, saveCredentials, scrubStoredKeys, stripKeysFromBlob } from './ebCredentials';
 import { AuthRequest } from './middleware';
 
 const router = express.Router();
+
+const applyEntityDelta = (
+    stored: unknown,
+    delta: { upserts?: Record<string, any>[]; deletedIds?: string[] },
+): Record<string, any>[] => {
+    const list = Array.isArray(stored) ? stored : [];
+    const deletedSet = new Set(Array.isArray(delta.deletedIds) ? delta.deletedIds : []);
+    const upserts = Array.isArray(delta.upserts) ? delta.upserts : [];
+    const upsertById = new Map<string, Record<string, any>>();
+    for (const item of upserts) {
+        if (item && typeof item.id === 'string') upsertById.set(item.id, item);
+    }
+
+    const appliedIds = new Set<string>();
+    const result: Record<string, any>[] = [];
+    for (const item of list) {
+        if (!item || typeof item.id !== 'string') continue;
+        if (deletedSet.has(item.id)) continue;
+        const replacement = upsertById.get(item.id);
+        if (replacement !== undefined) {
+            result.push(replacement);
+            appliedIds.add(item.id);
+        } else {
+            result.push(item);
+        }
+    }
+    for (const item of upserts) {
+        if (item && typeof item.id === 'string' && !appliedIds.has(item.id) && !deletedSet.has(item.id)) {
+            result.push(item);
+            appliedIds.add(item.id);
+        }
+    }
+    return result;
+};
+
+const applyJsonPatchOperations = (
+    doc: Record<string, any>,
+    ops: JsonPatchOperation[],
+): Record<string, any> => {
+    const next: Record<string, any> = { ...doc };
+    for (const op of ops) {
+        const segments = op.path.split('/').slice(1).map(s => s.replace(/~1/g, '/').replace(/~0/g, '~'));
+        if (segments.length === 0 || segments.some(s => s === '__proto__' || s === 'constructor' || s === 'prototype')) {
+            continue;
+        }
+        const topKey = segments[0];
+        if (segments.length === 1) {
+            if (op.op === 'remove') delete next[topKey];
+            else if (op.op === 'add' || op.op === 'replace') next[topKey] = op.value;
+            continue;
+        }
+        if (segments.length === 2) {
+            const container = next[topKey];
+            const second = segments[1];
+            if (Array.isArray(container)) {
+                const cloned = [...container];
+                if (second === '-' && op.op === 'add') {
+                    cloned.push(op.value);
+                } else {
+                    const idx = Number.isInteger(Number(second))
+                        ? Number(second)
+                        : cloned.findIndex((item: any) => item && typeof item === 'object' && item.id === second);
+                    if (idx >= 0 && idx < cloned.length) {
+                        if (op.op === 'remove') cloned.splice(idx, 1);
+                        else if (op.op === 'replace') cloned[idx] = op.value;
+                        else if (op.op === 'add') cloned.splice(idx, 0, op.value);
+                    } else if (op.op === 'add' || op.op === 'replace') {
+                        cloned.push(op.value);
+                    }
+                }
+                next[topKey] = cloned;
+            } else if (container && typeof container === 'object') {
+                const cloned = { ...container };
+                if (op.op === 'remove') delete cloned[second];
+                else if (op.op === 'add' || op.op === 'replace') cloned[second] = op.value;
+                next[topKey] = cloned;
+            }
+        }
+    }
+    return next;
+};
 
 // Get all financial data for a user
 router.get('/', async (req: AuthRequest, res) => {
@@ -89,9 +170,13 @@ router.post('/', async (req: AuthRequest, res) => {
         const currentUpdatedAt = (existing.rows?.[0]?.updated_at as string | null) || undefined;
 
         const isPartial = Boolean(body.partial);
+        const incomingDeltas = (body.deltas && typeof body.deltas === 'object' && !Array.isArray(body.deltas))
+            ? (body.deltas as Record<string, { upserts?: Record<string, any>[]; deletedIds?: string[] }>)
+            : undefined;
         const incomingData = isPartial ? { ...(body.data || {}) } : { ...body };
         delete incomingData.partial;
         delete incomingData.data;
+        delete incomingData.deltas;
         delete incomingData.previousUpdatedAt;
         delete incomingData.allowEmpty;
 
@@ -105,7 +190,9 @@ router.post('/', async (req: AuthRequest, res) => {
         }
 
         // Reject malformed payloads (wrong container types, bad dates) before they reach the user's blob.
-        const validation = validateFinancialDataPayload(incomingData);
+        const validation = validateFinancialDataPayload(
+            incomingDeltas ? { ...incomingData, deltas: incomingDeltas } : incomingData
+        );
         if (!validation.success) {
             await client.query('ROLLBACK');
             return res.status(400).json({ message: validation.error || 'Invalid payload.' });
@@ -118,6 +205,19 @@ router.post('/', async (req: AuthRequest, res) => {
                 message: 'Data conflict: your local copy is stale. Please refresh and try again.',
                 currentUpdatedAt,
             });
+        }
+
+        if (incomingDeltas) {
+            const allowedDeltaKeys = new Set(MATERIAL_ARRAY_KEYS);
+            for (const [sliceKey, delta] of Object.entries(incomingDeltas)) {
+                if (!allowedDeltaKeys.has(sliceKey) || !delta || typeof delta !== 'object') continue;
+                const sliceRes = await client.query(
+                    `SELECT data->$2 AS slice FROM financial_data WHERE user_id = $1`,
+                    [userId, sliceKey]
+                );
+                const storedSlice = sliceRes.rows?.[0]?.slice;
+                incomingData[sliceKey] = applyEntityDelta(storedSlice, delta);
+            }
         }
 
         if (!isPartial && !allowEmpty && !payloadHasMaterialData(incomingData)) {
@@ -151,6 +251,62 @@ router.post('/', async (req: AuthRequest, res) => {
         await client?.query('ROLLBACK').catch((rollbackError: unknown) => console.error('Rollback failed:', rollbackError));
         console.error(err);
         res.status(500).json({ message: 'Failed to save data' });
+    } finally {
+        client?.release();
+    }
+});
+
+// Apply RFC 6902 JSON Patch operations to the user's financial_data blob.
+router.patch('/', async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    const validation = validateJsonPatchPayload(req.body);
+    if (!validation.success || !validation.patch) {
+        return res.status(400).json({ message: validation.error || 'Invalid JSON Patch payload.' });
+    }
+
+    let client: any;
+    try {
+        client = await db.connect();
+        await client.query('BEGIN');
+
+        const existing = await client.query(
+            `SELECT data FROM financial_data WHERE user_id = $1 FOR UPDATE`,
+            [userId]
+        );
+        const currentData = (existing.rows?.[0]?.data as Record<string, any> | undefined) || {};
+        const currentUpdatedAt = (currentData.lastUpdatedAt as string | undefined) || undefined;
+
+        if (validation.previousUpdatedAt && currentUpdatedAt && validation.previousUpdatedAt !== currentUpdatedAt) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+                message: 'Data conflict: your local copy is stale. Please refresh and try again.',
+                currentUpdatedAt,
+            });
+        }
+
+        const patched = applyJsonPatchOperations(currentData, validation.patch);
+        const nextUpdatedAt = new Date().toISOString();
+        patched.lastUpdatedAt = nextUpdatedAt;
+
+        const postValidation = validateFinancialDataPayload(patched);
+        if (!postValidation.success) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: postValidation.error || 'Patched document failed validation.' });
+        }
+
+        await client.query(
+            `INSERT INTO financial_data (user_id, data)
+             VALUES ($1, $2::jsonb)
+             ON CONFLICT (user_id) DO UPDATE SET data = EXCLUDED.data`,
+            [userId, JSON.stringify(patched)]
+        );
+        await client.query('COMMIT');
+
+        res.json({ message: 'Patch applied successfully', lastUpdatedAt: nextUpdatedAt });
+    } catch (err) {
+        await client?.query('ROLLBACK').catch((rollbackError: unknown) => console.error('Rollback failed:', rollbackError));
+        console.error(err);
+        res.status(500).json({ message: 'Failed to apply patch' });
     } finally {
         client?.release();
     }

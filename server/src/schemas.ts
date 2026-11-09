@@ -50,25 +50,34 @@ export const recurringTransactionSchema = z.object({
     startDate: dateString,
 }).passthrough();
 
+const entityRecordSchema = z.record(z.string(), z.any());
+
+export const entityDeltaSchema = z.object({
+    upserts: z.array(entityRecordSchema).optional(),
+    deletedIds: z.array(z.string()).optional(),
+});
+
 export const financialDataSchema = z.object({
+    preferences: z.record(z.string(), z.any()).optional(),
+    deltas: z.record(z.string(), entityDeltaSchema).optional(),
     accounts: z.array(accountSchema).optional(),
     transactions: z.array(transactionSchema).optional(),
-    investmentTransactions: z.array(z.any()).optional(),
+    investmentTransactions: z.array(entityRecordSchema).optional(),
     recurringTransactions: z.array(recurringTransactionSchema).optional(),
-    recurringTransactionOverrides: z.array(z.any()).optional(),
+    recurringTransactionOverrides: z.array(entityRecordSchema).optional(),
     financialGoals: z.array(financialGoalSchema).optional(),
-    budgets: z.array(z.any()).optional(),
-    tasks: z.array(z.any()).optional(),
-    warrants: z.array(z.any()).optional(),
-    memberships: z.array(z.any()).optional(),
-    importExportHistory: z.array(z.any()).optional(),
-    billsAndPayments: z.array(z.any()).optional(),
-    invoices: z.array(z.any()).optional(),
-    tags: z.array(z.any()).optional(),
-    predictions: z.array(z.any()).optional(),
-    enableBankingConnections: z.array(z.any()).optional(),
-    incomeCategories: z.array(z.any()).optional(),
-    expenseCategories: z.array(z.any()).optional(),
+    budgets: z.array(entityRecordSchema).optional(),
+    tasks: z.array(entityRecordSchema).optional(),
+    warrants: z.array(entityRecordSchema).optional(),
+    memberships: z.array(entityRecordSchema).optional(),
+    importExportHistory: z.array(entityRecordSchema).optional(),
+    billsAndPayments: z.array(entityRecordSchema).optional(),
+    invoices: z.array(entityRecordSchema).optional(),
+    tags: z.array(entityRecordSchema).optional(),
+    predictions: z.array(entityRecordSchema).optional(),
+    enableBankingConnections: z.array(entityRecordSchema).optional(),
+    incomeCategories: z.array(entityRecordSchema).optional(),
+    expenseCategories: z.array(entityRecordSchema).optional(),
     accountOrder: z.array(z.string()).optional(),
     taskOrder: z.array(z.string()).optional(),
     goalOrder: z.array(z.string()).optional(),
@@ -76,6 +85,7 @@ export const financialDataSchema = z.object({
     manualWarrantPrices: z.record(z.string(), z.any()).optional(),
     priceHistory: z.record(z.string(), z.any()).optional(),
     userStats: z.record(z.string(), z.any()).optional(),
+    userProfile: z.record(z.string(), z.any()).optional(),
     lastUpdatedAt: z.string().optional(),
 }).passthrough();
 
@@ -87,7 +97,9 @@ export const validateFinancialDataPayload = (
     }
 
     const payload = body as Record<string, any>;
-    const targetData = payload.partial ? (payload.data || {}) : payload;
+    const targetData = payload.partial
+        ? { ...(payload.data || {}), ...(payload.deltas ? { deltas: payload.deltas } : {}) }
+        : payload;
 
     const result = financialDataSchema.safeParse(targetData);
     if (!result.success) {
@@ -95,6 +107,16 @@ export const validateFinancialDataPayload = (
             .map(issue => `${issue.path.join('.') || 'root'}: ${issue.message}`)
             .join('; ');
         return { success: false, error: `Invalid payload structure: ${issueMsg}` };
+    }
+
+    if (targetData.deltas?.transactions?.upserts) {
+        const txCheck = z.array(transactionSchema).safeParse(targetData.deltas.transactions.upserts);
+        if (!txCheck.success) {
+            const issueMsg = txCheck.error.issues
+                .map(issue => `deltas.transactions.upserts.${issue.path.join('.')}: ${issue.message}`)
+                .join('; ');
+            return { success: false, error: `Invalid payload structure: ${issueMsg}` };
+        }
     }
 
     return { success: true, data: result.data };

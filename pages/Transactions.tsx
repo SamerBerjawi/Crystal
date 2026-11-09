@@ -215,6 +215,37 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
   const accountMapByName = useMemo(() => accounts.reduce((map, acc) => { map[acc.name] = acc; return map; }, {} as Record<string, Account>), [accounts]);
 
+  const { transactionById, transactionsByTransferId, childrenByParentId } = useMemo(() => {
+    const byId = new Map<string, Transaction>();
+    const byTransferId = new Map<string, Transaction[]>();
+    const byParentId = new Map<string, Transaction[]>();
+    for (const tx of transactions) {
+      byId.set(tx.id, tx);
+      if (tx.transferId) {
+        const list = byTransferId.get(tx.transferId);
+        if (list) list.push(tx);
+        else byTransferId.set(tx.transferId, [tx]);
+      }
+      if (tx.parentTransactionId) {
+        const children = byParentId.get(tx.parentTransactionId);
+        if (children) children.push(tx);
+        else byParentId.set(tx.parentTransactionId, [tx]);
+      }
+    }
+    return { transactionById: byId, transactionsByTransferId: byTransferId, childrenByParentId: byParentId };
+  }, [transactions]);
+
+  const parentCategoryByName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const parent of allCategories) {
+      map.set(parent.name, parent.name);
+      for (const sub of parent.subCategories ?? []) {
+        map.set(sub.name, parent.name);
+      }
+    }
+    return map;
+  }, [allCategories]);
+
   const effectiveMerchantLogoOverrides = useMemo(() => {
     return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
   }, [merchantLogoOverrides, merchantRules]);
@@ -254,7 +285,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     const processedTransferIds = new Set<string>();
     const result: DisplayTransaction[] = [];
 
-    const sortedTransactions = [...transactions].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
+    const sortedTransactions = [...transactions].sort((a, b) => (b.date < a.date ? -1 : b.date > a.date ? 1 : 0));
 
     const normalizeDescription = (description?: string, isTransfer?: boolean) =>
       (description?.trim() || (isTransfer ? 'transfer' : 'transaction')).toLowerCase();
@@ -409,27 +440,14 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
 
   // Everything the filters allow, before any days picked on the chart. The chart draws this, so picking days never empties it.
   const scatterTransactions = useMemo(() => {
-    const startDateTime = startDate ? parseLocalDate(startDate) : null;
-    if (startDateTime) startDateTime.setHours(0, 0, 0, 0);
-
-    const endDateTime = endDate ? parseLocalDate(endDate) : null;
-    if (endDateTime) endDateTime.setHours(23, 59, 59, 999);
-
-    const getParentCategoryName = (categoryName: string): string | undefined => {
-      const findParent = (categories: Category[]): string | undefined => {
-        for (const parent of categories) {
-          if (parent.name === categoryName) return parent.name; // It's a parent
-          if (parent.subCategories.some(sub => sub.name === categoryName)) return parent.name;
-        }
-        return undefined;
-      };
-      return findParent(allCategories);
-    };
-
     const normalizedSearchTerm = debouncedSearchTerm.trim().toLowerCase();
     const normalizedMerchantFilter = merchantFilter.trim().toLowerCase();
+    const min = parseFloat(minAmount);
+    const max = parseFloat(maxAmount);
+    const hasMin = !isNaN(min);
+    const hasMax = !isNaN(max);
 
-    const transactionList = indexedTransactions.filter(({ tx, amountAbsEur, searchText, merchantText }) => {
+    const filteredIndexed = indexedTransactions.filter(({ tx, amountAbsEur, searchText, merchantText }) => {
       const matchAccount = selectedAccountIds.length === 0 ||
         (tx.isTransfer
           ? selectedAccountIds.includes(tx.fromAccountId || accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(tx.toAccountId || accountMapByName[tx.toAccountName!]?.id)
@@ -447,18 +465,16 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       else if (typeFilter === 'income') matchType = !tx.isTransfer && tx.type === 'income';
       else if (typeFilter === 'transfer') matchType = !!tx.isTransfer;
 
-      const txDateTime = parseLocalDate(tx.date).getTime();
-      const matchStartDate = !startDateTime || txDateTime >= startDateTime.getTime();
-      const matchEndDate = !endDateTime || txDateTime <= endDateTime.getTime();
+      const txDateIso = tx.date.slice(0, 10);
+      const matchStartDate = !startDate || txDateIso >= startDate;
+      const matchEndDate = !endDate || txDateIso <= endDate;
 
       const matchTag = selectedTagIds.length === 0 || (tx.tagIds && tx.tagIds.some(tagId => selectedTagIds.includes(tagId)));
 
-      const matchCategory = selectedCategoryNames.length === 0 || selectedCategoryNames.includes(tx.category) || selectedCategoryNames.includes(getParentCategoryName(tx.category) || '');
+      const matchCategory = selectedCategoryNames.length === 0 || selectedCategoryNames.includes(tx.category) || selectedCategoryNames.includes(parentCategoryByName.get(tx.category) || '');
 
-      const min = parseFloat(minAmount);
-      const max = parseFloat(maxAmount);
-      const matchMinAmount = isNaN(min) || amountAbsEur >= min;
-      const matchMaxAmount = isNaN(max) || amountAbsEur <= max;
+      const matchMinAmount = !hasMin || amountAbsEur >= min;
+      const matchMaxAmount = !hasMax || amountAbsEur <= max;
 
       const matchLocation = selectedLocations.length === 0 || (() => {
         const loc = formatTransactionLocation(tx, user);
@@ -469,22 +485,24 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       const matchBalanceAdjustment = showBalanceAdjustments || !tx.isBalanceAdjustment;
 
       return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant && matchLocation && matchBalanceAdjustment;
-    }).map(({ tx }) => tx);
+    });
 
-    return transactionList.sort((a, b) => {
+    filteredIndexed.sort((a, b) => {
       switch (sortBy) {
-        case 'date-asc': return parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
-        case 'amount-desc': return Math.abs(convertToMain(b.amount, b.currency)) - Math.abs(convertToMain(a.amount, a.currency));
-        case 'amount-asc': return Math.abs(convertToMain(a.amount, a.currency)) - Math.abs(convertToMain(b.amount, b.currency));
-        case 'merchant-asc': return (a.merchant || '').localeCompare(b.merchant || '');
-        case 'merchant-desc': return (b.merchant || '').localeCompare(a.merchant || '');
-        case 'category-asc': return a.category.localeCompare(b.category);
-        case 'category-desc': return b.category.localeCompare(a.category);
-        case 'date-desc': default: return parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime();
+        case 'date-asc': return a.tx.date < b.tx.date ? -1 : a.tx.date > b.tx.date ? 1 : 0;
+        case 'amount-desc': return b.amountAbsEur - a.amountAbsEur;
+        case 'amount-asc': return a.amountAbsEur - b.amountAbsEur;
+        case 'merchant-asc': return a.merchantText.localeCompare(b.merchantText);
+        case 'merchant-desc': return b.merchantText.localeCompare(a.merchantText);
+        case 'category-asc': return a.tx.category.localeCompare(b.tx.category);
+        case 'category-desc': return b.tx.category.localeCompare(a.tx.category);
+        case 'date-desc': default: return b.tx.date < a.tx.date ? -1 : b.tx.date > a.tx.date ? 1 : 0;
       }
     });
 
-  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter, showBalanceAdjustments, user]);
+    return filteredIndexed.map(({ tx }) => tx);
+
+  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations, minAmount, maxAmount, parentCategoryByName, accountMapByName, merchantFilter, showBalanceAdjustments, user]);
 
   /** The days picked on the scatter chart. The list and the summary show only these. */
   const [brush, setBrush] = useState<ScatterBrush | null>(null);
@@ -532,18 +550,19 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   }, [filteredTransactions]);
 
   const selectedTransactions = useMemo(() => {
-    const resolvedIds = new Set<string>();
+    const resolved: Transaction[] = [];
+    const seen = new Set<string>();
     selectedIds.forEach(id => {
-      if (id.startsWith('transfer-')) {
-        const transferId = id.replace('transfer-', '');
-        const tx = transactions.find(t => t.transferId === transferId && t.type === 'expense');
-        if (tx) resolvedIds.add(tx.id);
-      } else {
-        resolvedIds.add(id);
+      const tx = id.startsWith('transfer-')
+        ? (transactionsByTransferId.get(id.replace('transfer-', '')) ?? []).find(t => t.type === 'expense')
+        : transactionById.get(id);
+      if (tx && !seen.has(tx.id)) {
+        seen.add(tx.id);
+        resolved.push(tx);
       }
     });
-    return transactions.filter(t => resolvedIds.has(t.id));
-  }, [selectedIds, transactions]);
+    return resolved;
+  }, [selectedIds, transactionById, transactionsByTransferId]);
 
   const canCombine = useMemo(() => {
     if (selectedTransactions.length < 2) return false;
@@ -563,22 +582,22 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     const tx = selectedTransactions[0];
     if (tx.isSplitParent) return true;
     if (tx.parentTransactionId) {
-      const parent = transactions.find(t => t.id === tx.parentTransactionId);
+      const parent = transactionById.get(tx.parentTransactionId);
       return Boolean(parent?.isSplitParent);
     }
     return false;
-  }, [selectedTransactions, transactions]);
+  }, [selectedTransactions, transactionById]);
 
   const canUncombine = useMemo(() => {
     if (selectedTransactions.length !== 1) return false;
     const tx = selectedTransactions[0];
     if (tx.isCombinedParent) return true;
     if (tx.parentTransactionId) {
-      const parent = transactions.find(t => t.id === tx.parentTransactionId);
+      const parent = transactionById.get(tx.parentTransactionId);
       return Boolean(parent?.isCombinedParent);
     }
     return false;
-  }, [selectedTransactions, transactions]);
+  }, [selectedTransactions, transactionById]);
 
   const handleOpenCategorizeModal = () => {
     setIsCategorizeModalOpen(true);
@@ -1038,6 +1057,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     direction: "descending",
   });
   const [visibleCount, setVisibleCount] = useState(LEDGER_BATCH);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setVisibleCount(LEDGER_BATCH);
@@ -1069,7 +1089,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     return list.sort((a, b) => {
       let cmp = 0;
       if (col === 'date') {
-        cmp = parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
+        cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
       } else if (col === 'amount') {
         cmp = Math.abs(convertToMain(a.amount, a.currency)) - Math.abs(convertToMain(b.amount, b.currency));
       } else if (col === 'description') {
@@ -1087,7 +1107,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
         const cityB = locB.hasLocation ? locB.city : '';
         cmp = cityA.localeCompare(cityB);
       } else {
-        cmp = parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
+        cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
       }
       return isDesc ? -cmp : cmp;
     });
@@ -1128,6 +1148,21 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   }, [sortedTransactions, expandedParentIds, debouncedSearchTerm, merchantFilter, minAmount, maxAmount, selectedLocations]);
 
   const paginatedItems = useMemo(() => displayItemsWithSubs.slice(0, visibleCount), [displayItemsWithSubs, visibleCount]);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || visibleCount >= displayItemsWithSubs.length || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount(count => Math.min(displayItemsWithSubs.length, count + LEDGER_BATCH));
+        }
+      },
+      { rootMargin: '320px 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [visibleCount, displayItemsWithSubs.length]);
 
   // Group current page items by date
   const tableRenderItems = useMemo<LedgerItem[]>(() => {
@@ -1212,10 +1247,11 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     else if (newSortBy === 'category-desc') setSortDescriptor({ column: 'category', direction: 'descending' });
   };
 
-  const menuFor = (tx: DisplayTransaction): MenuAction[] => {
-    const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) ?? null;
+  const menuFor = useCallback((tx: DisplayTransaction): MenuAction[] => {
+    const lookupId = tx.isTransfer ? (tx.originalId || tx.id) : tx.id;
+    const original = transactionById.get(lookupId) ?? null;
     const isPart = !!tx.parentTransactionId;
-    const parent = isPart ? transactions.find(t => t.id === tx.parentTransactionId) : undefined;
+    const parent = isPart && tx.parentTransactionId ? transactionById.get(tx.parentTransactionId) : undefined;
     const items: MenuAction[] = [{ id: 'edit', label: 'Edit transaction', icon: 'pencil-edit-02', onAction: () => { setEditingTransaction(original); setTransactionModalOpen(true); } }];
     if (tx.isSplitParent || (isPart && parent?.isSplitParent)) items.push({ id: 'unsplit', label: 'Unsplit transaction', icon: 'git-merge', onAction: () => handleUnsplit(tx) });
     if (tx.isCombinedParent || (isPart && parent?.isCombinedParent)) items.push({ id: 'uncombine', label: 'Uncombine transaction', icon: 'split', onAction: () => handleUncombine(tx) });
@@ -1228,7 +1264,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     if (hasLocation) items.push({ id: 'location', label: 'Remove location', icon: 'location-offline-01', onAction: () => handleClearLocation(tx) });
     items.push({ id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => { setSelectedIds(new Set([tx.id])); setIsDeleteConfirmOpen(true); } });
     return items;
-  };
+  }, [transactionById, handleClearLocation]);
 
   const toggleOne = (id: string) => setSelectedIds(prev => {
     const next = new Set(prev);
@@ -1936,6 +1972,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
             onAction={transactions.length ? clearFilters : handleOpenAddModal}
           />
         )}
+        <div ref={loadMoreSentinelRef} aria-hidden="true" className="h-px w-full" />
         <ShowMore remaining={displayItemsWithSubs.length - visibleCount} onPress={() => setVisibleCount(count => count + LEDGER_BATCH)} />
       </div>
 

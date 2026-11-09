@@ -9,7 +9,18 @@
  * merge per field; anything else (numbers, strings, plain lists) falls back to this device's value.
  */
 const isPlainObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-const hasId = (v: unknown): v is { id: string } => isPlainObject(v) && typeof v.id === 'string';
+const getItemKey = (v: unknown): string | null => {
+  if (!isPlainObject(v)) return null;
+  if (typeof v.id === 'string') return v.id;
+  if (typeof v.recurringTransactionId === 'string' && typeof v.originalDate === 'string') {
+    return `${v.recurringTransactionId}::${v.originalDate}`;
+  }
+  if (typeof v.date === 'string' && typeof v.price === 'number') {
+    return v.date;
+  }
+  return null;
+};
+const hasMergeKey = (v: unknown): v is Record<string, unknown> => getItemKey(v) !== null;
 const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every(item => typeof item === 'string');
 const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
@@ -21,8 +32,8 @@ export function threeWayMerge(base: unknown, mine: unknown, theirs: unknown): un
   const baseList = base == null ? [] : base;
   if (Array.isArray(mine) && Array.isArray(theirs) && Array.isArray(baseList)
       && mine.length + theirs.length > 0
-      && mine.every(hasId) && theirs.every(hasId) && baseList.every(hasId)) {
-    return mergeById(baseList as { id: string }[], mine as { id: string }[], theirs as { id: string }[]);
+      && mine.every(hasMergeKey) && theirs.every(hasMergeKey) && baseList.every(hasMergeKey)) {
+    return mergeByKey(baseList as Record<string, unknown>[], mine as Record<string, unknown>[], theirs as Record<string, unknown>[]);
   }
 
   if (isStringArray(mine) && isStringArray(theirs) && isStringArray(baseList)) {
@@ -65,27 +76,120 @@ function mergeStringOrder(base: string[], mine: string[], theirs: string[]): str
   return keptFromMine;
 }
 
-function mergeById(base: { id: string }[], mine: { id: string }[], theirs: { id: string }[]) {
-  const baseById = new Map(base.map(item => [item.id, item]));
-  const mineById = new Map(mine.map(item => [item.id, item]));
-  const theirsIds = new Set(theirs.map(item => item.id));
-  const result: { id: string }[] = [];
+function mergeByKey(base: Record<string, unknown>[], mine: Record<string, unknown>[], theirs: Record<string, unknown>[]) {
+  const keyOf = (item: Record<string, unknown>) => getItemKey(item)!;
+  const baseByKey = new Map(base.map(item => [keyOf(item), item]));
+  const mineByKey = new Map(mine.map(item => [keyOf(item), item]));
+  const theirsKeys = new Set(theirs.map(item => keyOf(item)));
+  const result: Record<string, unknown>[] = [];
 
   for (const theirItem of theirs) {
-    const baseItem = baseById.get(theirItem.id);
-    const myItem = mineById.get(theirItem.id);
+    const key = keyOf(theirItem);
+    const baseItem = baseByKey.get(key);
+    const myItem = mineByKey.get(key);
     if (baseItem && !myItem) continue;                                  // I deleted it
     if (myItem && !same(myItem, baseItem)) {                            // I added or edited it
-      result.push(baseItem ? threeWayMerge(baseItem, myItem, theirItem) as { id: string } : myItem);
+      result.push(baseItem ? threeWayMerge(baseItem, myItem, theirItem) as Record<string, unknown> : myItem);
     } else {
       result.push(theirItem);                                           // untouched here
     }
   }
 
   for (const myItem of mine) {                                          // my additions that they don't have
-    if (theirsIds.has(myItem.id)) continue;
-    const baseItem = baseById.get(myItem.id);
+    const key = keyOf(myItem);
+    if (theirsKeys.has(key)) continue;
+    const baseItem = baseByKey.get(key);
     if (!baseItem || !same(myItem, baseItem)) result.push(myItem);      // new here, or edited here though deleted there
   }
   return result;
 }
+
+export interface EntityDelta<T = Record<string, unknown>> {
+  upserts: T[];
+  deletedIds: string[];
+}
+
+/**
+ * Computes a compact `{ upserts, deletedIds }` delta between `base` and `current` for large `{ id: string }` arrays
+ * (default threshold: `base.length >= 100`, max delta size: `maxDeltaItems = 250`).
+ * Returns `null` when full-slice replacement is preferable (small array, no changes, or bulk import/delete).
+ */
+export function computeArrayDelta<T extends { id: string }>(
+  base: T[] | undefined,
+  current: T[] | undefined,
+  maxDeltaItems = 250,
+  minBaseLength = 100,
+): EntityDelta<T> | null {
+  if (!Array.isArray(base) || !Array.isArray(current) || base.length < minBaseLength) return null;
+
+  const baseById = new Map<string, T>();
+  for (const item of base) {
+    if (!item || typeof item.id !== 'string') return null;
+    baseById.set(item.id, item);
+  }
+
+  const seenIds = new Set<string>();
+  const upserts: T[] = [];
+
+  for (const item of current) {
+    if (!item || typeof item.id !== 'string') return null;
+    seenIds.add(item.id);
+    const prev = baseById.get(item.id);
+    if (prev === undefined || (prev !== item && !same(prev, item))) {
+      upserts.push(item);
+      if (upserts.length > maxDeltaItems) return null;
+    }
+  }
+
+  const deletedIds: string[] = [];
+  for (const id of baseById.keys()) {
+    if (!seenIds.has(id)) {
+      deletedIds.push(id);
+      if (upserts.length + deletedIds.length > maxDeltaItems) return null;
+    }
+  }
+
+  if (upserts.length === 0 && deletedIds.length === 0) return null;
+  return { upserts, deletedIds };
+}
+
+/**
+ * Applies an `{ upserts, deletedIds }` delta to a stored array of `{ id: string }` entities in O(N) time.
+ */
+export function applyArrayDelta<T extends { id: string }>(
+  stored: T[] | undefined,
+  delta: { upserts?: T[]; deletedIds?: string[] },
+): T[] {
+  const list = Array.isArray(stored) ? stored : [];
+  const deletedSet = new Set(delta.deletedIds ?? []);
+  const upserts = Array.isArray(delta.upserts) ? delta.upserts : [];
+  const upsertById = new Map<string, T>();
+  for (const item of upserts) {
+    if (item && typeof item.id === 'string') upsertById.set(item.id, item);
+  }
+
+  const appliedIds = new Set<string>();
+  const result: T[] = [];
+
+  for (const item of list) {
+    if (!item || typeof item.id !== 'string') continue;
+    if (deletedSet.has(item.id)) continue;
+    const replacement = upsertById.get(item.id);
+    if (replacement !== undefined) {
+      result.push(replacement);
+      appliedIds.add(item.id);
+    } else {
+      result.push(item);
+    }
+  }
+
+  for (const item of upserts) {
+    if (item && typeof item.id === 'string' && !appliedIds.has(item.id) && !deletedSet.has(item.id)) {
+      result.push(item);
+      appliedIds.add(item.id);
+    }
+  }
+
+  return result;
+}
+
