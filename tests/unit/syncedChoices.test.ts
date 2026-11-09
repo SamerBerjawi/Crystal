@@ -68,3 +68,10 @@ test('a goal you turned off stays off, and a new goal comes on', () => {
 test('deleted and disabled goals drop out', () => {
   assert.deepEqual(reconcileActiveGoals([goal('a', true)], ['a', 'gone'], ['a', 'gone']).activeGoalIds, []);
 });
+
+test('reconcileActiveGoals is idempotent on already-reconciled goals (HIGH-03)', () => {
+  const goals = [goal('a'), goal('b')];
+  const first = reconcileActiveGoals(goals, undefined, undefined);
+  const second = reconcileActiveGoals(goals, first.activeGoalIds, first.knownGoalIds);
+  assert.deepEqual(second, first);
+});

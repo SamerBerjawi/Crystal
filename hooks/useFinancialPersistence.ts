@@ -106,6 +106,7 @@ export function useFinancialPersistence({
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const lastSaveFailureRef = useRef<{ ok: boolean; status?: number } | null>(null);
   const retryDelayRef = useRef(5000);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dirtySignal, setDirtySignal] = useState(0);
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
   const mergedFromOtherDeviceRef = useRef(false);
@@ -372,7 +373,8 @@ export function useFinancialPersistence({
         if (status !== 401 && status !== 403 && status !== 409) {
           const delay = retryDelayRef.current;
           retryDelayRef.current = Math.min(delay * 2, 30_000);
-          setTimeout(() => setDirtySignal(signal => signal + 1), delay);
+          if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+          retryTimerRef.current = setTimeout(() => setDirtySignal(signal => signal + 1), delay);
         }
       }
       if (succeeded && (saveAgainRef.current || getDirtyKeys(latestDataRef.current).length > 0)) {
@@ -381,6 +383,9 @@ export function useFinancialPersistence({
       }
     };
     void persistDirtySlices();
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
   }, [debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData, savePartialData, getDirtyKeys, refreshFromServer, allowEmptySaveRef, baselinePendingRef, latestDataRef, restoreInProgressRef, savedSlicesRef]);
 
   useEffect(() => {

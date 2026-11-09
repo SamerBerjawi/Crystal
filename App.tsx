@@ -55,7 +55,8 @@ import { normalizeLoanAssetLinks } from './utils/accountLinks';
 import { useAuth } from './hooks/useAuth';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
-import { moveLocalChoices } from './utils/syncedChoices';
+import { moveLocalChoices, reconcileActiveGoals } from './utils/syncedChoices';
+import { updateActivityStreak } from './utils/challengesModel';
 import LockScreen from './components/LockScreen';
 import { Banner, Spinner } from './components/ui/States';
 import { useIdleLock } from './hooks/useIdleLock';
@@ -336,6 +337,19 @@ const App: React.FC = () => {
       ...defaultPreferences,
       ...(dataToLoad.preferences || {}),
     }, dataToLoad.transactions || [], new Date().toISOString());
+
+    const deviceTimezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'local';
+    const reconciledGoals = reconcileActiveGoals(
+      dataToLoad.financialGoals || [],
+      loadedPrefs.activeGoalIds,
+      loadedPrefs.knownGoalIds
+    );
+    const finalPrefs = {
+      ...loadedPrefs,
+      timezone: loadedPrefs.timezone || deviceTimezone,
+      ...reconciledGoals,
+    };
+
     lastUpdatedAtRef.current = dataToLoad.lastUpdatedAt ?? null;
     baselinePendingRef.current = true;
 
@@ -349,6 +363,14 @@ const App: React.FC = () => {
         }
         return acc;
       });
+      const loadedExpenseCats = dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES;
+      const loadedIncomeCats = dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES;
+      const linkedBudgets = linkBudgetsToCategories(dataToLoad.budgets || [], loadedExpenseCats);
+
+      const todayStr = toLocalISOString(new Date());
+      const rawStats = dataToLoad.userStats || emptyFinancialData.userStats!;
+      const normalizedStats = updateActivityStreak(rawStats, todayStr);
+
       setAccounts(normalizeLoanAssetLinks(migratedAccounts));
       setTransactions(dataToLoad.transactions || []);
       setInvestmentTransactions(dataToLoad.investmentTransactions || []);
@@ -356,7 +378,7 @@ const App: React.FC = () => {
       setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
       setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
       setFinancialGoals(dataToLoad.financialGoals || []);
-      setBudgets(dataToLoad.budgets || []);
+      setBudgets(linkedBudgets);
       setTasks(dataToLoad.tasks || []);
       setWarrants(dataToLoad.warrants || []);
       setMemberships(dataToLoad.memberships || []);
@@ -367,15 +389,14 @@ const App: React.FC = () => {
       setInvoices(dataToLoad.invoices || []);
       setTags(dataToLoad.tags || []);
       setPredictions(dataToLoad.predictions || []);
-      setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
-      setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-      if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); }
-      else { setUserStats(emptyFinancialData.userStats!); }
-      streakUpdatedRef.current = false;
+      setIncomeCategories(loadedIncomeCats);
+      setExpenseCategories(loadedExpenseCats);
+      setUserStats(normalizedStats);
+      streakUpdatedRef.current = true;
       setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
-      setPreferences(loadedPrefs);
-      if (loadedPrefs.conversionRates) {
-        updateConversionRates(loadedPrefs.conversionRates);
+      setPreferences(finalPrefs);
+      if (finalPrefs.conversionRates) {
+        updateConversionRates(finalPrefs.conversionRates);
       }
       setAccountOrder(dataToLoad.accountOrder || []);
       setTaskOrder(dataToLoad.taskOrder || []);
@@ -691,35 +712,35 @@ const App: React.FC = () => {
     setIsOnboardingOpen(false);
   };
 
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('accounts'); }, [accounts, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('transactions'); }, [transactions, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('investmentTransactions'); }, [investmentTransactions, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('recurringTransactions'); }, [recurringTransactions, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('recurringTransactionOverrides'); }, [recurringTransactionOverrides, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('loanPaymentOverrides'); }, [loanPaymentOverrides, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('financialGoals'); }, [financialGoals, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('budgets'); }, [budgets, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('accounts'); }, [accounts, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('transactions'); }, [transactions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('investmentTransactions'); }, [investmentTransactions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('recurringTransactions'); }, [recurringTransactions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('recurringTransactionOverrides'); }, [recurringTransactionOverrides, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('loanPaymentOverrides'); }, [loanPaymentOverrides, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('financialGoals'); }, [financialGoals, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('budgets'); }, [budgets, isDataLoaded, markSliceDirty]);
   useEffect(() => {
-    if (!isDataLoaded || restoreInProgressRef.current) return;
+    if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return;
     setBudgets(prev => linkBudgetsToCategories(prev, expenseCategories));
-  }, [expenseCategories, budgets, isDataLoaded]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('tasks'); }, [tasks, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('warrants'); }, [warrants, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('memberships'); }, [memberships, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('manualWarrantPrices'); }, [manualWarrantPrices, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('priceHistory'); }, [priceHistory, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('importExportHistory'); }, [importExportHistory, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('incomeCategories'); }, [incomeCategories, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('expenseCategories'); }, [expenseCategories, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('preferences'); }, [preferences, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('billsAndPayments'); }, [billsAndPayments, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('accountOrder'); }, [accountOrder, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('taskOrder'); }, [taskOrder, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('tags'); }, [tags, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('invoices'); }, [invoices, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
+  }, [expenseCategories, isDataLoaded]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('tasks'); }, [tasks, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('warrants'); }, [warrants, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('memberships'); }, [memberships, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('manualWarrantPrices'); }, [manualWarrantPrices, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('priceHistory'); }, [priceHistory, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('importExportHistory'); }, [importExportHistory, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('incomeCategories'); }, [incomeCategories, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('expenseCategories'); }, [expenseCategories, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('preferences'); }, [preferences, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('billsAndPayments'); }, [billsAndPayments, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('accountOrder'); }, [accountOrder, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('taskOrder'); }, [taskOrder, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('tags'); }, [tags, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('invoices'); }, [invoices, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
 
   const handleRestoreData = useCallback((data: FinancialData) => {
     restoreInProgressRef.current = true;
