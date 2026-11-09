@@ -28,6 +28,7 @@ export const emptyFinancialData: FinancialData = {
     budgets: [],
     tasks: [],
     taskOrder: [],
+    goalOrder: [],
     warrants: [],
     memberships: [],
     importExportHistory: [],

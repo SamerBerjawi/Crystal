@@ -15,7 +15,7 @@ Read this guide alongside [`CLAUDE.md`](../CLAUDE.md), [`DESIGN.md`](../DESIGN.m
    - Loan and Mortgage accounts compute their remaining balance dynamically from amortization schedules and overrides (`resolveAccountBalance(acc)`), not raw `acc.balance`.
 4. **Preserve Sync & Merge Keys**:
    - Any new entity slice added to `FinancialData` ([`types.ts`](../types.ts)) must be registered in:
-     1. `PERSISTED_SLICE_KEYS` in [`hooks/useFinancialPersistence.ts`](../hooks/useFinancialPersistence.ts)
+     1. `PERSISTED_SLICE_KEYS` in [`utils/sliceRegistry.ts`](../utils/sliceRegistry.ts) and [`server/src/sliceRegistry.ts`](../server/src/sliceRegistry.ts)
      2. `financialDataSchema` in [`server/src/schemas.ts`](../server/src/schemas.ts)
      3. `threeWayMerge` in [`utils/threeWayMerge.ts`](../utils/threeWayMerge.ts) (specify composite key in `getItemKey` if items do not have a unique `.id`).
 
