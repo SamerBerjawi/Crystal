@@ -173,11 +173,13 @@ export const projectBalances = (input: ProjectInput): Projection => {
     return value;
   };
 
-  // Occurrences from the Schedule engine (only today onwards; overdue past occurrences are not stacked on today).
+  // Occurrences from the Schedule engine (today onwards, plus open overdue items within 60 days projected onto today).
+  const overdueLookback = iso(addDays(today, -60));
   for (const o of occurrences) {
     if (!isOpen(o)) continue;
-    if (o.date < todayStr || o.date > endStr) continue;
-    const date = o.date;
+    if (o.date > endStr || o.date < overdueLookback) continue;
+    const isOverdue = o.date < todayStr;
+    const date = isOverdue ? todayStr : o.date;
     const base = convert(o.amount, o.currency);
     const legs: { accountId: string | null; amount: number }[] = [];
     const isTransfer = o.type === 'transfer';
@@ -196,7 +198,7 @@ export const projectBalances = (input: ProjectInput): Projection => {
       description: o.merchant || o.description,
       amount: round2(legs.reduce((s, l) => s + l.amount, 0)),
       legs, native: { amount: o.flow === 'in' ? o.amount : -o.amount, currency: o.currency },
-      accountId: o.accountId, toAccountId: o.toAccountId, overdue: o.date < todayStr, occurrence: o,
+      accountId: o.accountId, toAccountId: o.toAccountId, overdue: isOverdue, occurrence: o,
     });
   }
 
@@ -550,7 +552,7 @@ export const forecastFromData = (data: ForecastData, selected: Account[], goals:
   return projectBalances({
     accounts: selected,
     startBalances,
-    occurrences: buildOccurrences({ ...data, from: today, to: end, today, overdueDays: 0 }),
+    occurrences: buildOccurrences({ ...data, from: today, to: end, today, overdueDays: 31 }),
     goals,
     activeGoalIds,
     today,

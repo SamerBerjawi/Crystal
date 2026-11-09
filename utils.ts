@@ -490,20 +490,23 @@ export function debtFromBalance(account: Account, value: number): number {
 }
 
 /**
- * How a signed native balance counts toward the balance sheet, in EUR.
+ * How a signed native balance counts toward the balance sheet, in your main currency.
  * Assets count signed (an overdrawn account lowers assets); debts count as `-balance`
  * (a card in credit lowers debt). So assets − debt always equals the sum of balances.
  */
-export function classifyAccountBalanceEur(
+export function classifyAccountBalanceMain(
     account: Account,
     nativeBalance: number,
     rates?: Record<string, number>
 ): { asset: number; debt: number } {
-    const eur = convertToMain(nativeBalance, account.currency, rates);
-    if (DEBT_TYPES.includes(account.type)) return { asset: 0, debt: debtFromBalance(account, eur) };
-    if (ASSET_TYPES.includes(account.type)) return { asset: eur, debt: 0 };
+    const mainAmount = convertToMain(nativeBalance, account.currency, rates);
+    if (DEBT_TYPES.includes(account.type)) return { asset: 0, debt: debtFromBalance(account, mainAmount) };
+    if (ASSET_TYPES.includes(account.type)) return { asset: mainAmount, debt: 0 };
     return { asset: 0, debt: 0 };
 }
+
+/** @deprecated Use classifyAccountBalanceMain. Returns balance in mainCurrency, not EUR. */
+export const classifyAccountBalanceEur = classifyAccountBalanceMain;
 
 export function calculateAccountTotals(
     accounts: Account[],
@@ -525,7 +528,7 @@ export function calculateAccountTotals(
 
     analyticsAccounts.forEach(acc => {
         const native = resolveAccountBalance(acc, txsByAccount.get(acc.id) || [], loanPaymentOverrides, options);
-        const { asset, debt } = classifyAccountBalanceEur(acc, native, options.rates);
+        const { asset, debt } = classifyAccountBalanceMain(acc, native, options.rates);
         totalAssets = safeAdd(totalAssets, asset);
         totalDebt = safeAdd(totalDebt, debt);
         if (acc.type === 'Credit Card') creditCardDebt = safeAdd(creditCardDebt, debt);

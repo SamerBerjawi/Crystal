@@ -1171,7 +1171,22 @@ const App: React.FC = () => {
 
   const preferencesContextValue = useMemo(() => ({ preferences, setPreferences }), [preferences]);
   const accountsContextValue = useMemo(() => ({ accounts, accountOrder, setAccountOrder, saveAccount: handleSaveAccount }), [accounts, accountOrder, setAccountOrder, handleSaveAccount]);
-  const transactionsContextValue = useMemo(() => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions }), [transactions, handleDeleteTransactions, handleSaveTransaction]);
+  const transactionsVersionRef = useRef(0);
+  const prevTransactionsRef = useRef(transactions);
+  if (prevTransactionsRef.current !== transactions) {
+    prevTransactionsRef.current = transactions;
+    transactionsVersionRef.current += 1;
+  }
+  const transactionsDigest = `txs:v${transactionsVersionRef.current}:${transactions.length}`;
+  const transactionsContextValue = useMemo(
+    () => ({
+      transactions,
+      saveTransaction: handleSaveTransaction,
+      deleteTransactions: handleDeleteTransactions,
+      digest: transactionsDigest,
+    }),
+    [transactions, handleDeleteTransactions, handleSaveTransaction, transactionsDigest]
+  );
   const warrantsContextValue = useMemo(() => ({ warrants, prices: warrantPrices }), [warrantPrices, warrants]);
   const invoicesContextValue = useMemo(() => ({ invoices, saveInvoice: handleSaveInvoice, deleteInvoice: handleDeleteInvoice }), [invoices, handleSaveInvoice, handleDeleteInvoice]);
   const categoryContextValue = useMemo(() => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }), [expenseCategories, incomeCategories]);

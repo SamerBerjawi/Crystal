@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Account, Budget, FinancialGoal, Prediction, Transaction, UserStats } from '../../types';
+import { setMainCurrency } from '../../utils';
 import { budgetMastery, challengeBadges, challengeMetrics, debtsAndGoals, healthScore, personalRecords, predictionState, predictionValue, resolvePredictions, sprintProgress, updateActivityStreak, type ChallengeMetrics } from '../../utils/challengesModel';
 
 const account = (extra: Partial<Account>) => ({ id: 'a', name: 'Main', type: 'Checking', balance: 1000, currency: 'EUR', ...extra }) as Account;
@@ -125,4 +126,22 @@ test('updateActivityStreak increments on consecutive days and resets after a gap
   const afterGap = updateActivityStreak(newRecord, '2026-10-15');
   assert.equal(afterGap.currentStreak, 1);
   assert.equal(afterGap.longestStreak, 6);
+});
+
+test('challengeMetrics and healthScore calculate correctly without double conversion when mainCurrency is USD', () => {
+  setMainCurrency('USD');
+  try {
+    const usdAccounts = [
+      account({ id: 'chk', type: 'Checking', balance: 5000, currency: 'USD' }),
+      account({ id: 'card', type: 'Credit Card', balance: -1000, creditLimit: 5000, currency: 'USD' }),
+    ];
+    const m = challengeMetrics(usdAccounts, [], [], [], new Date(2026, 9, 20));
+    const score = healthScore(m);
+    assert.ok(score.score > 0);
+    const debtFactor = score.factors.find(f => f.id === 'debt');
+    assert.ok(debtFactor);
+    assert.ok(debtFactor.value.includes('1,000') || debtFactor.value.includes('$'));
+  } finally {
+    setMainCurrency('EUR');
+  }
 });

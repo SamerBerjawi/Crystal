@@ -62,7 +62,7 @@ interface FinancialDataProviderProps {
   schedule: ScheduleContextValue;
   preferences: PreferencesContextValue;
   accounts: AccountsContextValue;
-  transactions: Omit<TransactionsContextValue, 'digest'>;
+  transactions: TransactionsContextValue;
   warrants: WarrantsContextValue;
   invoices: InvoicesContextValue;
 }
