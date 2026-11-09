@@ -136,6 +136,45 @@ export function useDomainCrudHandlers({
   const transactionsRef = useRef(transactions);
   transactionsRef.current = transactions;
 
+  const accountsRef = useRef(accounts);
+  accountsRef.current = accounts;
+
+  const recurringTransactionsRef = useRef(recurringTransactions);
+  recurringTransactionsRef.current = recurringTransactions;
+
+  const budgetsRef = useRef(budgets);
+  budgetsRef.current = budgets;
+
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
+
+  const warrantsRef = useRef(warrants);
+  warrantsRef.current = warrants;
+
+  const investmentTransactionsRef = useRef(investmentTransactions);
+  investmentTransactionsRef.current = investmentTransactions;
+
+  const billsAndPaymentsRef = useRef(billsAndPayments);
+  billsAndPaymentsRef.current = billsAndPayments;
+
+  const incomeCategoriesRef = useRef(incomeCategories);
+  incomeCategoriesRef.current = incomeCategories;
+
+  const expenseCategoriesRef = useRef(expenseCategories);
+  expenseCategoriesRef.current = expenseCategories;
+
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
+
+  const assetPricesRef = useRef(assetPrices);
+  assetPricesRef.current = assetPrices;
+
+  const viewingAccountIdRef = useRef(viewingAccountId);
+  viewingAccountIdRef.current = viewingAccountId;
+
+  const viewingHoldingSymbolRef = useRef(viewingHoldingSymbol);
+  viewingHoldingSymbolRef.current = viewingHoldingSymbol;
+
   const handleSaveAccount = useCallback((accountData: Omit<Account, 'id'> & { id?: string }) => {
     const accountWithDefaults = { ...accountData, includeInAnalytics: accountData.includeInAnalytics ?? true } as Omit<Account, 'id'> & { id?: string };
     const finalAccountId = accountData.id || `acc-${uuidv4()}`;
@@ -175,7 +214,7 @@ export function useDomainCrudHandlers({
   }, [setAccounts]);
 
   const handleCloseAsset = useCallback((accountId: string, details: AssetClosureDetails) => {
-    const account = accounts.find(a => a.id === accountId);
+    const account = accountsRef.current.find(a => a.id === accountId);
     if (!account) return;
 
     let incomeTx: Transaction | undefined;
@@ -209,7 +248,7 @@ export function useDomainCrudHandlers({
             details.value,
             account.currency,
             acc.currency,
-            preferences.conversionRates
+            preferencesRef.current.conversionRates
           );
           return { ...acc, balance: safeRound(acc.balance + convertedSaleProceeds) };
         }
@@ -219,10 +258,10 @@ export function useDomainCrudHandlers({
 
     setViewingAccountId(null);
     setCurrentPage('Accounts');
-  }, [accounts, preferences.conversionRates, setAccounts, setCurrentPage, setTransactions, setViewingAccountId]);
+  }, [setCurrentPage, setAccounts, setTransactions, setViewingAccountId]);
 
   const handleRevertAccountClosure = useCallback((accountId: string) => {
-    const account = accounts.find(a => a.id === accountId);
+    const account = accountsRef.current.find(a => a.id === accountId);
     if (!account || !account.closureDetails) return;
 
     const details = account.closureDetails;
@@ -247,19 +286,19 @@ export function useDomainCrudHandlers({
             details.value,
             account.currency,
             acc.currency,
-            preferences.conversionRates
+            preferencesRef.current.conversionRates
           );
           return { ...acc, balance: safeRound(acc.balance - convertedSaleProceeds) };
         }
         return acc;
       });
     });
-  }, [accounts, preferences.conversionRates, setAccounts, setTransactions]);
+  }, [setAccounts, setTransactions]);
 
   const handleDeleteAccount = useCallback((accountId: string) => {
-    const accountToDelete = accounts.find(acc => acc.id === accountId);
+    const accountToDelete = accountsRef.current.find(acc => acc.id === accountId);
     if (!accountToDelete) return;
-    const impactedRecurringIds = new Set(recurringTransactions.filter(rt => rt.accountId === accountId || rt.toAccountId === accountId).map(rt => rt.id));
+    const impactedRecurringIds = new Set(recurringTransactionsRef.current.filter(rt => rt.accountId === accountId || rt.toAccountId === accountId).map(rt => rt.id));
     setAccounts(prev => prev.filter(acc => acc.id !== accountId).map(acc => {
       if (acc.linkedAssetId === accountId) return { ...acc, linkedAssetId: undefined };
       return acc;
@@ -271,9 +310,9 @@ export function useDomainCrudHandlers({
     setRecurringTransactions(prev => prev.filter(rt => rt.accountId !== accountId && rt.toAccountId !== accountId));
     if (impactedRecurringIds.size > 0) { setRecurringTransactionOverrides(prev => prev.filter(override => !impactedRecurringIds.has(override.recurringTransactionId))); }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
-    if (viewingAccountId === accountId) { setViewingAccountId(null); setCurrentPage('Accounts'); }
-    if (viewingHoldingSymbol === accountToDelete.symbol) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
-  }, [accounts, recurringTransactions, viewingAccountId, viewingHoldingSymbol, setAccounts, setBillsAndPayments, setCurrentPage, setInvestmentTransactions, setManualWarrantPrices, setRecurringTransactionOverrides, setRecurringTransactions, setTransactions, setViewingAccountId, setViewingHoldingSymbol, setWarrants]);
+    if (viewingAccountIdRef.current === accountId) { setViewingAccountId(null); setCurrentPage('Accounts'); }
+    if (viewingHoldingSymbolRef.current === accountToDelete.symbol) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
+  }, [setCurrentPage, setAccounts, setBillsAndPayments, setInvestmentTransactions, setManualWarrantPrices, setRecurringTransactionOverrides, setRecurringTransactions, setTransactions, setViewingAccountId, setViewingHoldingSymbol, setWarrants]);
 
   const handleSaveTransaction = useCallback((
     transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[],
@@ -282,10 +321,12 @@ export function useDomainCrudHandlers({
   ) => {
     const isNewRecord = (tx: { id?: string }) => !tx.id || options?.isNew;
     const finalTxArray = [...transactionDataArray];
+    const currentPrefs = preferencesRef.current;
+    const currentAccounts = accountsRef.current;
 
     if (!options?.skipRules) {
       finalTxArray.forEach((tx, index) => {
-        if (isNewRecord(tx) || options?.applyRules) finalTxArray[index] = applySavedRules(tx, preferences);
+        if (isNewRecord(tx) || options?.applyRules) finalTxArray[index] = applySavedRules(tx, currentPrefs);
       });
     }
 
@@ -295,7 +336,7 @@ export function useDomainCrudHandlers({
         if (tx.transferId?.startsWith('spare-')) return;
         if (tx.type !== 'expense') return;
 
-        const linkedSpareChangeAccount = accounts.find(a =>
+        const linkedSpareChangeAccount = currentAccounts.find(a =>
           a.type === 'Investment' &&
           a.subType === 'Spare Change' &&
           a.linkedAccountId === tx.accountId
@@ -308,7 +349,7 @@ export function useDomainCrudHandlers({
             const newTxId = tx.id || uuidv4();
             tx.id = newTxId;
             const spareTransferId = `spare-${newTxId}`;
-            const sourceAcc = accounts.find(a => a.id === tx.accountId);
+            const sourceAcc = currentAccounts.find(a => a.id === tx.accountId);
             if (sourceAcc) {
               finalTxArray.push({
                 accountId: tx.accountId,
@@ -354,15 +395,15 @@ export function useDomainCrudHandlers({
       }
     }
 
-    const changes = planTransactionChanges(transactionsRef.current, finalTxArray, transactionIdsToDelete, accounts);
+    const changes = planTransactionChanges(transactionsRef.current, finalTxArray, transactionIdsToDelete, currentAccounts);
     transactionsRef.current = applyTransactionChanges(transactionsRef.current, changes);
     setTransactions(prev => applyTransactionChanges(prev, changes));
     if (Object.keys(changes.balanceChanges).length > 0) setAccounts(prev => applyBalanceChanges(prev, changes.balanceChanges));
-  }, [accounts, preferences, setAccounts, setEnableBankingConnections, setTransactions]);
+  }, [setAccounts, setEnableBankingConnections, setTransactions]);
 
   const handleDeleteTransactions = useCallback((transactionIds: string[], options?: { resyncable?: boolean }) => {
     if (transactionIds.length === 0) return;
-    const deletedTxs = transactions.filter(t => transactionIds.includes(t.id));
+    const deletedTxs = transactionsRef.current.filter(t => transactionIds.includes(t.id));
     handleSaveTransaction([], transactionIds, { resyncable: options?.resyncable });
     toast.success(
       deletedTxs.length === 1 
@@ -379,14 +420,14 @@ export function useDomainCrudHandlers({
         }
       }
     );
-  }, [transactions, handleSaveTransaction]);
+  }, [handleSaveTransaction]);
 
   const handleSaveInvestmentTransaction = useCallback((invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTxData?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => {
     const symbol = invTxData.symbol.toUpperCase();
     const type = invTxData.type?.toLowerCase();
 
     let currentHoldingQty = 0;
-    investmentTransactions.forEach(t => {
+    investmentTransactionsRef.current.forEach(t => {
       if (t.symbol?.toUpperCase() === symbol && t.id !== invTxData.id) {
         const q = Number(t.quantity) || 0;
         if (t.type?.toLowerCase() === 'buy') {
@@ -396,7 +437,7 @@ export function useDomainCrudHandlers({
         }
       }
     });
-    warrants.forEach(w => {
+    warrantsRef.current.forEach(w => {
       if (w.isin?.toUpperCase() === symbol) {
         currentHoldingQty += Number(w.quantity) || 0;
       }
@@ -412,11 +453,11 @@ export function useDomainCrudHandlers({
 
     let nextTxList: InvestmentTransaction[];
     if (invTxData.id) {
-      nextTxList = investmentTransactions.map(t => t.id === invTxData.id ? { ...t, ...invTxData } as InvestmentTransaction : t);
+      nextTxList = investmentTransactionsRef.current.map(t => t.id === invTxData.id ? { ...t, ...invTxData } as InvestmentTransaction : t);
       setInvestmentTransactions(nextTxList);
     } else {
       const newTx = { ...invTxData, id: `inv-txn-${uuidv4()}` } as InvestmentTransaction;
-      nextTxList = [...investmentTransactions, newTx];
+      nextTxList = [...investmentTransactionsRef.current, newTx];
       setInvestmentTransactions(nextTxList);
       if (cashTxData) handleSaveTransaction([cashTxData]);
     }
@@ -432,13 +473,13 @@ export function useDomainCrudHandlers({
         }
       }
     });
-    warrants.forEach(w => {
+    warrantsRef.current.forEach(w => {
       if (w.isin?.toUpperCase() === symbol) {
         remainingQtyForSymbol += Number(w.quantity) || 0;
       }
     });
 
-    const price = assetPrices[symbol] ?? invTxData.price;
+    const price = assetPricesRef.current[symbol] ?? invTxData.price;
     const finalBalance = remainingQtyForSymbol * price;
 
     if (newAccount) {
@@ -455,7 +496,7 @@ export function useDomainCrudHandlers({
       }
       return account;
     }));
-  }, [assetPrices, handleSaveAccount, handleSaveTransaction, investmentTransactions, setAccounts, setInvestmentTransactions, warrants]);
+  }, [handleSaveAccount, handleSaveTransaction, setAccounts, setInvestmentTransactions]);
 
   const handleDeleteInvestmentTransaction = useCallback((id: string) => {
     setInvestmentTransactions(prev => prev.filter(t => t.id !== id));
@@ -466,7 +507,7 @@ export function useDomainCrudHandlers({
   }, [setRecurringTransactions]);
 
   const handleDeleteRecurringTransaction = useCallback((id: string) => {
-    const item = recurringTransactions.find(r => r.id === id);
+    const item = recurringTransactionsRef.current.find(r => r.id === id);
     setRecurringTransactions(prev => removeEntityById(prev, id));
     if (item) {
       toast.success(`Removed subscription "${item.description || item.merchant}"`, {
@@ -479,7 +520,7 @@ export function useDomainCrudHandlers({
         }
       });
     }
-  }, [recurringTransactions, setRecurringTransactions]);
+  }, [setRecurringTransactions]);
 
   const handleSaveLoanPaymentOverrides = useCallback((accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => {
     setLoanPaymentOverrides(prev => ({ ...prev, [accountId]: overrides }));
@@ -521,7 +562,7 @@ export function useDomainCrudHandlers({
   }, [setBudgets]);
 
   const handleDeleteBudget = useCallback((id: string) => {
-    const item = budgets.find(b => b.id === id);
+    const item = budgetsRef.current.find(b => b.id === id);
     setBudgets(prev => removeEntityById(prev, id));
     if (item) {
       toast.success(`Deleted budget for "${item.categoryName}"`, {
@@ -534,14 +575,14 @@ export function useDomainCrudHandlers({
         }
       });
     }
-  }, [budgets, setBudgets]);
+  }, [setBudgets]);
 
   const handleSaveTask = useCallback((taskData: Omit<Task, 'id'> & { id?: string }) => {
     setTasks(prev => upsertEntity(prev, taskData, () => `task-${uuidv4()}`));
   }, [setTasks]);
 
   const handleDeleteTask = useCallback((taskId: string) => {
-    const item = tasks.find(t => t.id === taskId);
+    const item = tasksRef.current.find(t => t.id === taskId);
     setTasks(prev => removeEntityById(prev, taskId));
     if (item) {
       toast.success(`Deleted task "${item.title}"`, {
@@ -554,7 +595,7 @@ export function useDomainCrudHandlers({
         }
       });
     }
-  }, [tasks, setTasks]);
+  }, [setTasks]);
 
   const handleSaveWarrant = useCallback((warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
     let warrantId = warrantData.id;
@@ -563,7 +604,7 @@ export function useDomainCrudHandlers({
     } else {
       warrantId = `warr-${uuidv4()}`;
       setWarrants(prev => [...prev, { ...warrantData, id: warrantId } as Warrant]);
-      if (warrantData.isin && !accounts.some(acc => acc.type === 'Investment' && acc.symbol?.toUpperCase() === warrantData.isin.toUpperCase())) {
+      if (warrantData.isin && !accountsRef.current.some(acc => acc.type === 'Investment' && acc.symbol?.toUpperCase() === warrantData.isin.toUpperCase())) {
         handleSaveAccount({ name: warrantData.name || 'Warrant', type: 'Investment', subType: 'Warrant', symbol: warrantData.isin.toUpperCase(), balance: 0, currency: 'EUR' });
       }
     }
@@ -584,16 +625,16 @@ export function useDomainCrudHandlers({
         return [...otherBills, ...newBills];
       });
     }
-  }, [accounts, handleSaveAccount, setBillsAndPayments, setWarrants]);
+  }, [handleSaveAccount, setBillsAndPayments, setWarrants]);
 
   const handleDeleteWarrant = useCallback((warrantId: string) => {
-    const warrantToDelete = warrants.find(w => w.id === warrantId);
+    const warrantToDelete = warrantsRef.current.find(w => w.id === warrantId);
     setWarrants(prev => prev.filter(w => w.id !== warrantId));
     setBillsAndPayments(prev => prev.filter(b => b.warrantId !== warrantId));
     if (warrantToDelete) {
       setManualWarrantPrices(prev => { const updated = { ...prev }; delete updated[warrantToDelete.isin]; return updated; });
     }
-  }, [setBillsAndPayments, setManualWarrantPrices, setWarrants, warrants]);
+  }, [setBillsAndPayments, setManualWarrantPrices, setWarrants]);
 
   const handleManualWarrantPrice = useCallback((isin: string, priceOrEntries: number | null | { date: string, price: number }[], date?: string) => {
     if (Array.isArray(priceOrEntries)) {
@@ -645,12 +686,12 @@ export function useDomainCrudHandlers({
   }, [setBillsAndPayments]);
 
   const handleMarkBillAsPaid = useCallback((billId: string, paymentAccountId: string, paymentDate: string) => {
-    const bill = billsAndPayments.find(b => b.id === billId);
+    const bill = billsAndPaymentsRef.current.find(b => b.id === billId);
     if (!bill) return;
     setBillsAndPayments(prev => prev.map(b => b.id === billId ? { ...b, status: 'paid' as BillPaymentStatus, accountId: paymentAccountId, dueDate: paymentDate } : b));
-    const paymentAccount = accounts.find(a => a.id === paymentAccountId);
+    const paymentAccount = accountsRef.current.find(a => a.id === paymentAccountId);
     if (paymentAccount) { handleSaveTransaction([{ accountId: paymentAccountId, date: paymentDate, description: bill.description, amount: bill.amount, category: bill.amount >= 0 ? 'Income' : 'Bills & Utilities', type: bill.amount >= 0 ? 'income' : 'expense', currency: paymentAccount.currency, }]); }
-  }, [billsAndPayments, accounts, handleSaveTransaction, setBillsAndPayments]);
+  }, [handleSaveTransaction, setBillsAndPayments]);
 
   const handleSaveMembership = useCallback((membershipData: Omit<Membership, 'id'> & { id?: string }) => {
     setMemberships(prev => upsertEntity(prev, membershipData, () => `mem-${uuidv4()}`));
@@ -677,44 +718,46 @@ export function useDomainCrudHandlers({
   }, [setPredictions]);
 
   const handleRenameCategory = useCallback((oldName: string, newName: string) => {
+    const currentPrefs = preferencesRef.current;
     const updated = renameCategoryAcrossEntities(oldName, newName, {
-      transactions,
-      recurringTransactions,
-      budgets,
-      merchantRules: preferences.merchantRules,
-      transactionRules: preferences.transactionRules,
+      transactions: transactionsRef.current,
+      recurringTransactions: recurringTransactionsRef.current,
+      budgets: budgetsRef.current,
+      merchantRules: currentPrefs.merchantRules,
+      transactionRules: currentPrefs.transactionRules,
     });
     setTransactions(updated.transactions);
     setRecurringTransactions(updated.recurringTransactions);
     setBudgets(updated.budgets);
-    if (updated.merchantRules !== preferences.merchantRules || updated.transactionRules !== preferences.transactionRules) {
+    if (updated.merchantRules !== currentPrefs.merchantRules || updated.transactionRules !== currentPrefs.transactionRules) {
       setPreferences(prev => ({
         ...prev,
         ...(updated.merchantRules ? { merchantRules: updated.merchantRules } : {}),
         ...(updated.transactionRules ? { transactionRules: updated.transactionRules } : {}),
       }));
     }
-  }, [transactions, recurringTransactions, budgets, preferences.merchantRules, preferences.transactionRules, setBudgets, setPreferences, setRecurringTransactions, setTransactions]);
+  }, [setBudgets, setPreferences, setRecurringTransactions, setTransactions]);
 
   const handleDeleteCategoryCascade = useCallback((deletedCategory: Category, fallbackName: string) => {
+    const currentPrefs = preferencesRef.current;
     const updated = reassignDeletedCategoryAcrossEntities(deletedCategory, fallbackName, {
-      transactions,
-      recurringTransactions,
-      budgets,
-      merchantRules: preferences.merchantRules,
-      transactionRules: preferences.transactionRules,
+      transactions: transactionsRef.current,
+      recurringTransactions: recurringTransactionsRef.current,
+      budgets: budgetsRef.current,
+      merchantRules: currentPrefs.merchantRules,
+      transactionRules: currentPrefs.transactionRules,
     });
     setTransactions(updated.transactions);
     setRecurringTransactions(updated.recurringTransactions);
     setBudgets(updated.budgets);
-    if (updated.merchantRules !== preferences.merchantRules || updated.transactionRules !== preferences.transactionRules) {
+    if (updated.merchantRules !== currentPrefs.merchantRules || updated.transactionRules !== currentPrefs.transactionRules) {
       setPreferences(prev => ({
         ...prev,
         ...(updated.merchantRules ? { merchantRules: updated.merchantRules } : {}),
         ...(updated.transactionRules ? { transactionRules: updated.transactionRules } : {}),
       }));
     }
-  }, [transactions, recurringTransactions, budgets, preferences.merchantRules, preferences.transactionRules, setBudgets, setPreferences, setRecurringTransactions, setTransactions]);
+  }, [setBudgets, setPreferences, setRecurringTransactions, setTransactions]);
 
   const handlePublishImport = useCallback(async (items: any[], dataType: ImportDataType, fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccountsArg?: Account[]) => {
     const importId = `imp-${uuidv4()}`;
@@ -731,7 +774,7 @@ export function useDomainCrudHandlers({
     if (dataType === 'accounts') { items.forEach(acc => handleSaveAccount(acc)); }
     else if (dataType === 'transactions') {
       const existingNames = new Set<string>(['Uncategorized', 'Transfer']);
-      [...incomeCategories, ...expenseCategories].forEach(cat => {
+      [...incomeCategoriesRef.current, ...expenseCategoriesRef.current].forEach(cat => {
         collectCategorySubtreeNames(cat).forEach(name => existingNames.add(name));
       });
       const newIncomeCats: Category[] = [];
@@ -795,9 +838,9 @@ export function useDomainCrudHandlers({
   }, [setImportExportHistory]);
 
   const handleDeleteImportedTransactions = useCallback((importId: string) => {
-    const idsToDelete = transactions.filter(t => t.importId === importId).map(t => t.id);
+    const idsToDelete = transactionsRef.current.filter(t => t.importId === importId).map(t => t.id);
     if (idsToDelete.length > 0) handleDeleteTransactions(idsToDelete, { resyncable: true });
-  }, [handleDeleteTransactions, transactions]);
+  }, [handleDeleteTransactions]);
 
   return {
     transactionsRef,
