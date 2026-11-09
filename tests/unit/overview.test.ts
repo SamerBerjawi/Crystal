@@ -147,6 +147,7 @@ test('old tabs carry over in order, at half the column count, without removed wi
 });
 
 test('every widget belongs to exactly one view, and every view has widgets', () => {
+  assert.deepEqual(OVERVIEW_TABS.map(tab => tab.id), ['summary', 'upcoming', 'spending', 'wealth']);
   const homes = OVERVIEW_TABS.flatMap(view => widgetsOfTab(view.id));
   assert.equal(homes.length, Object.keys(OVERVIEW_WIDGETS).length);
   assert.equal(new Set(homes).size, homes.length);

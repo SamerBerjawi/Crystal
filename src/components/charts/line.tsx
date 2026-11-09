@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { chartCssVars, useChartStable, useYScale } from "./chart-context";
+import { chartCssVars, useChartStable, useSettledYScale, useYScale } from "./chart-context";
 import type { LoadingStyle } from "./chart-phase";
 import {
   type FadeEdges,
@@ -254,6 +254,7 @@ export function Line({
     yDomainTweenDuration,
   } = useChartStable();
   const yScale = useYScale(yAxisId);
+  const settledYScale = useSettledYScale(yAxisId);
   const useDataTransitionPath = animate && chartPhase === "ready";
   const { pathD: animatedPathD } = useAnimatedSeriesPath({
     chartPhase,
@@ -263,6 +264,7 @@ export function Line({
     enabled: useDataTransitionPath,
     innerWidth,
     renderData,
+    settledYScale,
     xAccessor,
     xScale,
     yScale,

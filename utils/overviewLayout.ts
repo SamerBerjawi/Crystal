@@ -4,13 +4,13 @@ export const OVERVIEW_LAYOUT_KEY = 'overview-v2';
 export const OVERVIEW_PHONE_LAYOUT_KEY = 'overview-v2-phone';
 
 /** The views of the Overview. Every widget belongs to one of them. */
-export type OverviewTab = 'summary' | 'spending' | 'wealth' | 'upcoming';
+export type OverviewTab = 'summary' | 'upcoming' | 'spending' | 'wealth';
 
 export const OVERVIEW_TABS: { id: OverviewTab; label: string; icon: string; blurb: string }[] = [
   { id: 'summary', label: 'Summary', icon: 'dashboard-square-01', blurb: 'Where you stand today' },
+  { id: 'upcoming', label: 'Coming up', icon: 'calendar-03', blurb: 'What is next, and what it does to your cash' },
   { id: 'spending', label: 'Spending', icon: 'pie-chart-01', blurb: 'Where the money goes' },
   { id: 'wealth', label: 'Wealth', icon: 'chart-increase', blurb: 'What you own and owe' },
-  { id: 'upcoming', label: 'Coming up', icon: 'calendar-03', blurb: 'What is next, and what it does to your cash' },
 ];
 
 export const isOverviewTab = (value: string | null | undefined): value is OverviewTab => OVERVIEW_TABS.some(tab => tab.id === value);
@@ -66,9 +66,9 @@ const DEFAULT_PHONE_ORDER = ['safeToSpend', 'forecastHorizon', 'accountsSummary'
 type TabDefault = string | [string, number, number];
 const TAB_DEFAULTS: Record<OverviewTab, TabDefault[]> = {
   summary: [['safeToSpend', 2, 4], ['netWorthOverTime', 4, 4], ['accountsSummary', 2, 4], ['recentActivity', 4, 4], ['cardsStack', 6, 3]],
+  upcoming: [['forecastHorizon', 3, 3], ['todayWidget', 3, 6], ['financialRunway', 3, 3], ['insights', 6, 2], 'creditCardStatements'],
   spending: [['moneyFlow', 6, 5], ['financialOverview', 3, 4], ['merchantPareto', 3, 4], 'spendingCalendar', ['outflowsByCategory', 6, 4], 'cashflowSankey'],
   wealth: [['overviewKpis', 6, 3], ['assetAllocation', 6, 6], ['goalsRings', 3, 4], ['wealthVelocity', 3, 4]],
-  upcoming: [['forecastHorizon', 3, 3], ['todayWidget', 3, 6], ['financialRunway', 3, 3], ['insights', 6, 2], 'creditCardStatements'],
 };
 
 const fromDefaults = (entries: TabDefault[]) => entries.map((entry, index) => {

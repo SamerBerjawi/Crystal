@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useChartStable, useYScale } from "./chart-context";
+import { useChartStable, useSettledYScale, useYScale } from "./chart-context";
 import { DEFAULT_Y_DOMAIN_TWEEN_MS } from "./chart-phase";
 import { LINE_LOADING_PULSE_EASE } from "./line-loading-timing";
 import { resolveReferenceDataRange } from "./reference-area-geometry";
@@ -107,11 +107,16 @@ const YAxisInner = memo(function YAxisInner({
 }: YAxisProps & { container: HTMLDivElement }) {
   const { margin, referenceAreas } = useChartStable();
   const yScale = useYScale(yAxisId);
+  const settledYScale = useSettledYScale(yAxisId);
   const isLeft = orientation === "left";
   const axisId = normalizeYAxisId(yAxisId);
 
+  const tickValues = useMemo(
+    () => settledYScale.ticks(resolveYAxisTickCount(numTicks)),
+    [settledYScale, numTicks]
+  );
+
   const ticks = useMemo(() => {
-    const tickValues = yScale.ticks(resolveYAxisTickCount(numTicks));
     return tickValues.map((value) => {
       const y = (yScale(value) ?? 0) + margin.top;
       return {
@@ -127,9 +132,9 @@ const YAxisInner = memo(function YAxisInner({
       };
     });
   }, [
+    tickValues,
     yScale,
     margin.top,
-    numTicks,
     formatLargeNumbers,
     formatValue,
     tickFormatter,
@@ -154,7 +159,6 @@ const YAxisInner = memo(function YAxisInner({
             style={{
               top: tick.y,
               transform: "translateY(-50%)",
-              transition: `top ${Y_AXIS_POSITION_TWEEN_MS}ms cubic-bezier(${LINE_LOADING_PULSE_EASE.join(", ")})`,
               ...(isLeft
                 ? { right: 0, justifyContent: "flex-end", paddingRight: 8 }
                 : { left: 0, justifyContent: "flex-start", paddingLeft: 8 }),
