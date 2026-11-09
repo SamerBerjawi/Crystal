@@ -19,12 +19,19 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+            tests/e2e/package-lock.json
 
       - name: Install root dependencies
         run: npm ci
 
       - name: Install server dependencies
         run: npm --prefix server ci
+
+      - name: Install E2E dependencies (for TypeScript spec checks)
+        run: npm --prefix tests/e2e ci
 
       - name: Run TypeScript & strict typecheck
         run: npm run lint
