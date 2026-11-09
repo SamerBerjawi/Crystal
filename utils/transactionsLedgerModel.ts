@@ -192,7 +192,7 @@ export interface FilterScatterTransactionsParams {
   selectedLocations: string[];
   user?: User;
   showBalanceAdjustments: boolean;
-  sortBy: string;
+  sortBy?: string;
 }
 
 export function filterAndSortScatterTransactions({
@@ -256,18 +256,20 @@ export function filterAndSortScatterTransactions({
     return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant && matchLocation && matchBalanceAdjustment;
   });
 
-  filteredIndexed.sort((a, b) => {
-    switch (sortBy) {
-      case 'date-asc': return a.tx.date < b.tx.date ? -1 : a.tx.date > b.tx.date ? 1 : 0;
-      case 'amount-desc': return b.amountAbsEur - a.amountAbsEur;
-      case 'amount-asc': return a.amountAbsEur - b.amountAbsEur;
-      case 'merchant-asc': return a.merchantText.localeCompare(b.merchantText);
-      case 'merchant-desc': return b.merchantText.localeCompare(a.merchantText);
-      case 'category-asc': return a.tx.category.localeCompare(b.tx.category);
-      case 'category-desc': return b.tx.category.localeCompare(a.tx.category);
-      case 'date-desc': default: return b.tx.date < a.tx.date ? -1 : b.tx.date > a.tx.date ? 1 : 0;
-    }
-  });
+  if (sortBy && sortBy !== 'none') {
+    filteredIndexed.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-asc': return a.tx.date < b.tx.date ? -1 : a.tx.date > b.tx.date ? 1 : 0;
+        case 'amount-desc': return b.amountAbsEur - a.amountAbsEur;
+        case 'amount-asc': return a.amountAbsEur - b.amountAbsEur;
+        case 'merchant-asc': return a.merchantText.localeCompare(b.merchantText);
+        case 'merchant-desc': return b.merchantText.localeCompare(a.merchantText);
+        case 'category-asc': return a.tx.category.localeCompare(b.tx.category);
+        case 'category-desc': return b.tx.category.localeCompare(a.tx.category);
+        case 'date-desc': default: return b.tx.date < a.tx.date ? -1 : b.tx.date > a.tx.date ? 1 : 0;
+      }
+    });
+  }
 
   return filteredIndexed.map(({ tx }) => tx);
 }
@@ -279,35 +281,55 @@ export function sortLedgerTransactions(
   accountMapByName: Record<string, Account>,
   user?: User,
 ): DisplayTransaction[] {
-  const list = [...filteredTransactions];
+  if (filteredTransactions.length <= 1) return [...filteredTransactions];
+
   const col = String(sortDescriptor.column || 'date');
   const isDesc = sortDescriptor.direction === 'descending';
 
-  return list.sort((a, b) => {
-    let cmp = 0;
-    if (col === 'date') {
-      cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
-    } else if (col === 'amount') {
-      cmp = Math.abs(convertToMain(a.amount, a.currency)) - Math.abs(convertToMain(b.amount, b.currency));
-    } else if (col === 'description') {
-      cmp = (a.description || '').localeCompare(b.description || '');
-    } else if (col === 'account') {
-      const nameA = accountMap[a.accountId]?.name || accountMapByName[a.accountName || '']?.name || a.accountName || '';
-      const nameB = accountMap[b.accountId]?.name || accountMapByName[b.accountName || '']?.name || b.accountName || '';
-      cmp = nameA.localeCompare(nameB);
-    } else if (col === 'category') {
-      cmp = (a.category || '').localeCompare(b.category || '');
-    } else if (col === 'location') {
-      const locA = formatTransactionLocation(a, user);
-      const locB = formatTransactionLocation(b, user);
-      const cityA = locA.hasLocation ? locA.city : '';
-      const cityB = locB.hasLocation ? locB.city : '';
-      cmp = cityA.localeCompare(cityB);
-    } else {
-      cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  // Fast path for date (ISO YYYY-MM-DD string comparison): O(1) comparison, 0 allocation
+  if (col === 'date') {
+    const list = [...filteredTransactions];
+    return list.sort((a, b) => {
+      const cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+      return isDesc ? -cmp : cmp;
+    });
+  }
+
+  // Fast path for amount: Schwartzian transform precalculates main-currency floats once (O(N) vs O(N log N))
+  if (col === 'amount') {
+    const mapped = filteredTransactions.map(tx => ({
+      tx,
+      val: Math.abs(convertToMain(tx.amount, tx.currency)),
+    }));
+    mapped.sort((a, b) => (isDesc ? b.val - a.val : a.val - b.val));
+    return mapped.map(item => item.tx);
+  }
+
+  // Precalculated string keys for text columns to avoid repeated object lookups or formatters
+  const getKey: (tx: DisplayTransaction) => string = (() => {
+    switch (col) {
+      case 'description':
+        return tx => tx.description || '';
+      case 'account':
+        return tx => accountMap[tx.accountId]?.name || accountMapByName[tx.accountName || '']?.name || tx.accountName || '';
+      case 'category':
+        return tx => tx.category || '';
+      case 'location':
+        return tx => {
+          const loc = formatTransactionLocation(tx, user);
+          return loc.hasLocation ? loc.city : '';
+        };
+      default:
+        return tx => tx.date || '';
     }
+  })();
+
+  const mapped = filteredTransactions.map(tx => ({ tx, key: getKey(tx) }));
+  mapped.sort((a, b) => {
+    const cmp = a.key.localeCompare(b.key);
     return isDesc ? -cmp : cmp;
   });
+  return mapped.map(item => item.tx);
 }
 
 export function buildDisplayItemsWithSubs(
