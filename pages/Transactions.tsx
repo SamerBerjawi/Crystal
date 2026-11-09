@@ -1,8 +1,6 @@
-
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType, MerchantRule, User } from '../types';
-import { toast } from 'sonner';
-import { formatCurrency, fuzzySearch, convertToMain, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, CONVERSION_RATES, safeRound, getMainCurrency } from '../utils';
+import { Transaction, Account, DisplayTransaction, RecurringTransaction, MerchantRule, User } from '../types';
+import { parseLocalDate, getMainCurrency } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
@@ -19,17 +17,14 @@ import { Button as AriaButton } from 'react-aria-components';
 import Icon from '../components/ui/Icon';
 import { Button, HoldButton, IconButton, SelectionBar } from '../components/ui/Actions';
 import { CountPill, ShowMore } from '../components/ui/Display';
-import { AmountInput, Checkbox, DateInput, Radio, RadioGroup, TextInput, controlStyles } from '../components/ui/Fields';
+import { controlStyles } from '../components/ui/Fields';
 import { Menu, type MenuAction } from '../components/ui/Menu';
 import { Amount } from '../components/ui/Money';
 import { Dialog, Popover } from '../components/ui/Overlays';
 import { Select } from '../components/ui/Pickers';
 import { EmptyState } from '../components/ui/States';
 import SegmentedControl from '../components/ui/SegmentedControl';
-import LedgerTable, { type LedgerItem, type LedgerSort, type TableCellFilter } from '../components/LedgerTable';
-import { FilterList, type FilterOption } from '../components/FilterList';
-import { useAccountFilterOptions } from '../hooks/useAccountFilterOptions';
-import { EntityGlyph, LogoTile } from '../components/EntityIcon';
+import LedgerTable, { type LedgerSort, type TableCellFilter } from '../components/LedgerTable';
 import ReviewQueue from '../components/ReviewQueue';
 import TransactionScatter, { type ScatterBrush } from '../components/TransactionScatter';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -38,7 +33,18 @@ import { useUrlTab } from '../hooks/useUrlTab';
 import { cn } from '../lib/utils';
 import type { SortDescriptor } from 'react-aria-components';
 import { formatTransactionLocation } from '../utils/locationFormat';
-import { resolveTransferInfo } from '../utils/transferDetails';
+import {
+  buildCategoryColorMap,
+  buildDisplayItemsWithSubs,
+  buildDisplayTransactions,
+  buildLedgerTableRenderItems,
+  computeLedgerSummaryTotals,
+  filterAndSortScatterTransactions,
+  indexDisplayTransactions,
+  sortLedgerTransactions,
+} from '../utils/transactionsLedgerModel';
+import { useTransactionLedgerActions } from '../hooks/useTransactionLedgerActions';
+import { useTransactionFilterOptions } from '../hooks/useTransactionFilterOptions';
 
 interface TransactionsProps {
   user?: User;
@@ -49,9 +55,6 @@ interface TransactionsProps {
   isSyncingBanks?: boolean;
 }
 
-
-
-// Column Header Filter Popover
 export type TableRenderItem =
   | {
     isGroupHeader: true;
@@ -68,15 +71,7 @@ export type TableRenderItem =
     tx: DisplayTransaction;
   };
 
-// Fallback empty object to preserve reference stability in selectors
 const EMPTY_OBJECT = {};
-
-const TYPE_FILTER_OPTIONS: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
-  { label: 'All Types', value: 'all' },
-  { label: 'Expenses', value: 'expense' },
-  { label: 'Income', value: 'income' },
-  { label: 'Transfers', value: 'transfer' },
-];
 
 const LEDGER_BATCH = 50;
 const LEDGER_SORTS = [
@@ -90,17 +85,7 @@ const LEDGER_SORTS = [
   { id: 'category-desc', label: 'Category, Z to A' },
 ];
 
-const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
-  const renderCountRef = useRef(0);
-  renderCountRef.current += 1;
-  useEffect(() => {
-    const timer = setTimeout(() => { renderCountRef.current = 0; }, 100);
-    return () => clearTimeout(timer);
-  });
-  if (renderCountRef.current > 25) {
-    console.error('[DIAGNOSTIC] Infinite loop in Transactions! Render count exceeded 25 in 100ms window.');
-  }
-
+const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -112,27 +97,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
   const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
-  useEffect(() => {
-    const nextAccount = initialAccountFilter ?? null;
-    const nextTag = initialTagFilter ?? null;
-    const hasInitialFilters = Boolean(nextAccount || nextTag);
-    if (!hasInitialFilters) return;
-
-    const lastApplied = appliedInitialFiltersRef.current;
-    if (!lastApplied || lastApplied.account !== nextAccount || lastApplied.tag !== nextTag) {
-      if (nextAccount) {
-        const account = accounts.find(a => a.name === nextAccount);
-        if (account) setSelectedAccountIds([account.id]);
-      }
-      if (nextTag) {
-        setSelectedTagIds([nextTag]);
-      }
-
-      appliedInitialFiltersRef.current = { account: nextAccount, tag: nextTag };
-      onClearInitialFilters?.();
-    }
-  }, [accounts, initialAccountFilter, initialTagFilter, onClearInitialFilters]);
-
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [sortBy, setSortBy] = useState('date-desc');
@@ -143,26 +107,41 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   const [maxAmount, setMaxAmount] = useState('');
   const [merchantFilter, setMerchantFilter] = useState('');
 
-  // Local state for multi-select filters
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [locationSearch, setLocationSearch] = useState('');
   const [isSelecting, setSelecting] = useState(false);
 
-  const activeFilterCount = useMemo(() => {
-    return (
-      (selectedAccountIds.length > 0 ? 1 : 0) +
-      (selectedCategoryNames.length > 0 ? 1 : 0) +
-      (selectedTagIds.length > 0 ? 1 : 0) +
-      (selectedLocations.length > 0 ? 1 : 0) +
-      (typeFilter !== 'all' ? 1 : 0) +
-      (startDate || endDate ? 1 : 0) +
-      (minAmount || maxAmount ? 1 : 0) +
-      (merchantFilter ? 1 : 0)
-    );
-  }, [
+  useEffect(() => {
+    const nextAccount = initialAccountFilter ?? null;
+    const nextTag = initialTagFilter ?? null;
+    if (!nextAccount && !nextTag) return;
+
+    const lastApplied = appliedInitialFiltersRef.current;
+    if (!lastApplied || lastApplied.account !== nextAccount || lastApplied.tag !== nextTag) {
+      if (nextAccount) {
+        const account = accounts.find(a => a.name === nextAccount);
+        if (account) setSelectedAccountIds([account.id]);
+      }
+      if (nextTag) {
+        setSelectedTagIds([nextTag]);
+      }
+      appliedInitialFiltersRef.current = { account: nextAccount, tag: nextTag };
+      onClearInitialFilters?.();
+    }
+  }, [accounts, initialAccountFilter, initialTagFilter, onClearInitialFilters]);
+
+  const activeFilterCount = useMemo(() => (
+    (selectedAccountIds.length > 0 ? 1 : 0) +
+    (selectedCategoryNames.length > 0 ? 1 : 0) +
+    (selectedTagIds.length > 0 ? 1 : 0) +
+    (selectedLocations.length > 0 ? 1 : 0) +
+    (typeFilter !== 'all' ? 1 : 0) +
+    (startDate || endDate ? 1 : 0) +
+    (minAmount || maxAmount ? 1 : 0) +
+    (merchantFilter ? 1 : 0)
+  ), [
     selectedAccountIds.length,
     selectedCategoryNames.length,
     selectedTagIds.length,
@@ -179,7 +158,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
   const [overviewTransactions, setOverviewTransactions] = useState<Transaction[]>([]);
-  const [duplicateData, setDuplicateData] = useState<any>(null); // For duplication
+  const [duplicateData, setDuplicateData] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCategorizeModalOpen, setIsCategorizeModalOpen] = useState(false);
   const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
@@ -195,7 +174,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   const [density, setDensity] = useLocalStorage<'default' | 'high'>('crystal_ledger_density', 'default');
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -205,14 +183,11 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
-  const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
+  const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as Record<string, Account>), [accounts]);
   const accountMapByName = useMemo(() => accounts.reduce((map, acc) => { map[acc.name] = acc; return map; }, {} as Record<string, Account>), [accounts]);
 
   const { transactionById, transactionsByTransferId, childrenByParentId } = useMemo(() => {
@@ -246,11 +221,10 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     return map;
   }, [allCategories]);
 
-  const effectiveMerchantLogoOverrides = useMemo(() => {
-    return buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules);
-  }, [merchantLogoOverrides, merchantRules]);
-
-
+  const effectiveMerchantLogoOverrides = useMemo(
+    () => buildEffectiveMerchantLogoOverrides(merchantLogoOverrides, merchantRules),
+    [merchantLogoOverrides, merchantRules],
+  );
 
   const merchantLogoUrls = useMemo(() => {
     return transactions.reduce((acc, tx) => {
@@ -269,258 +243,51 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     }, {} as Record<string, string>);
   }, [brandfetchClientId, effectiveMerchantLogoOverrides, transactions]);
 
-  // Recursive function to find a category by name in a tree
-  const findCategoryByName = (name: string, categories: Category[]): Category | undefined => {
-    for (const cat of categories) {
-      if (cat.name === name) return cat;
-      if (cat.subCategories && cat.subCategories.length > 0) {
-        const found = findCategoryByName(name, cat.subCategories);
-        if (found) return found;
-      }
-    }
-    return undefined;
-  };
+  const displayTransactions = useMemo(
+    () => buildDisplayTransactions(transactions, accountMap, accounts),
+    [transactions, accountMap, accounts],
+  );
 
-  const displayTransactions = useMemo(() => {
-    const processedTransferIds = new Set<string>();
-    const result: DisplayTransaction[] = [];
+  const indexedTransactions = useMemo(
+    () => indexDisplayTransactions(displayTransactions),
+    [displayTransactions],
+  );
 
-    const sortedTransactions = [...transactions].sort((a, b) => (b.date < a.date ? -1 : b.date > a.date ? 1 : 0));
+  const scatterTransactions = useMemo(
+    () => filterAndSortScatterTransactions({
+      indexedTransactions,
+      debouncedSearchTerm,
+      merchantFilter,
+      minAmount,
+      maxAmount,
+      selectedAccountIds,
+      accountMapByName,
+      typeFilter,
+      startDate,
+      endDate,
+      selectedTagIds,
+      selectedCategoryNames,
+      parentCategoryByName,
+      selectedLocations,
+      user,
+      showBalanceAdjustments,
+      sortBy,
+    }),
+    [
+      debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions,
+      selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations,
+      minAmount, maxAmount, parentCategoryByName, accountMapByName, merchantFilter,
+      showBalanceAdjustments, user,
+    ],
+  );
 
-    const normalizeDescription = (description?: string, isTransfer?: boolean) =>
-      (description?.trim() || (isTransfer ? 'transfer' : 'transaction')).toLowerCase();
-
-    const getSpareChangeKey = (accountId: string, date: string, description?: string, isTransfer?: boolean) =>
-      `${accountId}|${date}|${normalizeDescription(description, isTransfer)}`;
-
-    const spareChangeByParentId = new Map<string, number>();
-    const legacySpareChangeLookup = new Map<string, number[]>();
-
-    const txIdSet = new Set<string>();
-    const transferIdSet = new Set<string>();
-    sortedTransactions.forEach(t => {
-      txIdSet.add(t.id);
-      if (t.transferId) transferIdSet.add(t.transferId);
-    });
-
-    sortedTransactions.forEach(tx => {
-      if (!tx.transferId?.startsWith('spare-') || tx.amount >= 0) return;
-
-      const match = tx.transferId.match(/^spare-(.+)$/);
-      const embeddedId = match ? match[1] : null;
-
-      const isBoundToTx = embeddedId ? (txIdSet.has(embeddedId) || transferIdSet.has(embeddedId)) : false;
-
-      if (isBoundToTx && embeddedId) {
-        spareChangeByParentId.set(embeddedId, Math.abs(tx.amount));
-      } else {
-        const baseDescription = tx.description?.replace(/^Spare change (for|from)\s*/i, '').trim();
-        const key = getSpareChangeKey(tx.accountId, tx.date, baseDescription, false);
-        const currentAmounts = legacySpareChangeLookup.get(key) || [];
-        currentAmounts.push(Math.abs(tx.amount));
-        legacySpareChangeLookup.set(key, currentAmounts);
-      }
-    });
-
-    const transferLookup = sortedTransactions.reduce((map, tx) => {
-      if (!tx.transferId || tx.transferId.startsWith('spare-')) return map;
-      const current = map.get(tx.transferId) || { income: undefined as Transaction | undefined, expense: undefined as Transaction | undefined };
-      if (tx.amount >= 0) {
-        current.income = tx;
-      } else {
-        current.expense = tx;
-      }
-      map.set(tx.transferId, current);
-      return map;
-    }, new Map<string, { income?: Transaction; expense?: Transaction }>());
-
-    const getSpareChangeForTx = (txId?: string, accountId?: string, date?: string, description?: string, isTransfer?: boolean, txAmount?: number) => {
-      if (txId && spareChangeByParentId.has(txId)) {
-        return spareChangeByParentId.get(txId);
-      }
-      if (!accountId || !date) return undefined;
-
-      const key = getSpareChangeKey(accountId, date, description, isTransfer);
-      const amounts = legacySpareChangeLookup.get(key);
-
-      if (!amounts || amounts.length === 0) return undefined;
-
-      // Try to find a logical match based on standard round up
-      let bestIndex = 0;
-      if (txAmount !== undefined) {
-        const absAmt = Math.abs(txAmount);
-        const remainder = absAmt % 1;
-        // Default logic: 1.0 - remainder. If remainder 0, checking for 1.0 (unit)
-        const expected = parseFloat((remainder === 0 ? 1.00 : (1.00 - remainder)).toFixed(2));
-
-        // Look for exact match to expected
-        const idx = amounts.findIndex(a => Math.abs(a - expected) < 0.005);
-        if (idx !== -1) bestIndex = idx;
-      }
-
-      const amount = amounts[bestIndex];
-      amounts.splice(bestIndex, 1);
-      if (amounts.length === 0) legacySpareChangeLookup.delete(key);
-      return amount;
-    };
-
-    for (const tx of sortedTransactions) {
-      if (tx.transferId?.startsWith('spare-')) continue; // Spare change handled separately
-
-      if (tx.transferId) {
-        if (processedTransferIds.has(tx.transferId)) continue;
-
-        const pair = transferLookup.get(tx.transferId);
-        processedTransferIds.add(tx.transferId);
-
-        if (pair?.expense && pair?.income) {
-          const spareChangeAmount = getSpareChangeForTx(pair.expense.id || pair.expense.transferId, pair.expense.accountId, pair.expense.date, pair.expense.description, true, pair.expense.amount);
-          const transferInfo = resolveTransferInfo(pair.expense, accounts, pair.income);
-
-          result.push({
-            ...pair.expense,
-            id: `transfer-${pair.expense.transferId}`,
-            originalId: pair.expense.id,
-            amount: Math.abs(pair.expense.amount),
-            isTransfer: true,
-            type: 'expense',
-            fromAccountId: pair.expense.accountId,
-            toAccountId: pair.income.accountId,
-            fromAccountName: accountMap[pair.expense.accountId]?.name,
-            toAccountName: accountMap[pair.income.accountId]?.name,
-            transferKind: transferInfo?.kind,
-            transferLabel: transferInfo?.label,
-            merchant: pair.expense.merchant || pair.income.merchant,
-            category: 'Transfer',
-            description: pair.expense.description || (transferInfo ? transferInfo.label : 'Account Transfer'),
-            spareChangeAmount,
-            transferExpenseAmount: Math.abs(pair.expense.amount),
-            transferExpenseCurrency: pair.expense.currency,
-            transferIncomeAmount: Math.abs(pair.income.amount),
-            transferIncomeCurrency: pair.income.currency,
-          });
-        } else {
-          const spareChangeAmount = getSpareChangeForTx(tx.id, tx.accountId, tx.date, tx.description, false, tx.amount);
-          const transferInfo = tx.transferId ? resolveTransferInfo(tx, accounts) : null;
-          result.push({
-            ...tx,
-            accountName: accountMap[tx.accountId]?.name,
-            spareChangeAmount,
-            transferKind: transferInfo?.kind,
-            transferLabel: transferInfo?.label,
-          });
-        }
-      } else {
-        const spareChangeAmount = getSpareChangeForTx(tx.id, tx.accountId, tx.date, tx.description, false, tx.amount);
-        result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
-      }
-    }
-    return result;
-  }, [transactions, accountMap, accounts]);
-
-  const indexedTransactions = useMemo(() => {
-    return displayTransactions.map(tx => {
-      const amountEur = convertToMain(tx.amount, tx.currency);
-      const amountAbsEur = Math.abs(amountEur);
-      const searchText = [
-        tx.description,
-        tx.category,
-        tx.transferLabel,
-        tx.accountName,
-        tx.fromAccountName,
-        tx.toAccountName,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      const merchantText = (tx.merchant || '').toLowerCase();
-      return { tx, amountEur, amountAbsEur, searchText, merchantText };
-    });
-  }, [displayTransactions]);
-
-  // Everything the filters allow, before any days picked on the chart. The chart draws this, so picking days never empties it.
-  const scatterTransactions = useMemo(() => {
-    const normalizedSearchTerm = debouncedSearchTerm.trim().toLowerCase();
-    const normalizedMerchantFilter = merchantFilter.trim().toLowerCase();
-    const min = parseFloat(minAmount);
-    const max = parseFloat(maxAmount);
-    const hasMin = !isNaN(min);
-    const hasMax = !isNaN(max);
-
-    const filteredIndexed = indexedTransactions.filter(({ tx, amountAbsEur, searchText, merchantText }) => {
-      const matchAccount = selectedAccountIds.length === 0 ||
-        (tx.isTransfer
-          ? selectedAccountIds.includes(tx.fromAccountId || accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(tx.toAccountId || accountMapByName[tx.toAccountName!]?.id)
-          : selectedAccountIds.includes(tx.accountId));
-
-      const matchSearch = (
-        !normalizedSearchTerm ||
-        fuzzySearch(normalizedSearchTerm, searchText)
-      );
-
-      const matchMerchant = !normalizedMerchantFilter || fuzzySearch(normalizedMerchantFilter, merchantText);
-
-      let matchType = true;
-      if (typeFilter === 'expense') matchType = !tx.isTransfer && tx.type === 'expense';
-      else if (typeFilter === 'income') matchType = !tx.isTransfer && tx.type === 'income';
-      else if (typeFilter === 'transfer') matchType = !!tx.isTransfer;
-
-      const txDateIso = tx.date.slice(0, 10);
-      const matchStartDate = !startDate || txDateIso >= startDate;
-      const matchEndDate = !endDate || txDateIso <= endDate;
-
-      const matchTag = selectedTagIds.length === 0 || (tx.tagIds && tx.tagIds.some(tagId => selectedTagIds.includes(tagId)));
-
-      const matchCategory = selectedCategoryNames.length === 0 || selectedCategoryNames.includes(tx.category) || selectedCategoryNames.includes(parentCategoryByName.get(tx.category) || '');
-
-      const matchMinAmount = !hasMin || amountAbsEur >= min;
-      const matchMaxAmount = !hasMax || amountAbsEur <= max;
-
-      const matchLocation = selectedLocations.length === 0 || (() => {
-        const loc = formatTransactionLocation(tx, user);
-        if (!loc.hasLocation) return false;
-        return selectedLocations.includes(loc.city) || selectedLocations.includes(loc.country);
-      })();
-
-      const matchBalanceAdjustment = showBalanceAdjustments || !tx.isBalanceAdjustment;
-
-      return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant && matchLocation && matchBalanceAdjustment;
-    });
-
-    filteredIndexed.sort((a, b) => {
-      switch (sortBy) {
-        case 'date-asc': return a.tx.date < b.tx.date ? -1 : a.tx.date > b.tx.date ? 1 : 0;
-        case 'amount-desc': return b.amountAbsEur - a.amountAbsEur;
-        case 'amount-asc': return a.amountAbsEur - b.amountAbsEur;
-        case 'merchant-asc': return a.merchantText.localeCompare(b.merchantText);
-        case 'merchant-desc': return b.merchantText.localeCompare(a.merchantText);
-        case 'category-asc': return a.tx.category.localeCompare(b.tx.category);
-        case 'category-desc': return b.tx.category.localeCompare(a.tx.category);
-        case 'date-desc': default: return b.tx.date < a.tx.date ? -1 : b.tx.date > a.tx.date ? 1 : 0;
-      }
-    });
-
-    return filteredIndexed.map(({ tx }) => tx);
-
-  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations, minAmount, maxAmount, parentCategoryByName, accountMapByName, merchantFilter, showBalanceAdjustments, user]);
-
-  /** The days picked on the scatter chart. The list and the summary show only these. */
   const [brush, setBrush] = useState<ScatterBrush | null>(null);
   const filteredTransactions = useMemo(
     () => (brush ? scatterTransactions.filter(tx => tx.date.slice(0, 10) >= brush.from && tx.date.slice(0, 10) <= brush.to) : scatterTransactions),
-    [scatterTransactions, brush]
+    [scatterTransactions, brush],
   );
 
-  const categoryColors = useMemo(() => {
-    const colors: Record<string, string> = {};
-    const add = (categories: Category[], inherited?: string) => categories.forEach(category => {
-      const color = category.color || inherited;
-      if (color) colors[category.name] = color;
-      add(category.subCategories ?? [], color);
-    });
-    add(allCategories);
-    return colors;
-  }, [allCategories]);
+  const categoryColors = useMemo(() => buildCategoryColorMap(allCategories), [allCategories]);
 
   const toggleExpandParent = useCallback((parentId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -532,430 +299,10 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     });
   }, []);
 
-  const { totalIncome, totalExpense, netFlow } = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    filteredTransactions.forEach(tx => {
-      if (tx.isTransfer) return;
-      if (tx.isSplitParent || tx.isCombinedParent) return; // Exclude parent containers from totals to prevent double-counting
-      const amount = convertToMain(tx.amount, tx.currency);
-      if (tx.type === 'income') income += amount;
-      else expense += Math.abs(amount);
-    });
-    return { 
-      totalIncome: safeRound(income, 2), 
-      totalExpense: safeRound(expense, 2), 
-      netFlow: safeRound(income - expense, 2) 
-    };
-  }, [filteredTransactions]);
-
-  const selectedTransactions = useMemo(() => {
-    const resolved: Transaction[] = [];
-    const seen = new Set<string>();
-    selectedIds.forEach(id => {
-      const tx = id.startsWith('transfer-')
-        ? (transactionsByTransferId.get(id.replace('transfer-', '')) ?? []).find(t => t.type === 'expense')
-        : transactionById.get(id);
-      if (tx && !seen.has(tx.id)) {
-        seen.add(tx.id);
-        resolved.push(tx);
-      }
-    });
-    return resolved;
-  }, [selectedIds, transactionById, transactionsByTransferId]);
-
-  const canCombine = useMemo(() => {
-    if (selectedTransactions.length < 2) return false;
-    const accountIds = new Set(selectedTransactions.map(t => t.accountId));
-    if (accountIds.size !== 1) return false;
-    return !selectedTransactions.some(t => t.transferId || t.isSplitParent || t.isCombinedParent || t.parentTransactionId);
-  }, [selectedTransactions]);
-
-  const canSplit = useMemo(() => {
-    if (selectedTransactions.length !== 1) return false;
-    const tx = selectedTransactions[0];
-    return !tx.transferId && !tx.isSplitParent && !tx.isCombinedParent && !tx.parentTransactionId;
-  }, [selectedTransactions]);
-
-  const canUnsplit = useMemo(() => {
-    if (selectedTransactions.length !== 1) return false;
-    const tx = selectedTransactions[0];
-    if (tx.isSplitParent) return true;
-    if (tx.parentTransactionId) {
-      const parent = transactionById.get(tx.parentTransactionId);
-      return Boolean(parent?.isSplitParent);
-    }
-    return false;
-  }, [selectedTransactions, transactionById]);
-
-  const canUncombine = useMemo(() => {
-    if (selectedTransactions.length !== 1) return false;
-    const tx = selectedTransactions[0];
-    if (tx.isCombinedParent) return true;
-    if (tx.parentTransactionId) {
-      const parent = transactionById.get(tx.parentTransactionId);
-      return Boolean(parent?.isCombinedParent);
-    }
-    return false;
-  }, [selectedTransactions, transactionById]);
-
-  const handleOpenCategorizeModal = () => {
-    setIsCategorizeModalOpen(true);
-  };
-
-  const handleOpenCombineModal = () => {
-    if (!canCombine) return;
-    setTransactionsToCombine(selectedTransactions);
-    setIsCombineModalOpen(true);
-  };
-
-  const handleOpenSplitModal = () => {
-    if (selectedIds.size !== 1) return;
-    const selectedId = Array.from(selectedIds)[0];
-    const displayTx = displayTransactions.find(tx => tx.id === selectedId);
-    if (!displayTx || displayTx.isTransfer) return;
-
-    const original = transactions.find(t => t.id === displayTx.id);
-    if (original) {
-      setTransactionToSplit(original);
-      setIsSplitModalOpen(true);
-    }
-  };
-
-  const handleSaveSplits = (updatedParent: Transaction, subTransactions: Transaction[]) => {
-    saveTransaction([updatedParent, ...subTransactions], []);
-    setExpandedParentIds(prev => new Set(prev).add(updatedParent.id));
-    setIsSplitModalOpen(false);
-    setTransactionToSplit(null);
-    setSelectedIds(new Set());
-  };
-
-  const handleSaveCombine = (combinedParent: Transaction, updatedSubTransactions: Transaction[]) => {
-    saveTransaction([combinedParent, ...updatedSubTransactions], []);
-    setExpandedParentIds(prev => new Set(prev).add(combinedParent.id));
-    setIsCombineModalOpen(false);
-    setTransactionsToCombine([]);
-    setSelectedIds(new Set());
-  };
-
-  const handleUnsplit = (targetTx?: DisplayTransaction) => {
-    let tx = targetTx;
-    if (!tx) {
-      if (selectedIds.size !== 1) return;
-      const selectedId = Array.from(selectedIds)[0];
-      tx = displayTransactions.find(t => t.id === selectedId);
-    }
-    if (!tx) return;
-
-    const parentId = tx.parentTransactionId || tx.id;
-    const parentObj = transactions.find(t => t.id === parentId);
-    if (!parentObj || !parentObj.isSplitParent) return;
-
-    const childSubTxs = transactions.filter(t => t.parentTransactionId === parentId);
-    const childIds = childSubTxs.map(t => t.id);
-
-    const updatedParent: Transaction = {
-      ...parentObj,
-      isSplitParent: false,
-    };
-
-    saveTransaction([updatedParent], childIds);
-    setSelectedIds(new Set());
-  };
-
-  const handleUncombine = (targetTx?: DisplayTransaction) => {
-    let tx = targetTx;
-    if (!tx) {
-      if (selectedIds.size !== 1) return;
-      const selectedId = Array.from(selectedIds)[0];
-      tx = displayTransactions.find(t => t.id === selectedId);
-    }
-    if (!tx) return;
-
-    const parentId = tx.parentTransactionId || tx.id;
-    const parentObj = transactions.find(t => t.id === parentId);
-    if (!parentObj || !parentObj.isCombinedParent) return;
-
-    const childSubTxs = transactions.filter(t => t.parentTransactionId === parentId);
-    const updatedChildren: Transaction[] = childSubTxs.map(c => ({
-      ...c,
-      parentTransactionId: undefined,
-    }));
-
-    saveTransaction(updatedChildren, [parentId]);
-    setSelectedIds(new Set());
-  };
-
-  const handleSaveBulkCategory = (newCategoryName: string) => {
-    const transactionUpdates: (Omit<Transaction, 'id'> & { id: string })[] = [];
-    const idsToDelete: string[] = [];
-
-    // Use recursive finder to handle sub-categories
-    const categoryDetails = findCategoryByName(newCategoryName, allCategories);
-    if (!categoryDetails) {
-      console.error("Could not find details for new category:", newCategoryName);
-      toast.error(`Category "${newCategoryName}" could not be found.`);
-      return;
-    }
-
-    const newType = categoryDetails.classification || 'expense';
-
-    // Iterate through raw selectedIds to handle transfers properly
-    for (const selectedId of selectedIds) {
-      if (selectedId.startsWith('transfer-')) {
-        const transferId = selectedId.replace('transfer-', '');
-        const pairExpense = transactions.find(t => t.transferId === transferId && t.type === 'expense');
-        const pairIncome = transactions.find(t => t.transferId === transferId && t.type === 'income');
-
-        if (newType === 'income' && pairIncome) {
-          transactionUpdates.push({
-            ...pairIncome,
-            category: newCategoryName,
-            type: 'income',
-            amount: Math.abs(pairIncome.amount),
-            transferId: undefined
-          });
-          if (pairExpense) idsToDelete.push(pairExpense.id);
-        } else if (pairExpense) {
-          transactionUpdates.push({
-            ...pairExpense,
-            category: newCategoryName,
-            type: 'expense',
-            amount: -Math.abs(pairExpense.amount),
-            transferId: undefined
-          });
-          if (pairIncome) idsToDelete.push(pairIncome.id);
-        }
-      } else {
-        const originalTx = transactions.find(t => t.id === selectedId);
-        if (originalTx) {
-          if (originalTx.transferId) {
-            const transferId = originalTx.transferId;
-            const pairExpense = transactions.find(t => t.transferId === transferId && t.type === 'expense');
-            const pairIncome = transactions.find(t => t.transferId === transferId && t.type === 'income');
-
-            if (newType === 'income' && pairIncome) {
-              transactionUpdates.push({
-                ...pairIncome,
-                category: newCategoryName,
-                type: 'income',
-                amount: Math.abs(pairIncome.amount),
-                transferId: undefined
-              });
-              if (pairExpense && !idsToDelete.includes(pairExpense.id)) idsToDelete.push(pairExpense.id);
-            } else if (pairExpense) {
-              transactionUpdates.push({
-                ...pairExpense,
-                category: newCategoryName,
-                type: 'expense',
-                amount: -Math.abs(pairExpense.amount),
-                transferId: undefined
-              });
-              if (pairIncome && !idsToDelete.includes(pairIncome.id)) idsToDelete.push(pairIncome.id);
-            }
-          } else {
-            const newAmount = newType === 'income' ? Math.abs(originalTx.amount) : -Math.abs(originalTx.amount);
-            transactionUpdates.push({
-              ...originalTx,
-              category: newCategoryName,
-              type: newType,
-              amount: newAmount
-            });
-          }
-        }
-      }
-    }
-
-    if (transactionUpdates.length > 0) {
-      saveTransaction(transactionUpdates, idsToDelete, { skipRules: true });
-      toast.success(`Updated category for ${transactionUpdates.length} transaction${transactionUpdates.length !== 1 ? 's' : ''}`);
-    }
-
-    setIsCategorizeModalOpen(false);
-    setSelectedIds(new Set());
-  };
-
-  const handleSaveBulkEdits = (updatedTransactions: Transaction[], idsToDelete: string[] = []) => {
-    saveTransaction(updatedTransactions, idsToDelete, { skipRules: true });
-    setBulkEditModalOpen(false);
-    setSelectedIds(new Set());
-    toast.success(`Updated ${updatedTransactions.length} transaction${updatedTransactions.length !== 1 ? 's' : ''}`);
-  };
-
-  const handleOpenDeleteModal = () => {
-    setIsDeleteConfirmOpen(true);
-  };
-
-  const handleConfirmBulkDelete = () => {
-    const idsSet = new Set<string>();
-    selectedIds.forEach((id: string) => {
-      if (id.startsWith('transfer-')) {
-        const transferId = id.replace('transfer-', '');
-        const pair = transactions.filter(t => t.transferId === transferId);
-        pair.forEach(p => idsSet.add(p.id));
-      } else {
-        idsSet.add(id);
-        transactions.filter(t => t.parentTransactionId === id).forEach(child => idsSet.add(child.id));
-      }
-    });
-
-    const idsToDelete = Array.from(idsSet);
-    if (idsToDelete.length > 0) {
-      deleteTransactions(idsToDelete);
-    }
-
-    setIsDeleteConfirmOpen(false);
-    setSelectedIds(new Set());
-  };
-
-  const handleOpenAddModal = () => {
-    setEditingTransaction(null);
-    setDuplicateData(null);
-    setTransactionModalOpen(true);
-  };
-
-  const handleDuplicate = (tx: DisplayTransaction) => {
-    const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id));
-    if (!original) return;
-
-    let initialFromAccountId: string | undefined = original.accountId;
-    let initialToAccountId: string | undefined = undefined;
-    let initialType: 'expense' | 'income' | 'transfer' = original.type as any;
-
-    if (tx.isTransfer) {
-      initialType = 'transfer';
-      const incomePart = transactions.find(t => t.transferId === original.transferId && t.id !== original.id);
-      if (incomePart) {
-        initialToAccountId = incomePart.accountId;
-      }
-    } else if (original.type === 'income') {
-      initialToAccountId = original.accountId;
-      initialFromAccountId = undefined;
-    }
-
-    setDuplicateData({
-      initialType,
-      initialFromAccountId,
-      initialToAccountId,
-      initialCategory: original.category,
-      initialDetails: {
-        date: original.date,
-        amount: safeRound(Math.abs(original.amount), 2).toFixed(2),
-        description: original.description,
-        merchant: original.merchant,
-        tagIds: original.tagIds,
-        locationString: [original.city, original.country].filter(Boolean).join(', '),
-        locationData: {
-          city: original.city,
-          country: original.country,
-          lat: original.latitude,
-          lon: original.longitude
-        }
-      }
-    });
-    setEditingTransaction(null);
-    setTransactionModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setTransactionModalOpen(false);
-    setEditingTransaction(null);
-    setDuplicateData(null);
-  };
-
-  const handleOpenOverview = useCallback((tx: DisplayTransaction | Transaction) => {
-    const targetId = ('isTransfer' in tx && tx.isTransfer) ? ((tx as any).originalId || tx.id) : tx.id;
-    const originalTx = transactions.find(t => t.id === targetId) || (tx as Transaction);
-    if (originalTx?.transferId) {
-      const pair = transactions.filter(t => t.transferId === originalTx.transferId);
-      setOverviewTransactions(pair.length > 0 ? pair : [originalTx]);
-    } else if (originalTx) {
-      setOverviewTransactions([originalTx]);
-    }
-    setIsOverviewModalOpen(true);
-  }, [transactions]);
-
-  const handleMakeRecurring = (txToConvert?: DisplayTransaction) => {
-    let displayTx: DisplayTransaction | undefined = txToConvert;
-
-    if (!displayTx) {
-      if (selectedIds.size !== 1) return;
-      const selectedId = Array.from(selectedIds)[0];
-      displayTx = displayTransactions.find(tx => tx.id === selectedId);
-    }
-
-    if (!displayTx) return;
-
-    let transaction: Transaction | undefined;
-    let toAccountId: string | undefined;
-    let type: 'income' | 'expense' | 'transfer';
-
-    if (displayTx.isTransfer) {
-      const transferId = displayTx.transferId;
-      const expensePart = transactions.find(t => t.transferId === transferId && t.type === 'expense');
-      const incomePart = transactions.find(t => t.transferId === transferId && t.type === 'income');
-
-      if (!expensePart || !incomePart) return;
-
-      transaction = expensePart; // Use expense part as base
-      toAccountId = incomePart.accountId;
-      type = 'transfer';
-    } else {
-      transaction = transactions.find(t => t.id === displayTx.id);
-      if (!transaction) return;
-      type = transaction.type;
-    }
-
-    const initialRecurringData: Omit<RecurringTransaction, 'id'> & { id?: string } = {
-      id: '', // No ID, so modal knows it's a new entry
-      accountId: transaction.accountId,
-      toAccountId: toAccountId,
-      description: transaction.description,
-      amount: Math.abs(transaction.amount),
-      category: transaction.category,
-      type: type,
-      currency: transaction.currency,
-      frequency: 'monthly',
-      startDate: toLocalISOString(new Date()),
-      nextDueDate: toLocalISOString(new Date()), // For simplicity
-      weekendAdjustment: 'on',
-    };
-
-    setTransactionToMakeRecurring(initialRecurringData);
-    setIsRecurringModalOpen(true);
-  };
-
-  const handleClearLocation = useCallback((tx: DisplayTransaction) => {
-    const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id));
-    if (!original) return;
-
-    const clearedFields = {
-      address: undefined,
-      placeName: undefined,
-      street: undefined,
-      city: undefined,
-      postalCode: undefined,
-      state: undefined,
-      country: undefined,
-      latitude: undefined,
-      longitude: undefined,
-      locationLabel: undefined,
-    };
-
-    if (tx.isTransfer && original.transferId) {
-      const pair = transactions.filter(t => t.transferId === original.transferId);
-      const updates = pair.map(p => ({
-        ...p,
-        ...clearedFields
-      }));
-      saveTransaction(updates, []);
-    } else {
-      saveTransaction([{
-        ...original,
-        ...clearedFields
-      }], []);
-    }
-  }, [transactions, saveTransaction]);
+  const { totalIncome, totalExpense, netFlow, topCategories } = useMemo(
+    () => computeLedgerSummaryTotals(filteredTransactions),
+    [filteredTransactions],
+  );
 
   const resolveTransferDisplay = useCallback((tx: DisplayTransaction) => {
     if (!tx.isTransfer) {
@@ -983,29 +330,60 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     return { amount: Math.abs(expenseAmount), currency: expenseCurrency };
   }, [accountMapByName, selectedAccountIds]);
 
-  const handleExport = () => {
-    if (filteredTransactions.length === 0) {
-      toast.info("No transactions to export.");
-      return;
-    }
-    const dataForExport = filteredTransactions.map(tx => {
-      const { id, originalId, accountId, transferId, recurringSourceId, importId, sureId, ...rest } = tx;
-      const resolved = resolveTransferDisplay(tx);
-      return {
-        date: rest.date,
-        description: rest.description,
-        merchant: rest.merchant,
-        amount: resolved.amount,
-        currency: resolved.currency,
-        category: rest.category,
-        type: rest.isTransfer ? 'transfer' : rest.type,
-        account: rest.accountName || (rest.isTransfer ? `${rest.fromAccountName} → ${rest.toAccountName}` : 'N/A'),
-        tags: rest.tagIds?.map(tid => tags.find(t => t.id === tid)?.name).join(' | ') || ''
-      };
-    });
-    const csv = arrayToCSV(dataForExport);
-    downloadCSV(csv, `crystal-transactions-${toLocalISOString(new Date())}.csv`);
-  };
+  const {
+    selectedTransactions,
+    canCombine,
+    canSplit,
+    canUnsplit,
+    canUncombine,
+    handleOpenCategorizeModal,
+    handleOpenCombineModal,
+    handleOpenSplitModal,
+    handleSaveSplits,
+    handleSaveCombine,
+    handleUnsplit,
+    handleUncombine,
+    handleSaveBulkCategory,
+    handleSaveBulkEdits,
+    handleOpenDeleteModal,
+    handleConfirmBulkDelete,
+    handleOpenAddModal,
+    handleCloseModal,
+    handleDuplicate,
+    handleOpenOverview,
+    handleMakeRecurring,
+    handleExport,
+    menuFor,
+  } = useTransactionLedgerActions({
+    transactions,
+    displayTransactions,
+    filteredTransactions,
+    allCategories,
+    tags,
+    selectedIds,
+    setSelectedIds,
+    transactionById,
+    transactionsByTransferId,
+    childrenByParentId,
+    saveTransaction,
+    deleteTransactions,
+    resolveTransferDisplay,
+    setExpandedParentIds,
+    setIsSplitModalOpen,
+    setTransactionToSplit,
+    setIsCombineModalOpen,
+    setTransactionsToCombine,
+    setIsCategorizeModalOpen,
+    setBulkEditModalOpen,
+    setIsDeleteConfirmOpen,
+    setEditingTransaction,
+    setDuplicateData,
+    setTransactionModalOpen,
+    setOverviewTransactions,
+    setIsOverviewModalOpen,
+    setTransactionToMakeRecurring,
+    setIsRecurringModalOpen,
+  });
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -1013,7 +391,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     setSelectedCategoryNames([]);
     setSelectedTagIds([]);
     setSelectedLocations([]);
-    setLocationSearch('');
     setTypeFilter('all');
     setStartDate('');
     setEndDate('');
@@ -1023,38 +400,21 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     setMerchantFilter('');
   };
 
-  const generateCategoryOptions = (categories: Category[], level = 0): { value: string, label: string, level: number }[] => {
-    let options: { value: string, label: string, level: number }[] = [];
-    for (const cat of categories) {
-      options.push({ value: cat.name, label: cat.name, level });
-      if (cat.subCategories && cat.subCategories.length > 0) {
-        options = [...options, ...generateCategoryOptions(cat.subCategories, level + 1)];
-      }
-    }
-    return options;
-  };
-
   const handleAccountToggle = useCallback((id: string) => {
-    setSelectedAccountIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+    setSelectedAccountIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   }, []);
 
   const handleCategoryToggle = useCallback((name: string) => {
-    setSelectedCategoryNames(prev =>
-      prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]
-    );
+    setSelectedCategoryNames(prev => (prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]));
   }, []);
 
   const handleLocationToggle = useCallback((city: string) => {
-    setSelectedLocations(prev =>
-      prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]
-    );
+    setSelectedLocations(prev => (prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]));
   }, []);
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "date",
-    direction: "descending",
+    column: 'date',
+    direction: 'descending',
   });
   const [visibleCount, setVisibleCount] = useState(LEDGER_BATCH);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
@@ -1063,89 +423,16 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     setVisibleCount(LEDGER_BATCH);
   }, [debouncedSearchTerm, typeFilter, startDate, endDate, minAmount, maxAmount, merchantFilter, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations]);
 
-  const formatDateHeader = useCallback((dateString: string) => {
-    if (!dateString) return 'No Date';
-    const date = parseLocalDate(dateString);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
+  const sortedTransactions = useMemo(
+    () => sortLedgerTransactions(filteredTransactions, sortDescriptor, accountMap, accountMapByName, user),
+    [filteredTransactions, sortDescriptor, accountMap, accountMapByName, user],
+  );
 
-    const isToday = date.toDateString() === today.toDateString();
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
-    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-    if (isToday) return `Today • ${weekday}, ${formattedDate}`;
-    if (isYesterday) return `Yesterday • ${weekday}, ${formattedDate}`;
-    return `${weekday}, ${formattedDate}`;
-  }, []);
-
-  const sortedTransactions = useMemo(() => {
-    const list = [...filteredTransactions];
-    const col = String(sortDescriptor.column || 'date');
-    const isDesc = sortDescriptor.direction === 'descending';
-
-    return list.sort((a, b) => {
-      let cmp = 0;
-      if (col === 'date') {
-        cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
-      } else if (col === 'amount') {
-        cmp = Math.abs(convertToMain(a.amount, a.currency)) - Math.abs(convertToMain(b.amount, b.currency));
-      } else if (col === 'description') {
-        cmp = (a.description || '').localeCompare(b.description || '');
-      } else if (col === 'account') {
-        const nameA = accountMap[a.accountId]?.name || accountMapByName[a.accountName || '']?.name || a.accountName || '';
-        const nameB = accountMap[b.accountId]?.name || accountMapByName[b.accountName || '']?.name || b.accountName || '';
-        cmp = nameA.localeCompare(nameB);
-      } else if (col === 'category') {
-        cmp = (a.category || '').localeCompare(b.category || '');
-      } else if (col === 'location') {
-        const locA = formatTransactionLocation(a, user);
-        const locB = formatTransactionLocation(b, user);
-        const cityA = locA.hasLocation ? locA.city : '';
-        const cityB = locB.hasLocation ? locB.city : '';
-        cmp = cityA.localeCompare(cityB);
-      } else {
-        cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
-      }
-      return isDesc ? -cmp : cmp;
-    });
-  }, [filteredTransactions, sortDescriptor, accountMapByName, user]);
-
-  const displayItemsWithSubs = useMemo(() => {
-    const subTxMap = new Map<string, DisplayTransaction[]>();
-    const topLevelList: DisplayTransaction[] = [];
-
-    sortedTransactions.forEach(tx => {
-      if (tx.parentTransactionId) {
-        const list = subTxMap.get(tx.parentTransactionId) || [];
-        list.push({ ...tx, isSubTransaction: true });
-        subTxMap.set(tx.parentTransactionId, list);
-      } else {
-        topLevelList.push(tx);
-      }
-    });
-
-    const isFilterActive = Boolean(debouncedSearchTerm || merchantFilter || minAmount || maxAmount || selectedLocations.length > 0);
-
-    const result: DisplayTransaction[] = [];
-    topLevelList.forEach(tx => {
-      const subTxs = subTxMap.get(tx.id) || [];
-      result.push({
-        ...tx,
-        subItemCount: subTxs.length,
-        isExpanded: expandedParentIds.has(tx.id),
-      });
-
-      const shouldExpand = expandedParentIds.has(tx.id) || isFilterActive;
-      if (shouldExpand && subTxs.length > 0) {
-        subTxs.forEach(sub => result.push(sub));
-      }
-    });
-
-    return result;
-  }, [sortedTransactions, expandedParentIds, debouncedSearchTerm, merchantFilter, minAmount, maxAmount, selectedLocations]);
+  const isFilterActive = Boolean(debouncedSearchTerm || merchantFilter || minAmount || maxAmount || selectedLocations.length > 0);
+  const displayItemsWithSubs = useMemo(
+    () => buildDisplayItemsWithSubs(sortedTransactions, expandedParentIds, isFilterActive),
+    [sortedTransactions, expandedParentIds, isFilterActive],
+  );
 
   const paginatedItems = useMemo(() => displayItemsWithSubs.slice(0, visibleCount), [displayItemsWithSubs, visibleCount]);
 
@@ -1164,62 +451,10 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     return () => observer.disconnect();
   }, [visibleCount, displayItemsWithSubs.length]);
 
-  // Group current page items by date
-  const tableRenderItems = useMemo<LedgerItem[]>(() => {
-    const items: LedgerItem[] = [];
-    let currentDate = '';
-    let currentGroupTxs: DisplayTransaction[] = [];
-
-    const flushGroup = () => {
-      if (currentDate && currentGroupTxs.length > 0) {
-        let totalEur = 0;
-        const groupTxIds: string[] = [];
-        currentGroupTxs.forEach(t => {
-          groupTxIds.push(t.id);
-          if (t.isSubTransaction) return;
-          if (t.isTransfer) {
-            const fromSelected = selectedAccountIds.includes(t.fromAccountId || '');
-            const toSelected = selectedAccountIds.includes(t.toAccountId || '');
-            if (selectedAccountIds.length === 0 || (fromSelected && toSelected)) return;
-          }
-          const resolved = resolveTransferDisplay(t);
-          totalEur += convertToMain(resolved.amount, resolved.currency);
-        });
-
-        items.push({
-          isGroupHeader: true,
-          id: `group-hdr-${currentDate}`,
-          date: currentDate,
-          formattedDate: formatDateHeader(currentDate),
-          count: currentGroupTxs.length,
-          totalEur,
-          groupTxIds,
-        });
-
-        currentGroupTxs.forEach(t => {
-          items.push({
-            isGroupHeader: false,
-            id: t.id,
-            tx: t,
-          });
-        });
-      }
-    };
-
-    paginatedItems.forEach(tx => {
-      const d = tx.date || 'No Date';
-      if (d !== currentDate) {
-        flushGroup();
-        currentDate = d;
-        currentGroupTxs = [tx];
-      } else {
-        currentGroupTxs.push(tx);
-      }
-    });
-    flushGroup();
-
-    return items;
-  }, [paginatedItems, formatDateHeader, resolveTransferDisplay]);
+  const tableRenderItems = useMemo(
+    () => buildLedgerTableRenderItems(paginatedItems, selectedAccountIds, resolveTransferDisplay),
+    [paginatedItems, selectedAccountIds, resolveTransferDisplay],
+  );
 
   const handleHeaderSort = useCallback((column: string) => {
     setSortDescriptor(prev => {
@@ -1246,25 +481,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     else if (newSortBy === 'category-asc') setSortDescriptor({ column: 'category', direction: 'ascending' });
     else if (newSortBy === 'category-desc') setSortDescriptor({ column: 'category', direction: 'descending' });
   };
-
-  const menuFor = useCallback((tx: DisplayTransaction): MenuAction[] => {
-    const lookupId = tx.isTransfer ? (tx.originalId || tx.id) : tx.id;
-    const original = transactionById.get(lookupId) ?? null;
-    const isPart = !!tx.parentTransactionId;
-    const parent = isPart && tx.parentTransactionId ? transactionById.get(tx.parentTransactionId) : undefined;
-    const items: MenuAction[] = [{ id: 'edit', label: 'Edit transaction', icon: 'pencil-edit-02', onAction: () => { setEditingTransaction(original); setTransactionModalOpen(true); } }];
-    if (tx.isSplitParent || (isPart && parent?.isSplitParent)) items.push({ id: 'unsplit', label: 'Unsplit transaction', icon: 'git-merge', onAction: () => handleUnsplit(tx) });
-    if (tx.isCombinedParent || (isPart && parent?.isCombinedParent)) items.push({ id: 'uncombine', label: 'Uncombine transaction', icon: 'split', onAction: () => handleUncombine(tx) });
-    if (!tx.isSplitParent && !tx.isCombinedParent && !isPart && !tx.isTransfer) items.push({ id: 'split', label: 'Split transaction', icon: 'split', onAction: () => { setTransactionToSplit(original); setIsSplitModalOpen(true); } });
-    items.push(
-      { id: 'duplicate', label: 'Duplicate', icon: 'copy-01', onAction: () => handleDuplicate(tx) },
-      { id: 'recurring', label: 'Make recurring', icon: 'repeat-one-01', isDisabled: tx.isTransfer, onAction: () => handleMakeRecurring(tx) },
-    );
-    const hasLocation = Boolean(tx.city || tx.country || tx.latitude || tx.longitude || (original && (original.city || original.country || original.latitude || original.longitude || original.address)));
-    if (hasLocation) items.push({ id: 'location', label: 'Remove location', icon: 'location-offline-01', onAction: () => handleClearLocation(tx) });
-    items.push({ id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => { setSelectedIds(new Set([tx.id])); setIsDeleteConfirmOpen(true); } });
-    return items;
-  }, [transactionById, handleClearLocation]);
 
   const toggleOne = (id: string) => setSelectedIds(prev => {
     const next = new Set(prev);
@@ -1320,25 +536,13 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
         const acc = accountMapByName[tx.fromAccountName];
         const accId = acc?.id || tx.fromAccountName;
         const isActive = acc ? selectedAccountIds.includes(acc.id) : false;
-        filters.push({
-          kind: 'account',
-          value: accId,
-          label: tx.fromAccountName,
-          icon: 'bank',
-          isActive,
-        });
+        filters.push({ kind: 'account', value: accId, label: tx.fromAccountName, icon: 'bank', isActive });
       }
       if (tx.toAccountName && tx.toAccountName !== tx.fromAccountName) {
         const acc = accountMapByName[tx.toAccountName];
         const accId = acc?.id || tx.toAccountName;
         const isActive = acc ? selectedAccountIds.includes(acc.id) : false;
-        filters.push({
-          kind: 'account',
-          value: accId,
-          label: tx.toAccountName,
-          icon: 'bank',
-          isActive,
-        });
+        filters.push({ kind: 'account', value: accId, label: tx.toAccountName, icon: 'bank', isActive });
       }
     } else {
       const acc = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
@@ -1346,48 +550,24 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       if (accName) {
         const accId = acc?.id || accName;
         const isActive = acc ? selectedAccountIds.includes(acc.id) : false;
-        filters.push({
-          kind: 'account',
-          value: accId,
-          label: accName,
-          icon: 'bank',
-          isActive,
-        });
+        filters.push({ kind: 'account', value: accId, label: accName, icon: 'bank', isActive });
       }
     }
 
     if (!tx.isTransfer && tx.category && tx.category !== 'Uncategorised') {
       const isActive = selectedCategoryNames.includes(tx.category);
-      filters.push({
-        kind: 'category',
-        value: tx.category,
-        label: tx.category,
-        icon: 'pie-chart-01',
-        isActive,
-      });
+      filters.push({ kind: 'category', value: tx.category, label: tx.category, icon: 'pie-chart-01', isActive });
     }
 
     if (tx.merchant && tx.merchant.trim()) {
       const isActive = merchantFilter.trim().toLowerCase() === tx.merchant.trim().toLowerCase();
-      filters.push({
-        kind: 'merchant',
-        value: tx.merchant.trim(),
-        label: tx.merchant.trim(),
-        icon: 'store-01',
-        isActive,
-      });
+      filters.push({ kind: 'merchant', value: tx.merchant.trim(), label: tx.merchant.trim(), icon: 'store-01', isActive });
     }
 
     const loc = formatTransactionLocation(tx, user);
     if (loc.hasLocation && loc.city) {
       const isActive = selectedLocations.includes(loc.city);
-      filters.push({
-        kind: 'location',
-        value: loc.city,
-        label: loc.city,
-        icon: 'location-01',
-        isActive,
-      });
+      filters.push({ kind: 'location', value: loc.city, label: loc.city, icon: 'location-01', isActive });
     }
 
     return filters;
@@ -1402,7 +582,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
         handleCategoryToggle(filter.value);
         break;
       case 'merchant':
-        setMerchantFilter(prev => prev.trim().toLowerCase() === filter.value.toLowerCase() ? '' : filter.value);
+        setMerchantFilter(prev => (prev.trim().toLowerCase() === filter.value.toLowerCase() ? '' : filter.value));
         break;
       case 'location':
         handleLocationToggle(filter.value);
@@ -1441,297 +621,40 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     return null;
   };
 
-  const topCategories = useMemo(() => {
-    const totals = new Map<string, number>();
-    filteredTransactions.forEach(tx => {
-      if (tx.isTransfer || tx.type !== 'expense') return;
-      totals.set(tx.category || 'Uncategorised', (totals.get(tx.category || 'Uncategorised') ?? 0) + Math.abs(convertToMain(tx.amount, tx.currency)));
-    });
-    return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-  }, [filteredTransactions]);
-
   const money = (value: number, tone: 'flow' | 'plain' = 'plain') => <Amount value={value} currency={getMainCurrency()} tone={tone} />;
 
-  const { options: accountFilterOptions, quick: accountQuickFiltersList } = useAccountFilterOptions(accounts);
-
-  const categoryFilterOptionsList: FilterOption[] = useMemo(() => {
-    const txCounts = new Map<string, number>();
-    transactions.forEach(t => {
-      if (t.category) {
-        txCounts.set(t.category, (txCounts.get(t.category) ?? 0) + 1);
-      }
-    });
-
-    const seen = new Set<string>();
-    const buildList = (cats: Category[], group: string): FilterOption[] => {
-      const res: FilterOption[] = [];
-      cats.forEach(c => {
-        if (!seen.has(c.name)) {
-          seen.add(c.name);
-          const count = txCounts.get(c.name);
-          res.push({
-            id: c.name,
-            label: c.name,
-            hint: count ? String(count) : undefined,
-            color: c.color,
-            group,
-            level: 0,
-            visual: <EntityGlyph icon={c.icon} label={c.name} color={c.color} size={18} />,
-          });
-        }
-        (c.subCategories || []).forEach(sub => {
-          if (!seen.has(sub.name)) {
-            seen.add(sub.name);
-            const count = txCounts.get(sub.name);
-            res.push({
-              id: sub.name,
-              label: sub.name,
-              hint: count ? String(count) : undefined,
-              color: sub.color || c.color,
-              group,
-              level: 1,
-              visual: <EntityGlyph icon={sub.icon || c.icon} label={sub.name} color={sub.color || c.color} size={18} />,
-            });
-          }
-        });
-      });
-      return res;
-    };
-
-    return [
-      ...buildList(expenseCategories, 'Expenses'),
-      ...buildList(incomeCategories, 'Income'),
-    ];
-  }, [transactions, expenseCategories, incomeCategories]);
-
-  const tagFilterOptionsList: FilterOption[] = useMemo(() => {
-    const tagCounts = new Map<string, number>();
-    transactions.forEach(t => {
-      (t.tagIds || []).forEach(id => {
-        tagCounts.set(id, (tagCounts.get(id) ?? 0) + 1);
-      });
-    });
-    return tags.map(t => {
-      const count = tagCounts.get(t.id);
-      return {
-        id: t.id,
-        label: t.name,
-        hint: count ? String(count) : undefined,
-        color: t.color,
-        visual: <EntityGlyph icon={t.icon} label={t.name} color={t.color} size={18} />,
-      };
-    });
-  }, [tags, transactions]);
-
-  const merchantOptionsList: FilterOption[] = useMemo(() => {
-    const merchantCounts = new Map<string, number>();
-    transactions.forEach(t => {
-      const m = t.merchant?.trim();
-      if (m) {
-        merchantCounts.set(m, (merchantCounts.get(m) ?? 0) + 1);
-      }
-    });
-    const sorted = [...merchantCounts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 150);
-
-    return sorted.map(([name, count]) => {
-      const logo = getMerchantLogoUrl(name, brandfetchClientId, effectiveMerchantLogoOverrides, {
-        fallback: 'lettermark',
-        type: 'icon',
-        width: 64,
-        height: 64,
-      });
-      return {
-        id: name,
-        label: name,
-        hint: String(count),
-        visual: <LogoTile url={logo} label={name} size={26} fallbackIcon="wallet" />,
-      };
-    });
-  }, [transactions, brandfetchClientId, effectiveMerchantLogoOverrides]);
-
-  const locationFilterOptionsList: FilterOption[] = useMemo(() => {
-    const counts = new Map<string, { count: number; flag: string }>();
-    transactions.forEach(t => {
-      const loc = formatTransactionLocation(t, user);
-      if (loc.hasLocation && loc.city) {
-        const existing = counts.get(loc.city);
-        counts.set(loc.city, {
-          count: (existing?.count ?? 0) + 1,
-          flag: existing?.flag || loc.flag || '',
-        });
-      }
-    });
-    return [...counts.entries()]
-      .sort((a, b) => b[1].count - a[1].count)
-      .map(([city, { count, flag }]) => ({
-        id: city,
-        label: city,
-        hint: String(count),
-        visual: flag ? <span className="text-[17px] leading-none shrink-0 select-none" aria-hidden>{flag}</span> : undefined,
-      }));
-  }, [transactions, user]);
-
-  const columnFilters = useMemo(() => ({
-    description: {
-      count: (searchTerm.trim() ? 1 : 0) + (merchantFilter.trim() ? 1 : 0),
-      title: 'Details and merchant',
-      content: (
-        <FilterList
-          title="Details and merchant"
-          label="Merchants"
-          searchPlaceholder="Search merchants"
-          headerContent={
-            <div className="space-y-1.5 mb-2">
-              <label className="text-xs font-medium text-muted block">Description</label>
-              <div className="relative">
-                <Icon name="search" size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  placeholder="Search description"
-                  className="h-11 w-full rounded-full border border-line bg-inset pl-10 pr-4 text-sm text-ink outline-none placeholder:text-muted focus:border-primary"
-                />
-              </div>
-              <label className="text-xs font-medium text-muted pt-1 block">Merchant</label>
-            </div>
-          }
-          options={merchantOptionsList}
-          selected={merchantFilter ? [merchantFilter] : []}
-          onChange={ids => setMerchantFilter(ids[ids.length - 1] || '')}
-          maxHeightClass="max-h-60"
-        />
-      ),
-    },
-    account: {
-      count: selectedAccountIds.length,
-      title: 'Accounts',
-      content: (
-        <FilterList
-          title="Accounts"
-          label="Accounts"
-          searchPlaceholder="Search accounts"
-          quick={accountQuickFiltersList}
-          options={accountFilterOptions}
-          selected={selectedAccountIds}
-          onChange={setSelectedAccountIds}
-          maxHeightClass="max-h-72"
-        />
-      ),
-    },
-    category: {
-      count: selectedCategoryNames.length,
-      title: 'Categories',
-      content: (
-        <FilterList
-          title="Categories"
-          label="Categories"
-          searchPlaceholder="Search categories"
-          options={categoryFilterOptionsList}
-          selected={selectedCategoryNames}
-          onChange={setSelectedCategoryNames}
-          maxHeightClass="max-h-72"
-        />
-      ),
-    },
-    location: {
-      count: selectedLocations.length,
-      title: 'Locations',
-      content: (
-        <FilterList
-          title="Locations"
-          label="Locations"
-          searchPlaceholder="Search locations"
-          options={locationFilterOptionsList}
-          selected={selectedLocations}
-          onChange={setSelectedLocations}
-          maxHeightClass="max-h-72"
-        />
-      ),
-    },
-    tags: {
-      count: selectedTagIds.length,
-      title: 'Tags',
-      content: (
-        <FilterList
-          title="Tags"
-          label="Tags"
-          searchPlaceholder="Search tags"
-          options={tagFilterOptionsList}
-          selected={selectedTagIds}
-          onChange={setSelectedTagIds}
-          maxHeightClass="max-h-72"
-        />
-      ),
-    },
-    amount: {
-      count: (typeFilter !== 'all' ? 1 : 0) + (minAmount ? 1 : 0) + (maxAmount ? 1 : 0),
-      title: 'Amount',
-      content: (
-        <div className="w-80 max-w-[88vw] space-y-3">
-          <h3 className="type-card-title text-base font-bold text-ink">Amount</h3>
-          <RadioGroup label="Type" value={typeFilter} onChange={value => setTypeFilter(value as typeof typeFilter)}>
-            {TYPE_FILTER_OPTIONS.map(option => <Radio key={option.value} value={option.value}>{option.label}</Radio>)}
-          </RadioGroup>
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <AmountInput label="At least" currency={getMainCurrency()} value={minAmount} onChange={setMinAmount} />
-            <AmountInput label="At most" currency={getMainCurrency()} value={maxAmount} onChange={setMaxAmount} />
-          </div>
-        </div>
-      ),
-    },
-  }), [
-    searchTerm, merchantFilter, merchantOptionsList,
-    selectedAccountIds, accountQuickFiltersList, accountFilterOptions,
-    selectedCategoryNames, categoryFilterOptionsList,
-    selectedLocations, locationFilterOptionsList,
-    selectedTagIds, tagFilterOptionsList,
-    typeFilter, minAmount, maxAmount, getMainCurrency,
-  ]);
-
-  const filterSections = [
-    {
-      id: 'type', label: 'Type', count: typeFilter !== 'all' ? 1 : 0,
-      content: (
-        <RadioGroup label="Show" value={typeFilter} onChange={value => setTypeFilter(value as typeof typeFilter)}>
-          {TYPE_FILTER_OPTIONS.map(option => <Radio key={option.value} value={option.value}>{option.label}</Radio>)}
-        </RadioGroup>
-      ),
-    },
-    { id: 'accounts', label: 'Accounts', count: selectedAccountIds.length, content: columnFilters.account.content },
-    { id: 'categories', label: 'Categories', count: selectedCategoryNames.length, content: columnFilters.category.content },
-    { id: 'tags', label: 'Tags', count: selectedTagIds.length, content: columnFilters.tags.content },
-    {
-      id: 'merchant', label: 'Merchant', count: merchantFilter ? 1 : 0,
-      content: (
-        <FilterList
-          label="Merchants"
-          options={merchantOptionsList}
-          selected={merchantFilter ? [merchantFilter] : []}
-          onChange={ids => setMerchantFilter(ids[ids.length - 1] || '')}
-        />
-      ),
-    },
-    {
-      id: 'location', label: 'Location', count: selectedLocations.length,
-      content: columnFilters.location.content,
-    },
-    {
-      id: 'dates', label: 'Dates', count: (startDate ? 1 : 0) + (endDate ? 1 : 0),
-      content: (
-        <div className="grid w-64 gap-3 max-md:w-full">
-          <DateInput label="From" value={startDate} onChange={setStartDate} />
-          <DateInput label="To" value={endDate} onChange={setEndDate} />
-        </div>
-      ),
-    },
-    {
-      id: 'amount', label: 'Amount', count: (minAmount ? 1 : 0) + (maxAmount ? 1 : 0),
-      content: columnFilters.amount.content,
-    },
-  ];
+  const { columnFilters, filterSections } = useTransactionFilterOptions({
+    accounts,
+    transactions,
+    expenseCategories,
+    incomeCategories,
+    tags,
+    user,
+    brandfetchClientId,
+    effectiveMerchantLogoOverrides,
+    searchTerm,
+    setSearchTerm,
+    merchantFilter,
+    setMerchantFilter,
+    selectedAccountIds,
+    setSelectedAccountIds,
+    selectedCategoryNames,
+    setSelectedCategoryNames,
+    selectedLocations,
+    setSelectedLocations,
+    selectedTagIds,
+    setSelectedTagIds,
+    typeFilter,
+    setTypeFilter,
+    minAmount,
+    setMinAmount,
+    maxAmount,
+    setMaxAmount,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+  });
 
   const search = (
     <div className="relative min-w-0 flex-1 md:max-w-xs">
@@ -1828,7 +751,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
           setIsOverviewModalOpen(false);
           const allIds = new Set(ids);
           ids.forEach(id => {
-            transactions.filter(t => t.parentTransactionId === id).forEach(child => allIds.add(child.id));
+            (childrenByParentId.get(id) ?? []).forEach(child => allIds.add(child.id));
           });
           deleteTransactions(Array.from(allIds));
         }}
