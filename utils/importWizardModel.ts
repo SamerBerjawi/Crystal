@@ -85,6 +85,13 @@ export function processConfiguredImportData({
   const errors: Record<number, Record<string, string>> = {};
   const cleaned: any[] = [];
 
+  const existingAccountsById = new Map<string, Account>(existingAccounts.map(a => [a.id, a]));
+  const existingAccountsByName = new Map<string, Account>(
+    existingAccounts.map(a => [a.name.toLowerCase().trim(), a])
+  );
+  const singleAccount = selectedSingleAccountId ? existingAccountsById.get(selectedSingleAccountId) : undefined;
+  const singleAccountCurrency = singleAccount?.currency || getMainCurrency();
+
   parsedData.forEach((row, index) => {
     const newRow: any = { originalIndex: index };
     let rowHasErrors = false;
@@ -151,11 +158,10 @@ export function processConfiguredImportData({
       if (columnMap.currency && currencyVal) {
         newRow.currency = currencyVal.toUpperCase();
       } else if (accountSource === 'single' && selectedSingleAccountId) {
-        const account = existingAccounts.find(a => a.id === selectedSingleAccountId);
-        newRow.currency = account?.currency || getMainCurrency();
+        newRow.currency = singleAccountCurrency;
       } else if (accountSource === 'column' && columnMap.account) {
-        const accountName = row[columnMap.account];
-        const existingAccount = existingAccounts.find(a => a.name.toLowerCase() === accountName?.toLowerCase());
+        const accountName = String(row[columnMap.account] || '').toLowerCase().trim();
+        const existingAccount = existingAccountsByName.get(accountName);
         newRow.currency = existingAccount ? existingAccount.currency : getMainCurrency();
       } else {
         newRow.currency = getMainCurrency();
@@ -263,6 +269,57 @@ export function buildInitialImportEntityMaps(params: {
   return { currencyMap, categoryMap, accountMap, accountTypeMap };
 }
 
+export function normalizeCleanedCell(params: {
+  field: string;
+  value: string;
+  dateFormat?: string;
+  importType?: ImportType;
+}): {
+  normalizedValue: any;
+  error?: string;
+} {
+  const { field, value, dateFormat = 'YYYY-MM-DD', importType = 'transactions' } = params;
+  const trimmed = String(value ?? '').trim();
+
+  if (field === 'amount' || field === 'balance') {
+    if (!trimmed) {
+      return { normalizedValue: '', error: `${field === 'amount' ? 'Amount' : 'Balance'} is required` };
+    }
+    const num = parseAmount(trimmed);
+    if (!Number.isFinite(num) || Number.isNaN(num)) {
+      return { normalizedValue: trimmed, error: `Invalid number: "${trimmed}"` };
+    }
+    return { normalizedValue: safeRound(num, 2) };
+  }
+
+  if (field === 'date' && importType === 'transactions') {
+    if (!trimmed) {
+      return { normalizedValue: '', error: 'Date is required' };
+    }
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+    if (isoMatch) {
+      const d = new Date(`${trimmed}T00:00:00Z`);
+      if (!Number.isNaN(d.getTime())) {
+        return { normalizedValue: trimmed };
+      }
+    }
+    const parsed = parseDate(trimmed, dateFormat);
+    if (parsed && !Number.isNaN(parsed.getTime())) {
+      return { normalizedValue: toLocalISOString(parsed) };
+    }
+    return { normalizedValue: trimmed, error: `Invalid date: "${trimmed}"` };
+  }
+
+  if (field === 'name') {
+    if (!trimmed) {
+      return { normalizedValue: '', error: 'Name is required' };
+    }
+    return { normalizedValue: trimmed };
+  }
+
+  return { normalizedValue: trimmed };
+}
+
 export function buildImportPublishPayload(params: {
   importType: ImportType;
   accountSource: 'column' | 'single';
@@ -281,6 +338,12 @@ export function buildImportPublishPayload(params: {
   const newAccountNameMap: Record<string, string> = {};
 
   if (importType === 'transactions' && accountSource === 'column') {
+    const sampleRowByAccount = new Map<string, any>();
+    for (const row of cleanedData) {
+      if (row.account && !sampleRowByAccount.has(row.account)) {
+        sampleRowByAccount.set(row.account, row);
+      }
+    }
     Object.entries(accountMap).forEach(([csvName, mappedValue]) => {
       const val = mappedValue as string;
       if (val.startsWith('_CREATE_NEW_:')) {
@@ -288,7 +351,7 @@ export function buildImportPublishPayload(params: {
         const newId = `new-${uuidv4()}`;
         newAccountNameMap[csvName] = newId;
 
-        const sampleRow = cleanedData.find(row => row.account === csvName);
+        const sampleRow = sampleRowByAccount.get(csvName);
         const accCurrency = sampleRow?.currency || getMainCurrency();
 
         newAccountsToCreate.push({
@@ -340,7 +403,8 @@ export function buildImportPublishPayload(params: {
         }
 
         const numericAmount = typeof row.amount === 'number' ? row.amount : parseAmount(String(row.amount ?? ''));
-        if (!Number.isFinite(numericAmount)) return null;
+        if (!Number.isFinite(numericAmount) || Number.isNaN(numericAmount)) return null;
+        if (!row.date || typeof row.date !== 'string' || Number.isNaN(new Date(row.date).getTime())) return null;
 
         const newTx: Omit<Transaction, 'id'> = {
           accountId,
@@ -357,10 +421,11 @@ export function buildImportPublishPayload(params: {
         const typeValue = accountTypeMap[row.type];
         if (!typeValue || typeValue === '_UNASSIGNED_') return null;
         const numericBalance = typeof row.balance === 'number' ? row.balance : parseAmount(String(row.balance ?? ''));
-        if (!Number.isFinite(numericBalance)) return null;
+        if (!Number.isFinite(numericBalance) || Number.isNaN(numericBalance)) return null;
+        if (!row.name || typeof row.name !== 'string' || !row.name.trim()) return null;
 
         const newAcc: Omit<Account, 'id'> = {
-          name: row.name,
+          name: row.name.trim(),
           type: typeValue as AccountType,
           balance: safeRound(numericBalance, 2),
           currency: finalCurrency as Currency,

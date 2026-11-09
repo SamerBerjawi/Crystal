@@ -5,6 +5,7 @@ import {
   autoMapImportColumns,
   buildImportPublishPayload,
   buildInitialImportEntityMaps,
+  normalizeCleanedCell,
   processConfiguredImportData,
 } from '../../utils/importWizardModel';
 import {
@@ -105,6 +106,59 @@ test('importWizardModel: processConfiguredImportData normalizes European & accou
   assert.equal(dataToPublish[0].amount, -1234.56);
   assert.equal(dataToPublish[0].category, 'Groceries');
   assert.equal(dataToPublish[1].category, 'NewCat');
+});
+
+test('importWizardModel: normalizeCleanedCell sanitizes amounts and dates and prevents NaN publication (HIGH-05)', () => {
+  // Amount cell editing
+  const euroAmount = normalizeCleanedCell({ field: 'amount', value: '1.250,50 €' });
+  assert.equal(euroAmount.normalizedValue, 1250.5);
+  assert.equal(euroAmount.error, undefined);
+
+  const negAmount = normalizeCleanedCell({ field: 'amount', value: '(42.00)' });
+  assert.equal(negAmount.normalizedValue, -42);
+  assert.equal(negAmount.error, undefined);
+
+  const invalidAmount = normalizeCleanedCell({ field: 'amount', value: 'abc' });
+  assert.equal(invalidAmount.normalizedValue, 'abc');
+  assert.ok(invalidAmount.error?.includes('Invalid number'));
+
+  const emptyAmount = normalizeCleanedCell({ field: 'amount', value: '   ' });
+  assert.ok(emptyAmount.error?.includes('Amount is required'));
+
+  // Date cell editing
+  const isoDate = normalizeCleanedCell({ field: 'date', value: '2026-03-15' });
+  assert.equal(isoDate.normalizedValue, '2026-03-15');
+  assert.equal(isoDate.error, undefined);
+
+  const ukDate = normalizeCleanedCell({ field: 'date', value: '15/03/2026', dateFormat: 'DD/MM/YYYY' });
+  assert.equal(ukDate.normalizedValue, '2026-03-15');
+  assert.equal(ukDate.error, undefined);
+
+  const badDate = normalizeCleanedCell({ field: 'date', value: '32/13/2026', dateFormat: 'DD/MM/YYYY' });
+  assert.ok(badDate.error?.includes('Invalid date'));
+
+  // buildImportPublishPayload rejection of NaN amounts and bad dates
+  const corruptedRows = [
+    { originalIndex: 0, account: 'acc-1', date: '2026-03-15', amount: 'abc', name: 'Corrupt Tx 1', currency: 'EUR' },
+    { originalIndex: 1, account: 'acc-1', date: 'invalid-date', amount: 50, name: 'Corrupt Tx 2', currency: 'EUR' },
+    { originalIndex: 2, account: 'acc-1', date: '2026-03-15', amount: 100, name: 'Valid Tx', currency: 'EUR' },
+  ];
+
+  const payload = buildImportPublishPayload({
+    importType: 'transactions',
+    accountSource: 'single',
+    cleanedData: corruptedRows,
+    excludedRows: new Set(),
+    accountMap: {},
+    categoryMap: {},
+    accountTypeMap: {},
+    currencyMap: {},
+  });
+
+  // Only the valid row should be published
+  assert.equal(payload.dataToPublish.length, 1);
+  assert.equal(payload.dataToPublish[0].amount, 100);
+  assert.equal(payload.dataToPublish[0].description, 'Valid Tx');
 });
 
 test('transactionsLedgerModel: pairs transfers, attaches spare change, and computes summary totals', () => {

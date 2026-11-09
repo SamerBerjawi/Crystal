@@ -77,6 +77,8 @@ export function useEnableBankingSync({
 }: UseEnableBankingSyncParams) {
   const [isSyncingBanks, setIsSyncingBanks] = useState(false);
   const syncingConnectionIdsRef = useRef<Set<string>>(new Set());
+  const enableBankingConnectionsRef = useRef(enableBankingConnections);
+  enableBankingConnectionsRef.current = enableBankingConnections;
   /** connectionId -> epoch ms until which the bank asked us to stop (ASPSP_RATE_LIMIT_EXCEEDED); in memory only. */
   const bankRateLimitedUntilRef = useRef<Map<string, number>>(new Map());
   /** `${connectionId}:${level}` pairs already announced this session, so each warning shows once. */
@@ -219,7 +221,7 @@ export function useEnableBankingSync({
 
   const handleSyncEnableBankingConnection = useCallback(async (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => {
     if (!isAuthenticated) return;
-    const connection = connectionOverride || enableBankingConnections.find(c => c.id === connectionId);
+    const connection = connectionOverride || enableBankingConnectionsRef.current.find(c => c.id === connectionId);
     if (!connection?.sessionId) return;
     if (syncingConnectionIdsRef.current.has(connectionId)) return;
     syncingConnectionIdsRef.current.add(connectionId);
@@ -401,13 +403,19 @@ export function useEnableBankingSync({
       if (importedTransactions.length > 0) {
         const latestTransactions = transactionsRef.current;
         const existingTxMapCountId = new Map<string, Transaction>(latestTransactions.map(tx => [tx.id, tx]));
-        const existingTxMapSureId = new Map<string, Transaction>(
-          latestTransactions.filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`) && tx.sureId).map(tx => [tx.sureId as string, tx])
-        );
+        const accountSureKey = (accId: string, sId: string) => `${accId}::${sId}`;
+        const existingTxMapSureId = new Map<string, Transaction>();
+        for (const tx of latestTransactions) {
+          if (tx.sureId) {
+            existingTxMapSureId.set(accountSureKey(tx.accountId, tx.sureId), tx);
+            if (!existingTxMapSureId.has(tx.sureId)) {
+              existingTxMapSureId.set(tx.sureId, tx);
+            }
+          }
+        }
         const fingerprintOf = (tx: Transaction) => `${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`;
         const existingByFingerprint = new Map<string, Transaction[]>();
         for (const tx of latestTransactions) {
-          if (!tx.importId?.startsWith(`enable-banking-${connectionId}-`)) continue;
           const key = fingerprintOf(tx);
           const list = existingByFingerprint.get(key);
           if (list) list.push(tx); else existingByFingerprint.set(key, [tx]);
@@ -427,7 +435,7 @@ export function useEnableBankingSync({
           }
           const tx = candidate;
 
-          let existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined);
+          let existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? (existingTxMapSureId.get(accountSureKey(tx.accountId, tx.sureId)) || existingTxMapSureId.get(tx.sureId)) : undefined);
           if (!existing && !hasBankIdentifier) {
             const matches = existingByFingerprint.get(fingerprintOf(tx));
             existing = matches?.shift();
@@ -441,7 +449,17 @@ export function useEnableBankingSync({
           } else {
             deduped.push(tx);
             existingTxMapCountId.set(tx.id, tx);
-            if (tx.sureId) existingTxMapSureId.set(tx.sureId, tx);
+            if (tx.sureId) {
+              existingTxMapSureId.set(accountSureKey(tx.accountId, tx.sureId), tx);
+              if (!existingTxMapSureId.has(tx.sureId)) {
+                existingTxMapSureId.set(tx.sureId, tx);
+              }
+            }
+            if (!hasBankIdentifier) {
+              const key = fingerprintOf(tx);
+              const list = existingByFingerprint.get(key);
+              if (list) list.push(tx); else existingByFingerprint.set(key, [tx]);
+            }
           }
         }
         newTransactionCount = deduped.length;
@@ -533,8 +551,9 @@ export function useEnableBankingSync({
 
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const now = Date.now();
-    const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending' && (bankRateLimitedUntilRef.current.get(c.id) ?? 0) <= now);
-    const skippedForRateLimit = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending' && (bankRateLimitedUntilRef.current.get(c.id) ?? 0) > now);
+    const currentConnections = enableBankingConnectionsRef.current;
+    const activeConnections = currentConnections.filter(c => c.sessionId && c.status !== 'pending' && (bankRateLimitedUntilRef.current.get(c.id) ?? 0) <= now);
+    const skippedForRateLimit = currentConnections.filter(c => c.sessionId && c.status !== 'pending' && (bankRateLimitedUntilRef.current.get(c.id) ?? 0) > now);
     if (activeConnections.length === 0 && skippedForRateLimit.length > 0) {
       toast.info('Banks are rate limited', { description: `${skippedForRateLimit.map(c => c.selectedBank || 'A bank').join(', ')} limit${skippedForRateLimit.length === 1 ? 's' : ''} automatic requests. Try again in a few hours.` });
       return;
@@ -547,13 +566,14 @@ export function useEnableBankingSync({
     setIsSyncingBanks(true);
     try {
       for (const connection of activeConnections) {
-        await handleSyncEnableBankingConnection(connection.id, connection, { transactionMode: 'incremental', silent: true });
+        const freshConnection = enableBankingConnectionsRef.current.find(c => c.id === connection.id) || connection;
+        await handleSyncEnableBankingConnection(freshConnection.id, freshConnection, { transactionMode: 'incremental', silent: true });
       }
       toast.success(`Synced ${activeConnections.length} bank connection${activeConnections.length === 1 ? '' : 's'}`);
     } finally {
       setIsSyncingBanks(false);
     }
-  }, [enableBankingConnections, handleSyncEnableBankingConnection]);
+  }, [handleSyncEnableBankingConnection]);
 
   const handleResetDeletedBankTransactions = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => clearDeleted(prev, connectionId));

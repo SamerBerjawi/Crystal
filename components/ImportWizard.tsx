@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Account, Category } from '../types';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../lib/utils';
@@ -141,7 +142,14 @@ const ImportWizard: React.FC<ImportWizardProps> = ({
         handleProcessUpload();
       }
       if (currentStep === 2) processConfiguredData();
-      if (currentStep === 4) handleProcessCleaning();
+      if (currentStep === 4) {
+        const unskippedRowsWithErrors = cleanedData.filter(row => !excludedRows.has(row.originalIndex) && dataErrors[row.originalIndex] && Object.keys(dataErrors[row.originalIndex]).length > 0);
+        if (unskippedRowsWithErrors.length > 0) {
+          toast.error(`Please fix or skip the ${unskippedRowsWithErrors.length} row${unskippedRowsWithErrors.length === 1 ? '' : 's'} with errors before proceeding.`);
+          return;
+        }
+        handleProcessCleaning();
+      }
     }
     setCurrentStep(step);
   };
@@ -213,6 +221,10 @@ const ImportWizard: React.FC<ImportWizardProps> = ({
             excludedRows={excludedRows}
             setExcludedRows={setExcludedRows}
             isSimple={isPhone}
+            importType={importType}
+            dateFormat={dateFormat}
+            dataErrors={dataErrors}
+            setDataErrors={setDataErrors}
           />
         );
       case 5:

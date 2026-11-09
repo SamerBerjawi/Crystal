@@ -15,7 +15,7 @@ import {
   suggestAccountType,
   sanitizeBankMerchant,
 } from '../../utils/enableBankingMapper';
-import { EnableBankingAccount } from '../../types';
+import { EnableBankingAccount, Transaction } from '../../types';
 
 test('resolveEnableBankingBalance supports ISO 20022 4-letter codes and camelCase types in priority order', () => {
   // ISO 20022 codes: CLBD (closingBooked) should win over OPBD (openingBooked)
@@ -300,4 +300,31 @@ test('suggestAccountType reads cash_account_type, then the product name', () => 
   assert.equal(suggestAccountType({ product: 'Savings Account' }), 'Savings');
   assert.equal(suggestAccountType({ name: 'Mastercard Gold' }), 'Credit Card');
   assert.equal(suggestAccountType(undefined), 'Checking');
+});
+
+test('bank sync deduplication: matches transactions across connection IDs by account and sureId (HIGH-04)', () => {
+  const optsConnA = { linkedAccountId: 'acc-1', providerAccountId: 'uid-1', currency: 'EUR' as const, connectionId: 'conn-alpha' };
+  const optsConnB = { linkedAccountId: 'acc-1', providerAccountId: 'uid-1', currency: 'EUR' as const, connectionId: 'conn-beta' };
+  const rawTx = { entry_reference: 'ENTRY-9988', transaction_amount: { amount: '45.00' }, credit_debit_indicator: 'DBIT', booking_date: '2026-05-12', remittance_information: ['Groceries'] };
+
+  const txFromConnA = mapEnableBankingTransaction(rawTx, optsConnA);
+  const txFromConnB = mapEnableBankingTransaction(rawTx, optsConnB);
+
+  assert.ok(txFromConnA && txFromConnB);
+  // Connection IDs and generated IDs differ due to reconnection
+  assert.notEqual(txFromConnA.id, txFromConnB.id);
+  assert.notEqual(txFromConnA.importId, txFromConnB.importId);
+  // Both share the exact bank entry reference (sureId) and accountId
+  assert.equal(txFromConnA.sureId, 'ENTRY-9988');
+  assert.equal(txFromConnB.sureId, 'ENTRY-9988');
+  assert.equal(txFromConnA.accountId, txFromConnB.accountId);
+
+  // Deduplication index by account and sureId
+  const accountSureKey = (accId: string, sId: string) => `${accId}::${sId}`;
+  const existingTxMapSureId = new Map<string, Transaction>();
+  existingTxMapSureId.set(accountSureKey(txFromConnA.accountId, txFromConnA.sureId!), txFromConnA);
+
+  const matched = existingTxMapSureId.get(accountSureKey(txFromConnB.accountId, txFromConnB.sureId!));
+  assert.ok(matched, 'Existing transaction from previous connection found by accountId + sureId');
+  assert.equal(matched?.id, txFromConnA.id);
 });

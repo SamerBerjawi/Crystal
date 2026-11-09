@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { flattenCategories, safeRound } from '../../utils';
 import { RowFilter, rowMatchesFilters } from '../../utils/importParsing';
 import { parseAmount } from '../../utils/parseAmount';
+import { ImportType, normalizeCleanedCell } from '../../utils/importWizardModel';
 import { Button } from '../ui/Actions';
 import { Checkbox, controlStyles } from '../ui/Fields';
 import Icon from '../ui/Icon';
@@ -183,22 +184,70 @@ const DATE_FILTERS = [
   { id: 'day', label: 'Day' },
 ];
 
-export const StepClean: React.FC<{ data: any[]; setData: React.Dispatch<React.SetStateAction<any[]>>; excludedRows: Set<number>; setExcludedRows: React.Dispatch<React.SetStateAction<Set<number>>>; isSimple: boolean }> = ({ data, setData, excludedRows, setExcludedRows, isSimple }) => {
+export const StepClean: React.FC<{
+  data: any[];
+  setData: React.Dispatch<React.SetStateAction<any[]>>;
+  excludedRows: Set<number>;
+  setExcludedRows: React.Dispatch<React.SetStateAction<Set<number>>>;
+  isSimple: boolean;
+  importType?: ImportType;
+  dateFormat?: string;
+  dataErrors?: Record<number, Record<string, string>>;
+  setDataErrors?: React.Dispatch<React.SetStateAction<Record<number, Record<string, string>>>>;
+}> = ({
+  data,
+  setData,
+  excludedRows,
+  setExcludedRows,
+  isSimple,
+  importType = 'transactions',
+  dateFormat = 'YYYY-MM-DD',
+  dataErrors = {},
+  setDataErrors,
+}) => {
   const [filters, setFilters] = useState<Record<string, RowFilter>>({});
 
   const setFilter = (header: string, type: string, value: string) => setFilters(prev => ({ ...prev, [header]: { type, value } }));
   const rows = useMemo(() => data.filter(row => rowMatchesFilters(row, filters)), [data, filters]);
   const headers = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'originalIndex') : [];
 
-  const changeCell = (index: number, field: string, value: string) => setData(prev => prev.map(row => (row.originalIndex === index ? { ...row, [field]: value } : row)));
-  const normalizeNumericCell = (index: number, field: string) => {
-    if (field !== 'amount' && field !== 'balance') return;
-    setData(prev => prev.map(row => {
-      if (row.originalIndex !== index) return row;
-      const parsed = typeof row[field] === 'number' ? row[field] : parseAmount(String(row[field] ?? ''));
-      return Number.isFinite(parsed) ? { ...row, [field]: safeRound(parsed, 2) } : row;
-    }));
+  const changeCell = (index: number, field: string, value: string) => {
+    setData(prev => prev.map(row => (row.originalIndex === index ? { ...row, [field]: value } : row)));
   };
+
+  const handleCellBlur = (index: number, field: string, value: string) => {
+    const { normalizedValue, error } = normalizeCleanedCell({
+      field,
+      value,
+      dateFormat,
+      importType,
+    });
+
+    setData(prev => prev.map(row => (row.originalIndex === index ? { ...row, [field]: normalizedValue } : row)));
+
+    if (setDataErrors) {
+      setDataErrors(prev => {
+        const rowErrors = { ...(prev[index] || {}) };
+        if (error) {
+          rowErrors[field] = error;
+          return { ...prev, [index]: rowErrors };
+        } else {
+          delete rowErrors[field];
+          if (Object.keys(rowErrors).length === 0) {
+            const next = { ...prev };
+            delete next[index];
+            return next;
+          }
+          return { ...prev, [index]: rowErrors };
+        }
+      });
+    }
+  };
+
+  const unskippedErrorCount = useMemo(() => {
+    return Object.keys(dataErrors).filter(idx => !excludedRows.has(Number(idx))).length;
+  }, [dataErrors, excludedRows]);
+
   const toggleSkip = (index: number) => setExcludedRows(prev => {
     const next = new Set(prev);
     if (next.has(index)) next.delete(index);
@@ -256,6 +305,11 @@ export const StepClean: React.FC<{ data: any[]; setData: React.Dispatch<React.Se
   return (
     <>
       <StepHeading title="Clean the rows" description="Fix any cell, and skip rows you don’t want." />
+      {unskippedErrorCount > 0 && (
+        <Banner tone="attention" className="mb-4">
+          {unskippedErrorCount} active row{unskippedErrorCount === 1 ? ' has' : 's have'} problems. Fix the highlighted cells or skip the row{unskippedErrorCount === 1 ? '' : 's'} before proceeding.
+        </Banner>
+      )}
       <div className="max-h-[60vh] overflow-auto rounded-[var(--radius-md)] border border-line">
         <table className="type-caption min-w-full text-ink">
           <thead className="sticky top-0 z-10 bg-solid text-muted">
@@ -276,11 +330,25 @@ export const StepClean: React.FC<{ data: any[]; setData: React.Dispatch<React.Se
                   <td className="px-3 py-1">
                     <Checkbox aria-label={`Skip row ${row.originalIndex + 2}`} isSelected={isSkipped} onChange={() => toggleSkip(row.originalIndex)}>{' '}</Checkbox>
                   </td>
-                  {headers.map(header => (
-                    <td key={header} className="px-3 py-1">
-                      <input aria-label={`${FIELD_LABELS[header] ?? header}, row ${row.originalIndex + 2}`} value={row[header] ?? ''} onChange={event => changeCell(row.originalIndex, header, event.target.value)} onBlur={() => normalizeNumericCell(row.originalIndex, header)} className={tableInput} />
-                    </td>
-                  ))}
+                  {headers.map(header => {
+                    const cellError = dataErrors[row.originalIndex]?.[header];
+                    return (
+                      <td key={header} className="px-3 py-1">
+                        <input
+                          aria-label={`${FIELD_LABELS[header] ?? header}, row ${row.originalIndex + 2}`}
+                          value={row[header] ?? ''}
+                          onChange={event => changeCell(row.originalIndex, header, event.target.value)}
+                          onBlur={() => handleCellBlur(row.originalIndex, header, row[header])}
+                          title={cellError}
+                          className={cn(
+                            tableInput,
+                            cellError && 'border-money-out text-money-out focus:border-money-out focus:ring-1 focus:ring-money-out'
+                          )}
+                        />
+                        {cellError && <span className="type-caption block text-money-out text-2xs truncate max-w-[12rem]">{cellError}</span>}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}
