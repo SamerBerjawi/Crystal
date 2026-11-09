@@ -29,50 +29,19 @@ export function readLocalDevSnapshot(options?: {
   }
 }
 
-const DELTA_ELIGIBLE_KEYS: (keyof FinancialData)[] = ['transactions', 'investmentTransactions'];
+import {
+  DELTA_ELIGIBLE_KEYS,
+  MATERIAL_DATA_ARRAY_KEYS,
+  MATERIAL_DATA_OBJECT_KEYS,
+  PERSISTED_SLICE_KEYS,
+} from '../utils/sliceRegistry';
 
-export const MATERIAL_DATA_ARRAY_KEYS: (keyof FinancialData)[] = [
-  'accounts',
-  'transactions',
-  'investmentTransactions',
-  'recurringTransactions',
-  'recurringTransactionOverrides',
-  'financialGoals',
-  'budgets',
-  'tasks',
-  'warrants',
-  'memberships',
-  'importExportHistory',
-  'billsAndPayments',
-  'invoices',
-  'tags',
-  'predictions',
-  'enableBankingConnections',
-  'incomeCategories',
-  'expenseCategories',
-  'accountOrder',
-  'taskOrder',
-];
-
-export const MATERIAL_DATA_OBJECT_KEYS: (keyof FinancialData)[] = [
-  'loanPaymentOverrides',
-  'manualWarrantPrices',
-  'priceHistory',
-  'userStats',
-  'preferences',
-];
-
-/**
- * Slices of FinancialData the app persists. A slice is "dirty" when its current value is no longer the
- * same object as the one last loaded from / confirmed saved to the server (see savedSlicesRef).
- */
-export const PERSISTED_SLICE_KEYS = [
-  'accounts', 'transactions', 'investmentTransactions', 'recurringTransactions', 'recurringTransactionOverrides',
-  'loanPaymentOverrides', 'financialGoals', 'goalOrder', 'budgets', 'tasks', 'warrants', 'memberships',
-  'importExportHistory', 'incomeCategories', 'expenseCategories', 'preferences', 'billsAndPayments',
-  'accountOrder', 'taskOrder', 'tags', 'manualWarrantPrices', 'priceHistory', 'invoices', 'userStats',
-  'predictions', 'enableBankingConnections',
-] as const satisfies readonly (keyof FinancialData)[];
+export {
+  DELTA_ELIGIBLE_KEYS,
+  MATERIAL_DATA_ARRAY_KEYS,
+  MATERIAL_DATA_OBJECT_KEYS,
+  PERSISTED_SLICE_KEYS,
+};
 
 /** Largest body a browser will send in a `keepalive` request (64 KiB), minus headroom. */
 const KEEPALIVE_MAX_BYTES = 60_000;
@@ -426,7 +395,7 @@ export function useFinancialPersistence({
       const partialPayload: Partial<FinancialData> = {};
       const unloadDeltas: Record<string, EntityDelta> = {};
       for (const key of dirtyKeys) {
-        if (DELTA_ELIGIBLE_KEYS.includes(key)) {
+        if ((DELTA_ELIGIBLE_KEYS as readonly (keyof FinancialData)[]).includes(key)) {
           const delta = computeArrayDelta(
             savedSlicesRef.current[key] as { id: string }[] | undefined,
             currentData[key] as { id: string }[] | undefined,

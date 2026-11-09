@@ -11,6 +11,7 @@ import { ReviewProvider } from './contexts/ReviewContext';
 import { applyAppFont } from './hooks/useFont';
 import { pageRegistry, useAppRouter } from './hooks/useAppRouter';
 import { hasMaterialData, readLocalDevSnapshot, useFinancialPersistence } from './hooks/useFinancialPersistence';
+import { PERSISTED_SLICE_KEYS, type PersistedSliceKey } from './utils/sliceRegistry';
 import { useDomainCrudHandlers } from './hooks/useDomainCrudHandlers';
 import { useEnableBankingSync } from './hooks/useEnableBankingSync';
 import { lazyWithRetry } from './utils/lazyWithRetry';

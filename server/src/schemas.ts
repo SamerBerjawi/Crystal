@@ -1,4 +1,21 @@
 import { z } from 'zod';
+import {
+    PERSISTED_SLICE_KEYS,
+    ENTITY_ARRAY_KEYS,
+    ORDER_ARRAY_KEYS,
+    OBJECT_SLICE_KEYS,
+    DELTA_ELIGIBLE_KEYS,
+    type PersistedSliceKey,
+} from './sliceRegistry';
+
+export {
+    PERSISTED_SLICE_KEYS,
+    ENTITY_ARRAY_KEYS,
+    ORDER_ARRAY_KEYS,
+    OBJECT_SLICE_KEYS,
+    DELTA_ELIGIBLE_KEYS,
+    type PersistedSliceKey,
+};
 
 // Calendar-valid "YYYY-MM-DD" (optionally followed by a time part). "2026-13-45" is rejected, not rolled over.
 export const isValidDateString = (value: string): boolean => {
