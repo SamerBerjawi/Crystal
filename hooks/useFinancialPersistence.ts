@@ -3,8 +3,31 @@ import { toast } from 'sonner';
 import type { FinancialData } from '../types';
 import { toLocalDateTimeString } from '../utils';
 import { useDebounce } from './useDebounce';
-import { computeArrayDelta, threeWayMerge, type EntityDelta } from '../utils/threeWayMerge';
-import { saveDevCache } from '../utils/browserCache';
+import { computeArrayDelta, mergeFinancialData, type EntityDelta } from '../utils/threeWayMerge';
+import { canUseDevCache, DEV_STORAGE_KEY, LEGACY_DEV_STORAGE_KEY, saveDevCache } from '../utils/browserCache';
+
+/**
+ * Reads any locally cached dev/demo snapshot strictly when `(import.meta.env.DEV || isDemoMode) && !isAuthenticated`.
+ */
+export function readLocalDevSnapshot(options?: {
+  isDevEnvironment?: boolean;
+  isDemoMode?: boolean;
+  isAuthenticated?: boolean;
+}): Partial<FinancialData> | null {
+  if (typeof window === 'undefined') return null;
+  const isDev = options?.isDevEnvironment ?? Boolean((import.meta as any)?.env?.DEV);
+  if (!(isDev || options?.isDemoMode) || options?.isAuthenticated) return null;
+  try {
+    const raw =
+      window.localStorage.getItem(DEV_STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_DEV_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as Partial<FinancialData>) : null;
+  } catch {
+    return null;
+  }
+}
 
 const DELTA_ELIGIBLE_KEYS: (keyof FinancialData)[] = ['transactions', 'investmentTransactions'];
 
@@ -223,11 +246,13 @@ export function useFinancialPersistence({
           const response = await authorizedFetch('/api/data');
           if (response.ok) {
             const serverCopy = await response.json() as Record<string, unknown>;
-            merged = { ...data };
-            for (const key of PERSISTED_SLICE_KEYS) {
-              if (!(key in data)) continue;
-              (merged as any)[key] = threeWayMerge(savedSlicesRef.current[key], (data as any)[key], serverCopy[key]);
-            }
+            const keysToMerge = PERSISTED_SLICE_KEYS.filter(key => key in data);
+            merged = mergeFinancialData(
+              savedSlicesRef.current as Record<string, unknown>,
+              data as Record<string, unknown>,
+              serverCopy,
+              keysToMerge,
+            ) as Partial<FinancialData>;
           }
         } catch { /* fall back to sending this device's slices unchanged */ }
         ({ now, payload } = build(merged, outcome.currentUpdatedAt, false));
@@ -279,8 +304,9 @@ export function useFinancialPersistence({
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
-    if (!(isDevEnvironment && isDataLoaded && isDemoMode && !isAuthenticated && hasMaterialData(dataToSave))) return;
-    const timer = setTimeout(() => { void saveDevCache(dataToSave); }, 1500);
+    const isDevOrDemo = Boolean((import.meta as any)?.env?.DEV) || isDevEnvironment || isDemoMode;
+    if (!(isDevOrDemo && isDataLoaded && isDemoMode && !isAuthenticated && canUseDevCache({ isDevEnvironment, isDemoMode, isAuthenticated }) && hasMaterialData(dataToSave))) return;
+    const timer = setTimeout(() => { void saveDevCache(dataToSave, { isDevEnvironment, isDemoMode, isAuthenticated }); }, 1500);
     return () => clearTimeout(timer);
   }, [dataToSave, isDevEnvironment, isDataLoaded, isDemoMode, isAuthenticated, latestDataRef]);
 

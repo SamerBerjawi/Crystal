@@ -9,15 +9,37 @@
  * merge per field; anything else (numbers, strings, plain lists) falls back to this device's value.
  */
 const isPlainObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-const getItemKey = (v: unknown): string | null => {
+export const getItemKey = (v: unknown): string | null => {
   if (!isPlainObject(v)) return null;
-  if (typeof v.id === 'string') return v.id;
+  // Composite key: Warrants / warrantHoldings (isin + grantDate)
+  if (typeof v.isin === 'string' && typeof v.grantDate === 'string') {
+    return `warrant::${v.isin}::${v.grantDate}`;
+  }
+  // Composite key: Budgets ((categoryId || categoryName || category) + period)
+  if (
+    typeof v.period === 'string' &&
+    (typeof v.categoryId === 'string' || typeof v.categoryName === 'string' || typeof v.category === 'string')
+  ) {
+    const categoryKey = String(v.categoryId || v.categoryName || v.category);
+    return `budget::${categoryKey}::${v.period}`;
+  }
+  // Composite key: Category / Regex categorization rules (pattern + category)
+  if (typeof v.pattern === 'string' && typeof v.category === 'string') {
+    return `rule::${v.pattern}::${v.category}`;
+  }
+  // Composite key: Recurring transaction occurrence overrides (recurringTransactionId + originalDate)
   if (typeof v.recurringTransactionId === 'string' && typeof v.originalDate === 'string') {
     return `${v.recurringTransactionId}::${v.originalDate}`;
   }
+  // Composite key: Price history entries (date + numeric price)
   if (typeof v.date === 'string' && typeof v.price === 'number') {
     return v.date;
   }
+  // Composite key: RuleRunBackup entries in ruleExecutionHistory (batchId || id || timestamp)
+  if (typeof v.timestamp === 'string' && Array.isArray(v.transactions)) {
+    return `backup::${String(v.batchId || v.id || v.timestamp)}`;
+  }
+  if (typeof v.id === 'string' && v.id.length > 0) return v.id;
   return null;
 };
 const hasMergeKey = (v: unknown): v is Record<string, unknown> => getItemKey(v) !== null;
@@ -51,6 +73,40 @@ export function threeWayMerge(base: unknown, mine: unknown, theirs: unknown): un
   }
 
   return mine;
+}
+
+/**
+ * Three-way merges a full or partial `FinancialData` snapshot across all specified slice keys
+ * (or the union of keys in `mine` and `theirs` when `keys` is omitted).
+ * Used during HTTP 409 Conflict resolution so concurrent edits across devices/tabs merge cleanly.
+ */
+export function mergeFinancialData<T extends Record<string, unknown>>(
+  base: Partial<T> | undefined | null,
+  mine: Partial<T>,
+  theirs: Partial<T> | undefined | null,
+  keys?: readonly (keyof T | string)[],
+): Partial<T> {
+  const baseObj = (base ?? {}) as Record<string, unknown>;
+  const theirsObj = (theirs ?? {}) as Record<string, unknown>;
+  const mineObj = mine as Record<string, unknown>;
+  const sliceKeys = keys ?? Array.from(new Set([...Object.keys(mineObj), ...Object.keys(theirsObj)]));
+  const merged: Record<string, unknown> = { ...mineObj };
+
+  for (const key of sliceKeys) {
+    const k = String(key);
+    if (!(k in mineObj) && !(k in theirsObj)) continue;
+    if (!(k in mineObj)) {
+      merged[k] = theirsObj[k];
+      continue;
+    }
+    if (!(k in theirsObj)) {
+      merged[k] = mineObj[k];
+      continue;
+    }
+    merged[k] = threeWayMerge(baseObj[k], mineObj[k], theirsObj[k]);
+  }
+
+  return merged as Partial<T>;
 }
 
 /**

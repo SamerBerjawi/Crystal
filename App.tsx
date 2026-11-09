@@ -10,7 +10,7 @@ import { PrivacyContext } from './components/ui/Money';
 import { ReviewProvider } from './contexts/ReviewContext';
 import { applyAppFont } from './hooks/useFont';
 import { pageRegistry, useAppRouter } from './hooks/useAppRouter';
-import { hasMaterialData, useFinancialPersistence } from './hooks/useFinancialPersistence';
+import { hasMaterialData, readLocalDevSnapshot, useFinancialPersistence } from './hooks/useFinancialPersistence';
 import { useDomainCrudHandlers } from './hooks/useDomainCrudHandlers';
 import { useEnableBankingSync } from './hooks/useEnableBankingSync';
 import { lazyWithRetry } from './utils/lazyWithRetry';
@@ -206,13 +206,8 @@ const App: React.FC = () => {
     if (typeof window !== 'undefined') {
       const isDev = Boolean((import.meta as any)?.env?.DEV);
       if (isDev && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
-        try {
-          const cached = safeLocalStorage.getItem('crystal_dev_financial_data_cache');
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed?.userProfile) return parsed.userProfile;
-          }
-        } catch (error) { warnIgnored('reading the cached dev profile', error); }
+        const parsed = readLocalDevSnapshot({ isDevEnvironment: isDev, isDemoMode: true, isAuthenticated: false });
+        if (parsed?.userProfile) return parsed.userProfile;
         return createDemoUser();
       }
     }
@@ -615,7 +610,7 @@ const App: React.FC = () => {
   const handleEnterDemoMode = async () => {
     if (isDevEnvironment) {
       try {
-        const cached = await loadDevCache();
+        const cached = await loadDevCache({ isDevEnvironment, isDemoMode: true, isAuthenticated: false });
         if (cached && hasMaterialData(cached)) {
           loadAllFinancialData(cached, { skipNextSave: true });
           setDemoUser(cached.userProfile || createDemoUser());
@@ -650,39 +645,34 @@ const App: React.FC = () => {
       if (data) {
         setIsDemoMode(false);
         safeLocalStorage.removeItem('crystal_dev_mode_active');
+        loadAllFinancialData(data, { skipNextSave: true });
+        return;
       }
 
-      if (data && hasMaterialData(data)) {
-        loadAllFinancialData(data, { skipNextSave: true });
-      } else {
-        if (isDevEnvironment) {
-          try {
-            const cached = await loadDevCache();
-            if (cached && hasMaterialData(cached)) {
-              console.info('[Dev Cache] Restoring financial data from local browser cache...');
-              const devUser = cached.userProfile || createDemoUser();
-              setDemoUser(devUser);
-              setIsDemoMode(true);
-              safeLocalStorage.setItem('crystal_dev_mode_active', 'true');
-              loadAllFinancialData(cached, { skipNextSave: true });
-              return;
-            }
-          } catch (e) {
-            console.warn('[Dev Cache] Failed to load cached dev data', e);
-          }
-        }
-        if (data) {
-          loadAllFinancialData(data, { skipNextSave: true });
-        } else {
-          if (isDevEnvironment && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
-            setDemoUser(createDemoUser());
+      if (isDevEnvironment) {
+        try {
+          const cached = await loadDevCache({ isDevEnvironment, isDemoMode: true, isAuthenticated: false });
+          if (cached && hasMaterialData(cached)) {
+            console.info('[Dev Cache] Restoring financial data from local browser cache...');
+            const devUser = cached.userProfile || createDemoUser();
+            setDemoUser(devUser);
             setIsDemoMode(true);
-            const { initialFinancialData: demoSeed } = await import('./demoSeed');
-            loadAllFinancialData(demoSeed);
+            safeLocalStorage.setItem('crystal_dev_mode_active', 'true');
+            loadAllFinancialData(cached, { skipNextSave: true });
+            return;
           }
-          setIsDataLoaded(true);
+        } catch (e) {
+          console.warn('[Dev Cache] Failed to load cached dev data', e);
         }
       }
+
+      if (isDevEnvironment && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
+        setDemoUser(createDemoUser());
+        setIsDemoMode(true);
+        const { initialFinancialData: demoSeed } = await import('./demoSeed');
+        loadAllFinancialData(demoSeed);
+      }
+      setIsDataLoaded(true);
     };
     authAndLoad();
   }, [isDevEnvironment, loadAllFinancialData, checkAuthStatus, lockedOnLoadRef]);
@@ -761,16 +751,14 @@ const App: React.FC = () => {
     if (data.userProfile) { handleSetUser(data.userProfile); }
     loadAllFinancialData(dataWithHistory);
 
-    if (isDevEnvironment) {
-      void saveDevCache(dataWithHistory);
-      if (!isAuthenticated) {
-        if (data.userProfile) {
-          setDemoUser(data.userProfile);
-        } else if (!demoUser) {
-          setDemoUser(createDemoUser());
-        }
-        setIsDemoMode(true);
+    if (isDevEnvironment && !isAuthenticated) {
+      void saveDevCache(dataWithHistory, { isDevEnvironment, isDemoMode: true, isAuthenticated: false });
+      if (data.userProfile) {
+        setDemoUser(data.userProfile);
+      } else if (!demoUser) {
+        setDemoUser(createDemoUser());
       }
+      setIsDemoMode(true);
     }
 
     if (!isDemoMode && isAuthenticated) {
