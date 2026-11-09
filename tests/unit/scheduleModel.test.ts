@@ -329,7 +329,6 @@ test('marking an overdue recurring occurrence as expired (skipped override) remo
   assert.equal(groupUpcoming(activeOcc, TODAY, eur)[0].id, 'overdue');
 
   const skippedOverride: RecurringTransactionOverride = {
-    id: 'ov-1',
     recurringTransactionId: 'sub',
     originalDate: '2026-10-25',
     isSkipped: true,
