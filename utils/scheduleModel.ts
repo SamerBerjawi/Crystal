@@ -409,7 +409,7 @@ export const nextDueAfterPaying = (
   rt: RecurringTransaction,
   paidOriginalDate: string,
   /** Original dates of the series' other occurrences still open (not paid, not skipped). */
-  openOriginalDates: string[],
+  openOriginalDates: string[] = [],
   /** Original dates already paid, which `nextDueDate` should step over. */
   paidOriginalDates: string[] = [],
 ): string => {

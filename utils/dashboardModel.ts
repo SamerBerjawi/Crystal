@@ -38,6 +38,7 @@ import {
   horizonTiles,
   warrantTaxBills,
 } from './forecastModel';
+import { nextDueAfterPaying } from './scheduleModel';
 import { resolveTransferInfo } from './transferDetails';
 import type { FlowBucket } from '../components/PeriodFlowWidget';
 
@@ -291,38 +292,7 @@ export const computeDashboardForecast = (params: {
 };
 
 export const computeAdvancedNextDueDate = (rt: RecurringTransaction, postedDateStr: string): string => {
-  const postedDate = parseLocalDate(postedDateStr);
-  const nextDueDate = new Date(postedDate);
-  const interval = rt.frequencyInterval || 1;
-  const startDateLocal = parseLocalDate(rt.startDate);
-
-  switch (rt.frequency) {
-    case 'daily':
-      nextDueDate.setDate(nextDueDate.getDate() + interval);
-      break;
-    case 'weekly':
-      nextDueDate.setDate(nextDueDate.getDate() + 7 * interval);
-      break;
-    case 'biweekly':
-      nextDueDate.setDate(nextDueDate.getDate() + 14 * interval);
-      break;
-    case 'monthly': {
-      const d = rt.dueDateOfMonth || startDateLocal.getDate();
-      nextDueDate.setMonth(nextDueDate.getMonth() + interval, 1);
-      const lastDayOfNextMonth = new Date(
-        nextDueDate.getFullYear(),
-        nextDueDate.getMonth() + 1,
-        0
-      ).getDate();
-      nextDueDate.setDate(Math.min(d, lastDayOfNextMonth));
-      break;
-    }
-    case 'yearly':
-      nextDueDate.setFullYear(nextDueDate.getFullYear() + interval);
-      break;
-  }
-
-  return toLocalISOString(nextDueDate);
+  return nextDueAfterPaying(rt, postedDateStr);
 };
 
 export interface InitialPostedModalData {

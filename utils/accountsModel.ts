@@ -5,7 +5,7 @@ import {
   arrayToCSV,
   calculateAccountTotals,
   calculateStatementPeriods,
-  classifyAccountBalanceEur,
+  classifyAccountBalanceMain,
   debtFromBalance,
   convertCurrency,
   convertToMain,
@@ -282,7 +282,7 @@ export const computePortfolio90dTrends = (
     sparklineData.forEach((pt) => {
       const idx = indexByDate.get(toLocalISOString(pt.date));
       if (idx === undefined) return;
-      const { asset, debt } = classifyAccountBalanceEur(acc, pt.value, rates);
+      const { asset, debt } = classifyAccountBalanceMain(acc, pt.value, rates);
       dailyAssets[idx] = safeAdd(dailyAssets[idx], asset);
       dailyLiabilities[idx] = safeAdd(dailyLiabilities[idx], debt);
       if (isLiquid) {
@@ -631,7 +631,7 @@ export const computeAccountsHeroModel = (
   // 5-Bucket Allocation Breakdown (signed, same classification as the totals)
   const sumBucketEur = (accs: Account[], isLiability = false) =>
     accs.reduce((s, a) => {
-      const { asset, debt } = classifyAccountBalanceEur(a, todayBalance.get(a.id) ?? 0, rates);
+      const { asset, debt } = classifyAccountBalanceMain(a, todayBalance.get(a.id) ?? 0, rates);
       return safeAdd(s, isLiability ? debt : asset);
     }, 0);
 

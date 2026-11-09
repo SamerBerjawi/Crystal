@@ -96,7 +96,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     setForecastDuration(mapHistoricalDurationToForecast(duration));
   }, [duration]);
 
-  const transactionsKey = transactionsDigest;
+  const transactionsKey = transactionsDigest || `txs:${transactions.length}`;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const aggregateCacheMax = 25;
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
