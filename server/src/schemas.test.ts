@@ -109,4 +109,34 @@ try {
     process.exitCode = 1; console.error('✕ Test 6 Failed:', e.message);
 }
 
+// Test 7: Preferences schema validation, passthrough, and value coercion
+try {
+    const payloadWithCoercion = {
+        accounts: [{ id: 'acc-c1', name: 'Savings', type: 'Savings', balance: '1234.56', currency: 'EUR' }],
+        preferences: {
+            currency: 'EUR',
+            autoLockMinutes: '15',
+            onboardingCompleted: true,
+            ignoredSubscriptions: ['sub-1', 'sub-2'],
+            customField: 'preserved-by-passthrough',
+        },
+    };
+
+    const res = validateFinancialDataPayload(payloadWithCoercion);
+    assert(res.success === true, 'Payload with coercible values must pass validation');
+    assert(res.data?.accounts?.[0]?.balance === 1234.56, 'String balance must be coerced to number');
+    assert(res.data?.preferences?.autoLockMinutes === 15, 'String autoLockMinutes must be coerced to number');
+    assert((res.data?.preferences as any)?.customField === 'preserved-by-passthrough', 'Passthrough fields in preferences must be preserved');
+
+    const invalidPrefs = validateFinancialDataPayload({
+        preferences: {
+            onboardingCompleted: 'not-a-boolean' as any,
+        },
+    });
+    assert(invalidPrefs.success === false, 'Invalid preferences types must fail validation');
+    console.log('✓ Test 7 Passed: Preferences schema validation, passthrough, and type coercion verified');
+} catch (e: any) {
+    process.exitCode = 1; console.error('✕ Test 7 Failed:', e.message);
+}
+
 console.log('--- All Zod Schema Unit Tests Executed Successfully ---');

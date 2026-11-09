@@ -4,6 +4,11 @@ import { db } from './database';
 import { validateFinancialDataPayload, validateJsonPatchPayload, type JsonPatchOperation } from './schemas';
 import { loadCredentials, saveCredentials, scrubStoredKeys, stripKeysFromBlob } from './ebCredentials';
 import { AuthRequest } from './middleware';
+import {
+    MATERIAL_DATA_ARRAY_KEYS,
+    MATERIAL_DATA_OBJECT_KEYS,
+    ENTITY_ARRAY_KEYS,
+} from './sliceRegistry';
 
 const router = express.Router();
 
@@ -124,18 +129,9 @@ router.get('/', async (req: AuthRequest, res) => {
     }
 });
 
-// Top-level keys that make a payload "real data" (an empty payload must never wipe an existing account).
-const MATERIAL_ARRAY_KEYS = [
-    'accounts', 'transactions', 'investmentTransactions', 'recurringTransactions', 'recurringTransactionOverrides',
-    'financialGoals', 'budgets', 'tasks', 'warrants', 'memberships', 'importExportHistory', 'billsAndPayments',
-    'invoices', 'tags', 'predictions', 'enableBankingConnections', 'incomeCategories', 'expenseCategories',
-    'accountOrder', 'taskOrder', 'goalOrder',
-];
-const MATERIAL_OBJECT_KEYS = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats', 'preferences'];
-
 const payloadHasMaterialData = (data: Record<string, any>) =>
-    MATERIAL_ARRAY_KEYS.some(key => Array.isArray(data[key]) && data[key].length > 0) ||
-    MATERIAL_OBJECT_KEYS.some(key => {
+    MATERIAL_DATA_ARRAY_KEYS.some(key => Array.isArray(data[key]) && data[key].length > 0) ||
+    MATERIAL_DATA_OBJECT_KEYS.some(key => {
         const value = data[key];
         return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
     });
@@ -143,8 +139,8 @@ const payloadHasMaterialData = (data: Record<string, any>) =>
 // The same check, evaluated inside PostgreSQL so the stored blob never has to be read into Node.
 // Keys are the constants above, never user input.
 const STORED_HAS_MATERIAL_DATA_SQL = '(' + [
-    ...MATERIAL_ARRAY_KEYS.map(k => `(CASE WHEN jsonb_typeof(data->'${k}') = 'array' THEN jsonb_array_length(data->'${k}') > 0 ELSE false END)`),
-    ...MATERIAL_OBJECT_KEYS.map(k => `(CASE WHEN jsonb_typeof(data->'${k}') = 'object' THEN data->'${k}' <> '{}'::jsonb ELSE false END)`),
+    ...MATERIAL_DATA_ARRAY_KEYS.map(k => `(CASE WHEN jsonb_typeof(data->'${k}') = 'array' THEN jsonb_array_length(data->'${k}') > 0 ELSE false END)`),
+    ...MATERIAL_DATA_OBJECT_KEYS.map(k => `(CASE WHEN jsonb_typeof(data->'${k}') = 'object' THEN data->'${k}' <> '{}'::jsonb ELSE false END)`),
 ].join(' OR ') + ')';
 
 // Save financial data for a user.
@@ -198,6 +194,15 @@ router.post('/', async (req: AuthRequest, res) => {
             return res.status(400).json({ message: validation.error || 'Invalid payload.' });
         }
 
+        // Apply Zod's coerced and validated output back to incomingData (e.g. string numbers coerced to numbers, validated preferences)
+        if (validation.data) {
+            for (const [key, value] of Object.entries(validation.data)) {
+                if (key !== 'deltas' && value !== undefined) {
+                    incomingData[key] = value;
+                }
+            }
+        }
+
         const previousUpdatedAt = body.previousUpdatedAt as string | undefined;
         if (previousUpdatedAt && currentUpdatedAt && previousUpdatedAt !== currentUpdatedAt) {
             await client.query('ROLLBACK');
@@ -208,7 +213,7 @@ router.post('/', async (req: AuthRequest, res) => {
         }
 
         if (incomingDeltas) {
-            const allowedDeltaKeys = new Set(MATERIAL_ARRAY_KEYS);
+            const allowedDeltaKeys = new Set<string>(ENTITY_ARRAY_KEYS);
             for (const [sliceKey, delta] of Object.entries(incomingDeltas)) {
                 if (!allowedDeltaKeys.has(sliceKey) || !delta || typeof delta !== 'object') continue;
                 const sliceRes = await client.query(
@@ -292,6 +297,13 @@ router.patch('/', async (req: AuthRequest, res) => {
         if (!postValidation.success) {
             await client.query('ROLLBACK');
             return res.status(400).json({ message: postValidation.error || 'Patched document failed validation.' });
+        }
+        if (postValidation.data) {
+            for (const [key, value] of Object.entries(postValidation.data)) {
+                if (key !== 'deltas' && value !== undefined) {
+                    patched[key] = value;
+                }
+            }
         }
 
         await client.query(
