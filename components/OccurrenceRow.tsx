@@ -34,12 +34,18 @@ interface OccurrenceRowProps extends OccurrenceActions {
 /** One payment or deposit: Post it, or open the menu for the rest (SCH-05, SCH-10 to SCH-13). */
 const OccurrenceRow: React.FC<OccurrenceRowProps> = ({ occurrence: o, accountName, showDate, isCompact, onPost, onEdit, onSkip, onEndSeries, onExpire, onDelete }) => {
   const isSkipped = o.status === 'skipped';
+  const isOverdue = o.status === 'overdue';
   const signed = o.flow === 'in' ? o.amount : o.flow === 'out' ? -o.amount : o.amount;
   const account = o.flow === 'move' ? `${accountName(o.accountId) ?? 'External'} to ${accountName(o.toAccountId) ?? 'External'}` : accountName(o.accountId);
 
   const actions: MenuAction[] = o.isReadOnly ? [] : [
     { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => onEdit(o) },
-    ...(o.source === 'recurring' ? [
+    ...(isOverdue ? [
+      { id: 'expire', label: 'Mark as expired', icon: 'event_busy', onAction: () => onExpire(o) },
+      ...(o.source === 'recurring' ? [
+        { id: 'end', label: 'End the series here', icon: 'event_busy', onAction: () => onEndSeries(o) },
+      ] : []),
+    ] : o.source === 'recurring' ? [
       { id: 'skip', label: isSkipped ? 'Include this one' : 'Skip this one', icon: 'skip_next', onAction: () => onSkip(o, !isSkipped) },
       { id: 'end', label: 'End the series here', icon: 'event_busy', onAction: () => onEndSeries(o) },
     ] : [

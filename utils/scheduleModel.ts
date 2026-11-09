@@ -451,10 +451,11 @@ export interface OccurrenceGroup { id: GroupId; label: string; items: Occurrence
 
 const monthLabel = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
-/** Overdue, Today, Next 7 days, then one group per month (F1). Skipped items stay in their day, paid ones are left out. */
-export const groupUpcoming = (occurrences: Occurrence[], today: Date, convert: Converter): OccurrenceGroup[] => {
+/** Overdue, Today, Next 7 days, then one group per month (F1). Skipped items stay in their day, paid ones are left out. Overdue is limited to `overdueDays` (default 7). */
+export const groupUpcoming = (occurrences: Occurrence[], today: Date, convert: Converter, overdueDays = 7): OccurrenceGroup[] => {
   const todayStr = iso(today);
   const weekEnd = iso(addDays(today, 7));
+  const overdueCutoff = iso(addDays(today, -overdueDays));
   const groups = new Map<string, OccurrenceGroup>();
   const add = (id: string, label: string, o: Occurrence) => {
     const g = groups.get(id) ?? { id, label, items: [], net: 0 };
@@ -464,7 +465,9 @@ export const groupUpcoming = (occurrences: Occurrence[], today: Date, convert: C
   };
   for (const o of occurrences) {
     if (o.status === 'paid') continue;
-    if (o.status === 'overdue') add('overdue', 'Overdue', o);
+    if (o.status === 'overdue') {
+      if (o.date >= overdueCutoff) add('overdue', 'Overdue', o);
+    }
     else if (o.date === todayStr) add('today', 'Today', o);
     else if (o.date < todayStr) continue; // skipped in the past
     else if (o.date <= weekEnd) add('next7', 'Next 7 days', o);

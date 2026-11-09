@@ -73,11 +73,16 @@ test('one transaction pays at most one occurrence (E-06)', () => {
   assert.equal(overdue.length, 1, 'the other occurrence is still overdue');
 });
 
-test('an unpaid payment from 20 days ago is still overdue (E-07)', () => {
+test('an unpaid payment from 20 days ago is still overdue in calendar, but upcoming list limits overdue to 7 days', () => {
   const occ = build([series({ nextDueDate: '2026-10-09', dueDateOfMonth: 9 })], { to: '2026-11-15' });
   assert.equal(occ[0].date, '2026-10-09');
   assert.equal(occ[0].status, 'overdue');
-  assert.equal(groupUpcoming(occ, TODAY, eur)[0].id, 'overdue');
+  // 20 days ago is > 7 days, so it is not in the upcoming overdue group
+  assert.equal(groupUpcoming(occ, TODAY, eur).find(g => g.id === 'overdue'), undefined);
+
+  // A payment from 4 days ago (within 7 days) is in the upcoming overdue group
+  const recentOcc = build([series({ nextDueDate: '2026-10-25', dueDateOfMonth: 25 })], { to: '2026-11-15' });
+  assert.equal(groupUpcoming(recentOcc, TODAY, eur)[0].id, 'overdue');
 });
 
 test('paying a later payment early leaves the earlier one open (E-09)', () => {
@@ -300,4 +305,43 @@ test('a grace period keeps a late payment from being overdue until it runs out',
   assert.equal(late().status, 'overdue'); // 2 days late, no grace
   assert.equal(late(3).status, 'today'); // within grace
   assert.equal(late(1).status, 'overdue'); // grace ran out
+});
+
+test('groupUpcoming limits overdue items to 7 days', () => {
+  // TODAY is 2026-10-29.
+  // 5 days ago: 2026-10-24 (within 7 days)
+  // 8 days ago: 2026-10-21 (more than 7 days)
+  const occ5DaysAgo = build([series({ id: 's1', nextDueDate: '2026-10-24', dueDateOfMonth: 24 })], { to: '2026-11-15' });
+  const occ8DaysAgo = build([series({ id: 's2', nextDueDate: '2026-10-21', dueDateOfMonth: 21 })], { to: '2026-11-15' });
+
+  const groups5 = groupUpcoming(occ5DaysAgo, TODAY, eur);
+  assert.equal(groups5[0].id, 'overdue');
+  assert.equal(groups5[0].items.length, 1);
+  assert.equal(groups5[0].items[0].sourceId, 's1');
+
+  const groups8 = groupUpcoming(occ8DaysAgo, TODAY, eur);
+  assert.equal(groups8.find(g => g.id === 'overdue'), undefined);
+});
+
+test('marking an overdue recurring occurrence as expired (skipped override) removes it from upcoming', () => {
+  const rt = series({ id: 'sub', nextDueDate: '2026-10-25', dueDateOfMonth: 25 });
+  const activeOcc = build([rt], { to: '2026-11-15' });
+  assert.equal(groupUpcoming(activeOcc, TODAY, eur)[0].id, 'overdue');
+
+  const skippedOverride: RecurringTransactionOverride = {
+    id: 'ov-1',
+    recurringTransactionId: 'sub',
+    originalDate: '2026-10-25',
+    isSkipped: true,
+  };
+  // When viewed from today, skipped past occurrences are dropped; when viewed in a month range including the date, it is marked 'skipped'
+  const overriddenOccFromToday = build([rt], { overrides: [skippedOverride], to: '2026-11-15' });
+  assert.equal(groupUpcoming(overriddenOccFromToday, TODAY, eur).find(g => g.id === 'overdue'), undefined);
+
+  const overriddenOccMonth = buildOccurrences({
+    recurring: [rt], overrides: [skippedOverride], bills: [], accounts, transactions: [],
+    from: d('2026-10-01'), to: d('2026-11-15'), today: TODAY, includeSynthetic: false,
+  });
+  assert.equal(overriddenOccMonth.find(o => o.originalDate === '2026-10-25')?.status, 'skipped');
+  assert.equal(groupUpcoming(overriddenOccMonth, TODAY, eur).find(g => g.id === 'overdue'), undefined);
 });

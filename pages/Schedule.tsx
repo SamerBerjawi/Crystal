@@ -114,7 +114,7 @@ const SchedulePage: React.FC = () => {
           accountId: primaryAccountId,
           currency: getMainCurrency() as BillPayment['currency'],
         }))
-    );
+    ).filter(wtb => !billsAndPayments.some(b => b.id === wtb.id));
     return [...billsAndPayments, ...warrantTaxBills];
   }, [billsAndPayments, warrants, accounts]);
 
@@ -161,7 +161,8 @@ const SchedulePage: React.FC = () => {
     const pool = monthGrid(date.getFullYear(), date.getMonth(), occurrences, convert);
     return weekOf(selected, pool);
   }, [selected, occurrences]);
-  const overdue = useMemo(() => occurrences.filter(item => item.status === 'overdue'), [occurrences]);
+  const overdueCutoff = useMemo(() => iso(addDays(today, -OVERDUE_DAYS)), [today]);
+  const overdue = useMemo(() => occurrences.filter(item => item.status === 'overdue' && item.date >= overdueCutoff), [occurrences, overdueCutoff]);
 
   const expiredBills = useMemo(() => billsAndPayments.filter(bill => bill.status === 'expired').sort((a, b) => (a.dueDate > b.dueDate ? -1 : 1)), [billsAndPayments]);
   const oldBills = useMemo(() => oldUnpaidBills(billsAndPayments, today), [billsAndPayments, today]);
@@ -199,9 +200,27 @@ const SchedulePage: React.FC = () => {
       setConfirm({ title: 'End this series?', message: `It stops repeating after ${shortDay(endDate)}.`, label: 'End series', onConfirm: () => saveRecurringTransaction({ ...rt, endDate }) });
     },
     onExpire: o => {
-      if (!o.bill) return;
-      saveBillPayment({ ...o.bill, status: 'expired' });
-      toast.success(`${o.description} moved to the archive`);
+      if (o.bill) {
+        saveBillPayment({ ...o.bill, status: 'expired' });
+        toast.success(`${o.description} moved to the archive`);
+      } else if (o.source === 'recurring') {
+        const existing = recurringTransactionOverrides.find(
+          item => item.recurringTransactionId === o.sourceId && item.originalDate === o.originalDate
+        );
+        saveRecurringOverride({ ...existing, recurringTransactionId: o.sourceId, originalDate: o.originalDate, isSkipped: true });
+        toast.success(`${o.description} marked as expired`, {
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              if (existing) {
+                saveRecurringOverride({ ...existing, isSkipped: false });
+              } else {
+                deleteRecurringOverride(o.sourceId, o.originalDate);
+              }
+            },
+          },
+        });
+      }
     },
     onDelete: o => setConfirm({
       title: o.source === 'recurring' ? 'Delete this series?' : 'Delete this item?',
