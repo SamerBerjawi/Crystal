@@ -250,7 +250,7 @@ const HorizonLayer: React.FC<LayerProps> = ({ days, bubbles, lowest, today, mark
             <circle cx={lx} cy={ly} r={5} fill="var(--money-out)" stroke="var(--solid)" strokeWidth={2} />
             <g transform={`translate(${left},${flip ? ly + 12 : ly - 32})`}>
               <rect width={w} height={20} rx={10} fill="var(--money-out)" />
-              <text x={w / 2} y={14} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--on-danger)">{text}</text>
+              <text x={w / 2} y={14} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--on-danger)" className="privacy-blur">{text}</text>
             </g>
           </g>
         );
@@ -315,7 +315,7 @@ const HorizonLayer: React.FC<LayerProps> = ({ days, bubbles, lowest, today, mark
           <foreignObject x={left - 110} y={showBubbles ? 4 : 8} width={220} height={64} pointerEvents="none" style={{ overflow: 'visible' }}>
             <div className="mx-auto w-fit max-w-[220px] rounded-[var(--radius-sm)] border border-line bg-solid px-3 py-2 shadow-[var(--elev-sm)]">
               <p className="type-caption text-muted">{drag ? 'Move to ' : ''}{shortDay(date)}</p>
-              <p className="type-label truncate text-ink">{active.label}, {formatCurrency(active.amount, getMainCurrency())}</p>
+              <p className="type-label truncate text-ink">{active.label}, <span className="privacy-blur">{formatCurrency(active.amount, getMainCurrency())}</span></p>
             </div>
           </foreignObject>
         );

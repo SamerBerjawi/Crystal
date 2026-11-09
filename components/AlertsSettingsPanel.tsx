@@ -88,7 +88,27 @@ const AlertsSettingsPanel: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  if (unavailable || !saved || !rules) return null;
+  if (unavailable) {
+    return (
+      <div className="surface-card rounded-[var(--radius-xl)] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="type-card-title text-ink">Server alerts</h2>
+            <p className="type-caption text-muted">Push notifications require an authenticated server connection and are unavailable in demo mode.</p>
+          </div>
+          <Badge tone="neutral">Sign in required</Badge>
+        </div>
+      </div>
+    );
+  }
+
+  if (!saved || !rules) {
+    return (
+      <div className="surface-card rounded-[var(--radius-xl)] p-5">
+        <p className="type-caption text-muted">Loading alert settings…</p>
+      </div>
+    );
+  }
 
   const needsTopic = kind === 'ntfy';
   const tokenLabel = kind === 'gotify' ? 'Application token' : kind === 'ntfy' ? 'Access token (optional)' : 'Bearer token (optional)';

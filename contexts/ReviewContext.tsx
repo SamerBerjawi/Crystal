@@ -42,9 +42,17 @@ export const ReviewProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { config, updateConfig, resetConfig } = useMatcherConfig();
   const { preferences, setPreferences } = usePreferencesContext();
   const ignoredBillMatches = useMemo(() => preferences.ignoredBillMatches ?? [], [preferences.ignoredBillMatches]);
+  const ignoredTransferMatches = useMemo(() => preferences.ignoredTransferMatches ?? [], [preferences.ignoredTransferMatches]);
 
   const { suggestions, confirmMatch, dismissSuggestion, confirmSelectedMatches, dismissSelectedMatches, dismissAllSuggestions } =
-    useTransactionMatcher(transactions, accounts, saveTransaction, config);
+    useTransactionMatcher(
+      transactions,
+      accounts,
+      saveTransaction,
+      config,
+      ignoredTransferMatches,
+      ids => setPreferences(prev => ({ ...prev, ignoredTransferMatches: ids }))
+    );
   const { billSuggestions, confirmBillMatch, dismissBillMatch, confirmSelectedBillMatches, dismissSelectedBillMatches, dismissAllBillMatches } =
     useSyncedBillMatcher(transactions, recurringTransactions, billsAndPayments, accounts, saveTransaction, saveRecurringTransaction, saveBillPayment, config, ignoredBillMatches, ids => setPreferences(prev => ({ ...prev, ignoredBillMatches: ids })));
 

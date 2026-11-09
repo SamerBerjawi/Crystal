@@ -9,7 +9,6 @@
  * @github: https://github.com/kokonut-labs/kokonutui
  */
 
-import type { LucideIcon } from "lucide-react";
 import {
   type AnimationPlaybackControls,
   animate,
@@ -33,7 +32,7 @@ export interface SwipeTabItem {
   title?: string;
   label?: string;
   /** Shown before the title in the tab. */
-  icon?: LucideIcon | React.ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }> | ReactNode;
+  icon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }> | ReactNode;
   /** Optional badge or counter displayed next to the label. */
   badge?: ReactNode;
   /** The panel shown for this tab. */
