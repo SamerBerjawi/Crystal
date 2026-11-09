@@ -13,25 +13,7 @@ import { pageRegistry, useAppRouter } from './hooks/useAppRouter';
 import { hasMaterialData, useFinancialPersistence } from './hooks/useFinancialPersistence';
 import { useDomainCrudHandlers } from './hooks/useDomainCrudHandlers';
 import { useEnableBankingSync } from './hooks/useEnableBankingSync';
-
-function lazyWithRetry<T extends React.ComponentType<any>>(
-  factory: () => Promise<{ default: T }>
-): React.LazyExoticComponent<T> {
-  return lazy(async () => {
-    try {
-      return await factory();
-    } catch (error) {
-      const key = 'crystal_chunk_reload_' + (typeof factory === 'function' ? factory.toString().slice(0, 40) : 'page');
-      if (typeof window !== 'undefined' && !sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, '1');
-        window.location.reload();
-        return new Promise<{ default: T }>(() => {});
-      }
-      sessionStorage.removeItem(key);
-      throw error;
-    }
-  });
-}
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
 const SignIn = lazyWithRetry(() => import('./pages/SignIn'));
 const SignUp = lazyWithRetry(() => import('./pages/SignUp'));

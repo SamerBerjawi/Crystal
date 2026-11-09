@@ -59,8 +59,10 @@ import {
 } from '../ui/Summaries';
 import { useWidgetBox } from '../ui/WidgetGrid';
 
-const TransactionMapWidget = lazy(() => import('../TransactionMapWidget'));
-const CashflowSankey = lazy(() => import('../CashflowSankey'));
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
+
+const TransactionMapWidget = lazyWithRetry(() => import('../TransactionMapWidget'));
+const CashflowSankey = lazyWithRetry(() => import('../CashflowSankey'));
 
 export const CreditCardStatementsWidget: React.FC<{
   statements: any[];
