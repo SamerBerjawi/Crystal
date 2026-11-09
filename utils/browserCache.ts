@@ -6,7 +6,23 @@ const DB_VERSION = 1;
 const STORE_NAME = 'dev_cache';
 const RECORD_KEY = 'financial_data_latest';
 export const DEV_STORAGE_KEY = 'crystal_dev_financial_data_cache';
+export const LEGACY_DEV_STORAGE_KEY = 'fin_studio_dev_data_v3';
 export const DEV_MODE_ACTIVE_KEY = 'crystal_dev_mode_active';
+
+export interface DevCacheAccessOptions {
+  isDevEnvironment?: boolean;
+  isDemoMode?: boolean;
+  isAuthenticated?: boolean;
+}
+
+/**
+ * Dev/demo browser cache is strictly gated behind `(import.meta.env.DEV || isDemoMode) && !isAuthenticated`.
+ */
+export function canUseDevCache(options?: DevCacheAccessOptions): boolean {
+  if (options?.isAuthenticated) return false;
+  const isDev = options?.isDevEnvironment ?? Boolean((import.meta as any)?.env?.DEV);
+  return Boolean(isDev || options?.isDemoMode);
+}
 
 /**
  * Opens or initializes the IndexedDB database for dev caching.
@@ -34,8 +50,8 @@ function openDB(): Promise<IDBDatabase> {
 /**
  * Persists financial data to both IndexedDB and localStorage (with safe quota fallback).
  */
-export async function saveDevCache(data: FinancialData): Promise<void> {
-  if (typeof window === 'undefined') return;
+export async function saveDevCache(data: FinancialData, options?: DevCacheAccessOptions): Promise<void> {
+  if (typeof window === 'undefined' || !canUseDevCache(options)) return;
 
   // 1. Save flag indicating dev mode session is active
   try {
@@ -67,8 +83,8 @@ export async function saveDevCache(data: FinancialData): Promise<void> {
 /**
  * Loads financial data from IndexedDB or localStorage.
  */
-export async function loadDevCache(): Promise<FinancialData | null> {
-  if (typeof window === 'undefined') return null;
+export async function loadDevCache(options?: DevCacheAccessOptions): Promise<FinancialData | null> {
+  if (typeof window === 'undefined' || !canUseDevCache(options)) return null;
 
   // 1. Try IndexedDB first (source of truth for complete snapshots)
   try {
@@ -88,9 +104,11 @@ export async function loadDevCache(): Promise<FinancialData | null> {
     console.warn('[Dev Cache] IndexedDB read failed, trying localStorage:', err);
   }
 
-  // 2. Fallback to localStorage
+  // 2. Fallback to localStorage (strictly gated behind DEV || isDemoMode)
   try {
-    const raw = window.localStorage.getItem(DEV_STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(DEV_STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_DEV_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
@@ -112,6 +130,7 @@ export async function clearDevCache(): Promise<void> {
 
   try {
     window.localStorage.removeItem(DEV_STORAGE_KEY);
+    window.localStorage.removeItem(LEGACY_DEV_STORAGE_KEY);
     window.localStorage.removeItem(DEV_MODE_ACTIVE_KEY);
   } catch (error) { warnIgnored('clearing the dev cache flags', error); }
 
