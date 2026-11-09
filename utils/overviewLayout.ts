@@ -7,7 +7,7 @@ export const OVERVIEW_PHONE_LAYOUT_KEY = 'overview-v2-phone';
 export type OverviewTab = 'summary' | 'upcoming' | 'spending' | 'wealth';
 
 export const OVERVIEW_TABS: { id: OverviewTab; label: string; icon: string; blurb: string }[] = [
-  { id: 'summary', label: 'Summary', icon: 'dashboard-square-01', blurb: 'Where you stand today' },
+  { id: 'summary', label: 'Overview', icon: 'dashboard-square-02', blurb: 'Where you stand today' },
   { id: 'upcoming', label: 'Coming up', icon: 'calendar-03', blurb: 'What is next, and what it does to your cash' },
   { id: 'spending', label: 'Spending', icon: 'pie-chart-01', blurb: 'Where the money goes' },
   { id: 'wealth', label: 'Wealth', icon: 'chart-increase', blurb: 'What you own and owe' },

@@ -94,6 +94,8 @@ import {
   CrownIcon,
   Cursor01Icon,
   DashboardSquare01Icon,
+  DashboardSquare02Icon,
+  DashboardSquareEditIcon,
   DatabaseIcon,
   Delete02Icon,
   Doc01Icon,
@@ -375,6 +377,8 @@ const ICONS: Record<string, IconSvgElement> = {
   Crown: CrownIcon,
   Cursor01: Cursor01Icon,
   DashboardSquare01: DashboardSquare01Icon,
+  DashboardSquare02: DashboardSquare02Icon,
+  DashboardSquareEdit: DashboardSquareEditIcon,
   DashboardSquareAdd: DashboardSquareAddIcon,
   Database: DatabaseIcon,
   Delete02: Delete02Icon,
@@ -551,7 +555,8 @@ const ICONS: Record<string, IconSvgElement> = {
 
   // Legacy Phosphor / Custom aliases
   Transfer: ArrowDataTransferHorizontalIcon,
-  NavOverview: Home01Icon,
+  NavHome: Home02Icon,
+  NavOverview: Home02Icon,
   NavAccounts: Wallet02Icon,
   NavTransactions: ArrowDataTransferHorizontalIcon,
   NavPlanning: Calendar03Icon,

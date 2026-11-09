@@ -206,7 +206,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, user
               Skip
             </Button>
           )}
-          <Button isDisabled={isBlocked} onPress={next}>{step === 1 ? 'Get started' : step === LAST_STEP ? 'Go to Overview' : 'Next'}</Button>
+          <Button isDisabled={isBlocked} onPress={next}>{step === 1 ? 'Get started' : step === LAST_STEP ? 'Go to Home' : 'Next'}</Button>
         </div>
       )}
     >

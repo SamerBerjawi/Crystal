@@ -26,7 +26,7 @@ export interface Hub {
  * those pages are built.
  */
 export const HUBS: Hub[] = [
-  { id: 'overview', label: 'Overview', icon: 'dashboard-square-01', home: 'Dashboard',
+  { id: 'overview', label: 'Home', icon: 'home-02', home: 'Dashboard',
     tabs: OVERVIEW_TABS.map((view, index) => ({ label: view.label, page: 'Dashboard' as Page, tab: index === 0 ? undefined : view.id, icon: view.icon })),
   },
   {

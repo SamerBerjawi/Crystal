@@ -208,7 +208,7 @@ export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'
             setCurrentPage('Dashboard', null);
             setUrlTab(null);
           }}
-          aria-label="Crystal, go to Overview"
+          aria-label="Crystal, go to Home"
           className={cn(
             'flex cursor-pointer items-center gap-3 rounded-2xl outline-none transition-opacity hover:opacity-85',
             isCollapsed && 'justify-center'
@@ -640,7 +640,7 @@ export const ToolRail: React.FC<ShellProps> = ({
 /** Logo, Search, notifications and Create. Phones. */
 export const PhoneTopBar: React.FC<ShellProps> = ({ setCurrentPage, onSearch, onCreate, notifications }) => (
   <div className="flex h-14 items-center justify-between gap-2 px-4">
-    <button type="button" onClick={() => { setCurrentPage('Dashboard', null); setUrlTab(null); }} aria-label="Crystal, go to Overview" className="flex min-h-11 cursor-pointer items-center">
+    <button type="button" onClick={() => { setCurrentPage('Dashboard', null); setUrlTab(null); }} aria-label="Crystal, go to Home" className="flex min-h-11 cursor-pointer items-center">
       <CrystalLogo showText={false} />
     </button>
     <div className="flex items-center gap-1">
@@ -666,7 +666,7 @@ const useKeyboardOpen = () => {
 
 const barItem = 'relative flex h-[58px] min-w-11 flex-1 cursor-pointer flex-col items-center justify-center gap-[3px] rounded-[20px] text-xs font-bold text-ink';
 
-/** Overview, Accounts, Transactions, Planning and More, in glass, always labelled (D-054). */
+/** Home, Accounts, Transactions, Planning and More, in glass, always labelled (D-054). */
 export const PhoneBar: React.FC<ShellProps> = props => {
   const { currentPage, setCurrentPage, theme, setTheme, isPrivacyMode, togglePrivacyMode, isSyncing, onSync, onLogout, onLock, user } = props;
   const [isMoreOpen, setMoreOpen] = useState(false);

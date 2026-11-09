@@ -45,9 +45,9 @@ export const StatGauge: React.FC<StatGaugeProps> = ({ fill, tone = 'pine', displ
         inactiveFill={TRACK}
         inactiveFillOpacity={0.55}
       />
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center" style={{ paddingTop: size * 0.06 }}>
-        <span className={size >= 130 ? 'type-figure-lg text-ink' : 'type-figure-row text-ink'}>{display}</span>
-        {caption && <span className="type-caption text-muted">{caption}</span>}
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span className={cn('text-ink font-bold leading-tight', size >= 130 ? 'type-figure-lg' : 'type-figure-row')}>{display}</span>
+        {caption && <span className="type-caption max-w-[85%] truncate text-muted leading-tight">{caption}</span>}
       </div>
     </div>
   );

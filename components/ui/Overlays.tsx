@@ -115,8 +115,8 @@ export interface ResponsiveOverlayProps {
   description?: React.ReactNode;
   /** Pass a function to get a close that asks first when there are unsaved changes. */
   footer?: React.ReactNode | ((close: () => void) => React.ReactNode);
-  /** Side panel width. Use 640 for transaction detail with a map. */
-  width?: 480 | 640;
+  /** Panel or dialog width (e.g. 480, 640, 720). */
+  width?: number;
   /** With unsaved changes, closing asks first (D-068). */
   isDirty?: boolean;
   hideHeader?: boolean;
@@ -184,7 +184,7 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
       >
         <Modal
           className={cn('flex flex-col bg-solid shadow-lg outline-none', OVERLAY_SHAPE[kind])}
-          style={kind === 'side' ? { maxWidth: width } : undefined}
+          style={kind === 'side' || kind === 'dialog' ? { maxWidth: width } : undefined}
         >
           <AriaDialog className="flex min-h-0 flex-1 flex-col outline-none">
             {!hideHeader && (
@@ -213,7 +213,7 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
 };
 
 export type OverlayProps = Omit<ResponsiveOverlayProps, 'kind'>;
-export const Dialog: React.FC<Omit<OverlayProps, 'width'>> = props => <ResponsiveOverlay kind="dialog" {...props} />;
+export const Dialog: React.FC<OverlayProps> = props => <ResponsiveOverlay kind="dialog" {...props} />;
 export const SidePanel: React.FC<OverlayProps> = props => <ResponsiveOverlay kind="side" {...props} />;
 export const FullPanel: React.FC<Omit<OverlayProps, 'width'>> = props => <ResponsiveOverlay kind="full" {...props} />;
 

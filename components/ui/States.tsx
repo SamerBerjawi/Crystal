@@ -90,7 +90,7 @@ export const ErrorState: React.FC<{
     <p className="type-body mt-1 max-w-sm text-muted">{message}</p>
     <div className="mt-4 flex gap-2">
       {onRetry && <Button variant="secondary" onPress={onRetry}>Try again</Button>}
-      {onHome && <Button variant="ghost" onPress={onHome}>Go to Overview</Button>}
+      {onHome && <Button variant="ghost" onPress={onHome}>Go to Home</Button>}
     </div>
   </div>
 );

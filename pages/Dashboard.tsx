@@ -18,6 +18,8 @@ import TransactionList from '../components/TransactionList';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import CashHorizonWidget, { type HorizonNext30 } from '../components/CashHorizonWidget';
 import AddWidgetModal from '../components/AddWidgetModal';
+import PendingMatchesModal from '../components/PendingMatchesModal';
+import UnifiedPendingMatcherCard from '../components/UnifiedPendingMatcherCard';
 import { useReview } from '../contexts/ReviewContext';
 import CardsStackWidget from '../components/CardsStackWidget';
 import MoneyFlowWidget from '../components/MoneyFlowWidget';
@@ -223,6 +225,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isPhoneEditOpen, setPhoneEditOpen] = useState(false);
+  const [isMatchesModalOpen, setMatchesModalOpen] = useState(false);
+  const [matchesModalFilter, setMatchesModalFilter] = useState<'all' | 'transfer' | 'bill'>('all');
 
 
 
@@ -1186,7 +1190,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     const saving = savingsRate < 0 ? { tone: 'loss' as const, status: 'Overspending' } : savingsRate < 10 ? { tone: 'amber' as const, status: 'Thin' } : { tone: 'pine' as const, status: 'On track' };
     const owing = debtRatio > 60 ? { tone: 'loss' as const, status: 'High' } : debtRatio > 35 ? { tone: 'amber' as const, status: 'Watch' } : { tone: 'pine' as const, status: 'Low' };
     return [
-      { label: 'Liquidity', value: `${liquidityRatio.toFixed(1)} months`, context: 'Runway at your average spend', gauge: { fill: (liquidityRatio / 12) * 100, display: liquidityRatio.toFixed(1), ...runway, status: `${runway.status} · months` } },
+      { label: 'Liquidity', value: `${liquidityRatio.toFixed(1)} months`, context: 'Months of runway at average spend', gauge: { fill: (liquidityRatio / 12) * 100, display: liquidityRatio.toFixed(1), ...runway } },
       { label: 'Savings rate', value: `${savingsRate.toFixed(0)}%`, context: 'Of income this period', gauge: { fill: (savingsRate / 40) * 100, display: `${savingsRate.toFixed(0)}%`, ...saving } },
       { label: 'Debt ratio', value: `${debtRatio.toFixed(1)}%`, context: 'Debts against assets', gauge: { fill: (debtRatio / 100) * 100, display: `${debtRatio.toFixed(0)}%`, ...owing } },
       { label: 'Net flow', value: <Amount value={eurToDisplay(safeRound(income - expenses, 2))} currency={preferredCurrency} tone="flow" />, context: 'Income less spending this period' },
@@ -1421,6 +1425,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     setUrlTab('review');
   }, [setCurrentPage]);
 
+  const openMatches = useCallback((filter: 'all' | 'transfer' | 'bill' = 'all') => {
+    setMatchesModalFilter(filter);
+    setMatchesModalOpen(true);
+  }, []);
+
   const summaryFacts = buildSummaryFacts({
     incomeYesterday: incomeYesterday > 0 ? formatCurrency(eurToDisplay(incomeYesterday), preferredCurrency) : null,
     billsDue,
@@ -1542,9 +1551,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
                 if (fact === 'bills') setCurrentPage('Schedule & Bills');
                 else if (fact === 'tasks') setCurrentPage('Tasks');
                 else if (fact === 'income') setCurrentPage('Transactions');
-                else openReview();
+                else openMatches('all');
               }}
             />
+
+            {totalPendingMatchesCount > 0 && (
+              <div className="!mt-3 md:!mt-4">
+                <UnifiedPendingMatcherCard
+                  transferCount={dedupedTransferSuggestions.length}
+                  billCount={dedupedBillSuggestions.length}
+                  highConfidenceCount={review.likelyCount}
+                  onReview={openMatches}
+                  onDismissAll={review.dismissAll}
+                  onQuickReconcileHighConfidence={review.confirmLikely}
+                />
+              </div>
+            )}
 
             <div className={`grid gap-6 max-md:gap-4 lg:grid-cols-3 ${isFirstVisit ? 'crystal-stagger' : ''}`}>
               <div className="lg:col-span-2">
@@ -1562,15 +1584,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
               <NeedsYou
                 items={[
                   { id: 'categorise', label: 'To categorise', count: toCategorise, onOpen: openReview },
-                  { id: 'transfers', label: 'Transfers to match', count: dedupedTransferSuggestions.length, onOpen: openReview },
-                  { id: 'bill-matches', label: 'Bills to match', count: dedupedBillSuggestions.length, onOpen: openReview },
+                  { id: 'transfers', label: 'Transfers to match', count: dedupedTransferSuggestions.length, onOpen: () => openMatches('transfer') },
+                  { id: 'bill-matches', label: 'Bills to match', count: dedupedBillSuggestions.length, onOpen: () => openMatches('bill') },
                   { id: 'bills', label: 'Bills due soon', count: billsDue, onOpen: () => setCurrentPage('Schedule & Bills') },
                   { id: 'tasks', label: 'Tasks due', count: tasksDue, onOpen: () => setCurrentPage('Tasks') },
                 ]}
                 footer={totalPendingMatchesCount > 0 && (
                   <>
                     {review.likelyCount > 0 && <Button size="sm" variant="soft" onPress={review.confirmLikely}>Confirm {review.likelyCount} likely</Button>}
-                    <Button size="sm" variant="ghost" onPress={review.dismissAll}>Dismiss matches</Button>
+                    <Button size="sm" variant="ghost" onPress={() => openMatches('all')}>Review matches</Button>
                   </>
                 )}
               />
@@ -1607,7 +1629,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
                 <div className="flex flex-wrap items-center gap-2">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                   <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-                  <Popover title="Chart options" trigger={<IconButton icon="tune" label="Chart options" />}>
+                  <Popover title="Chart options" trigger={<IconButton icon="more-horizontal" label="Chart options" />}>
                     <div className="w-64">{chartOptions}</div>
                   </Popover>
                 </div>
@@ -1615,8 +1637,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
               <div className="flex items-center gap-2">
                 {isEditMode && <Button variant="secondary" icon="add" onPress={() => setIsAddWidgetModalOpen(true)}>Add widget</Button>}
                 {isMobile
-                  ? <Button variant="ghost" icon="tune" onPress={() => setPhoneEditOpen(true)}>Customise</Button>
-                  : <Button variant={isEditMode ? 'primary' : 'ghost'} icon={isEditMode ? 'check' : 'tune'} onPress={() => setIsEditMode(!isEditMode)}>{isEditMode ? 'Done' : 'Customise'}</Button>}
+                  ? <Button variant="ghost" icon="dashboard-square-edit" onPress={() => setPhoneEditOpen(true)}>Customise</Button>
+                  : <Button variant={isEditMode ? 'primary' : 'ghost'} icon={isEditMode ? 'check' : 'dashboard-square-edit'} onPress={() => setIsEditMode(!isEditMode)}>{isEditMode ? 'Done' : 'Customise'}</Button>}
               </div>
             </div>
 
@@ -1676,6 +1698,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         </ul>
       </BottomSheet>
 
+      <PendingMatchesModal
+        isOpen={isMatchesModalOpen}
+        onClose={() => setMatchesModalOpen(false)}
+        initialFilter={matchesModalFilter}
+        onOpenFullQueue={openReview}
+      />
     </div>
   );
 };

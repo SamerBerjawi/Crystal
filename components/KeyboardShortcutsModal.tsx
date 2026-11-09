@@ -24,7 +24,7 @@ const GROUPS: { title: string; items: { keys: string[]; label: string }[] }[] = 
   {
     title: 'Go to, press G then',
     items: [
-      { keys: ['D'], label: 'Overview' },
+      { keys: ['D'], label: 'Home' },
       { keys: ['A'], label: 'Accounts' },
       { keys: ['T'], label: 'Ledger' },
       { keys: ['F'], label: 'Forecast' },

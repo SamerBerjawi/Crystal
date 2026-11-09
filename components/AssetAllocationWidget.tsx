@@ -58,19 +58,19 @@ const GroupList: React.FC<{ title: string; groups: Record<string, Group>; total:
 /** The Analysis tab's allocation card, as a widget: donut, then assets and debts by group. */
 const AssetAllocationWidget: React.FC<AssetAllocationWidgetProps> = ({ allocation, assetGroups, liabilityGroups, totalAssets, totalDebt, currency, toDisplay }) => {
   const box = useWidgetBox();
-  // The donut is a square sized to the room: as tall as the widget when it sits beside the lists, as wide as it when above them.
+  // When wide, the pie chart takes 25% of the widget width and assets and debts share the remaining space equally.
   const wide = box.width === 0 || box.width >= 760;
   const showDonut = box.height === 0 || box.height >= 260;
   const stacked = box.width > 0 && box.width < 520;
   const donutSize = box.width === 0 || box.height === 0
-    ? 280
+    ? 220
     : wide
-      ? Math.max(160, Math.min(box.height - 8, Math.round(box.width * 0.36)))
+      ? Math.max(120, Math.min(box.height - 8, Math.round(box.width * 0.25 - 16)))
       : Math.max(140, Math.min(box.width - 8, Math.round(box.height * 0.45)));
   // Each group is a 50px row under a 40px heading.
   const limit = box.height === 0 ? Infinity : Math.max(2, fitRows(box, stacked ? 44 : 50, 6, 56) - (stacked ? 2 : 0));
   const donut = (
-    <div className="flex items-center justify-center" style={wide ? { width: donutSize } : undefined}>
+    <div className="flex w-full items-center justify-center">
       <BklitPieChart
         data={allocation.map(item => ({ label: item.name, value: item.value, color: item.color }))}
         size={donutSize}
@@ -91,7 +91,16 @@ const AssetAllocationWidget: React.FC<AssetAllocationWidgetProps> = ({ allocatio
     </div>
   );
   return (
-    <div className="grid h-full content-start gap-6" style={{ gridTemplateColumns: showDonut && wide ? `${donutSize}px 1fr 1fr` : stacked ? '1fr' : '1fr 1fr' }}>
+    <div
+      className="grid h-full content-start gap-6"
+      style={{
+        gridTemplateColumns: showDonut && wide
+          ? 'minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1.5fr)'
+          : stacked
+          ? 'minmax(0, 1fr)'
+          : 'minmax(0, 1fr) minmax(0, 1fr)',
+      }}
+    >
       {showDonut && (wide ? donut : <div className={stacked ? '' : 'col-span-2'}>{donut}</div>)}
       <GroupList title="Assets" groups={assetGroups} total={totalAssets} empty="No assets yet." currency={currency} toDisplay={toDisplay} limit={limit} />
       <GroupList title="Debts" groups={liabilityGroups} total={Math.abs(totalDebt)} empty="No debts recorded." currency={currency} toDisplay={toDisplay} limit={limit} />

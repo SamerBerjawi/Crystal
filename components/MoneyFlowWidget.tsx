@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Account, Category, Currency, Transaction } from '../types';
 import { convertToMain, parseLocalDate, toLocalISOString } from '../utils';
 import { budgetAccountIds, spendByCategory } from '../utils/budgetModel';
@@ -79,6 +79,24 @@ const MoneyFlowWidget: React.FC<MoneyFlowWidgetProps> = ({ accounts, transaction
   const box = useWidgetBox();
   const [unit, setUnit] = useState<Unit>('months');
   const [picked, setPicked] = useState<number | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [measuredH, setMeasuredH] = useState(0);
+
+  useLayoutEffect(() => {
+    const node = chartRef.current;
+    if (!node) return;
+    const measure = (h: number) => {
+      if (h > 0) {
+        setMeasuredH(prev => Math.abs(prev - h) < 2 ? prev : Math.round(h));
+      }
+    };
+    measure(node.clientHeight);
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) measure(entry.contentRect.height);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const today = useMemo(() => new Date(), []);
   const periods = useMemo(() => periodsFor(unit, today), [unit, today]);
@@ -131,7 +149,7 @@ const MoneyFlowWidget: React.FC<MoneyFlowWidgetProps> = ({ accounts, transaction
   }
 
   const wide = box.width === 0 || box.width >= 700;
-  const chartH = box.height > 0 ? Math.max(130, Math.min(260, box.height - (wide ? 92 : 300))) : HEIGHT;
+  const chartH = measuredH > 0 ? measuredH : (box.height > 0 ? Math.max(120, box.height - (wide ? 92 : 300)) : HEIGHT);
   const peak = Math.max(...data.map(row => Math.max(row.inValue, row.outValue)), 1);
   const half = chartH / 2;
   const balances = data.map(row => row.balance);
@@ -144,14 +162,14 @@ const MoneyFlowWidget: React.FC<MoneyFlowWidgetProps> = ({ accounts, transaction
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <p className="type-caption text-muted">Pick a column to see where it went</p>
         <SegmentedControl items={UNITS} activeId={unit} onChange={id => { setUnit(id as Unit); setPicked(null); }} />
       </div>
 
       <div className={cn('flex min-h-0 flex-1 gap-5', wide ? 'flex-row' : 'flex-col')}>
-        <div className="min-w-0 flex-1">
-          <div className="relative" style={{ height: chartH }}>
+        <div className="flex min-w-0 flex-1 flex-col h-full min-h-0">
+          <div ref={chartRef} className="relative min-h-[120px] w-full flex-1">
             <div className="absolute inset-x-0 top-1/2 border-t border-line" aria-hidden />
             <div className="absolute inset-0 flex" role="group" aria-label="Money in and out by period">
               {data.map((row, i) => (
@@ -163,8 +181,8 @@ const MoneyFlowWidget: React.FC<MoneyFlowWidgetProps> = ({ accounts, transaction
                   aria-label={`${row.long}: in ${Math.round(row.inValue)}, out ${Math.round(row.outValue)}`}
                   className={cn('relative h-full min-w-0 flex-1 cursor-pointer rounded-md transition-colors hover:bg-inset focus-visible:outline-2 focus-visible:outline-[var(--focus)]', i === index && 'bg-inset')}
                 >
-                  <span className="absolute left-1/2 w-[46%] max-w-6 -translate-x-1/2 rounded-t-[5px]" style={{ bottom: half, height: Math.max(row.inValue > 0 ? 2 : 0, (row.inValue / peak) * (half - 6)), background: 'var(--money-in)', opacity: i === index ? 1 : 0.55 }} />
-                  <span className="absolute left-1/2 w-[46%] max-w-6 -translate-x-1/2 rounded-b-[5px]" style={{ top: half, height: Math.max(row.outValue > 0 ? 2 : 0, (row.outValue / peak) * (half - 6)), background: 'var(--money-out)', opacity: i === index ? 1 : 0.55 }} />
+                  <span className="absolute left-1/2 w-[46%] max-w-6 -translate-x-1/2 rounded-t-[5px]" style={{ bottom: '50%', height: Math.max(row.inValue > 0 ? 2 : 0, (row.inValue / peak) * (half - 6)), background: 'var(--money-in)', opacity: i === index ? 1 : 0.55 }} />
+                  <span className="absolute left-1/2 w-[46%] max-w-6 -translate-x-1/2 rounded-b-[5px]" style={{ top: '50%', height: Math.max(row.outValue > 0 ? 2 : 0, (row.outValue / peak) * (half - 6)), background: 'var(--money-out)', opacity: i === index ? 1 : 0.55 }} />
                 </button>
               ))}
             </div>
@@ -173,17 +191,17 @@ const MoneyFlowWidget: React.FC<MoneyFlowWidgetProps> = ({ accounts, transaction
             </svg>
             <span aria-hidden className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-solid bg-ink" style={{ left: `${(index + 0.5) * colW}%`, top: yOf(current.balance), borderColor: 'var(--solid)' }} />
           </div>
-          <div className="mt-1 flex" aria-hidden>
+          <div className="mt-1 flex shrink-0" aria-hidden>
             {data.map((row, i) => <span key={row.start.getTime()} className={cn('type-caption min-w-0 flex-1 truncate text-center', i === index ? 'font-semibold text-ink' : 'text-muted')}>{box.width > 0 && box.width < 520 && unit === 'weeks' ? '' : row.short}</span>)}
           </div>
-          <ul className="type-caption mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted">
+          <ul className="type-caption mt-2 flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-muted">
             <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--money-in)' }} />Money in</li>
             <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--money-out)' }} />Money out</li>
             <li className="flex items-center gap-1.5"><span className="h-0.5 w-3.5 rounded-full bg-ink/55" />Total balance</li>
           </ul>
         </div>
 
-        <aside className={cn('shrink-0 rounded-[var(--radius-lg)] bg-inset p-4', wide ? 'w-[260px] overflow-y-auto' : 'w-full')} aria-label={current.long}>
+        <aside className={cn('shrink-0 rounded-[var(--radius-lg)] bg-inset p-4', wide ? 'w-[260px] overflow-y-auto h-full' : 'w-full')} aria-label={current.long}>
           <p className="flex items-center justify-between gap-2 text-ink">
             <span className="type-body-strong">{current.long}</span>
             {current.isOpen && <span className="type-caption rounded-full bg-[var(--money-in-soft)] px-2 py-0.5 text-[var(--money-in)]">So far</span>}
