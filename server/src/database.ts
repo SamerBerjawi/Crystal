@@ -2,19 +2,27 @@ import { Pool } from 'pg';
 
 let db: any;
 try {
-    db = new Pool({
-        ...(process.env.DATABASE_URL ? { connectionString: process.env.DATABASE_URL } : {}),
-        host: process.env.DATABASE_HOST,
-        port: parseInt(process.env.DATABASE_PORT || '5432', 10),
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASSWORD,
-        database: process.env.DATABASE_NAME,
+    const poolConfig: any = {
         max: parseInt(process.env.DATABASE_POOL_MAX || '20', 10),
         idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT_MS || '30000', 10),
         connectionTimeoutMillis: parseInt(process.env.DATABASE_CONN_TIMEOUT_MS || '5000', 10),
         statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT_MS || '10000', 10),
-    });
-} catch {
+    };
+    if (process.env.DATABASE_URL) {
+        poolConfig.connectionString = process.env.DATABASE_URL;
+    } else {
+        poolConfig.host = process.env.DATABASE_HOST || '127.0.0.1';
+        poolConfig.port = parseInt(process.env.DATABASE_PORT || '5432', 10);
+        poolConfig.user = process.env.DATABASE_USER;
+        poolConfig.password = process.env.DATABASE_PASSWORD;
+        poolConfig.database = process.env.DATABASE_NAME;
+    }
+    db = new Pool(poolConfig);
+} catch (err) {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('Fatal: Failed to construct PostgreSQL Pool in production mode:', err);
+        throw err;
+    }
     console.warn('DB not connected — mock active');
     db = {
         query: async () => ({ rows: [] }),
@@ -131,6 +139,10 @@ export const initializeDatabase = async () => {
         await db.query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at)`);
         console.log('Database tables are ready.');
     } catch (err) {
+        if (process.env.NODE_ENV === 'production') {
+            console.error('Fatal: Database initialization failed in production mode:', err);
+            throw err;
+        }
         console.warn('Error connecting to database tables — running with fallback mock:', err);
     }
 };

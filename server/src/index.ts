@@ -60,12 +60,31 @@ const startServer = async () => {
             configuredOrigins.length > 0 ? configuredOrigins : defaultOrigins
         );
 
+        const getRequestHost = (req: express.Request): string | undefined => {
+            const forwarded = req.headers['x-forwarded-host'];
+            if (typeof forwarded === 'string' && forwarded.length > 0) {
+                return forwarded.split(',')[0].trim();
+            }
+            if (Array.isArray(forwarded) && forwarded.length > 0) {
+                return forwarded[0].trim();
+            }
+            return req.headers.host;
+        };
+
         const isSameHostOrigin = (req: express.Request, origin: string | undefined): boolean => {
             if (!origin) return false;
             try {
-                const originHost = new URL(origin).host;
-                const reqHost = req.headers['x-forwarded-host'] || req.headers.host;
-                return originHost !== '' && originHost === reqHost;
+                const originUrl = new URL(origin);
+                const reqHost = getRequestHost(req);
+                if (!reqHost) return false;
+                // Direct match: host:port === host:port or host === host
+                if (originUrl.host === reqHost) return true;
+                // Match when standard port was omitted
+                const reqHostname = reqHost.split(':')[0];
+                if (originUrl.hostname === reqHostname && !originUrl.port) {
+                    return true;
+                }
+                return false;
             } catch {
                 return false;
             }
@@ -81,7 +100,7 @@ const startServer = async () => {
             if (!origin || allowedOrigins.has(origin) || isSameHostOrigin(req, origin)) {
                 return callback(null, { origin: true, credentials: true });
             }
-            return callback(new Error(`Origin "${origin}" not allowed by CORS policy.`));
+            return callback(null, { origin: false });
         }));
         // Cross-site request forgery: the session cookie is SameSite=lax, and on top of that a state-changing request
         // that the browser marks as cross-site / same-site-but-different-origin is refused unless its Origin is allowed.
@@ -93,9 +112,7 @@ const startServer = async () => {
                 return res.status(403).json({ message: 'Cross-site request blocked.' });
             }
             if ((site === 'cross-site' || site === 'same-site') && origin) {
-                let originHost = '';
-                try { originHost = new URL(origin).host; } catch { /* malformed Origin is treated as foreign */ }
-                const sameHost = originHost !== '' && originHost === (req.headers['x-forwarded-host'] || req.headers.host);
+                const sameHost = isSameHostOrigin(req, origin);
                 if (!sameHost && !allowedOrigins.has(origin)) {
                     return res.status(403).json({ message: 'Cross-site request blocked.' });
                 }

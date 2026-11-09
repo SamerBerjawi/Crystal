@@ -55,7 +55,7 @@ export const loadAlertSettings = async (userId: number | string): Promise<AlertS
     if (!row) return { enabled: false, channel: null, rules: { ...DEFAULT_RULES } };
     return {
         enabled: Boolean(row.enabled),
-        channel: row.kind && row.url ? { kind: row.kind, url: row.url, topic: row.topic || undefined, token: row.encrypted_token ? decryptSecret(row.encrypted_token) : undefined } : null,
+        channel: row.kind && row.url ? { kind: row.kind, url: row.url, topic: row.topic || undefined, token: (row.encrypted_token ? decryptSecret(row.encrypted_token) : '') || undefined } : null,
         rules: mergeRules(row.rules),
     };
 };

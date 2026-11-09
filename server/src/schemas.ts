@@ -74,8 +74,32 @@ export const entityDeltaSchema = z.object({
     deletedIds: z.array(z.string()).optional(),
 });
 
+export const preferencesSchema = z.object({
+    currency: z.string().optional(),
+    displayCurrency: z.string().optional(),
+    language: z.string().optional(),
+    timezone: z.string().optional(),
+    dateFormat: z.string().optional(),
+    autoLockMinutes: z.number().or(z.string().transform(v => parseFloat(v) || 0)).optional(),
+    onboardingCompleted: z.boolean().optional(),
+    isPrivacyMode: z.boolean().optional(),
+    financialYearStartMonth: z.number().optional(),
+    safeToSpendCushion: z.number().or(z.string().transform(v => parseFloat(v) || 0)).optional(),
+    rulesVersion: z.number().optional(),
+    showBalanceAdjustments: z.boolean().optional(),
+    excludeTransfersFromAnalytics: z.boolean().optional(),
+    ignoredSubscriptions: z.array(z.string()).optional(),
+    ignoredBillMatches: z.array(z.string()).optional(),
+    ignoredTransferMatches: z.array(z.string()).optional(),
+    dismissedBillNotifications: z.array(z.string()).optional(),
+    dismissedInsights: z.array(z.string()).optional(),
+    activeGoalIds: z.array(z.string()).optional(),
+    knownGoalIds: z.array(z.string()).optional(),
+    hiddenMerchants: z.array(z.string()).optional(),
+}).passthrough();
+
 export const financialDataSchema = z.object({
-    preferences: z.record(z.string(), z.any()).optional(),
+    preferences: preferencesSchema.optional(),
     deltas: z.record(z.string(), entityDeltaSchema).optional(),
     accounts: z.array(accountSchema).optional(),
     transactions: z.array(transactionSchema).optional(),
