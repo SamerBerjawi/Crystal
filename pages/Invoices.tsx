@@ -101,36 +101,45 @@ const InvoicesPage: React.FC = () => {
     setStatus('all');
   };
 
+  const getDefaultLedgerAccount = () =>
+    accounts.find(acc => acc.status !== 'closed' && acc.isPrimary) ||
+    accounts.find(acc => acc.status !== 'closed' && acc.type === 'Checking') ||
+    accounts.find(acc => acc.status !== 'closed');
+
+  const recordInvoiceTransaction = (doc: Invoice) => {
+    const defaultAccount = getDefaultLedgerAccount();
+    if (!defaultAccount) {
+      toast.error('Create or open an account first to record this transaction');
+      return;
+    }
+    const isIncome = doc.direction === 'sent';
+    saveTransaction(
+      [
+        {
+          accountId: defaultAccount.id,
+          date: today,
+          description: `${doc.type === 'quote' ? 'Quote' : 'Invoice'} ${doc.number} - ${doc.entityName}`,
+          merchant: doc.entityName,
+          amount: isIncome ? Math.abs(doc.total) : -Math.abs(doc.total),
+          category: isIncome ? 'Income' : 'Bills & Utilities',
+          type: isIncome ? 'income' : 'expense',
+          currency: doc.currency,
+        },
+      ],
+      []
+    );
+    toast.success(`Recorded in ${defaultAccount.name}`);
+  };
+
   const markInvoicePaid = (doc: Invoice) => {
     saveInvoice({ ...doc, status: 'paid' });
-    const defaultAccount =
-      accounts.find(acc => acc.status !== 'closed' && acc.isPrimary) ||
-      accounts.find(acc => acc.status !== 'closed' && acc.type === 'Checking') ||
-      accounts.find(acc => acc.status !== 'closed');
+    const defaultAccount = getDefaultLedgerAccount();
 
     if (defaultAccount) {
       toast.success(`${doc.number} marked as paid`, {
         action: {
           label: 'Record transaction',
-          onClick: () => {
-            const isIncome = doc.direction === 'sent';
-            saveTransaction(
-              [
-                {
-                  accountId: defaultAccount.id,
-                  date: today,
-                  description: `${doc.type === 'quote' ? 'Quote' : 'Invoice'} ${doc.number} - ${doc.entityName}`,
-                  merchant: doc.entityName,
-                  amount: isIncome ? Math.abs(doc.total) : -Math.abs(doc.total),
-                  category: isIncome ? 'Income' : 'Bills & Utilities',
-                  type: isIncome ? 'income' : 'expense',
-                  currency: doc.currency,
-                },
-              ],
-              []
-            );
-            toast.success(`Recorded in ${defaultAccount.name}`);
-          },
+          onClick: () => recordInvoiceTransaction(doc),
         },
       });
     } else {
@@ -156,6 +165,9 @@ const InvoicesPage: React.FC = () => {
     { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setEditor({ type: doc.type, invoice: doc }) },
     ...(doc.type === 'invoice' && doc.status !== 'paid'
       ? [{ id: 'mark-paid', label: 'Mark as paid', icon: 'checkmark-circle-02', onAction: () => markInvoicePaid(doc) }]
+      : []),
+    ...(doc.type === 'invoice' && doc.status === 'paid'
+      ? [{ id: 'record-ledger', label: 'Record in ledger', icon: 'checkmark-circle-02', onAction: () => recordInvoiceTransaction(doc) }]
       : []),
     ...(doc.type === 'quote' && doc.status !== 'accepted'
       ? [{ id: 'mark-accepted', label: 'Mark as accepted', icon: 'checkmark-circle-02', onAction: () => { saveInvoice({ ...doc, status: 'accepted' }); toast.success(`${doc.number} accepted`); } }]

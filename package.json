@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "analyze": "ANALYZE=true vite build --mode production",
     "lint": "tsc --noEmit && tsc -p tsconfig.strict.json",
-    "test": "tsx --test tests/unit/*.test.ts && tsx utils.test.ts && tsx server/src/crypto.test.ts && tsx server/src/schemas.test.ts && tsx server/src/rateLimit.test.ts && tsx server/src/lockRules.test.ts"
+    "test": "tsx --test tests/unit/*.test.ts server/src/alerts.test.ts server/src/ebAuthOptions.test.ts server/src/ebErrors.test.ts server/src/ebRedirect.test.ts && tsx utils.test.ts && tsx server/src/crypto.test.ts && tsx server/src/schemas.test.ts && tsx server/src/rateLimit.test.ts && tsx server/src/lockRules.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

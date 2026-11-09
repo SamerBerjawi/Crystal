@@ -27,6 +27,7 @@ import {
   addDays, buildOccurrences, cadenceLabel, dailyCommitted, emptyFilters, filterOccurrences, groupUpcoming, iso, moveFuture, monthGrid, nextDueAfterPosting, oldUnpaidBills,
   postDetails, scheduledItemOf, seriesGroups, summarize, syntheticSeries, type Flow, type Occurrence, type OccurrenceSource, type SeriesRow,
 } from '../utils/scheduleModel';
+import { pauseService, resumeService } from '../utils/subscriptionsModel';
 import { Select } from '../components/ui/Pickers';
 
 type Tab = 'calendar' | 'upcoming' | 'scheduled' | 'archive';
@@ -257,8 +258,23 @@ const SchedulePage: React.FC = () => {
     { label: 'Net', icon: 'balance-scale', value: summary.net, format: 'money' },
   ];
 
+  const pauseSeries = (rt: RecurringTransaction) => {
+    saveRecurringTransaction(pauseService(rt, today));
+    toast.success(`${rt.merchant || rt.description} paused`, {
+      action: { label: 'Undo', onClick: () => saveRecurringTransaction({ ...rt, pausedAt: undefined }) },
+    });
+  };
+
+  const resumeSeries = (rt: RecurringTransaction) => {
+    saveRecurringTransaction(resumeService(rt, today));
+    toast.success(`${rt.merchant || rt.description} is back on`);
+  };
+
   const seriesMenu = (row: SeriesRow) => [
     { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => { setEditingSeries(row.series); setFormMode('recurring'); } },
+    row.series.pausedAt
+      ? { id: 'resume', label: 'Resume', icon: 'play', onAction: () => resumeSeries(row.series) }
+      : { id: 'pause', label: 'Pause', icon: 'pause', onAction: () => pauseSeries(row.series) },
     { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => setConfirm({ title: `Delete ${row.series.description}?`, message: 'This removes every future date.', label: 'Delete', isDestructive: true, onConfirm: () => deleteRecurringTransaction(row.series.id) }) },
   ];
 
@@ -385,7 +401,7 @@ const SchedulePage: React.FC = () => {
                   <li key={row.series.id} className="flex min-h-14 items-center gap-2 py-1.5">
                     <div className="min-w-0 flex-1">
                       <p className="type-body-strong truncate text-ink">{row.series.merchant || row.series.description}</p>
-                      <p className="type-caption truncate text-muted">{[row.source === 'recurring' ? cadenceLabel(row.series) : SOURCE_LABEL[row.source], row.next ? `Next ${shortDay(row.next)}` : row.ended ? 'Ended' : '', row.series.autopay ? 'Autopay' : '', accountName(row.series.accountId)].filter(Boolean).join(', ')}</p>
+                      <p className="type-caption truncate text-muted">{[row.source === 'recurring' ? cadenceLabel(row.series) : SOURCE_LABEL[row.source], row.series.pausedAt ? 'Paused' : row.next ? `Next ${shortDay(row.next)}` : row.ended ? 'Ended' : '', row.series.autopay ? 'Autopay' : '', accountName(row.series.accountId)].filter(Boolean).join(', ')}</p>
                     </div>
                     {row.series.paymentUrl && <a href={row.series.paymentUrl} target="_blank" rel="noopener noreferrer" className="type-caption shrink-0 font-bold text-primary hover:underline">Pay online</a>}
                     <span className="type-figure-row shrink-0 text-ink"><Amount value={row.monthly} currency={row.series.currency} /><span className="type-caption text-muted"> /mo</span></span>

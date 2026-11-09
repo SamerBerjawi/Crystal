@@ -404,25 +404,30 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                       }
                   }
 
+                  const numericAmount = typeof row.amount === 'number' ? row.amount : parseAmount(String(row.amount ?? ''));
+                  if (!Number.isFinite(numericAmount)) return null;
+
                   const newTx: Omit<Transaction, 'id'> = {
                       accountId: accountId,
                       date: row.date,
                       description: row.name || 'Imported Transaction',
                       merchant: row.name,
-                      amount: safeRound(row.amount, 2),
+                      amount: safeRound(numericAmount, 2),
                       category: finalCategory,
-                      type: row.amount >= 0 ? 'income' : 'expense',
+                      type: numericAmount >= 0 ? 'income' : 'expense',
                       currency: finalCurrency as Currency,
                   };
                   return newTx;
               } else { // Accounts
                   const typeValue = accountTypeMap[row.type];
                   if (!typeValue || typeValue === '_UNASSIGNED_') return null;
+                  const numericBalance = typeof row.balance === 'number' ? row.balance : parseAmount(String(row.balance ?? ''));
+                  if (!Number.isFinite(numericBalance)) return null;
                   
                   const newAcc: Omit<Account, 'id'> = {
                       name: row.name,
                       type: typeValue as AccountType,
-                      balance: row.balance,
+                      balance: safeRound(numericBalance, 2),
                       currency: finalCurrency as Currency,
                       status: 'open',
                   };
@@ -603,6 +608,10 @@ const StepColumns: React.FC<{
 const StepPreview: React.FC<{ parsedData: any[]; cleanedData: any[]; dataErrors: Record<number, Record<string, string>>; columnMap: Record<string, string>; importType: 'accounts' | 'transactions' }> = ({ parsedData, cleanedData, dataErrors, columnMap, importType }) => {
     const headers = importType === 'transactions' ? ['date', 'account', 'name', 'category', 'amount', 'currency'] : ['name', 'type', 'balance', 'currency'];
     const errorCount = Object.keys(dataErrors).length;
+    const cleanedByIndex = useMemo(
+        () => new Map(cleanedData.map(row => [row.originalIndex, row])),
+        [cleanedData]
+    );
 
     return (
         <>
@@ -619,7 +628,7 @@ const StepPreview: React.FC<{ parsedData: any[]; cleanedData: any[]; dataErrors:
                     <tbody className="divide-y divide-line">
                         {parsedData.map((originalRow, index) => {
                             const errors = dataErrors[index];
-                            const processedRow = cleanedData.find(row => row.originalIndex === index);
+                            const processedRow = cleanedByIndex.get(index);
                             return (
                                 <tr key={index} className={errors ? 'bg-money-out-soft' : undefined}>
                                     <td className={cellStyles}>{index + 2}</td>
@@ -663,6 +672,14 @@ const StepClean: React.FC<{ data: any[]; setData: React.Dispatch<React.SetStateA
     const headers = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'originalIndex') : [];
 
     const changeCell = (index: number, field: string, value: string) => setData(prev => prev.map(row => (row.originalIndex === index ? { ...row, [field]: value } : row)));
+    const normalizeNumericCell = (index: number, field: string) => {
+        if (field !== 'amount' && field !== 'balance') return;
+        setData(prev => prev.map(row => {
+            if (row.originalIndex !== index) return row;
+            const parsed = typeof row[field] === 'number' ? row[field] : parseAmount(String(row[field] ?? ''));
+            return Number.isFinite(parsed) ? { ...row, [field]: safeRound(parsed, 2) } : row;
+        }));
+    };
     const toggleSkip = (index: number) => setExcludedRows(prev => {
         const next = new Set(prev);
         if (next.has(index)) next.delete(index);
@@ -743,7 +760,7 @@ const StepClean: React.FC<{ data: any[]; setData: React.Dispatch<React.SetStateA
                                     </td>
                                     {headers.map(header => (
                                         <td key={header} className="px-3 py-1">
-                                            <input aria-label={`${FIELD_LABELS[header] ?? header}, row ${row.originalIndex + 2}`} value={row[header] ?? ''} onChange={event => changeCell(row.originalIndex, header, event.target.value)} className={tableInput} />
+                                            <input aria-label={`${FIELD_LABELS[header] ?? header}, row ${row.originalIndex + 2}`} value={row[header] ?? ''} onChange={event => changeCell(row.originalIndex, header, event.target.value)} onBlur={() => normalizeNumericCell(row.originalIndex, header)} className={tableInput} />
                                         </td>
                                     ))}
                                 </tr>

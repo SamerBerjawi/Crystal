@@ -4,7 +4,7 @@ import { sortAccountsByType } from '../utils/accountsModel';
 import { Page, User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
 import PageHeader from '../components/PageHeader';
 import { liveSeries } from '../utils/scheduleModel';
-import { formatCurrency, convertCurrency, convertToMain, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound, getMainCurrency } from '../utils';
+import { formatCurrency, convertCurrency, convertToMain, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, resolveAccountBalance, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound, getMainCurrency } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -404,7 +404,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   };
 
   const handleSavePostedTransaction = (transactionsToSave: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete: string[]) => {
-    saveTransaction(transactionsToSave, idsToDelete);
+    const isRecurring = itemToPost && 'frequency' in itemToPost.item;
+    const rt = isRecurring ? (itemToPost.item as RecurringTransaction) : null;
+    saveTransaction(
+      rt && !rt.isSynthetic ? transactionsToSave.map(tx => ({ ...tx, recurringSourceId: rt.id })) : transactionsToSave,
+      idsToDelete
+    );
 
     if (itemToPost) {
       const original = itemToPost.item;
@@ -854,7 +859,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   /** The biggest four types get the chart colours in order and the rest share one grey. The list beside the chart names each. */
   const createBreakdown = (accs: Account[]) => {
     const grouped = accs.reduce((acc, account) => {
-      acc[account.type] = (acc[account.type] || 0) + convertToMain(account.balance, account.currency);
+      const nativeBalance = resolveAccountBalance(
+        account,
+        analyticsTransactions.filter(tx => tx.accountId === account.id),
+        loanPaymentOverrides
+      );
+      acc[account.type] = (acc[account.type] || 0) + convertToMain(nativeBalance, account.currency);
       return acc;
     }, {} as Record<string, number>);
 

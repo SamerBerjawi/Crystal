@@ -50,7 +50,7 @@ const Subscriptions: React.FC = () => {
 
   const today = useMemo(() => new Date(), []);
   const [tab, setTab] = useState<Tab>('active');
-  const [scope, setScope] = useState<Scope>('all');
+  const [scope, setScope] = useState<Scope>('services');
   const { preferences, setPreferences } = usePreferencesContext();
   const ignored = useMemo(() => preferences.ignoredSubscriptions ?? [], [preferences.ignoredSubscriptions]);
   const [editing, setEditing] = useState<SeriesDraft | null>(null);

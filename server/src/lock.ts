@@ -17,6 +17,15 @@ const pinChangeRateLimiter = createRateLimiter({
     key: req => `${req.ip}:${(req as AuthRequest).user?.id || 'anonymous'}`,
 });
 
+const pinUnlockRateLimiter = createRateLimiter({
+    namespace: 'pin-unlock',
+    windowMs: 15 * 60 * 1000,
+    maxAttempts: 15,
+    blockMs: 15 * 60 * 1000,
+    message: 'Too many unlock attempts. Please wait 15 minutes and try again.',
+    key: req => `${req.ip}:${(req as AuthRequest).user?.id || 'anonymous'}`,
+});
+
 const passwordMatches = async (userId: number | undefined, password: unknown) => {
     if (typeof password !== 'string' || !password) return false;
     const result = await db.query(`SELECT password FROM users WHERE id = $1`, [userId]);
@@ -87,7 +96,7 @@ router.post('/lock', authenticateToken, async (req: AuthRequest, res) => {
     }
 });
 
-router.post('/unlock', authenticateToken, async (req: AuthRequest, res) => {
+router.post('/unlock', authenticateToken, pinUnlockRateLimiter, async (req: AuthRequest, res) => {
     const { pin } = req.body || {};
     try {
         const result = await db.query(

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildWrapped, longestNoSpendStreak, wrappedYears } from '../../utils/wrappedModel';
-import type { Transaction } from '../../types';
+import { setMainCurrency } from '../../utils';
+import type { Account, Transaction } from '../../types';
 
 const tx = (id: string, date: string, type: 'income' | 'expense', amount: number, extra: Partial<Transaction> = {}): Transaction => ({
   id, accountId: 'a', date, description: id, amount: type === 'expense' ? -amount : amount, category: 'Dining', type, currency: 'EUR', ...extra,
@@ -56,4 +57,17 @@ test('kilometres use the last reading before the year as the start', () => {
 test('wrappedYears lists years newest first; empty year has no data', () => {
   assert.deepEqual(wrappedYears([tx('1', '2024-05-01', 'expense', 1), tx('2', '2026-01-01', 'expense', 1)]), [2026, 2024]);
   assert.equal(buildWrapped(2020, [], [], [], TODAY).hasData, false);
+});
+
+test('buildWrapped does not double-convert net worth when mainCurrency is USD', () => {
+  setMainCurrency('USD');
+  try {
+    const accounts: Account[] = [{ id: 'a', name: 'Checking', type: 'Checking', balance: 1000, currency: 'USD' }];
+    const w = buildWrapped(2026, [tx('1', '2026-03-01', 'income', 200, { currency: 'USD' })], accounts, [], TODAY);
+    assert.equal(w.netWorth?.end, 1000);
+    assert.equal(w.netWorth?.start, 800);
+    assert.equal(w.netWorth?.change, 200);
+  } finally {
+    setMainCurrency('EUR');
+  }
 });
