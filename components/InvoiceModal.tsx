@@ -12,6 +12,7 @@ import { AmountInput, DateInput, Textarea, TextInput } from './ui/Fields';
 import { FullPanel } from './ui/Overlays';
 import { Select } from './ui/Pickers';
 import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
+import { Amount } from './ui/Money';
 
 interface InvoiceModalProps {
   onClose: () => void;
@@ -131,7 +132,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
       isDirty={isDirty}
       footer={close => (
         <div className="flex items-center justify-between gap-3">
-          <span className="type-figure-row min-w-0 truncate text-ink">{formatCurrency(totals.total, draft.currency)}</span>
+          <span className="type-figure-row min-w-0 truncate text-ink"><Amount value={totals.total} currency={draft.currency} /></span>
           <div className="flex shrink-0 gap-2">
             <Button variant="ghost" onPress={close}>Cancel</Button>
             <Button onPress={save}>{isEditing ? 'Save changes' : `Save ${noun}`}</Button>
@@ -178,7 +179,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
                       <AmountInput label="Price" value={line.unitPrice} onChange={unitPrice => updateLine(line.id, { unitPrice })} />
                       <TextInput label="Discount %" inputMode="decimal" value={line.discountPercent} onChange={discountPercent => updateLine(line.id, { discountPercent })} />
                     </div>
-                    <p className="type-caption text-right text-muted">{formatCurrency(lineTotal(numbers.quantity, numbers.unitPrice, numbers.discountPercent), draft.currency)}</p>
+                    <p className="type-caption text-right text-muted"><Amount value={lineTotal(numbers.quantity, numbers.unitPrice, numbers.discountPercent)} currency={draft.currency} /></p>
                   </li>
                 );
               })}
@@ -189,11 +190,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
         <div className="min-w-0 space-y-4 min-[900px]:sticky min-[900px]:top-0 min-[900px]:self-start">
           <Section title="Total">
             <dl className="space-y-2">
-              <div className="flex justify-between gap-3"><dt className="type-body text-muted">Subtotal</dt><dd className="type-figure-row text-ink">{formatCurrency(totals.subtotal, draft.currency)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="type-body text-muted">Subtotal</dt><dd className="type-figure-row text-ink"><Amount value={totals.subtotal} currency={draft.currency} /></dd></div>
               <AmountInput label="Discount" value={draft.globalDiscount} onChange={globalDiscount => update({ globalDiscount })} />
               <TextInput label="Tax rate (%)" inputMode="decimal" value={draft.taxRate} onChange={taxRate => update({ taxRate })} />
-              <div className="flex justify-between gap-3"><dt className="type-body text-muted">Tax</dt><dd className="type-figure-row text-ink">{formatCurrency(totals.taxAmount, draft.currency)}</dd></div>
-              <div className="flex items-baseline justify-between gap-3 border-t border-line pt-2"><dt className="type-body-strong text-ink">Total</dt><dd className="type-figure-lg text-ink">{formatCurrency(totals.total, draft.currency)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="type-body text-muted">Tax</dt><dd className="type-figure-row text-ink"><Amount value={totals.taxAmount} currency={draft.currency} /></dd></div>
+              <div className="flex items-baseline justify-between gap-3 border-t border-line pt-2"><dt className="type-body-strong text-ink">Total</dt><dd className="type-figure-lg text-ink"><Amount value={totals.total} currency={draft.currency} /></dd></div>
             </dl>
           </Section>
           <Textarea label="Notes and payment terms" rows={4} value={draft.notes} onChange={notes => update({ notes })} />
@@ -203,7 +204,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
                 {invoice.paymentTerms.map(term => (
                   <li key={term.id} className="flex justify-between gap-3">
                     <span className="type-body min-w-0 truncate text-ink">{term.label}</span>
-                    <span className="type-figure-row shrink-0 text-ink">{formatCurrency(term.amount, draft.currency)}</span>
+                    <span className="type-figure-row shrink-0 text-ink"><Amount value={term.amount} currency={draft.currency} /></span>
                   </li>
                 ))}
               </ul>

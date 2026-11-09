@@ -61,7 +61,7 @@ export const UnifiedPendingMatcherCard: React.FC<UnifiedPendingMatcherCardProps>
                   <button
                     type="button"
                     onClick={() => onReview('bill')}
-                    className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 transition-colors"
+                    className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-money-in-soft hover:bg-money-in-soft/80 text-money-in transition-colors"
                   >
                     <span>{billCount} {billCount === 1 ? 'bill' : 'bills'}</span>
                   </button>

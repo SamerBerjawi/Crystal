@@ -17,7 +17,7 @@ interface MembershipModalProps {
 }
 
 const MEMBERSHIP_CATEGORIES = ['Retail', 'Airline', 'Hotel', 'Grocery', 'Dining', 'Health', 'Services', 'Other'];
-const EMPTY = { provider: '', memberId: '', tier: '', holderName: '', memberSince: '', points: '', expiryDate: '', color: '#3b82f6', icon: 'loyalty', notes: '', website: '', category: 'Other' };
+const EMPTY = { provider: '', memberId: '', tier: '', holderName: '', memberSince: '', points: '', expiryDate: '', color: 'var(--chart-1)', icon: 'loyalty', notes: '', website: '', category: 'Other' };
 
 /** Add or edit a card in the Wallet (SUB-05). */
 const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, membershipToEdit }) => {

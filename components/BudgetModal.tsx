@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Budget, Category } from '../types';
 import { formatCurrency, getMainCurrency } from '../utils';
 import { parseAmount } from '../utils/budgetModel';
 import { Button } from './ui/Actions';
 import { AmountInput } from './ui/Fields';
+import { Amount, PrivacyContext } from './ui/Money';
 import { Dialog } from './ui/Overlays';
 import { Combobox, type PickerOption } from './ui/Pickers';
 
@@ -58,6 +59,8 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
     onClose();
   };
 
+  const isPrivate = useContext(PrivacyContext);
+
   return (
     <Dialog
       isOpen
@@ -81,7 +84,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
           currency={getMainCurrency()}
           value={amount}
           onChange={setAmount}
-          help={isValid ? `About ${formatCurrency(cap / DAYS_IN_MONTH, getMainCurrency())} a day, or ${formatCurrency(cap / WEEKS_IN_MONTH, getMainCurrency())} a week.` : undefined}
+          help={isValid ? (isPrivate ? 'About ••• a day, or ••• a week.' : `About ${formatCurrency(cap / DAYS_IN_MONTH, getMainCurrency())} a day, or ${formatCurrency(cap / WEEKS_IN_MONTH, getMainCurrency())} a week.`) : undefined}
         />
         {categoryName && historyByCategory?.get(categoryName) && (
           <div className="rounded-[var(--radius-md)] border border-line bg-inset p-3">
@@ -90,7 +93,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
               {historyByCategory.get(categoryName)!.map(entry => (
                 <div key={entry.label} className="rounded-[var(--radius-sm)] bg-surface px-2.5 py-1.5">
                   <span className="type-caption block text-muted">{entry.label}</span>
-                  <span className="type-figure-row text-ink">{formatCurrency(entry.spent, getMainCurrency())}</span>
+                  <span className="type-figure-row text-ink"><Amount value={entry.spent} currency={getMainCurrency()} /></span>
                 </div>
               ))}
             </div>
