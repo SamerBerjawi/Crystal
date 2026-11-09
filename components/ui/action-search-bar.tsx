@@ -406,7 +406,7 @@ function Highlighted({ text, matches }: { text: string; matches: number[] }) {
 
 function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-line-strong bg-inset px-1 font-sans text-[11px] text-muted">
+    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-line-strong bg-inset px-1 font-sans text-2xs text-muted">
       {children}
     </kbd>
   );
@@ -1015,7 +1015,7 @@ function ActionSearchBar({
                     >
                       {section.label && (
                         <div
-                          className="px-2 pt-2 pb-1 font-medium text-[11px] text-muted"
+                          className="px-2 pt-2 pb-1 font-medium text-2xs text-muted"
                           id={`${uid}-${section.key}`}
                           role="presentation"
                         >
@@ -1088,7 +1088,7 @@ function ActionSearchBar({
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between gap-3 border-line border-t px-3 py-2 text-[11px] text-muted">
+            <div className="flex items-center justify-between gap-3 border-line border-t px-3 py-2 text-2xs text-muted">
               <span className="flex items-center gap-1.5">
                 <span className="@xs/palette:flex hidden items-center gap-1.5">
                   <Kbd>↑</Kbd>

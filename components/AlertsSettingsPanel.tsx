@@ -90,24 +90,17 @@ const AlertsSettingsPanel: React.FC = () => {
 
   if (unavailable) {
     return (
-      <div className="surface-card rounded-[var(--radius-xl)] p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="type-card-title text-ink">Server alerts</h2>
-            <p className="type-caption text-muted">Push notifications require an authenticated server connection and are unavailable in demo mode.</p>
-          </div>
-          <Badge tone="neutral">Sign in required</Badge>
+      <div className="flex flex-wrap items-center justify-between gap-3 py-1">
+        <div>
+          <p className="type-caption text-muted">Push notifications require an authenticated server connection and are unavailable in demo mode.</p>
         </div>
+        <Badge tone="neutral">Sign in required</Badge>
       </div>
     );
   }
 
   if (!saved || !rules) {
-    return (
-      <div className="surface-card rounded-[var(--radius-xl)] p-5">
-        <p className="type-caption text-muted">Loading alert settings…</p>
-      </div>
-    );
+    return <p className="type-caption text-muted py-1">Loading alert settings…</p>;
   }
 
   const needsTopic = kind === 'ntfy';

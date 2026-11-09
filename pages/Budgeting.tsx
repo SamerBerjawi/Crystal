@@ -361,7 +361,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     <li key={share.name}>
                       <p className="type-body flex justify-between gap-3 text-ink">
                         <span className="truncate">{share.name}</span>
-                        <span className="type-figure-row shrink-0">{formatCurrency(share.value, getMainCurrency())}</span>
+                        <span className="type-figure-row shrink-0"><Amount value={share.value} currency={getMainCurrency()} /></span>
                       </p>
                       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-inset">
                         <div className="h-full rounded-full bg-[var(--chart-1)]" style={{ width: `${share.pct}%` }} />
@@ -383,7 +383,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         <div className="min-w-0">
                           <p className="type-body-strong truncate text-ink">{suggestion.categoryName}</p>
                           <p className="type-caption text-muted">
-                            Avg {formatCurrency(suggestion.average, getMainCurrency())}/mo · suggest {formatCurrency(suggestion.suggested, getMainCurrency())}
+                            Avg <Amount value={suggestion.average} currency={getMainCurrency()} />/mo · suggest <Amount value={suggestion.suggested} currency={getMainCurrency()} />
                           </p>
                         </div>
                         <Button

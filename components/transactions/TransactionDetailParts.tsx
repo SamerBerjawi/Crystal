@@ -153,7 +153,7 @@ export const CategoryQuickPickerPill: React.FC<{
               filteredCatGroups.map(group => (
                 <div key={group.name} className="space-y-0.5">
                   <div
-                    className="sticky top-0 z-10 flex items-center gap-1.5 border-b border-line/40 px-2.5 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none"
+                    className="sticky top-0 z-10 flex items-center gap-1.5 border-b border-line/40 px-2.5 pt-2 pb-1 type-caption font-bold uppercase tracking-wider text-muted select-none"
                     style={{ backgroundColor: 'var(--solid)' }}
                   >
                     {group.icon && (

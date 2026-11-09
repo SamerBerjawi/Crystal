@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Page, Transaction } from '../types';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
@@ -9,7 +9,7 @@ import { LINE_MOTION } from '../src/components/charts/animation';
 import CashflowSankey from './CashflowSankey';
 import { Button } from './ui/Actions';
 import { Badge, ShowMore } from './ui/Display';
-import { Amount } from './ui/Money';
+import { Amount, PrivacyContext } from './ui/Money';
 import SegmentedControl from './ui/SegmentedControl';
 
 const GROUPS = [{ id: 'merchant', label: 'Merchants' }, { id: 'category', label: 'Categories' }];
@@ -45,26 +45,29 @@ const Figure: React.FC<{ label: string; children: React.ReactNode }> = ({ label,
   </div>
 );
 
-const SpendingChart: React.FC<{ report: Report }> = ({ report }) => (
-  <>
-    <ul className="mb-2 flex gap-4" aria-label="Legend">
-      <li className="type-caption flex items-center gap-1.5 text-muted"><span className="h-0.5 w-4 rounded-full bg-chart-1" />This period</li>
-      <li className="type-caption flex items-center gap-1.5 text-muted"><span className="h-0.5 w-4 rounded-full bg-muted" />Period before</li>
-    </ul>
-    <div className="h-[260px] md:h-[320px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={report.velocity.map(point => ({ ...point, label: shortDate(point.date) }))}>
-          <CartesianGrid vertical={false} stroke="var(--line)" />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={48} />
-          <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={48} />
-          <Tooltip contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number, name: string) => [formatCurrency(value, getMainCurrency()), name === 'current' ? 'This period' : 'Period before']} />
-          <Line {...LINE_MOTION} type="natural" dataKey="previous" stroke="var(--muted)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
-          <Line {...LINE_MOTION} type="natural" dataKey="current" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  </>
-);
+const SpendingChart: React.FC<{ report: Report }> = ({ report }) => {
+  const isPrivate = useContext(PrivacyContext);
+  return (
+    <>
+      <ul className="mb-2 flex gap-4" aria-label="Legend">
+        <li className="type-caption flex items-center gap-1.5 text-muted"><span className="h-0.5 w-4 rounded-full bg-chart-1" />This period</li>
+        <li className="type-caption flex items-center gap-1.5 text-muted"><span className="h-0.5 w-4 rounded-full bg-muted" />Period before</li>
+      </ul>
+      <div className="h-[260px] md:h-[320px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={report.velocity.map(point => ({ ...point, label: shortDate(point.date) }))}>
+            <CartesianGrid vertical={false} stroke="var(--line)" />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={48} />
+            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={48} />
+            <Tooltip contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number, name: string) => [isPrivate ? '•••' : formatCurrency(value, getMainCurrency()), name === 'current' ? 'This period' : 'Period before']} />
+            <Line {...LINE_MOTION} type="natural" dataKey="previous" stroke="var(--muted)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
+            <Line {...LINE_MOTION} type="natural" dataKey="current" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </>
+  );
+};
 
 const CategoryReport: React.FC<{ report: Report }> = ({ report }) => {
   const [shown, setShown] = useState(STEP);
@@ -117,10 +120,11 @@ const Change: React.FC<{ current: number; previous: number }> = ({ current, prev
 };
 
 const monthLabel = (key: string) => new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-const compactMoney = (value: number) => formatCurrency(value, getMainCurrency(), { compact: true });
 
 /** Every category against every month. The darker the cell, the more went out; the biggest cell is the darkest. */
 const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
+  const isPrivate = useContext(PrivacyContext);
+  const compactMoney = (value: number) => isPrivate ? '•••' : formatCurrency(value, getMainCurrency(), { compact: true });
   const [shown, setShown] = useState(STEP);
   const { months, table, monthTotals, max } = report.byMonth;
   if (table.length === 0) return <Empty>There is no spending in this period.</Empty>;
@@ -145,7 +149,7 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
                   return (
                     <td key={key} className="px-0.5 py-0">
                       <span
-                        title={`${row.category}, ${monthLabel(key)}: ${formatCurrency(value, getMainCurrency())}`}
+                        title={`${row.category}, ${monthLabel(key)}: ${isPrivate ? '•••' : formatCurrency(value, getMainCurrency())}`}
                         className="type-caption privacy-blur block rounded-md px-2 py-1.5 text-right tabular-nums text-ink"
                         style={{ background: value > 0 ? `color-mix(in srgb, var(--chart-1) ${Math.max(8, strength)}%, transparent)` : 'transparent' }}
                       >
@@ -172,6 +176,7 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
 
 /** Money in: the sources, and how it came month by month. */
 const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
+  const isPrivate = useContext(PrivacyContext);
   const { total, sources, months } = report.incomeReport;
   if (total <= 0) return <Empty>No money came in during this period.</Empty>;
   const top = Math.max(...months.map(month => month.totalEur), 1);
@@ -186,7 +191,7 @@ const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
       {months.length > 1 && (
         <div className="mt-5 flex h-32 items-end gap-2" role="img" aria-label="Money in by month">
           {months.map(month => (
-            <div key={month.key} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" title={`${monthLabel(month.key)}: ${formatCurrency(month.totalEur, getMainCurrency())}`}>
+            <div key={month.key} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" title={`${monthLabel(month.key)}: ${isPrivate ? '•••' : formatCurrency(month.totalEur, getMainCurrency())}`}>
               <div className="w-full rounded-t-md bg-chart-1" style={{ height: `${Math.max(2, (month.totalEur / top) * 100)}%` }} />
               <span className="type-caption text-muted">{monthLabel(month.key)}</span>
             </div>

@@ -11,6 +11,7 @@ import { formatCurrency, getMainCurrency } from '../utils';
 import { dayOf } from '../utils/portfolioHistory';
 import { PriceHistoryEntry, InvestmentTransaction, Currency } from '../types';
 import SegmentedControl from './ui/SegmentedControl';
+import { Amount } from './ui/Money';
 
 export type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 export type GranularityOption = 'raw' | 'weekly';
@@ -75,26 +76,26 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = ge
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <div className="flex justify-between items-center">
           <span className="text-muted">Open</span>
-          <span className="font-bold text-ink">{formatCurrency(open, currency)}</span>
+          <span className="font-bold text-ink tabular-nums"><Amount value={open} currency={currency} /></span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-muted">High</span>
-          <span className="font-bold text-ink">{formatCurrency(high, currency)}</span>
+          <span className="font-bold text-ink tabular-nums"><Amount value={high} currency={currency} /></span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-muted">Low</span>
-          <span className="font-bold text-ink">{formatCurrency(low, currency)}</span>
+          <span className="font-bold text-ink tabular-nums"><Amount value={low} currency={currency} /></span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-muted">Close</span>
-          <span className="font-bold text-ink">{formatCurrency(close, currency)}</span>
+          <span className="font-bold text-ink tabular-nums"><Amount value={close} currency={currency} /></span>
         </div>
       </div>
 
       <div className="pt-1.5 border-t border-line flex justify-between items-center">
         <span className="text-muted">{granularity === 'weekly' ? 'Weekly change' : 'Change'}</span>
-        <span className={`font-bold ${isPositive ? 'text-money-in' : 'text-money-out'}`}>
-          {isPositive ? '+' : ''}{formatCurrency(diff, currency)}
+        <span className={`font-bold tabular-nums ${isPositive ? 'text-money-in' : 'text-money-out'}`}>
+          <Amount value={diff} currency={currency} tone="flow" />
         </span>
       </div>
     </div>
@@ -369,9 +370,9 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       </div>
 
       <dl className="mb-2 grid grid-cols-2 gap-x-4 gap-y-2 min-[440px]:grid-cols-4">
-        <div><dt className="type-label text-muted">From {startDateFormatted}</dt><dd className="type-figure-row text-ink">{formatCurrency(stats.open, currency)}</dd></div>
-        <div><dt className="type-label text-muted">High</dt><dd className="type-figure-row text-ink">{formatCurrency(stats.high, currency)}</dd></div>
-        <div><dt className="type-label text-muted">Low</dt><dd className="type-figure-row text-ink">{formatCurrency(stats.low, currency)}</dd></div>
+        <div><dt className="type-label text-muted">From {startDateFormatted}</dt><dd className="type-figure-row text-ink"><Amount value={stats.open} currency={currency} /></dd></div>
+        <div><dt className="type-label text-muted">High</dt><dd className="type-figure-row text-ink"><Amount value={stats.high} currency={currency} /></dd></div>
+        <div><dt className="type-label text-muted">Low</dt><dd className="type-figure-row text-ink"><Amount value={stats.low} currency={currency} /></dd></div>
         <div>
           <dt className="type-label text-muted">Change</dt>
           <dd className={`type-figure-row ${stats.change >= 0 ? 'text-money-in' : 'text-money-out'}`}>{stats.change >= 0 ? '+' : '−'}{Math.abs(stats.changePercent).toFixed(1)}%</dd>
@@ -386,8 +387,8 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
             style={{ top: `${12 + ((stats.high - costBasis) / (stats.high - stats.low)) * (180 - 12 - 28)}px` }}
             className="pointer-events-none absolute inset-x-4 z-10 border-t border-dashed border-muted/60"
           >
-            <span className="type-caption absolute -top-4 right-0 rounded bg-surface/90 px-1 text-[10px] text-muted">
-              Cost {formatCurrency(costBasis, currency)}
+            <span className="type-caption absolute -top-4 right-0 rounded bg-surface/90 px-1 text-2xs text-muted">
+              Cost <Amount value={costBasis} currency={currency} />
             </span>
           </div>
         )}

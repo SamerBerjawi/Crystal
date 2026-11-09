@@ -332,7 +332,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         {selectedTags.slice(0, 3).map(tag => (
           <span
             key={tag.id}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-inset border border-line"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold bg-inset border border-line"
             style={{ color: tag.color || 'var(--ink)' }}
           >
             <Icon name={tag.icon || 'tag'} size={12} style={{ color: tag.color }} className="shrink-0" />

@@ -156,7 +156,7 @@ const SortHeader: React.FC<{
               >
                 <Icon name="tune" size={14} />
                 {filter.count > 0 && (
-                  <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-pill text-[9px] font-bold text-on-pill tabular-nums">
+                  <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-pill text-2xs font-bold text-on-pill tabular-nums">
                     {filter.count}
                   </span>
                 )}
@@ -388,7 +388,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                         >
                           <Icon name="tune" size={14} />
                           {columnFilters.tags.count > 0 && (
-                            <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-pill text-[9px] font-bold text-on-pill tabular-nums">
+                            <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-pill text-2xs font-bold text-on-pill tabular-nums">
                               {columnFilters.tags.count}
                             </span>
                           )}

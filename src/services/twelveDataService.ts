@@ -7,6 +7,20 @@ export interface ExchangeRateResponse {
     timestamp: number;
 }
 
+/** Rate limiter: TwelveData free tier allows 8 API credits per minute. Keep at least 250ms spacing between outbound calls. */
+let lastOutboundCall = 0;
+const MIN_CALL_INTERVAL_MS = 250;
+
+async function rateLimitedFetch(url: string): Promise<Response> {
+    const now = Date.now();
+    const elapsed = now - lastOutboundCall;
+    if (elapsed < MIN_CALL_INTERVAL_MS) {
+        await new Promise(resolve => setTimeout(resolve, MIN_CALL_INTERVAL_MS - elapsed));
+    }
+    lastOutboundCall = Date.now();
+    return fetchWithTimeout(url);
+}
+
 /** A usable exchange rate is a finite number above zero; anything else is an error, never silently 1:1. */
 const asRate = (value: unknown, label: string): number => {
     const n = typeof value === 'string' ? Number(value) : value;
@@ -22,14 +36,18 @@ export async function fetchExchangeRate(from: Currency, to: Currency, apiKey: st
     const symbol = `${from}/${to}`;
     const url = `https://api.twelvedata.com/exchange_rate?symbol=${symbol}&apikey=${apiKey}`;
 
-    const response = await fetchWithTimeout(url);
+    const response = await rateLimitedFetch(url);
     if (!response.ok) {
         throw new Error(`TwelveData API error: ${response.statusText}`);
     }
 
     const data = await response.json();
     if (data.status === 'error') {
-        throw new Error(`TwelveData API error: ${data.message}`);
+        const msg = String(data.message || 'API error');
+        if (data.code === 429 || /rate limit|api credits/i.test(msg)) {
+            throw new Error(`Twelve Data rate limit reached: ${msg}`);
+        }
+        throw new Error(`TwelveData API error: ${msg}`);
     }
 
     return asRate(data.rate, symbol);
@@ -49,7 +67,7 @@ export async function fetchSymbolMetadata(symbol: string, apiKey: string): Promi
     const url = `https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${apiKey}`;
     
     try {
-        const response = await fetchWithTimeout(url);
+        const response = await rateLimitedFetch(url);
         if (!response.ok) return null;
         
         const data = await response.json();
@@ -69,12 +87,12 @@ export async function fetchSymbolMetadata(symbol: string, apiKey: string): Promi
 }
 
 export async function searchSymbols(query: string, apiKey?: string): Promise<SymbolMetadata[]> {
+    if (!apiKey) return [];
     const clean = query.trim();
     if (clean.length < 2) return [];
-    const params = new URLSearchParams({ symbol: clean, outputsize: '6' });
-    if (apiKey) params.set('apikey', apiKey);
+    const params = new URLSearchParams({ symbol: clean, outputsize: '6', apikey: apiKey });
     try {
-        const response = await fetchWithTimeout(`https://api.twelvedata.com/symbol_search?${params.toString()}`);
+        const response = await rateLimitedFetch(`https://api.twelvedata.com/symbol_search?${params.toString()}`);
         if (!response.ok) return [];
         const data = await response.json();
         if (!Array.isArray(data?.data)) return [];
@@ -104,7 +122,13 @@ export interface Quote { price: number; currency: Currency; exchange?: string }
 
 /** A quote's price and currency. Refuses a quote with no currency, because guessing is how a USD price gets valued as EUR (DEF-04). */
 export const parseQuote = (data: Record<string, unknown>, supported: readonly string[]): Quote => {
-    if (data.status === 'error' || data.code) throw new Error(String(data.message || 'Unable to fetch price'));
+    if (data.status === 'error' || data.code) {
+        const msg = String(data.message || 'Unable to fetch price');
+        if (data.code === 429 || /rate limit|api credits/i.test(msg)) {
+            throw new Error(`Twelve Data rate limit reached: ${msg}`);
+        }
+        throw new Error(msg);
+    }
     const price = Number(data.close ?? data.price);
     if (!Number.isFinite(price) || price <= 0) throw new Error('Invalid price returned');
     const currency = String(data.currency || data.currency_quote || '').toUpperCase();
@@ -117,23 +141,19 @@ export async function fetchQuote(symbol: string, apiKey: string, exchange: strin
     if (!apiKey) throw new Error('Missing Twelve Data API key');
     const params = new URLSearchParams({ symbol: symbol.toUpperCase(), apikey: apiKey });
     if (exchange) params.set('exchange', exchange);
-    const response = await fetchWithTimeout(`https://api.twelvedata.com/quote?${params.toString()}`);
+    const response = await rateLimitedFetch(`https://api.twelvedata.com/quote?${params.toString()}`);
     return parseQuote(await response.json(), supported);
 }
 
 export async function fetchAllExchangeRates(base: Currency, targets: Currency[], apiKey: string): Promise<Record<string, number>> {
     const rates: Record<string, number> = { [base]: 1 };
     
-    // TwelveData supports batch requests for some endpoints, but exchange_rate might need individual calls or a comma-separated list if supported.
-    // Let's try individual calls for now to be safe, or check if they support multiple symbols.
-    // Actually, TwelveData supports comma-separated symbols for many endpoints.
-    
     const symbolsToFetch = targets.filter(t => t !== base).map(t => `${t}/${base}`);
     if (symbolsToFetch.length === 0) return rates;
 
     const url = `https://api.twelvedata.com/exchange_rate?symbol=${symbolsToFetch.join(',')}&apikey=${apiKey}`;
     
-    const response = await fetchWithTimeout(url);
+    const response = await rateLimitedFetch(url);
     if (!response.ok) {
         throw new Error(`TwelveData API error: ${response.statusText}`);
     }
@@ -141,9 +161,22 @@ export async function fetchAllExchangeRates(base: Currency, targets: Currency[],
     const data = await response.json();
     
     if (symbolsToFetch.length === 1) {
-        if (data.status === 'error') throw new Error(data.message);
+        if (data.status === 'error') {
+            const msg = String(data.message || 'TwelveData exchange rate error');
+            if (data.code === 429 || /rate limit|api credits/i.test(msg)) {
+                throw new Error(`Twelve Data rate limit reached: ${msg}`);
+            }
+            throw new Error(msg);
+        }
         rates[targets.find(t => t !== base)!] = asRate(data.rate, `${base}/${targets.find(t => t !== base)}`);
     } else {
+        if (data.status === 'error') {
+            const msg = String(data.message || 'TwelveData exchange rate error');
+            if (data.code === 429 || /rate limit|api credits/i.test(msg)) {
+                throw new Error(`Twelve Data rate limit reached: ${msg}`);
+            }
+            throw new Error(msg);
+        }
         // Batch response is an object with symbols as keys
         Object.entries(data).forEach(([symbol, result]: [string, any]) => {
             if (result.status === 'error') {

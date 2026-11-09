@@ -122,7 +122,7 @@ const EnableBankingCredentialsPanel: React.FC<EnableBankingCredentialsPanelProps
   };
 
   if (!status) {
-    return <p className="type-caption text-muted">Loading credentials…</p>;
+    return <p className="type-caption text-muted py-1">Loading credentials…</p>;
   }
 
   return (

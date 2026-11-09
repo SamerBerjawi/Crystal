@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { formatCurrency, getMainCurrency } from '../utils';
 import { buildWrapped, wrappedDate, wrappedYears, type Wrapped as WrappedData } from '../utils/wrappedModel';
@@ -6,7 +6,7 @@ import { useAccountSelector, useTransactionSelector } from '../contexts/DomainPr
 import PageHeader from '../components/PageHeader';
 import { Button } from '../components/ui/Actions';
 import Icon from '../components/ui/Icon';
-import { Amount } from '../components/ui/Money';
+import { Amount, PrivacyContext } from '../components/ui/Money';
 import { Select } from '../components/ui/Pickers';
 import { EmptyState } from '../components/ui/States';
 
@@ -60,8 +60,8 @@ const MonthBars: React.FC<{ months: WrappedData['months'] }> = ({ months }) => {
   );
 };
 
-const summaryText = (w: WrappedData) => {
-  const money = (value: number) => formatCurrency(value, getMainCurrency());
+const summaryText = (w: WrappedData, isPrivate = false) => {
+  const money = (value: number) => isPrivate ? '•••' : formatCurrency(value, getMainCurrency());
   const lines = [`My ${w.year} in money`, `Income ${money(w.income)}, spending ${money(w.expense)}, kept ${money(w.saved)}${w.savingsRate !== undefined ? ` (${percent(w.savingsRate)})` : ''}.`];
   if (w.topMerchants[0]) lines.push(`Most spent at ${w.topMerchants[0].label}.`);
   if (w.longestNoSpendStreak.days > 1) lines.push(`Longest no-spend streak: ${w.longestNoSpendStreak.days} days.`);
@@ -74,6 +74,7 @@ const Wrapped: React.FC = () => {
   const transactions = useTransactionSelector(tx => tx);
   const accounts = useAccountSelector(acc => acc);
   const currency = getMainCurrency();
+  const isPrivate = useContext(PrivacyContext);
 
   const inAnalytics = useMemo(() => {
     const ids = new Set(accounts.filter(acc => acc.includeInAnalytics ?? true).map(acc => acc.id));
@@ -88,7 +89,7 @@ const Wrapped: React.FC = () => {
 
   const share = async () => {
     try {
-      await navigator.clipboard.writeText(summaryText(wrapped));
+      await navigator.clipboard.writeText(summaryText(wrapped, isPrivate));
       toast.success('Summary copied');
     } catch {
       toast.error('Could not copy the summary');

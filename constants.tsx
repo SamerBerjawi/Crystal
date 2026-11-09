@@ -98,7 +98,7 @@ export const STATUS_INFO_BADGE = "bg-cyan-500/15 text-cyan-700 dark:text-cyan-30
 // Stacking Order Hierarchy
 
 
-export const BRAND_COLORS = ['#fcb045', '#fd1d1d', '#3B82F6', '#22d3ee', '#a78bfa', '#f472b6'];
+export const BRAND_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 
 export const CATEGORY_TAG_PRESET_COLORS = [
   '#EF4444',

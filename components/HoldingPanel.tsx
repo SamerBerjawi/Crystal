@@ -199,7 +199,7 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
               <li key={item.id} className="flex min-h-12 items-center gap-2 py-1">
                 <Badge tone={item.label === 'Sell' ? 'attention' : item.label === 'Grant' ? 'neutral' : 'positive'}>{item.label}</Badge>
                 <span className="min-w-0 flex-1">
-                  <span className="type-body block truncate text-ink">{item.quantity.toLocaleString()} at {formatCurrency(item.price, item.tradeCurrency)}</span>
+                  <span className="type-body block truncate text-ink">{item.quantity.toLocaleString()} at <Amount value={item.price} currency={item.tradeCurrency} /></span>
                   <span className="type-caption block text-muted">{fullDate(item.date)}</span>
                 </span>
                 <span className="type-figure-row shrink-0 text-ink"><Amount value={item.quantity * item.price} currency={item.tradeCurrency} /></span>

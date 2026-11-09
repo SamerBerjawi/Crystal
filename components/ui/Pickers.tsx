@@ -95,7 +95,7 @@ function renderOptions(options: PickerOption[], multi?: boolean) {
   return Array.from(groups.entries()).map(([group, items]) => (
     <Section key={group || '__ungrouped'}>
       {group ? (
-        <Header className="sticky top-0 z-10 bg-solid/95 backdrop-blur-sm px-2.5 pt-2.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted select-none">
+        <Header className="sticky top-0 z-10 bg-solid/95 backdrop-blur-sm px-2.5 pt-2.5 pb-1 type-caption font-bold uppercase tracking-wider text-muted select-none">
           {group}
         </Header>
       ) : null}

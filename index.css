@@ -604,7 +604,6 @@ body::before {
   dialog,
   [role="dialog"],
   [tabindex="-1"],
-  .outline-none,
   .crystal-dialog,
   .crystal-sheet,
   .crystal-side,
