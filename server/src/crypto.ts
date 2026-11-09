@@ -31,7 +31,7 @@ export const decryptSecret = (cipherText: string): string => {
 
     try {
         const parts = cipherText.split(':');
-        if (parts.length !== 3) return cipherText;
+        if (parts.length !== 3) return '';
 
         const [ivHex, authTagHex, encryptedHex] = parts;
         const iv = Buffer.from(ivHex, 'hex');
@@ -46,7 +46,7 @@ export const decryptSecret = (cipherText: string): string => {
         return decrypted;
     } catch (err) {
         console.error('Failed to decrypt secret:', err);
-        return cipherText;
+        return '';
     }
 };
 

@@ -240,6 +240,12 @@ export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'
                 className="relative"
                 onMouseEnter={() => isCollapsed && handleMouseEnterHub(hub.id)}
                 onMouseLeave={() => isCollapsed && handleMouseLeaveHub()}
+                onFocus={() => isCollapsed && handleMouseEnterHub(hub.id)}
+                onBlur={e => {
+                  if (isCollapsed && !e.currentTarget.contains(e.relatedTarget as Node)) {
+                    handleMouseLeaveHub();
+                  }
+                }}
               >
                 <button
                   type="button"

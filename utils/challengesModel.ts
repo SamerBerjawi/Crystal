@@ -25,7 +25,10 @@ const parentName = (category: string, expenseCategories: Category[]) =>
 
 export const challengeMetrics = (accounts: Account[], transactions: Transaction[], budgets: Budget[], expenseCategories: Category[], now: Date) => {
   const analytics = analyticsOnly(accounts, transactions);
-  const { totalDebt, netWorth, creditCardDebt } = calculateAccountTotals(openAccounts(accounts));
+  const totals = calculateAccountTotals(openAccounts(accounts));
+  const totalDebt = eurOf(totals.totalDebt, getMainCurrency());
+  const netWorth = eurOf(totals.netWorth, getMainCurrency());
+  const creditCardDebt = eurOf(totals.creditCardDebt, getMainCurrency());
   const totalLimit = accounts.filter(account => account.type === 'Credit Card' && account.status !== 'closed').reduce((sum, card) => sum + eurOf(card.creditLimit || 0, card.currency), 0);
   const creditUtilization = totalLimit > 0 ? (creditCardDebt / totalLimit) * 100 : 0;
 
@@ -86,7 +89,7 @@ export const healthScore = (metrics: ChallengeMetrics) => {
 /** Net worth at the start of each of the last 60 months, newest first, walked back from today. */
 export const netWorthHistory = (accounts: Account[], transactions: Transaction[], now: Date) => {
   const analytics = analyticsOnly(accounts, transactions);
-  const { netWorth: rawCurrent } = calculateAccountTotals(openAccounts(analytics.accounts), analytics.transactions);
+  const rawCurrent = eurOf(calculateAccountTotals(openAccounts(analytics.accounts), analytics.transactions).netWorth, getMainCurrency());
   const signedEur = (tx: Transaction) => {
     const val = Math.abs(eurOf(tx.amount, tx.currency));
     return tx.type === 'expense' ? -val : val;
@@ -304,7 +307,7 @@ export const predictionValue = (prediction: Prediction, { accounts, transactions
       const account = analytics.accounts.find(item => item.id === prediction.targetId);
       return account ? eurOf(account.balance, account.currency) : 0;
     }
-    return calculateAccountTotals(openAccounts(analytics.accounts), analytics.transactions).netWorth;
+    return eurOf(calculateAccountTotals(openAccounts(analytics.accounts), analytics.transactions).netWorth, getMainCurrency());
   }
   const price = prediction.targetId ? prices[prediction.targetId] : null;
   return price ?? null;

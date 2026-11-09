@@ -6,9 +6,19 @@ import { authenticateToken, AuthRequest } from './middleware';
 import { parsePublicHttpUrl, UrlBlockedError } from './urlGuard';
 import { evaluateAlerts, DEFAULT_RULES, type AlertRules } from './alertRules';
 import { CHANNEL_KINDS, channelProblem, privateUrlsAllowed, sendAlert, type ChannelConfig } from './alertChannels';
+import { createRateLimiter } from './rateLimit';
 
 const router = express.Router();
 router.use(authenticateToken);
+
+const alertTestRateLimiter = createRateLimiter({
+    namespace: 'alert-test',
+    windowMs: 60 * 1000,
+    maxAttempts: 10,
+    blockMs: 60 * 1000,
+    message: 'Too many test alerts sent. Please wait a minute and try again.',
+    key: req => `${req.ip}:${(req as AuthRequest).user?.id || 'anonymous'}`,
+});
 
 export interface AlertSettings { enabled: boolean; channel: ChannelConfig | null; rules: AlertRules }
 
@@ -101,7 +111,7 @@ router.put('/', async (req: AuthRequest, res) => {
     }
 });
 
-router.post('/test', async (req: AuthRequest, res) => {
+router.post('/test', alertTestRateLimiter, async (req: AuthRequest, res) => {
     try {
         const { channel } = await loadAlertSettings(req.user!.id);
         if (!channel) return res.status(400).json({ message: 'Save a way to send alerts first.' });

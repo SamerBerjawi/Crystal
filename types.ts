@@ -695,6 +695,7 @@ export interface AppPreferences {
   // Choices that follow you across devices (S-002).
   ignoredSubscriptions?: string[];
   ignoredBillMatches?: string[];
+  ignoredTransferMatches?: string[];
   dismissedBillNotifications?: string[];
   /** Insight card ids you dismissed on the Overview (utils/insightsModel.ts). */
   dismissedInsights?: string[];

@@ -213,12 +213,12 @@ const Investments: React.FC<InvestmentsProps> = ({
   const realized = useMemo(() => realizedGains(tradesInView, grantsInView, toEur, currencyOf), [tradesInView, grantsInView, toEur, currencyOf]);
   const activity = useMemo(() => [
     ...tradesInView.map(trade => ({
-      id: trade.id, date: trade.date, kind: trade.type?.toLowerCase() === 'buy' ? 'Buy' : 'Sell', symbol: trade.symbol, name: trade.name, quantity: trade.quantity, price: trade.price, currency: (trade.currency ?? 'EUR') as Currency, trade, grant: undefined as Warrant | undefined,
+      id: trade.id, date: trade.date, kind: trade.type?.toLowerCase() === 'buy' ? 'Buy' : 'Sell', symbol: trade.symbol, name: trade.name, quantity: trade.quantity, price: trade.price, currency: (trade.currency ?? currencyOf(trade.symbol)) as Currency, trade, grant: undefined as Warrant | undefined,
     })),
     ...grantsInView.map(grant => ({
-      id: grant.id, date: grant.grantDate, kind: 'Grant', symbol: grant.isin, name: grant.name, quantity: grant.quantity, price: grant.grantPrice, currency: getMainCurrency() as Currency, trade: undefined as InvestmentTransaction | undefined, grant,
+      id: grant.id, date: grant.grantDate, kind: 'Grant', symbol: grant.isin, name: grant.name, quantity: grant.quantity, price: grant.grantPrice, currency: currencyOf(grant.isin), trade: undefined as InvestmentTransaction | undefined, grant,
     })),
-  ].sort((a, b) => (a.date < b.date ? 1 : -1)), [tradesInView, grantsInView]);
+  ].sort((a, b) => (a.date < b.date ? 1 : -1)), [tradesInView, grantsInView, currencyOf]);
 
   // What the page draws, beyond the figures above.
   const [activityKind, setActivityKind] = useState('all');
@@ -383,7 +383,7 @@ const Investments: React.FC<InvestmentsProps> = ({
       ) : (
         <>
           {presentSegments.length > 1 && <SegmentedControl scrollable items={segmentItems} activeId={activeSegment} onChange={id => setSegment(id as InvestmentSegment)} />}
-          {current.unpricedValue > 0 && <p className="type-caption text-muted">{formatCurrency(current.unpricedValue, getMainCurrency())} is valued at its last trade, because there's no current price. It's left out of the gain.</p>}
+          {current.unpricedValue > 0 && <p className="type-caption text-muted"><Amount value={current.unpricedValue} currency={getMainCurrency()} /> is valued at its last trade, because there's no current price. It's left out of the gain.</p>}
 
           {tab === 'portfolio' && (
             <Board>
@@ -553,7 +553,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                       <span className="type-body-strong truncate text-ink">{item.name || item.symbol}</span>
                                       <Badge tone={item.kind === 'Sell' ? 'attention' : item.kind === 'Grant' ? 'blue' : 'positive'}>{item.kind}</Badge>
                                     </span>
-                                    <span className="type-caption block truncate text-muted">{item.quantity.toLocaleString()} at {formatCurrency(item.price, item.currency)}, {shortDate(item.date)}</span>
+                                    <span className="type-caption block truncate text-muted">{item.quantity.toLocaleString()} at <Amount value={item.price} currency={item.currency} />, {shortDate(item.date)}</span>
                                   </span>
                                   <span className="type-figure-row shrink-0 text-ink"><Amount value={item.quantity * item.price} currency={item.currency} /></span>
                                   <Menu

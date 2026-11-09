@@ -146,7 +146,7 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
                     <td key={key} className="px-0.5 py-0">
                       <span
                         title={`${row.category}, ${monthLabel(key)}: ${formatCurrency(value, getMainCurrency())}`}
-                        className="type-caption block rounded-md px-2 py-1.5 text-right tabular-nums text-ink"
+                        className="type-caption privacy-blur block rounded-md px-2 py-1.5 text-right tabular-nums text-ink"
                         style={{ background: value > 0 ? `color-mix(in srgb, var(--chart-1) ${Math.max(8, strength)}%, transparent)` : 'transparent' }}
                       >
                         {value > 0 ? compactMoney(value) : '–'}
@@ -159,7 +159,7 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
             ))}
             <tr>
               <th scope="row" className="type-body-strong sticky left-0 bg-surface pt-2 pr-3 text-left text-ink">All spending</th>
-              {monthTotals.map((value, index) => <td key={months[index]} className="type-caption px-2 pt-2 text-right tabular-nums text-ink">{value > 0 ? compactMoney(value) : '–'}</td>)}
+              {monthTotals.map((value, index) => <td key={months[index]} className="type-caption privacy-blur px-2 pt-2 text-right tabular-nums text-ink">{value > 0 ? compactMoney(value) : '–'}</td>)}
               <td className="type-figure-row pl-3 pt-2 text-right text-ink"><Amount value={report.totalSpend} currency={getMainCurrency()} /></td>
             </tr>
           </tbody>

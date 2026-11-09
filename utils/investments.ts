@@ -52,22 +52,40 @@ export const buildHoldingsOverview = (
                 subType: 'Warrant',
                 warrantId: w.id
             };
+        } else {
+            holdingsMap[w.isin].type = 'Warrant';
+            holdingsMap[w.isin].warrantId = w.id;
         }
-
-        const holding = holdingsMap[w.isin];
-        holding.type = 'Warrant';
-        holding.quantity += w.quantity;
-        holding.totalCost += toEur(w.quantity * w.grantPrice, currencyOf(w.isin));
-        holding.warrantId = w.id;
     });
 
-    [...investmentTransactions]
-        .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime())
-        .forEach(tx => {
+    const chronologicalEvents = [
+        ...warrants.map(w => ({
+            symbol: w.isin,
+            name: w.name,
+            date: w.grantDate,
+            quantity: Number(w.quantity) || 0,
+            price: Number(w.grantPrice) || 0,
+            type: 'buy',
+            currency: currencyOf(w.isin),
+            isGrant: true,
+        })),
+        ...investmentTransactions.map(tx => ({
+            symbol: tx.symbol,
+            name: tx.name || tx.symbol,
+            date: tx.date,
+            quantity: Number(tx.quantity) || 0,
+            price: Number(tx.price) || 0,
+            type: tx.type,
+            currency: tx.currency ?? currencyOf(tx.symbol),
+            isGrant: false,
+        })),
+    ].sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
+
+    chronologicalEvents.forEach(tx => {
             if (!holdingsMap[tx.symbol]) {
                 holdingsMap[tx.symbol] = {
                     symbol: tx.symbol,
-                    name: tx.symbol, // Use symbol as name if account not found
+                    name: tx.name || tx.symbol, // Use symbol as name if account not found
                     quantity: 0,
                     totalCost: 0,
                     currentValue: 0,
@@ -80,7 +98,7 @@ export const buildHoldingsOverview = (
             
             const q = Number(tx.quantity) || 0;
             const p = Number(tx.price) || 0;
-            if (p > 0) {
+            if (!tx.isGrant && p > 0) {
                 const txCurr = tx.currency ?? currencyOf(tx.symbol);
                 const holdCurr = currencyOf(tx.symbol);
                 const holdRate = Math.max(toEur(1, holdCurr), 1e-9);

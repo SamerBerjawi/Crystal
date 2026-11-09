@@ -41,6 +41,8 @@ const startServer = async () => {
             'http://127.0.0.1:5173',
             'http://localhost:3000',
             'http://127.0.0.1:3000',
+            'http://localhost:7157',
+            'http://127.0.0.1:7157',
         ];
         const configuredOrigins = (process.env.CORS_ORIGIN || '')
             .split(',')
@@ -50,7 +52,7 @@ const startServer = async () => {
         if (isProduction && configuredOrigins.length === 0) {
             console.warn(
                 '⚠️  [CORS WARNING] Running in production with no CORS_ORIGIN specified. ' +
-                'Defaulting to restricted local origins. Set CORS_ORIGIN to your production frontend domain.'
+                'Defaulting to same-host and local origins. Set CORS_ORIGIN to allow cross-origin frontend domains.'
             );
         }
 
@@ -58,19 +60,28 @@ const startServer = async () => {
             configuredOrigins.length > 0 ? configuredOrigins : defaultOrigins
         );
 
-        app.use(cors({
-            origin: (origin, callback) => {
-                // In dev mode without configured origins, allow all for dev convenience
-                if (!isProduction && configuredOrigins.length === 0) {
-                    return callback(null, true);
-                }
-                // Allow server-to-server / same-origin requests (no Origin header) or matched origins
-                if (!origin || allowedOrigins.has(origin)) {
-                    return callback(null, true);
-                }
-                return callback(new Error(`Origin "${origin}" not allowed by CORS policy.`));
-            },
-            credentials: true,
+        const isSameHostOrigin = (req: express.Request, origin: string | undefined): boolean => {
+            if (!origin) return false;
+            try {
+                const originHost = new URL(origin).host;
+                const reqHost = req.headers['x-forwarded-host'] || req.headers.host;
+                return originHost !== '' && originHost === reqHost;
+            } catch {
+                return false;
+            }
+        };
+
+        app.use(cors((req, callback) => {
+            const origin = req.headers.origin;
+            // In dev mode without configured origins, allow all for dev convenience
+            if (!isProduction && configuredOrigins.length === 0) {
+                return callback(null, { origin: true, credentials: true });
+            }
+            // Allow server-to-server, same-host requests (where browser sends Origin on POST/PUT/DELETE), or matched origins
+            if (!origin || allowedOrigins.has(origin) || isSameHostOrigin(req, origin)) {
+                return callback(null, { origin: true, credentials: true });
+            }
+            return callback(new Error(`Origin "${origin}" not allowed by CORS policy.`));
         }));
         // Cross-site request forgery: the session cookie is SameSite=lax, and on top of that a state-changing request
         // that the browser marks as cross-site / same-site-but-different-origin is refused unless its Origin is allowed.

@@ -67,10 +67,20 @@ const label = (rt: RecurringTransaction) => rt.merchant || rt.description;
 const chargesOf = (rt: RecurringTransaction, transactions: Transaction[]) => {
   const name = normalizeString(rt.merchant || rt.description);
   const currency = (rt.currency || 'EUR') as Currency;
+  const expectedAmount = Math.abs(rt.amount);
   return transactions
     .filter(tx => tx.type === 'expense' && !tx.transferId && !tx.isBalanceAdjustment && !tx.isSplitParent && !tx.isCombinedParent)
-    .filter(tx => tx.recurringSourceId === rt.id || (name.length >= 3 && tx.date >= rt.startDate && normalizeString(tx.merchant || tx.description) === name))
-    .map(tx => ({ id: tx.id, date: tx.date, amount: round2(tx.currency && tx.currency !== currency ? convertCurrency(Math.abs(tx.amount), tx.currency, currency) : Math.abs(tx.amount)) }))
+    .map(tx => ({
+      tx,
+      amount: round2(tx.currency && tx.currency !== currency ? convertCurrency(Math.abs(tx.amount), tx.currency, currency) : Math.abs(tx.amount)),
+    }))
+    .filter(({ tx, amount }) => {
+      if (tx.recurringSourceId === rt.id) return true;
+      if (name.length < 3 || tx.date < rt.startDate || normalizeString(tx.merchant || tx.description) !== name) return false;
+      // Unlinked merchant-name matches must be within a plausible subscription price band (0.25x to 3x) so one-off retail purchases don't trigger false price-creep alerts.
+      return expectedAmount <= 0 || (amount >= expectedAmount * 0.25 && amount <= expectedAmount * 3);
+    })
+    .map(({ tx, amount }) => ({ id: tx.id, date: tx.date, amount }))
     .sort((a, b) => a.date.localeCompare(b.date));
 };
 

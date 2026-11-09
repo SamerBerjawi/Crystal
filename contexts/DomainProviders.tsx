@@ -55,8 +55,14 @@ export const TransactionsProvider: React.FC<{
   children: ReactNode;
   value: TransactionsContextValue;
 }> = ({ children, value }) => {
+  const versionRef = useRef(0);
+  const prevTxsRef = useRef(value.transactions);
+  if (prevTxsRef.current !== value.transactions) {
+    prevTxsRef.current = value.transactions;
+    versionRef.current += 1;
+  }
   const memoValue = useMemo(
-    () => value,
+    () => ({ ...value, digest: value.digest ?? `v${versionRef.current}-${value.transactions.length}` }),
     [value]
   );
 

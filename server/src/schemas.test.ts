@@ -1,4 +1,4 @@
-import { validateFinancialDataPayload } from './schemas';
+import { validateFinancialDataPayload, validateJsonPatchPayload } from './schemas';
 
 function assert(condition: boolean, message: string) {
     if (!condition) {
@@ -61,6 +61,52 @@ try {
     console.log('✓ Test 4 Passed: Null payload rejected');
 } catch (e: any) {
     process.exitCode = 1; console.error('✕ Test 4 Failed:', e.message);
+}
+
+// Test 5: Corrupted preferences string or non-object array elements rejected
+try {
+    const badPrefs = validateFinancialDataPayload({ partial: true, data: { preferences: 'corrupted' } });
+    assert(badPrefs.success === false, 'Non-object preferences must fail validation');
+    const badArrayItem = validateFinancialDataPayload({ partial: true, data: { budgets: ['not-an-object'] } });
+    assert(badArrayItem.success === false, 'Primitive item in entity array must fail validation');
+    console.log('✓ Test 5 Passed: Corrupted preferences and primitive entity items rejected');
+} catch (e: any) {
+    process.exitCode = 1; console.error('✕ Test 5 Failed:', e.message);
+}
+
+// Test 6: Partial delta payload and JSON Patch payload validation
+try {
+    const validDelta = validateFinancialDataPayload({
+        partial: true,
+        data: {},
+        deltas: {
+            transactions: {
+                upserts: [{ id: 'tx-99', accountId: 'acc-1', amount: -25, date: '2026-11-09', description: 'Delta tx' }],
+                deletedIds: ['tx-old'],
+            },
+        },
+    });
+    assert(validDelta.success === true, 'Valid delta payload must pass schema validation');
+
+    const badDeltaTx = validateFinancialDataPayload({
+        partial: true,
+        data: {},
+        deltas: {
+            transactions: {
+                upserts: [{ id: 'tx-bad', accountId: 'acc-1', amount: -25, date: '2026-13-45', description: 'Bad date' }],
+            },
+        },
+    });
+    assert(badDeltaTx.success === false, 'Invalid transaction date inside deltas.transactions.upserts must fail');
+
+    const validPatch = validateJsonPatchPayload({
+        patch: [{ op: 'replace', path: '/transactions/tx-1', value: { id: 'tx-1', amount: -30 } }],
+        previousUpdatedAt: '2026-11-09T12:00:00Z',
+    });
+    assert(validPatch.success === true && validPatch.patch?.length === 1, 'Valid JSON Patch payload must pass');
+    console.log('✓ Test 6 Passed: Delta payloads and JSON Patch operations validated');
+} catch (e: any) {
+    process.exitCode = 1; console.error('✕ Test 6 Failed:', e.message);
 }
 
 console.log('--- All Zod Schema Unit Tests Executed Successfully ---');

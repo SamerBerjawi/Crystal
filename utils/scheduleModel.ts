@@ -228,28 +228,67 @@ export const matchPaid = (
   }
 
   // Fallback for bank-synced / unlinked transactions: match by accountId, normalized merchant/description, date window, and amount.
+  if (occurrences.length === 0) return paid;
+  let minOccDate = occurrences[0].date < occurrences[0].originalDate ? occurrences[0].date : occurrences[0].originalDate;
+  let maxOccDate = occurrences[0].date > occurrences[0].originalDate ? occurrences[0].date : occurrences[0].originalDate;
+  for (const o of occurrences) {
+    if (o.date < minOccDate) minOccDate = o.date;
+    if (o.originalDate < minOccDate) minOccDate = o.originalDate;
+    if (o.date > maxOccDate) maxOccDate = o.date;
+    if (o.originalDate > maxOccDate) maxOccDate = o.originalDate;
+  }
+  const minBoundStr = iso(addDays(parseLocalDate(minOccDate), -5));
+  const maxBoundStr = iso(addDays(parseLocalDate(maxOccDate), 5));
+
   const norm = (s?: string) => (s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const unlinked = transactions.filter(tx => !tx.recurringSourceId && !tx.transferId && !tx.isBalanceAdjustment && !tx.isSplitParent && !tx.isCombinedParent);
+  interface PreparedUnlinkedTx {
+    tx: Transaction;
+    label: string;
+    absAmount: number;
+    sign: 1 | -1;
+  }
+  const unlinkedByAccount = new Map<string, PreparedUnlinkedTx[]>();
+  const allUnlinkedInWindow: PreparedUnlinkedTx[] = [];
+  for (const tx of transactions) {
+    if (tx.recurringSourceId || tx.transferId || tx.isBalanceAdjustment || tx.isSplitParent || tx.isCombinedParent) continue;
+    if (tx.date < minBoundStr || tx.date > maxBoundStr) continue;
+    const label = norm(tx.merchant || tx.description);
+    if (!label) continue;
+    const item: PreparedUnlinkedTx = {
+      tx,
+      label,
+      absAmount: Math.abs(tx.amount),
+      sign: tx.amount >= 0 ? 1 : -1,
+    };
+    allUnlinkedInWindow.push(item);
+    const bucket = unlinkedByAccount.get(tx.accountId);
+    if (bucket) bucket.push(item);
+    else unlinkedByAccount.set(tx.accountId, [item]);
+  }
+  if (allUnlinkedInWindow.length === 0) return paid;
+
   const usedUnlinked = new Set<string>();
   for (const [seriesId, occs] of occBySeries) {
     const rt = series.get(seriesId);
     if (!rt) continue;
     const rtLabel = norm(rt.merchant || rt.description);
     if (!rtLabel) continue;
+    const candidates = (rt.accountId && rt.accountId !== 'external')
+      ? (unlinkedByAccount.get(rt.accountId) ?? [])
+      : allUnlinkedInWindow;
+    if (candidates.length === 0) continue;
     const windowDays = Math.min(4.5, periodDays(rt.frequency, rt.frequencyInterval) / 2);
     const expectedSign = rt.type === 'income' ? 1 : -1;
     const expectedAbs = Math.abs(rt.amount);
+    const maxAmountDiff = Math.max(2, expectedAbs * 0.1);
     const fallbackPairs: { key: string; txId: string; distance: number }[] = [];
     for (const o of occs) {
       if (paid.has(o.key)) continue;
-      for (const tx of unlinked) {
+      for (const { tx, label: txLabel, absAmount: txAbs, sign } of candidates) {
         if (usedUnlinked.has(tx.id)) continue;
-        if (rt.accountId && rt.accountId !== 'external' && tx.accountId !== rt.accountId) continue;
-        if ((tx.amount >= 0 ? 1 : -1) !== expectedSign) continue;
-        const txLabel = norm(tx.merchant || tx.description);
-        if (!txLabel || (txLabel !== rtLabel && !txLabel.includes(rtLabel) && !rtLabel.includes(txLabel))) continue;
-        const txAbs = Math.abs(tx.amount);
-        if (Math.abs(txAbs - expectedAbs) > Math.max(2, expectedAbs * 0.1)) continue;
+        if (sign !== expectedSign) continue;
+        if (txLabel !== rtLabel && !txLabel.includes(rtLabel) && !rtLabel.includes(txLabel)) continue;
+        if (Math.abs(txAbs - expectedAbs) > maxAmountDiff) continue;
         const distance = Math.min(Math.abs(daysBetween(o.date, tx.date)), Math.abs(daysBetween(o.originalDate, tx.date)));
         if (distance <= windowDays) fallbackPairs.push({ key: o.key, txId: tx.id, distance });
       }

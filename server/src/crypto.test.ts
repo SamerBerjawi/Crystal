@@ -37,6 +37,9 @@ try {
 
     const decrypted = decryptSecret(sanitized.encryptedClientCertificate);
     assert(decrypted === rawConnection.clientCertificate, 'Decrypted certificate from sanitized object must equal original PEM');
+
+    const tampered = sanitized.encryptedClientCertificate.slice(0, -4) + 'ffff';
+    assert(decryptSecret(tampered) === '', 'Tampered ciphertext must fail closed and return empty string');
     console.log('✓ Test 2 Passed: Connection sanitization & secret redacting');
 } catch (e: any) {
     process.exitCode = 1; console.error('✕ Test 2 Failed:', e.message);

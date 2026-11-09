@@ -47,9 +47,20 @@ export const useTransactionMatcher = (
   transactions: Transaction[],
   accounts: Account[],
   saveTransaction: (transactionsToSave: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void,
-  config: MatcherConfig = DEFAULT_MATCHER_CONFIG
+  config: MatcherConfig = DEFAULT_MATCHER_CONFIG,
+  externalIgnoredIds?: string[],
+  saveIgnoredIds?: (ids: string[]) => void
 ) => {
-  const [ignoredSuggestionIds, setIgnoredSuggestionIds] = useState<string[]>([]);
+  const [localIgnoredIds, setLocalIgnoredIds] = useState<string[]>([]);
+  const ignoredSuggestionIds = externalIgnoredIds ?? localIgnoredIds;
+  const appendIgnoredIds = (ids: string[]) => {
+    const next = Array.from(new Set([...ignoredSuggestionIds, ...ids]));
+    if (saveIgnoredIds) {
+      saveIgnoredIds(next);
+    } else {
+      setLocalIgnoredIds(next);
+    }
+  };
 
   const suggestions = useMemo(() => {
     const potentialMatches: Suggestion[] = [];
@@ -188,11 +199,11 @@ export const useTransactionMatcher = (
     };
 
     saveTransaction([expenseUpdate, incomeUpdate]);
-    setIgnoredSuggestionIds(prev => [...prev, suggestion.id]);
+    appendIgnoredIds([suggestion.id]);
   };
 
   const dismissSuggestion = (suggestion: Suggestion) => {
-    setIgnoredSuggestionIds(prev => [...prev, suggestion.id]);
+    appendIgnoredIds([suggestion.id]);
   };
 
   const confirmSelectedMatches = (selectedList: Suggestion[]) => {
@@ -239,12 +250,12 @@ export const useTransactionMatcher = (
       saveTransaction(transactionsToUpdate);
     }
 
-    setIgnoredSuggestionIds(prev => [...prev, ...suggestionIdsToIgnore]);
+    appendIgnoredIds(suggestionIdsToIgnore);
   };
 
   const dismissSelectedMatches = (selectedList: Suggestion[]) => {
     const idsToIgnore = selectedList.map(s => s.id);
-    setIgnoredSuggestionIds(prev => [...prev, ...idsToIgnore]);
+    appendIgnoredIds(idsToIgnore);
   };
 
   const confirmAllMatches = () => {

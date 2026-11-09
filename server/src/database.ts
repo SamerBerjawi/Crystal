@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 let db: any;
 try {
     db = new Pool({
+        ...(process.env.DATABASE_URL ? { connectionString: process.env.DATABASE_URL } : {}),
         host: process.env.DATABASE_HOST,
         port: parseInt(process.env.DATABASE_PORT || '5432', 10),
         user: process.env.DATABASE_USER,

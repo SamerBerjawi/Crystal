@@ -10,23 +10,6 @@
  * @github: https://github.com/kokonut-labs/kokonutui
  */
 
-import {
-  Activity,
-  ArrowUpRight,
-  BookOpen,
-  Check,
-  ChevronRight,
-  Copy,
-  FilePlus,
-  FolderInput,
-  History,
-  Keyboard,
-  Link2,
-  LoaderCircle,
-  Search,
-  SunMoon,
-  UserPlus,
-} from "lucide-react";
 import { animate, useReducedMotion } from "motion/react";
 import {
   type ChangeEvent,
@@ -43,6 +26,7 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
+import Icon from "./Icon";
 
 export interface CommandItem {
   id: string;
@@ -117,7 +101,7 @@ const sampleItems: CommandItem[] = [
   {
     id: "new-document",
     label: "New document",
-    icon: <FilePlus className={ICON} />,
+    icon: <Icon name="file-add" size={16} className={ICON} />,
     group: "Actions",
     keywords: ["create", "page", "file"],
     shortcut: ["⌘", "N"],
@@ -125,7 +109,7 @@ const sampleItems: CommandItem[] = [
   {
     id: "duplicate",
     label: "Duplicate page",
-    icon: <Copy className={ICON} />,
+    icon: <Icon name="copy-01" size={16} className={ICON} />,
     group: "Actions",
     keywords: ["copy", "clone"],
     shortcut: ["⌘", "D"],
@@ -133,7 +117,7 @@ const sampleItems: CommandItem[] = [
   {
     id: "move",
     label: "Move to…",
-    icon: <FolderInput className={ICON} />,
+    icon: <Icon name="folder-01" size={16} className={ICON} />,
     group: "Actions",
     keywords: ["folder", "file"],
     placeholder: "Move to which folder?",
@@ -141,48 +125,48 @@ const sampleItems: CommandItem[] = [
       {
         id: "move-inbox",
         label: "Inbox",
-        icon: <FolderInput className={ICON} />,
+        icon: <Icon name="folder-01" size={16} className={ICON} />,
       },
       {
         id: "move-projects",
         label: "Projects",
-        icon: <FolderInput className={ICON} />,
+        icon: <Icon name="folder-01" size={16} className={ICON} />,
       },
       {
         id: "move-archive",
         label: "Archive",
-        icon: <FolderInput className={ICON} />,
+        icon: <Icon name="folder-01" size={16} className={ICON} />,
       },
     ],
   },
   {
     id: "theme",
     label: "Change theme",
-    icon: <SunMoon className={ICON} />,
+    icon: <Icon name="sun-01" size={16} className={ICON} />,
     group: "Actions",
     keywords: ["appearance", "dark", "light", "mode"],
     placeholder: "Choose a theme…",
     children: [
-      { id: "theme-light", label: "Light", icon: <SunMoon className={ICON} /> },
-      { id: "theme-dark", label: "Dark", icon: <SunMoon className={ICON} /> },
+      { id: "theme-light", label: "Light", icon: <Icon name="sun-01" size={16} className={ICON} /> },
+      { id: "theme-dark", label: "Dark", icon: <Icon name="moon-02" size={16} className={ICON} /> },
       {
         id: "theme-system",
         label: "Match system",
-        icon: <SunMoon className={ICON} />,
+        icon: <Icon name="sun-01" size={16} className={ICON} />,
       },
     ],
   },
   {
     id: "invite",
     label: "Invite member",
-    icon: <UserPlus className={ICON} />,
+    icon: <Icon name="user-add-01" size={16} className={ICON} />,
     group: "Actions",
     keywords: ["team", "share", "add"],
   },
   {
     id: "copy-link",
     label: "Copy link",
-    icon: <Link2 className={ICON} />,
+    icon: <Icon name="link-01" size={16} className={ICON} />,
     group: "Actions",
     keywords: ["url", "share"],
     shortcut: ["⌘", "L"],
@@ -190,7 +174,7 @@ const sampleItems: CommandItem[] = [
   {
     id: "docs",
     label: "Documentation",
-    icon: <BookOpen className={ICON} />,
+    icon: <Icon name="book-open-01" size={16} className={ICON} />,
     group: "Links",
     keywords: ["help", "guide"],
     href: "/docs",
@@ -198,7 +182,7 @@ const sampleItems: CommandItem[] = [
   {
     id: "changelog",
     label: "Changelog",
-    icon: <History className={ICON} />,
+    icon: <Icon name="clock-01" size={16} className={ICON} />,
     group: "Links",
     keywords: ["release", "updates", "new"],
     href: "/changelog",
@@ -206,7 +190,7 @@ const sampleItems: CommandItem[] = [
   {
     id: "status",
     label: "Status page",
-    icon: <Activity className={ICON} />,
+    icon: <Icon name="activity-01" size={16} className={ICON} />,
     group: "Links",
     keywords: ["uptime", "incident"],
     href: "/status",
@@ -214,7 +198,7 @@ const sampleItems: CommandItem[] = [
   {
     id: "shortcuts",
     label: "Keyboard shortcuts",
-    icon: <Keyboard className={ICON} />,
+    icon: <Icon name="command" size={16} className={ICON} />,
     group: "Links",
     keywords: ["keys", "hotkeys"],
     href: "/shortcuts",
@@ -437,25 +421,27 @@ function RowEnd({
 }) {
   if (status === "pending") {
     return (
-      <LoaderCircle
-        aria-hidden="true"
+      <Icon
+        name="loading-03"
+        size={16}
         className="size-4 animate-spin text-muted"
       />
     );
   }
   if (status === "done") {
     return (
-      <Check
-        aria-hidden="true"
+      <Icon
+        name="tick-02"
+        size={16}
         className="size-4 text-ink"
       />
     );
   }
   if (item.children) {
-    return <ChevronRight aria-hidden="true" className="size-4 text-muted" />;
+    return <Icon name="arrow-right-01" size={16} className="size-4 text-muted" />;
   }
   if (item.href) {
-    return <ArrowUpRight aria-hidden="true" className="size-4 text-muted" />;
+    return <Icon name="arrow-up-right-01" size={16} className="size-4 text-muted" />;
   }
   if (item.shortcut) {
     return (
@@ -944,8 +930,9 @@ function ActionSearchBar({
         )}
       >
         <div className="flex h-11 items-center gap-2 px-3">
-          <Search
-            aria-hidden="true"
+          <Icon
+            name="search-01"
+            size={16}
             className="size-4 shrink-0 text-muted"
           />
           {stack.map((p, i) => (

@@ -89,11 +89,11 @@ export interface Projection {
   events: ForecastEvent[];
 }
 
-const isActiveGoal = (g: FinancialGoal, all: FinancialGoal[], activeIds: Set<string>) => {
+const isActiveGoal = (g: FinancialGoal, goalsById: Map<string, FinancialGoal>, activeIds: Set<string>) => {
   if (g.isBucket || g.disabled || g.completed) return false;
   if (!activeIds.has(g.id)) return false;
   if (g.parentId) {
-    const parent = all.find(p => p.id === g.parentId);
+    const parent = goalsById.get(g.parentId);
     if (parent && (parent.disabled || parent.completed || !activeIds.has(parent.id))) return false;
   }
   return true;
@@ -202,8 +202,9 @@ export const projectBalances = (input: ProjectInput): Projection => {
 
   // Goals.
   const activeIds = new Set(input.activeGoalIds);
+  const goalsById = new Map(goals.map(g => [g.id, g]));
   for (const g of goals) {
-    if (!isActiveGoal(g, goals, activeIds)) continue;
+    if (!isActiveGoal(g, goalsById, activeIds)) continue;
     const category = goalCategoryOf(g);
     const from = g.paymentAccountId;
     const to = category === 'savings' ? g.destinationAccountId : undefined;
@@ -410,8 +411,9 @@ export const forecastBubbles = (events: ForecastEvent[], weekly: boolean, today:
     return moving.map(event => ({ key: event.key, date: event.date, lane: laneOf(event), amount: Math.abs(event.amount), label: event.description, events: [event], isMovable: canMove(event) }));
   }
   const weeks = new Map<string, Bubble>();
+  const todayMs = today.getTime();
   for (const event of moving) {
-    const offset = Math.floor((parseLocalDate(event.date).getTime() - today.getTime()) / (WEEK_DAYS * 86400000));
+    const offset = Math.floor((parseLocalDate(event.date).getTime() - todayMs) / (WEEK_DAYS * 86400000));
     const date = iso(addDays(today, offset * WEEK_DAYS));
     const lane = laneOf(event);
     const key = `${lane}|${date}`;
