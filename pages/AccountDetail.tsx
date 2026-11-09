@@ -16,8 +16,9 @@ import { useCategoryContext, useScheduleContext, useTagsContext } from '../conte
 import EnableBankingSyncModal from '../components/EnableBankingSyncModal';
 import { toast } from 'sonner';
 import PageSkeleton from '../components/PageSkeleton';
+import { lazyWithRetry } from '../utils/lazyWithRetry';
 
-const AccountPanels = React.lazy(() => import('../components/AccountPanels'));
+const AccountPanels = lazyWithRetry(() => import('../components/AccountPanels'));
 
 const AccountDetail: React.FC<{
     account: Account;
