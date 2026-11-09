@@ -188,6 +188,17 @@ test('transactionsLedgerModel: pairs transfers, attaches spare change, and compu
   const sortedAsc = sortLedgerTransactions(display, { column: 'date', direction: 'ascending' }, accountMap, {});
   assert.equal(sortedAsc[0].id, 'tx-1');
 
+  // Schwartzian transform sort tests: amount desc, category asc, description desc
+  const sortedByAmountDesc = sortLedgerTransactions(display, { column: 'amount', direction: 'descending' }, accountMap, {});
+  assert.equal(sortedByAmountDesc[0].id, 'tx-inc'); // 3000 EUR
+  assert.equal(sortedByAmountDesc[1].id, 'transfer-tr-100'); // 500 EUR
+  assert.equal(sortedByAmountDesc[2].id, 'tx-1'); // 4.2 EUR
+
+  const sortedByCategoryAsc = sortLedgerTransactions(display, { column: 'category', direction: 'ascending' }, accountMap, {});
+  assert.equal(sortedByCategoryAsc[0].category, 'Coffee Shops');
+  assert.equal(sortedByCategoryAsc[1].category, 'Salary');
+  assert.equal(sortedByCategoryAsc[2].category, 'Transfer');
+
   const withSubs = buildDisplayItemsWithSubs(sortedAsc, new Set(), false);
   const renderItems = buildLedgerTableRenderItems(withSubs, [], t => ({ amount: t.amount, currency: t.currency }));
   // 3 distinct dates => 3 group headers + 3 transaction rows = 6 items

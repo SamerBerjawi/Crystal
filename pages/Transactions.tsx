@@ -85,6 +85,27 @@ const LEDGER_SORTS = [
   { id: 'category-desc', label: 'Category, Z to A' },
 ];
 
+function descriptorToLedgerSortToken(sd: SortDescriptor): string {
+  if (sd.column === 'date') return sd.direction === 'ascending' ? 'date-asc' : 'date-desc';
+  if (sd.column === 'amount') return sd.direction === 'ascending' ? 'amount-asc' : 'amount-desc';
+  if (sd.column === 'description') return sd.direction === 'ascending' ? 'merchant-asc' : 'merchant-desc';
+  if (sd.column === 'category') return sd.direction === 'ascending' ? 'category-asc' : 'category-desc';
+  return 'date-desc';
+}
+
+function ledgerSortTokenToDescriptor(token: string): SortDescriptor {
+  switch (token) {
+    case 'date-asc': return { column: 'date', direction: 'ascending' };
+    case 'amount-desc': return { column: 'amount', direction: 'descending' };
+    case 'amount-asc': return { column: 'amount', direction: 'ascending' };
+    case 'merchant-asc': return { column: 'description', direction: 'ascending' };
+    case 'merchant-desc': return { column: 'description', direction: 'descending' };
+    case 'category-asc': return { column: 'category', direction: 'ascending' };
+    case 'category-desc': return { column: 'category', direction: 'descending' };
+    case 'date-desc': default: return { column: 'date', direction: 'descending' };
+  }
+}
+
 const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
@@ -99,7 +120,11 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
 
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [sortBy, setSortBy] = useState('date-desc');
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: 'date',
+    direction: 'descending',
+  });
+  const sortBy = useMemo(() => descriptorToLedgerSortToken(sortDescriptor), [sortDescriptor]);
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -271,10 +296,9 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
       selectedLocations,
       user,
       showBalanceAdjustments,
-      sortBy,
     }),
     [
-      debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions,
+      debouncedSearchTerm, typeFilter, startDate, endDate, indexedTransactions,
       selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations,
       minAmount, maxAmount, parentCategoryByName, accountMapByName, merchantFilter,
       showBalanceAdjustments, user,
@@ -396,7 +420,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     setEndDate('');
     setMinAmount('');
     setMaxAmount('');
-    setSortBy('date-desc');
+    setSortDescriptor({ column: 'date', direction: 'descending' });
     setMerchantFilter('');
   };
 
@@ -412,10 +436,6 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     setSelectedLocations(prev => (prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]));
   }, []);
 
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'date',
-    direction: 'descending',
-  });
   const [visibleCount, setVisibleCount] = useState(LEDGER_BATCH);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
 
@@ -470,17 +490,9 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     });
   }, []);
 
-  const handleSortBySelect = (newSortBy: string) => {
-    setSortBy(newSortBy);
-    if (newSortBy === 'date-desc') setSortDescriptor({ column: 'date', direction: 'descending' });
-    else if (newSortBy === 'date-asc') setSortDescriptor({ column: 'date', direction: 'ascending' });
-    else if (newSortBy === 'amount-desc') setSortDescriptor({ column: 'amount', direction: 'descending' });
-    else if (newSortBy === 'amount-asc') setSortDescriptor({ column: 'amount', direction: 'ascending' });
-    else if (newSortBy === 'merchant-asc') setSortDescriptor({ column: 'description', direction: 'ascending' });
-    else if (newSortBy === 'merchant-desc') setSortDescriptor({ column: 'description', direction: 'descending' });
-    else if (newSortBy === 'category-asc') setSortDescriptor({ column: 'category', direction: 'ascending' });
-    else if (newSortBy === 'category-desc') setSortDescriptor({ column: 'category', direction: 'descending' });
-  };
+  const handleSortBySelect = useCallback((newSortBy: string) => {
+    setSortDescriptor(ledgerSortTokenToDescriptor(newSortBy));
+  }, []);
 
   const toggleOne = (id: string) => setSelectedIds(prev => {
     const next = new Set(prev);
