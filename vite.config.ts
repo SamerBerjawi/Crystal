@@ -89,11 +89,21 @@ export default defineConfig(({ mode }) => {
         output: {
           // Only the data layer is split out. Recharts and Leaflet are deliberately left to Rollup so they stay in the
           // lazy page chunks that use them instead of being preloaded from the entry (AUD-17).
-          manualChunks: {
-            reactAria: ['react-aria-components', 'react-aria'],
-            icons: ['@hugeicons/core-free-icons', '@hugeicons/react', 'lucide-react'],
-            motion: ['motion/react'],
-            reactQuery: ['@tanstack/react-query'],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react-aria') || id.includes('@react-aria')) {
+                return 'reactAria';
+              }
+              if (id.includes('@hugeicons')) {
+                return 'icons';
+              }
+              if (id.includes('/motion/') || id.includes('\\motion\\')) {
+                return 'motion';
+              }
+              if (id.includes('@tanstack/react-query')) {
+                return 'reactQuery';
+              }
+            }
           },
         },
       },
