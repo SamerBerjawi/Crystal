@@ -1,8 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import type { Currency, Invoice, InvoiceStatus, InvoiceType } from '../types';
+import type { Account, Currency, Invoice, InvoiceStatus, InvoiceType } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, toLocalISOString, getMainCurrency } from '../utils';
-import { effectiveStatus, INVOICE_STATUSES, invoiceFromQuote, invoiceSummary, QUOTE_STATUSES, renderPrintableInvoiceHtml, STATUS_LABELS, visibleDocuments } from '../utils/invoicesModel';
+import {
+  buildInvoicePaymentTransaction,
+  canRecordInvoiceInLedger,
+  effectiveStatus,
+  INVOICE_STATUSES,
+  invoiceFromQuote,
+  invoiceSummary,
+  QUOTE_STATUSES,
+  renderPrintableInvoiceHtml,
+  STATUS_LABELS,
+  visibleDocuments,
+} from '../utils/invoicesModel';
 import { useAccountSelector, useInvoicesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useIsMobile } from '../hooks/useIsMobile';
 import InvoiceModal from '../components/InvoiceModal';
@@ -10,10 +21,11 @@ import PageHeader, { type PageStat } from '../components/PageHeader';
 import { BrandMark } from '../components/ServiceCard';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Badge, ShowMore } from '../components/ui/Display';
-import { TextInput } from '../components/ui/Fields';
+import { Checkbox, DateInput, TextInput } from '../components/ui/Fields';
 import { Menu, type MenuAction } from '../components/ui/Menu';
 import { Amount } from '../components/ui/Money';
-import { ConfirmDialog } from '../components/ui/Overlays';
+import { ConfirmDialog, Dialog } from '../components/ui/Overlays';
+import { Select } from '../components/ui/Pickers';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 
@@ -34,7 +46,7 @@ const DocumentRow: React.FC<{ doc: Invoice; today: string; isPhone: boolean; men
       <BrandMark name={doc.entityName} />
       <span className="min-w-0">
         <span className="type-body-strong block truncate text-ink">{doc.entityName}</span>
-        <span className="type-caption block truncate text-muted">{doc.number}{doc.direction === 'received' ? ', bill to pay' : ''}</span>
+        <span className="type-caption block truncate text-muted">{doc.number}{doc.direction === 'received' ? ', bill to pay' : ''}{doc.linkedTransactionId ? ' · In ledger' : ''}</span>
       </span>
     </span>
   );
@@ -65,6 +77,102 @@ const DocumentRow: React.FC<{ doc: Invoice; today: string; isPhone: boolean; men
   );
 };
 
+interface InvoicePaymentDialogProps {
+  invoice: Invoice;
+  accounts: Account[];
+  today: string;
+  onClose: () => void;
+  onConfirm: (accountId: string, paymentDate: string, recordInLedger: boolean) => void;
+}
+
+const InvoicePaymentDialog: React.FC<InvoicePaymentDialogProps> = ({
+  invoice,
+  accounts,
+  today,
+  onClose,
+  onConfirm,
+}) => {
+  const activeAccounts = useMemo(() => accounts.filter(acc => acc.status !== 'closed'), [accounts]);
+  const defaultAccountId = useMemo(() => {
+    if (invoice.paymentAccountId && activeAccounts.some(a => a.id === invoice.paymentAccountId)) {
+      return invoice.paymentAccountId;
+    }
+    const primary = activeAccounts.find(a => a.isPrimary) || activeAccounts.find(a => a.type === 'Checking') || activeAccounts[0];
+    return primary?.id || '';
+  }, [invoice.paymentAccountId, activeAccounts]);
+
+  const [accountId, setAccountId] = useState(defaultAccountId);
+  const [paymentDate, setPaymentDate] = useState(invoice.paidDate || today);
+  const isAlreadyPaid = invoice.status === 'paid';
+  const [recordInLedger, setRecordInLedger] = useState(true);
+
+  const isIncome = invoice.direction === 'sent';
+  const title = isAlreadyPaid ? 'Record in ledger' : 'Mark as paid';
+  const accountOptions = useMemo(
+    () => activeAccounts.map(acc => ({ id: acc.id, label: acc.name, description: acc.type })),
+    [activeAccounts]
+  );
+
+  return (
+    <Dialog
+      isOpen
+      onClose={onClose}
+      title={title}
+      description={`${invoice.number} · ${invoice.entityName}`}
+      footer={close => (
+        <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
+          <Button variant="ghost" onPress={close}>Cancel</Button>
+          <Button
+            isDisabled={(recordInLedger || isAlreadyPaid) && !accountId}
+            onPress={() => onConfirm(accountId, paymentDate, recordInLedger)}
+          >
+            {isAlreadyPaid ? 'Record in ledger' : 'Confirm'}
+          </Button>
+        </div>
+      )}
+    >
+      <div className="space-y-4">
+        <div className="surface-inset flex items-center justify-between rounded-[var(--radius-md)] p-3">
+          <div>
+            <span className="type-caption block text-muted">
+              {isIncome ? 'Payment received' : 'Bill payment'}
+            </span>
+            <span className="type-label block text-ink">{invoice.entityName}</span>
+          </div>
+          <div className="text-right">
+            <span className="type-figure-row block text-ink font-semibold">
+              <Amount value={invoice.total} currency={invoice.currency} />
+            </span>
+          </div>
+        </div>
+
+        {!isAlreadyPaid && (
+          <Checkbox isSelected={recordInLedger} onChange={setRecordInLedger}>
+            Record transaction in ledger
+          </Checkbox>
+        )}
+
+        {(recordInLedger || isAlreadyPaid) && (
+          <Select
+            label={isIncome ? 'Deposit account' : 'Payment account'}
+            options={accountOptions}
+            value={accountId}
+            onChange={setAccountId}
+            placeholder="Select an account"
+          />
+        )}
+
+        <DateInput
+          label="Payment date"
+          value={paymentDate}
+          onChange={setPaymentDate}
+          isRequired
+        />
+      </div>
+    </Dialog>
+  );
+};
+
 /** Talvo's aging above a table of documents. Phones get rows, and editing is a full-height sheet (D-017). */
 const InvoicesPage: React.FC = () => {
   const { invoices, saveInvoice, deleteInvoice } = useInvoicesContext();
@@ -80,6 +188,7 @@ const InvoicesPage: React.FC = () => {
   const [editor, setEditor] = useState<{ type: InvoiceType; invoice?: Invoice } | null>(null);
   const [deleting, setDeleting] = useState<Invoice | null>(null);
   const [converting, setConverting] = useState<Invoice | null>(null);
+  const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => setShown(PAGE_SIZE), [type, status, search]);
 
@@ -101,50 +210,37 @@ const InvoicesPage: React.FC = () => {
     setStatus('all');
   };
 
-  const getDefaultLedgerAccount = () =>
-    accounts.find(acc => acc.status !== 'closed' && acc.isPrimary) ||
-    accounts.find(acc => acc.status !== 'closed' && acc.type === 'Checking') ||
-    accounts.find(acc => acc.status !== 'closed');
+  const handlePaymentConfirm = (accountId: string, paymentDate: string, recordInLedger: boolean) => {
+    if (!payingInvoice) return;
+    const targetAccount = accounts.find(a => a.id === accountId);
 
-  const recordInvoiceTransaction = (doc: Invoice) => {
-    const defaultAccount = getDefaultLedgerAccount();
-    if (!defaultAccount) {
-      toast.error('Create or open an account first to record this transaction');
-      return;
-    }
-    const isIncome = doc.direction === 'sent';
-    saveTransaction(
-      [
-        {
-          accountId: defaultAccount.id,
-          date: today,
-          description: `${doc.type === 'quote' ? 'Quote' : 'Invoice'} ${doc.number} - ${doc.entityName}`,
-          merchant: doc.entityName,
-          amount: isIncome ? Math.abs(doc.total) : -Math.abs(doc.total),
-          category: isIncome ? 'Income' : 'Bills & Utilities',
-          type: isIncome ? 'income' : 'expense',
-          currency: doc.currency,
-        },
-      ],
-      []
-    );
-    toast.success(`Recorded in ${defaultAccount.name}`);
-  };
-
-  const markInvoicePaid = (doc: Invoice) => {
-    saveInvoice({ ...doc, status: 'paid' });
-    const defaultAccount = getDefaultLedgerAccount();
-
-    if (defaultAccount) {
-      toast.success(`${doc.number} marked as paid`, {
-        action: {
-          label: 'Record transaction',
-          onClick: () => recordInvoiceTransaction(doc),
-        },
+    if (recordInLedger) {
+      if (!accountId) {
+        toast.error('Select an account to record this transaction');
+        return;
+      }
+      const { transaction, updatedInvoice } = buildInvoicePaymentTransaction({
+        invoice: payingInvoice,
+        accountId,
+        paymentDate,
       });
+      saveTransaction([transaction], []);
+      saveInvoice(updatedInvoice);
+      toast.success(
+        payingInvoice.status === 'paid'
+          ? `Recorded in ${targetAccount?.name ?? 'ledger'}`
+          : `${payingInvoice.number} marked as paid & recorded in ${targetAccount?.name ?? 'ledger'}`
+      );
     } else {
-      toast.success(`${doc.number} marked as paid`);
+      saveInvoice({
+        ...payingInvoice,
+        status: 'paid',
+        paidDate: paymentDate,
+        paymentAccountId: accountId || undefined,
+      });
+      toast.success(`${payingInvoice.number} marked as paid`);
     }
+    setPayingInvoice(null);
   };
 
   const printDocument = (doc: Invoice) => {
@@ -164,10 +260,10 @@ const InvoicesPage: React.FC = () => {
   const menuFor = (doc: Invoice): MenuAction[] => [
     { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => setEditor({ type: doc.type, invoice: doc }) },
     ...(doc.type === 'invoice' && doc.status !== 'paid'
-      ? [{ id: 'mark-paid', label: 'Mark as paid', icon: 'checkmark-circle-02', onAction: () => markInvoicePaid(doc) }]
+      ? [{ id: 'mark-paid', label: 'Mark as paid', icon: 'checkmark-circle-02', onAction: () => setPayingInvoice(doc) }]
       : []),
-    ...(doc.type === 'invoice' && doc.status === 'paid'
-      ? [{ id: 'record-ledger', label: 'Record in ledger', icon: 'checkmark-circle-02', onAction: () => recordInvoiceTransaction(doc) }]
+    ...(canRecordInvoiceInLedger(doc)
+      ? [{ id: 'record-ledger', label: 'Record in ledger', icon: 'checkmark-circle-02', onAction: () => setPayingInvoice(doc) }]
       : []),
     ...(doc.type === 'quote' && doc.status !== 'accepted'
       ? [{ id: 'mark-accepted', label: 'Mark as accepted', icon: 'checkmark-circle-02', onAction: () => { saveInvoice({ ...doc, status: 'accepted' }); toast.success(`${doc.number} accepted`); } }]
@@ -275,6 +371,15 @@ const InvoicesPage: React.FC = () => {
         message="This quote is already accepted, so it may have an invoice."
         confirmLabel="Create invoice"
       />
+      {payingInvoice && (
+        <InvoicePaymentDialog
+          invoice={payingInvoice}
+          accounts={accounts}
+          today={today}
+          onClose={() => setPayingInvoice(null)}
+          onConfirm={handlePaymentConfirm}
+        />
+      )}
     </div>
   );
 };

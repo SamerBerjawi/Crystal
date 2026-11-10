@@ -1,4 +1,5 @@
-import type { Currency, Invoice, InvoiceItem, InvoiceStatus, InvoiceType } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+import type { Currency, Invoice, InvoiceItem, InvoiceStatus, InvoiceType, Transaction } from '../types';
 import { parseLocalDate } from '../utils';
 
 export const INVOICE_STATUSES: InvoiceStatus[] = ['draft', 'sent', 'paid', 'overdue'];
@@ -162,3 +163,67 @@ export const renderPrintableInvoiceHtml = (doc: Invoice, formatMoney: (val: numb
 </body>
 </html>`;
 };
+
+export interface BuildInvoicePaymentTransactionParams {
+  invoice: Invoice;
+  accountId: string;
+  paymentDate?: string;
+  transactionId?: string;
+  category?: string;
+}
+
+export interface InvoicePaymentResult {
+  transaction: Transaction;
+  updatedInvoice: Invoice;
+}
+
+/** Builds a ledger transaction linked to an invoice, and returns both the transaction and updated invoice. */
+export const buildInvoicePaymentTransaction = ({
+  invoice,
+  accountId,
+  paymentDate = new Date().toISOString().slice(0, 10),
+  transactionId,
+  category,
+}: BuildInvoicePaymentTransactionParams): InvoicePaymentResult => {
+  const isIncome = invoice.direction === 'sent';
+  const txId = transactionId || `txn-${uuidv4()}`;
+  const amount = isIncome ? Math.abs(invoice.total) : -Math.abs(invoice.total);
+  const defaultCategory = isIncome ? 'Income' : 'Bills & Utilities';
+
+  const transaction: Transaction = {
+    id: txId,
+    accountId,
+    date: paymentDate,
+    description: `${invoice.type === 'quote' ? 'Quote' : 'Invoice'} ${invoice.number} - ${invoice.entityName}`,
+    merchant: invoice.entityName,
+    amount,
+    category: category || defaultCategory,
+    type: isIncome ? 'income' : 'expense',
+    currency: invoice.currency,
+    linkedInvoiceId: invoice.id,
+  };
+
+  const updatedInvoice: Invoice = {
+    ...invoice,
+    status: 'paid',
+    paidDate: paymentDate,
+    paymentAccountId: accountId,
+    linkedTransactionId: txId,
+  };
+
+  return { transaction, updatedInvoice };
+};
+
+/** Only invoices marked as paid that do not yet have a linked ledger transaction can be recorded. */
+export const canRecordInvoiceInLedger = (doc: Invoice): boolean =>
+  doc.type === 'invoice' && doc.status === 'paid' && !doc.linkedTransactionId;
+
+/** Resolves the transaction linked to an invoice, if it exists in the ledger. */
+export const findLinkedTransaction = (doc: Invoice, transactions: Transaction[]): Transaction | undefined => {
+  if (doc.linkedTransactionId) {
+    const found = transactions.find(tx => tx.id === doc.linkedTransactionId);
+    if (found) return found;
+  }
+  return transactions.find(tx => tx.linkedInvoiceId === doc.id);
+};
+

@@ -1,7 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Currency, Invoice } from '../../types';
-import { documentNumber, documentTotals, effectiveStatus, invoiceFromQuote, invoiceSummary, lineTotal, visibleDocuments } from '../../utils/invoicesModel';
+import type { Currency, Invoice, Transaction } from '../../types';
+import {
+  buildInvoicePaymentTransaction,
+  canRecordInvoiceInLedger,
+  documentNumber,
+  documentTotals,
+  effectiveStatus,
+  findLinkedTransaction,
+  invoiceFromQuote,
+  invoiceSummary,
+  lineTotal,
+  visibleDocuments,
+} from '../../utils/invoicesModel';
 
 const doc = (extra: Partial<Invoice>) => ({ id: '1', type: 'invoice', direction: 'sent', number: 'INV-1', date: '2026-10-01', entityName: 'Acme', currency: 'EUR', items: [], subtotal: 0, taxAmount: 0, total: 100, status: 'sent', ...extra }) as Invoice;
 const toEur = (amount: number, currency: Currency) => (currency === 'USD' ? amount * 0.5 : amount);
@@ -77,3 +88,78 @@ test('a quote becomes a new draft invoice with no id', () => {
   assert.equal(invoice.date, today);
   assert.equal(invoice.total, 70);
 });
+
+test('buildInvoicePaymentTransaction creates income transaction for sent invoice and links both', () => {
+  const invoice = doc({ id: 'inv-101', direction: 'sent', number: 'INV-101', entityName: 'Globex Corp', total: 250, currency: 'EUR' });
+  const result = buildInvoicePaymentTransaction({
+    invoice,
+    accountId: 'acc-main',
+    paymentDate: '2026-11-01',
+    transactionId: 'tx-paid-1',
+  });
+
+  assert.equal(result.transaction.id, 'tx-paid-1');
+  assert.equal(result.transaction.accountId, 'acc-main');
+  assert.equal(result.transaction.date, '2026-11-01');
+  assert.equal(result.transaction.amount, 250);
+  assert.equal(result.transaction.type, 'income');
+  assert.equal(result.transaction.category, 'Income');
+  assert.equal(result.transaction.currency, 'EUR');
+  assert.equal(result.transaction.merchant, 'Globex Corp');
+  assert.equal(result.transaction.linkedInvoiceId, 'inv-101');
+
+  assert.equal(result.updatedInvoice.status, 'paid');
+  assert.equal(result.updatedInvoice.paidDate, '2026-11-01');
+  assert.equal(result.updatedInvoice.paymentAccountId, 'acc-main');
+  assert.equal(result.updatedInvoice.linkedTransactionId, 'tx-paid-1');
+});
+
+test('buildInvoicePaymentTransaction creates expense transaction for received bill', () => {
+  const bill = doc({ id: 'bill-202', direction: 'received', number: 'BILL-202', entityName: 'Hosting Ltd', total: 80, currency: 'USD' });
+  const result = buildInvoicePaymentTransaction({
+    invoice: bill,
+    accountId: 'acc-usd',
+    paymentDate: '2026-11-05',
+    category: 'Technology',
+  });
+
+  assert.ok(result.transaction.id.startsWith('txn-'));
+  assert.equal(result.transaction.accountId, 'acc-usd');
+  assert.equal(result.transaction.amount, -80);
+  assert.equal(result.transaction.type, 'expense');
+  assert.equal(result.transaction.category, 'Technology');
+  assert.equal(result.transaction.currency, 'USD');
+  assert.equal(result.transaction.linkedInvoiceId, 'bill-202');
+
+  assert.equal(result.updatedInvoice.status, 'paid');
+  assert.equal(result.updatedInvoice.linkedTransactionId, result.transaction.id);
+});
+
+test('canRecordInvoiceInLedger only returns true for paid invoices without an existing ledger link', () => {
+  const sentDraft = doc({ id: '1', type: 'invoice', status: 'draft' });
+  const sentOpen = doc({ id: '2', type: 'invoice', status: 'sent' });
+  const sentPaidNoLink = doc({ id: '3', type: 'invoice', status: 'paid' });
+  const sentPaidLinked = doc({ id: '4', type: 'invoice', status: 'paid', linkedTransactionId: 'tx-1' });
+  const quotePaid = doc({ id: '5', type: 'quote', status: 'accepted' });
+
+  assert.equal(canRecordInvoiceInLedger(sentDraft), false);
+  assert.equal(canRecordInvoiceInLedger(sentOpen), false);
+  assert.equal(canRecordInvoiceInLedger(sentPaidNoLink), true);
+  assert.equal(canRecordInvoiceInLedger(sentPaidLinked), false);
+  assert.equal(canRecordInvoiceInLedger(quotePaid), false);
+});
+
+test('findLinkedTransaction resolves transaction by linkedTransactionId or linkedInvoiceId', () => {
+  const tx1 = { id: 'tx-100', accountId: 'a1', date: today, description: 'Test', amount: 100, category: 'Income', type: 'income', currency: 'EUR' } as Transaction;
+  const tx2 = { id: 'tx-200', linkedInvoiceId: 'inv-200', accountId: 'a1', date: today, description: 'Test 2', amount: 200, category: 'Income', type: 'income', currency: 'EUR' } as Transaction;
+  const transactions = [tx1, tx2];
+
+  const invoiceLinkedDirect = doc({ id: 'inv-100', linkedTransactionId: 'tx-100' });
+  const invoiceLinkedReverse = doc({ id: 'inv-200' });
+  const invoiceUnlinked = doc({ id: 'inv-300' });
+
+  assert.equal(findLinkedTransaction(invoiceLinkedDirect, transactions), tx1);
+  assert.equal(findLinkedTransaction(invoiceLinkedReverse, transactions), tx2);
+  assert.equal(findLinkedTransaction(invoiceUnlinked, transactions), undefined);
+});
+
