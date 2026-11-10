@@ -352,6 +352,8 @@ export interface Transaction {
   parentTransactionId?: string;
   isSplitParent?: boolean;
   isCombinedParent?: boolean;
+  /** Linked invoice ID if this transaction pays or settles an invoice. */
+  linkedInvoiceId?: string;
   /** A one-off you do not want counted against budgets (a laptop, a deposit). Everything else still counts it. */
   excludeFromBudget?: boolean;
   /** Fields you edited on a bank-synced transaction. Sync leaves them alone (utils/lockedFields.ts). */
@@ -839,6 +841,9 @@ export interface Invoice {
 
   status: InvoiceStatus;
   notes?: string;
+  linkedTransactionId?: string;
+  paidDate?: string; // ISO Date YYYY-MM-DD
+  paymentAccountId?: string;
 }
 
 export interface UserStats {

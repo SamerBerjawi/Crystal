@@ -100,6 +100,9 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ onClose, onSave, invoice, i
       .filter(item => item.description.trim() || item.unitPrice > 0);
     onSave({
       id: invoice?.id,
+      linkedTransactionId: invoice?.linkedTransactionId,
+      paidDate: invoice?.paidDate,
+      paymentAccountId: invoice?.paymentAccountId,
       type: draft.type,
       direction: draft.direction,
       status: draft.status,
