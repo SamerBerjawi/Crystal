@@ -246,13 +246,20 @@ export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'
                     handleMouseLeaveHub();
                   }
                 }}
+                onKeyDown={e => {
+                  if (e.key === 'Escape' && isCollapsed && isHovered) {
+                    e.stopPropagation();
+                    setHoveredHubId(null);
+                  }
+                }}
               >
                 <button
                   type="button"
                   onClick={() => handleHubPress(hub)}
                   aria-label={isCollapsed ? hub.label : undefined}
                   aria-current={isActive ? 'page' : undefined}
-                  aria-expanded={!isCollapsed && hasTabs ? isOpen : undefined}
+                  aria-expanded={hasTabs ? (isCollapsed ? isHovered : isOpen) : undefined}
+                  aria-haspopup={isCollapsed && hasTabs ? 'menu' : undefined}
                   className={cn(
                     'relative flex h-11 cursor-pointer items-center rounded-xl text-sm transition-colors duration-[var(--duration-fast)]',
                     isCollapsed
@@ -291,6 +298,8 @@ export const Sidebar: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'
                 {/* Collapsed mode: floating label pill + submenu tree card on hover */}
                 {isCollapsed && isHovered && (
                   <div
+                    role={hasTabs ? 'region' : 'tooltip'}
+                    aria-label={hasTabs ? `${hub.label} submenu` : hub.label}
                     className="absolute left-full top-0 z-[var(--z-popover)] pl-3"
                     onMouseEnter={() => handleMouseEnterHub(hub.id)}
                     onMouseLeave={handleMouseLeaveHub}

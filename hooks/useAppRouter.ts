@@ -181,7 +181,7 @@ export function useAppRouter(isAuthenticated: boolean, isDataLoaded: boolean) {
   const handleOpenAccountDetail = useCallback((accountId: string, tab?: string | null) => {
     setViewingAccountId(accountId);
     setCurrentPageState('AccountDetail');
-    const activeTab = tab !== undefined ? tab : (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null);
+    const activeTab = tab !== undefined ? tab : (typeof window !== 'undefined' && window.location.pathname.startsWith('/accounts/') ? new URLSearchParams(window.location.search).get('tab') : null);
     const tabSuffix = activeTab ? `?tab=${encodeURIComponent(activeTab)}` : '';
     navigateToPath(pageToPath('AccountDetail', accountId) + tabSuffix, false, { fromAccounts: true });
   }, [navigateToPath]);
