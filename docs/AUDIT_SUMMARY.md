@@ -37,11 +37,12 @@ If you open Crystal today, here are the concrete visual improvements and interfa
     * **Investment Candlesticks & Tooltips**: Price labels and hover details now show `•••`.
     * **Budget Modal**: Daily and weekly pace estimates ("About €15.00 a day") are masked.
 
-### 3. Overdue Bills Visible on the Cashflow Forecast
+### 3. Overdue Bills & Balanced Starting Baseline on the Cashflow Forecast
 * **Where**: The **Forecast** page (`/forecasting`) and Dashboard **Coming Up** tab.
 * **What Changed**:
-  * Previously, if you had an unpaid bill that was past its due date, the cashflow forecast dropped it completely. The projection line would jump upward, making it look like you had more future money than you actually did.
-  * Now, open unpaid bills from the past 60 days roll forward and appear directly on **"Today"** with an orange **"Overdue"** badge. Your projected balance curve remains realistic.
+  * **Today's Actual Balance Baseline**: The forecast projection is strictly anchored to your real, current account balances. Historical reconstruction and future curves always originate from your actual starting funds.
+  * **Unified 7-Day Overdue Lookback**: Unpaid bills and recurring charges from the last 7 days roll forward and appear directly on **"Today"** with an orange **"Overdue"** badge.
+  * **Calendar & Forecast Synchronization**: This 7-day lookback exactly matches the **Upcoming** section under **Calendar** (`/schedule`). Previously, an older 60-day forecast lookback caused phantom bills from months ago to drag down the forecast curve even though they were invisible in the Calendar, leaving users with no way to confirm, pay, or skip them. Now, every single overdue transaction that affects your forecast is clearly visible and actionable in your Calendar Upcoming queue.
 
 ### 4. Interactive Keyboard Support for the Collapsed Sidebar
 * **Where**: The desktop main sidebar when collapsed into compact icon mode.
