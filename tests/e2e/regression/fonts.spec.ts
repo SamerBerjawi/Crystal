@@ -1,5 +1,5 @@
 /** AUD-40 (PERF-009): no third-party font requests until a non-default font is chosen. */
-import { test, expect, registerUser, goTo } from '../fixtures/test';
+import { test, expect, registerUser, goTo, signInScreen } from '../fixtures/test';
 
 test('the sign-in page and the app make no Google Fonts requests; choosing a font loads only then', async ({ browser, baseURL }, testInfo) => {
   const user = await registerUser(baseURL!, { tag: 'fonts' });
@@ -14,7 +14,7 @@ test('the sign-in page and the app make no Google Fonts requests; choosing a fon
   const anonPage = await anon.newPage();
   anonPage.on('request', r => { if (/fonts\.(googleapis|gstatic)\.com/.test(r.url())) fontRequests.push('signin:' + r.url()); });
   await anonPage.goto('/');
-  await expect(anonPage.getByText('Welcome Back', { exact: true })).toBeVisible();
+  await expect(signInScreen(anonPage)).toBeVisible();
   await anonPage.waitForTimeout(1000);
   await anon.close();
   expect(fontRequests, 'sign-in page must not touch Google Fonts').toEqual([]);

@@ -45,7 +45,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
       )}
     >
       <div className="space-y-4">
-        <AmountInput autoFocus label="New value" help="Net worth and equity use this value." currency={currencySign(account.currency)} value={newValue} onChange={setNewValue} />
+        <AmountInput id="new-value" autoFocus label="New value" help="Net worth and equity use this value." currency={currencySign(account.currency)} value={newValue} onChange={setNewValue} />
         <DateInput label="Valued on" value={date} onChange={setDate} isRequired />
         <DetailList items={[
           { label: 'Current value', value: <Amount value={account.balance} currency={account.currency} /> },

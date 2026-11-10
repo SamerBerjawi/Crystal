@@ -22,7 +22,7 @@ test('clickable account cards are keyboard operable (Enter opens the detail page
   await expect(card, 'the account card has a keyboard entry point').toBeAttached();
   await card.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('dialog').filter({ hasText: 'Everyday Checking' }).first(), 'Enter opens the account overview').toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Everyday Checking' }), 'Enter opens the account detail page').toBeVisible();
 });
 
 test('every page exposes a main landmark and a single h1', async ({ authedPage: page }) => {

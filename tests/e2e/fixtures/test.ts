@@ -101,7 +101,7 @@ export async function expectSeededDashboard(page: Page) {
   await expect(page.locator('main')).toContainText('3,450.75');
 }
 
-export const signInScreen = (page: Page) => page.getByText('Welcome Back', { exact: true });
+export const signInScreen = (page: Page) => page.getByRole('heading', { name: /sign in|welcome back/i });
 
 /**
  * Marks a test that documents a still-open audit finding (see audit/plan.md).

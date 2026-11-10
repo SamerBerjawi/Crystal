@@ -444,7 +444,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const tasksDue = useMemo(() => {
     if (!isSummaryTab) return 0;
     const today = toLocalISOString(new Date());
-    return tasks.filter(task => task.status !== 'Done' && !!task.dueDate && task.dueDate <= today).length;
+    return Array.isArray(tasks) ? tasks.filter(task => task.status !== 'Done' && !!task.dueDate && task.dueDate <= today).length : 0;
   }, [isSummaryTab, tasks]);
 
   const incomeYesterday = useMemo(() => {

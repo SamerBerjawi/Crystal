@@ -141,15 +141,11 @@ const startServer = async () => {
         });
 
         app.get(['/health', '/api/health'], async (req, res) => {
-            const start = Date.now();
             try {
                 await db.query('SELECT 1');
-                const dbLatencyMs = Date.now() - start;
                 res.status(200).json({
                     status: 'healthy',
                     uptime: process.uptime(),
-                    dbLatencyMs,
-                    memoryRssMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
                     timestamp: new Date().toISOString(),
                 });
             } catch (err: any) {

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import type { Account, Transaction } from '../../types';
 import { convertCurrency, convertToMain, getMainCurrency } from '../../utils';
 import { accountLinks } from '../../utils/accountLinks';
@@ -11,7 +11,7 @@ import { AreaSparkline } from '../../src/components/charts';
 import { formatCurrency } from '../../utils';
 import { AccountLogo } from '../AccountCard';
 import { Badge } from '../ui/Display';
-import { Menu, type MenuAction } from '../ui/Menu';
+import { Menu, PointerMenu, type MenuAction } from '../ui/Menu';
 import { IconButton } from '../ui/Actions';
 import { Amount } from '../ui/Money';
 import { cn } from '../../lib/utils';
@@ -151,7 +151,7 @@ const AllAccountsView: React.FC<AllAccountsViewProps> = ({ accounts, transaction
           ) : column.groups.map(group => (
             <div key={group.id} className="pt-3">
               <header className="flex items-center justify-between gap-3 px-2 pb-1">
-                <button type="button" onClick={() => onOpenTab(group.tab)} className="flex cursor-pointer items-center gap-2 text-left" disabled={!group.tab}>
+                <button type="button" onClick={() => onOpenTab(group.tab)} className="flex min-h-7 cursor-pointer items-center gap-2 text-left" disabled={!group.tab}>
                   <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: GROUP_COLOR[group.id] }} />
                   <h3 className="type-label text-muted">{group.id}</h3>
                   <span className="type-caption text-muted">{group.accounts.length}</span>
@@ -177,26 +177,49 @@ const AccountLine: React.FC<{ account: Account; balance: number; transactions: T
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const spark = useMemo(() => computeAccount90dSparkline(account, transactions, balance, { conversionRates }), [account, transactions, balance, conversionRates]);
   const links = useMemo(() => accountLinks(account, { accounts, goals }).filter(link => link.target.type === 'account').slice(0, 1), [account, accounts, goals]);
+  const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextPoint({ x: e.clientX, y: e.clientY });
+  };
+
   return (
-    <li className="flex min-h-14 items-center gap-3 px-2 py-1.5">
-      <button type="button" onClick={() => onOpen(account.id)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-[var(--radius-md)] text-left">
-        <AccountLogo account={account} size={36} />
-        <span className="min-w-0 flex-1">
-          <span className="type-body-strong block truncate text-ink">{account.name}</span>
-          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="type-caption truncate text-muted">{account.financialInstitution || account.subType || account.otherSubType || account.type}</span>
-            {links.map(link => link.target.type === 'account' && (
-              <Badge key={link.kind + link.target.account.id} icon="link-01" className="hidden max-w-full @xl:inline-flex">{link.label} {link.target.account.name}</Badge>
-            ))}
+    <>
+      <li onContextMenu={handleContextMenu} className="flex min-h-14 items-center gap-3 px-2 py-1.5">
+        <button
+          type="button"
+          onClick={() => onOpen(account.id)}
+          onContextMenu={handleContextMenu}
+          aria-label={`Open ${account.name}`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-[var(--radius-md)] text-left"
+        >
+          <AccountLogo account={account} size={36} />
+          <span className="min-w-0 flex-1">
+            <span className="type-body-strong block truncate text-ink">{account.name}</span>
+            <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className="type-caption truncate text-muted">{account.financialInstitution || account.subType || account.otherSubType || account.type}</span>
+              {links.map(link => link.target.type === 'account' && (
+                <Badge key={link.kind + link.target.account.id} icon="link-01" className="hidden max-w-full @xl:inline-flex">{link.label} {link.target.account.name}</Badge>
+              ))}
+            </span>
           </span>
-        </span>
-        <span className={cn('hidden w-24 shrink-0 @lg:block')}>
-          {spark.sparklineData.length > 1 && <AreaSparkline data={spark.sparklineData.map((point, index) => ({ index, value: point.value }))} dataKey="value" height={32} curve="natural" color={spark.isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'} animationDuration={900} />}
-        </span>
-        <span className="type-figure-row shrink-0 text-right text-ink"><Amount value={balance} currency={account.currency} /></span>
-      </button>
-      <Menu title={account.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${account.name}`} tooltipPlacement="left" />} items={menuItems} />
-    </li>
+          <span className={cn('hidden w-24 shrink-0 @lg:block')}>
+            {spark.sparklineData.length > 1 && <AreaSparkline data={spark.sparklineData.map((point, index) => ({ index, value: point.value }))} dataKey="value" height={32} curve="natural" color={spark.isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'} animationDuration={900} />}
+          </span>
+          <span className="type-figure-row shrink-0 text-right text-ink"><Amount value={balance} currency={account.currency} /></span>
+        </button>
+        <Menu title={account.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${account.name}`} tooltipPlacement="left" />} items={menuItems} />
+      </li>
+      {contextPoint && (
+        <PointerMenu
+          point={contextPoint}
+          title={account.name}
+          items={menuItems}
+          onClose={() => setContextPoint(null)}
+        />
+      )}
+    </>
   );
 };
 

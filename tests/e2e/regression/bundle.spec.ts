@@ -1,5 +1,5 @@
 /** AUD-16/17/39/64: the sign-in screen stays light and heavy libraries are not part of startup. */
-import { test, expect } from '../fixtures/test';
+import { test, expect, signInScreen } from '../fixtures/test';
 
 test('sign-in loads a small, bounded set of scripts and preloads no charting/map libraries', async ({ page }) => {
   const scripts: { url: string; bytes: number }[] = [];
@@ -10,7 +10,7 @@ test('sign-in loads a small, bounded set of scripts and preloads no charting/map
     }
   });
   await page.goto('/');
-  await expect(page.getByText('Welcome Back', { exact: true })).toBeVisible();
+  await expect(signInScreen(page)).toBeVisible();
   await page.waitForTimeout(2500); // long enough for any idle-time route preloading to have started
 
   const html = await (await page.request.get('/')).text();

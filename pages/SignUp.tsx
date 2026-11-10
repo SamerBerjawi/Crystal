@@ -46,7 +46,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
           <TextInput label="Last name" autoComplete="family-name" isRequired value={lastName} onChange={setLastName} />
         </div>
         <TextInput label="Email" type="email" autoComplete="email" isRequired value={email} onChange={setEmail} />
-        <TextInput label="Password" type="password" help="At least 8 characters." autoComplete="new-password" isRequired value={password} onChange={setPassword} />
+        <TextInput label="Password" type="password" placeholder="Min. 8 characters" help="At least 8 characters." autoComplete="new-password" isRequired value={password} onChange={setPassword} />
         <Button type="submit" block isBusy={isLoading}>Create account</Button>
       </form>
     </AuthCard>

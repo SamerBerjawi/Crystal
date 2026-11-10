@@ -90,10 +90,16 @@ export const TextInput: React.FC<TextProps> = ({ label, help, error, autofill, c
 type AmountProps = Omit<TextProps, 'type' | 'inputMode'> & { currency?: string };
 
 /** Right-aligned tabular amount with a currency prefix. */
-export const AmountInput: React.FC<AmountProps> = ({ label, help, error, autofill, className, placeholder = '0.00', currency, ...props }) => {
+export const AmountInput: React.FC<AmountProps> = ({ label, help, error, autofill, className, placeholder = '0.00', currency, onChange, ...props }) => {
   const symbol = currency ? currencySign(currency) : null;
+  const handleChange = (val: string) => {
+    const cleaned = val.replace(',', '.');
+    if (cleaned === '' || cleaned === '-' || /^-?\d*\.?\d*$/.test(cleaned)) {
+      onChange?.(val);
+    }
+  };
   return (
-    <TextField {...props} inputMode="decimal" isInvalid={!!error} className={className}>
+    <TextField {...props} onChange={onChange ? handleChange : undefined} inputMode="decimal" isInvalid={!!error} className={className}>
       <FieldShell label={label} help={help} error={error} autofill={autofill}>
         <div className="relative">
           {symbol && (
@@ -101,6 +107,11 @@ export const AmountInput: React.FC<AmountProps> = ({ label, help, error, autofil
           )}
           <Input
             placeholder={placeholder}
+            onKeyDown={e => {
+              if (e.key.length === 1 && !/[0-9.,\-]/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault();
+              }
+            }}
             className={cn(controlStyles, inputSize, 'text-right font-semibold tabular-nums', symbol && (symbol.length > 2 ? 'pl-14' : 'pl-10'))}
           />
         </div>
@@ -289,7 +300,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ children, className, ...prop
             {isSelected && <Icon name="check" size={13} className="stroke-[2.5]" />}
             {isIndeterminate && !isSelected && <span className="h-0.5 w-2.5 rounded-full bg-on-pill" />}
           </span>
-          <span className="type-body min-w-0 text-ink">{children}</span>
+          <span className="type-body min-w-0 text-ink pointer-events-none">{children}</span>
         </>
       );
     }}
@@ -310,7 +321,7 @@ export const Radio: React.FC<Omit<React.ComponentProps<typeof AriaRadio>, 'child
         <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface', isSelected && 'border-pill', choiceFocus)}>
           {isSelected && <span className="size-2.5 rounded-full bg-pill" />}
         </span>
-        <span className="type-body min-w-0 text-ink">{children}</span>
+        <span className="type-body min-w-0 text-ink pointer-events-none">{children}</span>
       </>
     )}
   </AriaRadio>
@@ -321,7 +332,7 @@ export const Switch: React.FC<Omit<React.ComponentProps<typeof AriaSwitch>, 'chi
   <AriaSwitch {...props} className={cn(choiceRow, 'justify-between', className)}>
     {({ isSelected }) => (
       <>
-        <span className="type-body min-w-0 text-ink">{children}</span>
+        <span className="type-body min-w-0 text-ink pointer-events-none">{children}</span>
         <span className={cn('flex h-6 w-10 shrink-0 items-center rounded-full border border-line-strong bg-inset p-0.5 transition-colors duration-[var(--duration-fast)]', isSelected && 'border-pill bg-pill', choiceFocus)}>
           <span className={cn('size-[18px] rounded-full bg-line-strong transition-transform duration-[var(--duration-fast)]', isSelected && 'translate-x-4 bg-on-pill')} />
         </span>

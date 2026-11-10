@@ -5,9 +5,9 @@ test('candlestick performance shows finite figures for every timeframe', async (
   test.skip(testInfo.project.name !== 'desktop-1440', 'chart lives in the desktop investments layout');
   const w = watch(page);
   await goTo(page, '/investments');
-  const chart = page.locator('div.glass-section').filter({ hasText: 'Candlestick Performance' }).first();
+  const chart = page.locator('section[aria-label="Portfolio value"]').first();
   await expect(chart).toBeVisible();
-  for (const tf of ['1M', '3M', '6M', '1Y', 'All Time']) {
+  for (const tf of ['1M', '3M', '6M', '1Y', 'All']) {
     await chart.getByRole('button', { name: tf, exact: true }).click();
     await page.waitForTimeout(400);
     const text = await chart.innerText();

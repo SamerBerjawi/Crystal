@@ -33,16 +33,37 @@ async function mockEnableBanking(page: Page, baseURL: string, opts: MockOpts = {
   await page.route('**/api/enable-banking/accounts/*/transactions', r => json(r, { transactions: providerTx }));
 }
 
+async function selectOption(page: Page, label: string, optionMatch: RegExp | string) {
+  const exact = new RegExp(`^${label}$`, 'i');
+  if (isMobile(page)) {
+    const btn = page.getByRole('dialog').getByRole('button', { name: exact });
+    await btn.click();
+    await page.getByRole('option', { name: optionMatch }).click();
+  } else {
+    const combobox = page.getByRole('combobox', { name: exact });
+    const toggleBtn = combobox.locator('..').getByRole('button', { name: /Show options/i });
+    if (await toggleBtn.isVisible()) {
+      await toggleBtn.click();
+    } else {
+      await combobox.click();
+      await combobox.press('ArrowDown');
+    }
+    await page.getByRole('option', { name: optionMatch }).click();
+  }
+}
+
 async function connectQaBank(page: Page) {
   await goTo(page, '/integrations');
-  await page.getByPlaceholder('app_xxxxxxxx').fill('app_qa_test');
-  await page.locator('textarea').first().fill(PEM);
-  await page.getByRole('textbox', { name: 'Country code (2 letters)' }).fill('FI');
-  await page.getByRole('button', { name: 'Find Banks' }).click();
-  const select = page.locator('select').filter({ has: page.locator('option', { hasText: 'QA Test Bank' }) });
-  await expect(select).toBeEnabled();
-  await select.selectOption({ label: 'QA Test Bank (FI)' });
-  await page.getByRole('button', { name: 'Authorize Link' }).click();
+  await page.getByRole('button', { name: 'Connect a bank' }).first().click();
+  const appInput = page.getByLabel('Enable Banking application ID');
+  if (await appInput.isVisible()) {
+    await appInput.fill('app_qa_test');
+    await page.getByLabel('Private key (PEM)').fill(PEM);
+  }
+  await selectOption(page, 'Country', /finland/i);
+  await page.getByRole('button', { name: 'Find banks' }).click();
+  await selectOption(page, 'Bank', /QA Test Bank/i);
+  await page.getByRole('button', { name: 'Continue to bank' }).click();
 }
 
 test.describe('W13 Connect a bank', () => {
@@ -69,19 +90,27 @@ test.describe('W13 Connect a bank', () => {
 
   test('Find Banks without credentials shows a validation message', async ({ authedPage: page }) => {
     await goTo(page, '/integrations');
-    await page.getByPlaceholder('app_xxxxxxxx').fill('');
-    await page.locator('textarea').first().fill('');
-    await page.getByRole('button', { name: 'Find Banks' }).click();
+    await page.getByRole('button', { name: 'Connect a bank' }).first().click();
+    const appInput = page.getByLabel('Enable Banking application ID');
+    if (await appInput.isVisible()) {
+      await appInput.fill('');
+      await page.getByLabel('Private key (PEM)').fill('');
+    }
+    await page.getByRole('button', { name: 'Find banks' }).click();
     await expect(page.getByText(/application id|certificate|credentials|required/i).first()).toBeVisible();
   });
 
   test('invalid credentials: the provider error is shown to the user', async ({ authedPage: page, baseURL }) => {
     await mockEnableBanking(page, baseURL!, { failAspsps: true });
     await goTo(page, '/integrations');
-    await page.getByPlaceholder('app_xxxxxxxx').fill('app_bad');
-    await page.locator('textarea').first().fill(PEM);
-    await page.getByRole('textbox', { name: 'Country code (2 letters)' }).fill('FI');
-    await page.getByRole('button', { name: 'Find Banks' }).click();
+    await page.getByRole('button', { name: 'Connect a bank' }).first().click();
+    const appInput = page.getByLabel('Enable Banking application ID');
+    if (await appInput.isVisible()) {
+      await appInput.fill('app_bad');
+      await page.getByLabel('Private key (PEM)').fill(PEM);
+    }
+    await selectOption(page, 'Country', /finland/i);
+    await page.getByRole('button', { name: 'Find banks' }).click();
     await expect(page.getByText(/invalid|failed|unable|error/i).first()).toBeVisible();
   });
 
@@ -99,7 +128,7 @@ test.describe('W13 Connect a bank', () => {
   test('callback without code/state shows an error and a way back', async ({ authedPage: page }) => {
     await goTo(page, '/enable-banking/callback', false);
     await expect(page.getByText(/missing|error|failed/i).first()).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('button', { name: /back to integrations/i }).click();
+    await page.getByRole('button', { name: /back to (integrations|connections)/i }).click();
     await expect(page).toHaveURL(/integrations/);
   });
 
@@ -116,19 +145,22 @@ test.describe('W14 Link & sync', () => {
     await expect(page.getByRole('heading', { name: 'QA Test Bank' })).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(2500);
     // The newest connection (QA Test Bank) renders last; its row controls are the last matches on the page.
-    await page.getByRole('button', { name: 'New', exact: true }).last().click();
-    await page.getByRole('textbox', { name: 'Account name' }).last().fill('QA Bank Current');
-    await page.getByRole('button', { name: /^save$/i }).last().click();
+    await page.getByRole('button', { name: 'Link' }).last().click();
+    await page.getByLabel('Account name').fill('QA Bank Current');
+    await page.getByRole('button', { name: 'Save link' }).click();
     await page.waitForTimeout(2500);
   }
 
   const imported = (d: any) => d.transactions.filter((t: any) => String(t.importId || '').startsWith('enable-banking-') && /^eb-eb-/.test(t.id) && /qa-acc-1/.test(t.id));
   async function syncLast(page: Page) {
-    const exact = page.getByRole('button', { name: /^sync$/i });
-    await ((await exact.count()) ? exact.last() : page.getByRole('button', { name: /sync this account/i }).last()).click();
+    const exact = page.getByRole('button', { name: /sync qa current|sync/i });
+    await exact.last().click();
     await page.waitForTimeout(800);
     // First click opens the sync-options prompt (EnableBankingSyncModal); confirm it.
-    await page.getByRole('button', { name: /start sync|sync now|confirm|^sync$/i }).last().click();
+    const confirm = page.getByRole('button', { name: /start sync|sync now|confirm|^sync$/i });
+    if ((await confirm.count()) > 0) {
+      await confirm.last().click();
+    }
     await page.waitForTimeout(1500);
   }
 

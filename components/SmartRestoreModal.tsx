@@ -125,7 +125,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
       footer={
         <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
           <Button variant="ghost" onPress={close}>Cancel</Button>
-          <Button isDisabled={!backup || !sections.some(section => included[section.key])} onPress={restore}>Restore</Button>
+          <Button aria-label="Restore selected data" isDisabled={!backup || !sections.some(section => included[section.key])} onPress={restore}>Restore</Button>
         </div>
       }
     >

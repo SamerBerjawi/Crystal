@@ -30,7 +30,7 @@ const pinFor = (logoUrl?: string | null) => {
   const src = safeImageSrcAttr(logoUrl);
   const size = src ? 40 : 20;
   return L.divIcon({
-    className: '',
+    className: 'custom-apple-neon-pin',
     html: src
       ? `<img src="${src}" alt="" class="size-10 rounded-full bg-solid object-cover shadow-[0_0_0_2px_var(--solid)]" />`
       : '<div class="size-5 rounded-full bg-primary shadow-[0_0_0_2px_var(--solid)]"></div>',

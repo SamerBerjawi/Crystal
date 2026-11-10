@@ -53,6 +53,7 @@ interface InvestmentsProps {
   deleteAccount: (id: string) => void;
   transactions: Transaction[];
   onViewAccount?: (accountId: string) => void;
+  onViewHolding?: (symbol: string) => void;
   priceHistory?: Record<string, PriceHistoryEntry[]>;
   /** A holding reached by its own address opens in the panel (D-025). */
   linkedSymbol?: string;
@@ -78,7 +79,7 @@ const percentOf = (part: number, whole: number) => (whole > 0 ? (part / whole) *
 /** Rivet's portfolio view with warrants, pension and spare change, on one page for every screen (D-025). */
 const Investments: React.FC<InvestmentsProps> = ({
   accounts, cashAccounts, investmentTransactions, saveInvestmentTransaction, saveAccount, deleteInvestmentTransaction, saveTransaction, warrants, saveWarrant, deleteWarrant,
-  manualPrices, onManualPriceChange, prices, onToggleAccountStatus, deleteAccount, transactions, onViewAccount, priceHistory = {}, linkedSymbol, onCloseLinkedHolding,
+  manualPrices, onManualPriceChange, prices, onToggleAccountStatus, deleteAccount, transactions, onViewAccount, onViewHolding, priceHistory = {}, linkedSymbol, onCloseLinkedHolding,
 }) => {
   const { preferences, setPreferences } = usePreferencesContext();
   const isPhone = useIsMobile();
@@ -271,9 +272,14 @@ const Investments: React.FC<InvestmentsProps> = ({
     });
     return groups;
   }, [shownActivity, activityShown]);
+  const handleOpenHolding = useCallback((symbol: string) => {
+    setOpenSymbol(symbol);
+    onViewHolding?.(symbol);
+  }, [onViewHolding]);
+
   const openTile = (id: string) => {
     if (id.startsWith('account:')) onViewAccount?.(id.slice('account:'.length));
-    else setOpenSymbol(id);
+    else handleOpenHolding(id);
   };
   const segmentByLabel = useMemo(() => new Map(SEGMENT_NAMES.map(name => [SEGMENT_LABELS[name], name])), []);
 
@@ -332,11 +338,11 @@ const Investments: React.FC<InvestmentsProps> = ({
     holding,
     trend: historyWindow(logFor(holding.symbol), 30, new Date()).points.map(point => ({ value: point.price })),
     menu: [
-      { id: 'details', label: 'Details', icon: 'view', onAction: () => setOpenSymbol(holding.symbol) },
+      { id: 'details', label: 'Details', icon: 'view', onAction: () => handleOpenHolding(holding.symbol) },
       { id: 'price', label: 'Log or fetch a price', icon: 'pencil-edit-02', onAction: () => setPriceTarget({ symbol: holding.symbol, name: holding.name }) },
       { id: 'trade', label: 'Trade', icon: 'arrow-data-transfer-horizontal', onAction: () => setTradeForm({ mode: 'trade', symbol: holding.symbol }) },
     ],
-  })), [shownHoldings, logFor]);
+  })), [shownHoldings, logFor, handleOpenHolding]);
 
   const [holdingQuery, setHoldingQuery] = useState('');
   const filteredHoldingRows = useMemo(() => {
@@ -431,7 +437,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                   subtitle="Largest first, with the last 90 days of prices"
                   action={<Button variant="ghost" size="sm" icon="arrow-right-01" onPress={() => setUrlTab('holdings')}>All holdings</Button>}
                 >
-                  <PositionStrip items={positions} currency={getMainCurrency()} onOpen={setOpenSymbol} />
+                  <PositionStrip items={positions} currency={getMainCurrency()} onOpen={handleOpenHolding} />
                 </Section>
               )}
 
@@ -443,7 +449,7 @@ const Investments: React.FC<InvestmentsProps> = ({
 
               {moverRows.length > 0 && (
                 <Section span="side" title="Movers" subtitle="Return on what you paid">
-                  <Movers rows={moverRows} currency={getMainCurrency()} onOpen={setOpenSymbol} />
+                  <Movers rows={moverRows} currency={getMainCurrency()} onOpen={handleOpenHolding} />
                 </Section>
               )}
 
@@ -491,7 +497,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 <HoldingsTable
                   rows={filteredHoldingRows}
                   total={current.value}
-                  onOpen={holding => setOpenSymbol(holding.symbol)}
+                  onOpen={holding => handleOpenHolding(holding.symbol)}
                   empty={<p className="type-body py-8 text-center text-muted">{holdingQuery ? `Nothing matches “${holdingQuery}”.` : 'No holdings in this view.'}</p>}
                 />
               </section>

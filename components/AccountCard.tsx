@@ -110,7 +110,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
   );
 
   const name = (
-    <button type="button" onClick={onOpen} className="block w-full min-w-0 cursor-pointer text-left after:absolute after:inset-0">
+    <button type="button" onClick={onOpen} aria-label={`Open ${account.name}`} className="block w-full min-w-0 cursor-pointer text-left after:absolute after:inset-0">
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="type-body-strong min-w-0 truncate text-ink">{account.name}</span>
         {badges}

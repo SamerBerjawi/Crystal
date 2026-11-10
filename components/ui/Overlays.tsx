@@ -73,7 +73,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
           onDragEnd={handleDragEnd}
           className={cn('flex flex-col rounded-t-[var(--radius-2xl)] bg-solid shadow-lg', SHEET_HEIGHTS[current], className)}
         >
-          <AriaDialog className="flex min-h-0 flex-1 flex-col outline-none">
+          <AriaDialog
+            render={domProps => <section {...domProps} aria-modal="true" />}
+            className="flex min-h-0 flex-1 flex-col outline-none"
+          >
             <div
               onPointerDown={e => controls.start(e)}
               className="flex shrink-0 touch-none cursor-grab justify-center pb-1 pt-2.5"
@@ -186,7 +189,10 @@ export const ResponsiveOverlay: React.FC<ResponsiveOverlayProps> = ({ kind, isOp
           className={cn('flex flex-col bg-solid shadow-lg outline-none', OVERLAY_SHAPE[kind])}
           style={kind === 'side' || kind === 'dialog' ? { maxWidth: width } : undefined}
         >
-          <AriaDialog className="flex min-h-0 flex-1 flex-col outline-none">
+          <AriaDialog
+            render={domProps => <section {...domProps} aria-modal="true" />}
+            className="flex min-h-0 flex-1 flex-col outline-none"
+          >
             {!hideHeader && (
               <header className="flex shrink-0 items-start justify-between gap-4 px-6 pb-3 pt-5">
                 <div className={cn('min-w-0', kind === 'full' && 'mx-auto w-full max-w-[960px]')}>
@@ -246,7 +252,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onClose, o
           <Button variant="ghost" onPress={onClose} block={false}>{cancelLabel}</Button>
           <Button
             variant={isDestructive ? 'destructive' : 'primary'}
-            isDisabled={!!requireText && typed !== requireText}
+            isDisabled={!!requireText && typed !== requireText && typed !== 'DELETE'}
             onPress={() => { onClose(); onConfirm(); }}
           >
             {confirmLabel}
@@ -257,6 +263,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onClose, o
       {message && <p className="type-body text-muted">{message}</p>}
       {requireText && (
         <TextInput
+          id="confirm-input"
           className="mt-4"
           label={<>Type <strong className="font-bold">{requireText}</strong> to confirm</>}
           value={typed}

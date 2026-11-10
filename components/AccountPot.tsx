@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Account, Transaction } from '../types';
 import { convertToMain, normalizeCurrency, parseLocalDate, getMainCurrency, formatCurrency } from '../utils';
 import { computeAccount90dSparkline, computeAccountDisplayBalance, latestTransactions } from '../utils/accountsModel';
@@ -8,7 +8,7 @@ import { AccountLogo } from './AccountCard';
 import { MerchantLogo } from './EntityIcon';
 import { IconButton } from './ui/Actions';
 import { Row } from './ui/Display';
-import { Menu, type MenuAction } from './ui/Menu';
+import { Menu, PointerMenu, type MenuAction } from './ui/Menu';
 import { Amount } from './ui/Money';
 import { AreaSparkline, useSparklineHover } from '../src/components/charts';
 import { cn } from '../lib/utils';
@@ -83,17 +83,24 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
 
   const latest = useMemo(() => latestTransactions(transactions, 3), [transactions]);
   const isForeign = normalizeCurrency(account.currency) !== getMainCurrency();
+  const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextPoint({ x: e.clientX, y: e.clientY });
+  };
 
   return (
-    <section aria-label={account.name} className="flex min-w-0 flex-col gap-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
-      <header className="flex items-start gap-3">
-        <AccountLogo account={account} />
-        <button type="button" onClick={onOpen} className="min-w-0 flex-1 cursor-pointer text-left">
-          <span className="type-body-strong block truncate text-ink">{account.name}</span>
-          <span className="type-caption block truncate text-muted">{context}</span>
-        </button>
-        <Menu title={account.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${account.name}`} tooltipPlacement="left" />} items={menuItems} />
-      </header>
+    <>
+      <section aria-label={account.name} onContextMenu={handleContextMenu} className="flex min-w-0 flex-col gap-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
+        <header className="flex items-start gap-3">
+          <AccountLogo account={account} />
+          <button type="button" onClick={onOpen} className="min-w-0 flex-1 cursor-pointer text-left">
+            <span className="type-body-strong block truncate text-ink">{account.name}</span>
+            <span className="type-caption block truncate text-muted">{context}</span>
+          </button>
+          <Menu title={account.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${account.name}`} tooltipPlacement="left" />} items={menuItems} />
+        </header>
       <div className="space-y-1">
         <div className="flex items-baseline justify-between gap-2">
           <p className="type-figure-lg truncate text-ink">
@@ -137,6 +144,15 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
         </div>
       )}
     </section>
+    {contextPoint && (
+      <PointerMenu
+        point={contextPoint}
+        title={account.name}
+        items={menuItems}
+        onClose={() => setContextPoint(null)}
+      />
+    )}
+  </>
   );
 };
 
