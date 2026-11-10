@@ -92,6 +92,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const isFirstVisit = useFirstVisit('overview');
   const isMobile = useIsMobile();
 
+  const urlTab = useUrlTab();
+  const activeTab = isOverviewTab(urlTab) ? urlTab : 'summary';
+  const activeView = OVERVIEW_TABS.find(view => view.id === activeTab)!;
+  const layout = useMemo(() => resolveTabLayout(preferences, isMobile, activeTab), [preferences.dashboardLayouts, preferences.dashboardHiddenWidgets, isMobile, activeTab]);
+  const layoutKey = overviewTabKey(activeTab, isMobile);
+  const activeWidgetIds = useMemo(() => new Set(layout.map(w => w.id)), [layout]);
+
   useEffect(() => {
     setForecastDuration(mapHistoricalDurationToForecast(duration));
   }, [duration]);
@@ -161,9 +168,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     ],
   }), [analyticsAccounts, analyticsTransactions, loanPaymentOverrides, recurringTransactions]);
 
+  const needsForecast = activeTab === 'upcoming' || (activeTab === 'summary' && activeWidgetIds.has('netWorthOverTime') && showForecast);
   const { forecastChartData, lowestBalanceForecasts, next30Raw } = useMemo(
-    () => computeDashboardForecast({ accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, warrants, recurringTransactionOverrides, forecastDuration }),
-    [accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, warrants, recurringTransactionOverrides, forecastDuration]
+    () => {
+      if (!needsForecast) {
+        return { forecastChartData: [], lowestBalanceForecasts: [], next30Raw: { days: [], expectedIn: 0, goingOut: 0, lowest: null } };
+      }
+      return computeDashboardForecast({ accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, warrants, recurringTransactionOverrides, forecastDuration });
+    },
+    [needsForecast, accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, warrants, recurringTransactionOverrides, forecastDuration]
   );
 
   const handleOpenTransactionModal = useCallback((tx?: Transaction) => {
@@ -252,8 +265,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   );
 
   const outflowsByCategory: CategorySpending[] = useMemo(
-    () => computeOutflowsByCategory({ enrichedTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup, excludeTransfersFromAnalytics: preferences.excludeTransfersFromAnalytics, accountLookup }),
-    [enrichedTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup, preferences.excludeTransfersFromAnalytics, accountLookup]
+    () => {
+      if (activeTab !== 'spending' && !activeWidgetIds.has('outflowsByCategory')) return [];
+      return computeOutflowsByCategory({ enrichedTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup, excludeTransfersFromAnalytics: preferences.excludeTransfersFromAnalytics, accountLookup });
+    },
+    [activeTab, activeWidgetIds, enrichedTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup, preferences.excludeTransfersFromAnalytics, accountLookup]
   );
 
   const handleCategoryClick = useCallback((categoryName: string) => {
@@ -262,7 +278,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     setDetailModalOpen(true);
   }, [filteredTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup, accountLookup]);
 
-  const calendarTransactions = useMemo(() => analyticsTransactions.filter(tx => analyticsSelectedAccountIds.includes(tx.accountId)), [analyticsTransactions, analyticsSelectedAccountIds]);
+  const calendarTransactions = useMemo(() => {
+    if (activeTab !== 'spending' && !activeWidgetIds.has('spendingCalendar')) return [];
+    return analyticsTransactions.filter(tx => analyticsSelectedAccountIds.includes(tx.accountId));
+  }, [activeTab, activeWidgetIds, analyticsTransactions, analyticsSelectedAccountIds]);
 
   const handleCalendarDay = useCallback((date: string) => {
     setModalTransactions(calendarTransactions.filter(tx => tx.date === date && tx.type === 'expense' && !tx.transferId));
@@ -296,7 +315,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     [analyticsAccounts, analyticsTransactions, loanPaymentOverrides]
   );
 
-  const assetAllocationData = useMemo(() => buildAssetAllocationData(assetGroups), [assetGroups]);
+  const assetAllocationData = useMemo(() => {
+    if (activeTab !== 'wealth' && !activeWidgetIds.has('assetAllocation')) return [];
+    return buildAssetAllocationData(assetGroups);
+  }, [activeTab, activeWidgetIds, assetGroups]);
 
   const netWorthData = useMemo(
     () => computeNetWorthSeries({ duration, transactions, analyticsTransactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast }),
@@ -309,12 +331,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     return historyPoints[historyPoints.length - 1].value! >= historyPoints[0].value! ? 'var(--money-in)' : 'var(--money-out)';
   }, [netWorthData]);
 
-  const configuredCreditCards = useMemo(() => accounts.filter(acc => {
-    if (acc.type !== 'Credit Card' || !acc.statementStartDate || !acc.paymentDate) return false;
-    return selectedAccountIds.includes(acc.id) || Boolean(acc.settlementAccountId && selectedAccountIds.includes(acc.settlementAccountId));
-  }), [accounts, selectedAccountIds]);
+  const configuredCreditCards = useMemo(() => {
+    if (activeTab !== 'upcoming' && !activeWidgetIds.has('creditCardStatements')) return [];
+    return accounts.filter(acc => {
+      if (acc.type !== 'Credit Card' || !acc.statementStartDate || !acc.paymentDate) return false;
+      return selectedAccountIds.includes(acc.id) || Boolean(acc.settlementAccountId && selectedAccountIds.includes(acc.settlementAccountId));
+    });
+  }, [activeTab, activeWidgetIds, accounts, selectedAccountIds]);
 
-  const creditCardStatements = useMemo(() => computeCreditCardStatements(configuredCreditCards, transactions), [configuredCreditCards, transactions]);
+  const creditCardStatements = useMemo(() => {
+    if (configuredCreditCards.length === 0) return [];
+    return computeCreditCardStatements(configuredCreditCards, transactions);
+  }, [configuredCreditCards, transactions]);
 
   const handleBudgetClick = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -322,7 +350,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     window.dispatchEvent(new PopStateEvent('popstate'));
   }, []);
 
-  const { liquidityRatio, savingsRate } = useMemo(() => computeLiquidityAndSavingsRate(analyticsAccounts, analyticsTransactions, duration), [analyticsAccounts, analyticsTransactions, duration]);
+  const { liquidityRatio, savingsRate } = useMemo(() => {
+    if (activeTab !== 'wealth' && activeTab !== 'upcoming') return { liquidityRatio: 0, savingsRate: 0 };
+    return computeLiquidityAndSavingsRate(analyticsAccounts, analyticsTransactions, duration);
+  }, [activeTab, analyticsAccounts, analyticsTransactions, duration]);
   const displayToEur = useCallback((val: number) => convertCurrency(val, preferredCurrency, getMainCurrency(), conversionRates), [preferredCurrency, conversionRates]);
   const toPreferred = useCallback((amount: number, from: Currency) => convertCurrency(amount, from, preferredCurrency, conversionRates), [preferredCurrency, conversionRates]);
   const setCushion = useCallback((amount: number) => setPreferences(prev => ({ ...prev, safeToSpendCushion: amount })), [setPreferences]);
@@ -358,18 +389,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     return visibleInsights(all, dismissedInsights);
   }, [lowestBalanceForecasts, eurToDisplay, analyticsAccounts, analyticsTransactions, expenseCategories, everySeries, toPreferred, preferredCurrency, dismissedInsights]);
 
-  const allWidgets: Widget[] = useMemo(
-    () => buildDashboardWidgets({
+  const allWidgets: Widget[] = useMemo(() => {
+    const widgets = buildDashboardWidgets({
       income, expenses, incomeChange, expenseChange, periodFlowBuckets, preferredCurrency, eurToDisplay, displayToEur, toPreferred, safeToSpend, setCushion, accounts, transactions, conversionRates, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, next30, lowestBalanceForecasts, creditCardStatements, analyticsTransactions, analyticsSelectedAccountIds, expenseCategories, incomeCategories, allCategories, handleCategoryClick, calendarTransactions, handleCalendarDay, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, budgets, duration, handleBudgetClick, recentTransactions, handleTransactionClick, filteredTransactions, activeInsights, dismissInsight,
-    }),
-    [next30, calendarTransactions, handleCalendarDay, conversionRates, periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, analyticsSelectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]
-  );
-
-  const urlTab = useUrlTab();
-  const activeTab = isOverviewTab(urlTab) ? urlTab : 'summary';
-  const activeView = OVERVIEW_TABS.find(view => view.id === activeTab)!;
-  const layout = useMemo(() => resolveTabLayout(preferences, isMobile, activeTab), [preferences.dashboardLayouts, preferences.dashboardHiddenWidgets, isMobile, activeTab]);
-  const layoutKey = overviewTabKey(activeTab, isMobile);
+    });
+    return widgets.filter(widget => OVERVIEW_WIDGETS[widget.id]?.tab === activeTab);
+  }, [activeTab, next30, calendarTransactions, handleCalendarDay, conversionRates, periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, analyticsSelectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const saveLayout = useCallback((next: WidgetConfig[]) => {
     setPreferences(prev => ({ ...prev, dashboardLayouts: { ...(prev.dashboardLayouts || {}), [layoutKey]: next } }));
@@ -398,22 +423,37 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       .map(widget => ({ ...widget, name: OVERVIEW_WIDGETS[widget.id].title, description: OVERVIEW_WIDGETS[widget.id].purpose }));
   }, [layout, allWidgets, activeTab]);
 
-  const dedupedTransferSuggestions = useMemo(() => (selectedAccountIds.length === 0 ? review.transfers : review.transfers.filter(s => selectedAccountIds.includes(s.expenseTx.accountId) || selectedAccountIds.includes(s.incomeTx.accountId))), [review.transfers, selectedAccountIds]);
-  const dedupedBillSuggestions = useMemo(() => (selectedAccountIds.length === 0 ? review.billMatches : review.billMatches.filter(s => selectedAccountIds.includes(s.transaction.accountId))), [review.billMatches, selectedAccountIds]);
+  const isSummaryTab = activeTab === 'summary';
+  const dedupedTransferSuggestions = useMemo(() => {
+    if (!isSummaryTab) return [];
+    return selectedAccountIds.length === 0 ? review.transfers : review.transfers.filter(s => selectedAccountIds.includes(s.expenseTx.accountId) || selectedAccountIds.includes(s.incomeTx.accountId));
+  }, [isSummaryTab, review.transfers, selectedAccountIds]);
+
+  const dedupedBillSuggestions = useMemo(() => {
+    if (!isSummaryTab) return [];
+    return selectedAccountIds.length === 0 ? review.billMatches : review.billMatches.filter(s => selectedAccountIds.includes(s.transaction.accountId));
+  }, [isSummaryTab, review.billMatches, selectedAccountIds]);
+
   const totalPendingMatchesCount = dedupedTransferSuggestions.length + dedupedBillSuggestions.length;
   const { notificationCount: billsDue } = useBillNotifications({ recurringTransactions, billsAndPayments, dismissedIds: usePreferencesSelector(p => p.dismissedBillNotifications) ?? EMPTY_IDS });
-  const toCategorise = useMemo(() => analyticsTransactions.filter(tx => isUncategorised(tx) && analyticsSelectedAccountIds.includes(tx.accountId)).length, [analyticsTransactions, analyticsSelectedAccountIds]);
+  const toCategorise = useMemo(() => {
+    if (!isSummaryTab) return 0;
+    return analyticsTransactions.filter(tx => isUncategorised(tx) && analyticsSelectedAccountIds.includes(tx.accountId)).length;
+  }, [isSummaryTab, analyticsTransactions, analyticsSelectedAccountIds]);
+
   const tasksDue = useMemo(() => {
+    if (!isSummaryTab) return 0;
     const today = toLocalISOString(new Date());
     return tasks.filter(task => task.status !== 'Done' && !!task.dueDate && task.dueDate <= today).length;
-  }, [tasks]);
+  }, [isSummaryTab, tasks]);
 
   const incomeYesterday = useMemo(() => {
+    if (!isSummaryTab) return 0;
     const day = new Date();
     day.setDate(day.getDate() - 1);
     const yesterday = toLocalISOString(day);
     return safeRound(analyticsTransactions.filter(tx => tx.date === yesterday && tx.type === 'income' && !tx.transferId && analyticsSelectedAccountIds.includes(tx.accountId)).reduce((sum, tx) => sum + convertToMain(tx.amount, tx.currency), 0), 2);
-  }, [analyticsTransactions, analyticsSelectedAccountIds]);
+  }, [isSummaryTab, analyticsTransactions, analyticsSelectedAccountIds]);
 
   const openReview = useCallback(() => {
     setCurrentPage('Transactions');
@@ -425,14 +465,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
     setMatchesModalOpen(true);
   }, []);
 
-  const summaryFacts = buildSummaryFacts({
-    incomeYesterday: incomeYesterday > 0 ? formatCurrency(eurToDisplay(incomeYesterday), preferredCurrency) : null,
-    billsDue,
-    toReview: toCategorise + dedupedTransferSuggestions.length + dedupedBillSuggestions.length,
-    tasksDue,
-  });
+  const summaryFacts = useMemo(() => {
+    if (!isSummaryTab) return [];
+    return buildSummaryFacts({
+      incomeYesterday: incomeYesterday > 0 ? formatCurrency(eurToDisplay(incomeYesterday), preferredCurrency) : null,
+      billsDue,
+      toReview: toCategorise + dedupedTransferSuggestions.length + dedupedBillSuggestions.length,
+      tasksDue,
+    });
+  }, [isSummaryTab, incomeYesterday, eurToDisplay, preferredCurrency, billsDue, toCategorise, dedupedTransferSuggestions.length, dedupedBillSuggestions.length, tasksDue]);
 
   const heroParts = useMemo(() => {
+    if (!isSummaryTab) return [];
     const sumOf = (types: AccountType[]) => calculateAccountTotals(analyticsSelectedAccounts.filter(acc => types.includes(acc.type)), analyticsTransactions, loanPaymentOverrides).totalAssets;
     const cash = sumOf(['Checking', 'Savings']);
     const investments = sumOf(['Investment']);
@@ -441,12 +485,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       { label: 'Investments', value: eurToDisplay(investments) },
       { label: 'Property and other', value: eurToDisplay(Math.max(0, totalAssets - cash - investments)) },
     ];
-  }, [analyticsSelectedAccounts, analyticsTransactions, loanPaymentOverrides, totalAssets, eurToDisplay]);
+  }, [isSummaryTab, analyticsSelectedAccounts, analyticsTransactions, loanPaymentOverrides, totalAssets, eurToDisplay]);
 
   const netWorthChange = useMemo(() => {
+    if (!isSummaryTab) return null;
     const history = netWorthData.filter(point => point.value !== undefined);
     return history.length < 2 ? null : safeRound(netWorth - history[0].value!, 2);
-  }, [netWorthData, netWorth]);
+  }, [isSummaryTab, netWorthData, netWorth]);
 
   const periodLabel = (DURATION_OPTIONS.find(option => option.value === duration)?.label ?? 'this period').toLowerCase();
 
