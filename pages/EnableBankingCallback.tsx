@@ -212,7 +212,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   }, [connections, onSync, setConnections, setCurrentPage]);
 
   return (
-    <main className="mx-auto mt-20 max-w-md px-4">
+    <div className="mx-auto mt-20 max-w-md px-4">
       <section className="rounded-[var(--radius-xl)] surface-card p-8 text-center max-md:p-5" aria-live="polite">
         <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-inset text-muted">
           <Icon name={error ? 'alert-02' : 'bank'} size={24} />
@@ -227,7 +227,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           <p className="type-body mt-2 text-muted">{message}</p>
         )}
       </section>
-    </main>
+    </div>
   );
 };
 

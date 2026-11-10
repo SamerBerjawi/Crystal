@@ -61,6 +61,18 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    preview: {
+      port: 4173,
+      host: '0.0.0.0',
+      allowedHosts: true,
+      proxy: {
+        '/api': {
+          target: backendTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
     plugins: [
       tailwindcss(),
       react(),
@@ -78,6 +90,9 @@ export default defineConfig(({ mode }) => {
           // Only the data layer is split out. Recharts and Leaflet are deliberately left to Rollup so they stay in the
           // lazy page chunks that use them instead of being preloaded from the entry (AUD-17).
           manualChunks: {
+            reactAria: ['react-aria-components', 'react-aria'],
+            icons: ['@hugeicons/core-free-icons', '@hugeicons/react', 'lucide-react'],
+            motion: ['motion/react'],
             reactQuery: ['@tanstack/react-query'],
           },
         },

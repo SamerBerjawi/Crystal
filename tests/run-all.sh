@@ -31,7 +31,7 @@ for i in $(seq 1 60); do grep -q "PG READY" "$STACK/pg.log" 2>/dev/null && break
 grep -q "PG READY" "$STACK/pg.log" || { echo "postgres failed to start"; cat "$STACK/pg.log"; exit 1; }
 
 (cd "$ROOT/server" && DATABASE_HOST=127.0.0.1 DATABASE_PORT=54329 DATABASE_USER=crystal DATABASE_PASSWORD=crystal_qa_pw DATABASE_NAME=crystal \
-  JWT_SECRET="qa-$(date +%s)-$RANDOM-$RANDOM" NODE_ENV=development npx --prefix .. tsx src/index.ts > "$STACK/backend.log" 2>&1) & BACKEND_PID=$!
+  RATE_LIMIT_REGISTER_MAX=10000 JWT_SECRET="qa-$(date +%s)-$RANDOM-$RANDOM" NODE_ENV=development npx --prefix .. tsx src/index.ts > "$STACK/backend.log" 2>&1) & BACKEND_PID=$!
 
 (cd "$ROOT" && npx vite build --mode production --outDir "$STACK/dist" --emptyOutDir > "$STACK/build.log" 2>&1) || { echo "frontend build failed"; tail -30 "$STACK/build.log"; exit 1; }
 (cd "$ROOT" && npx vite preview --outDir "$STACK/dist" --port 4173 --strictPort --host 127.0.0.1 > "$STACK/preview.log" 2>&1) & PREVIEW_PID=$!

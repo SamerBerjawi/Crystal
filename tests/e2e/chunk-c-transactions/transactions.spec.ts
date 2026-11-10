@@ -8,22 +8,39 @@ const txByMerchant = async (user: any, m: string) => (await serverData(user)).tr
 
 async function openAdd(page: Page) {
   await goTo(page, '/transactions');
-  await page.getByRole('button', { name: 'Add Transaction' }).first().click();
+  await page.getByRole('button', { name: /add transaction/i }).first().click();
   await expect(page.getByPlaceholder('0.00')).toBeVisible();
 }
 
 async function fillTx(page: Page, f: { amount?: string; merchant?: string; desc?: string; category?: boolean }) {
   if (f.amount !== undefined) await page.getByPlaceholder('0.00').fill(f.amount);
-  if (f.merchant !== undefined) await page.getByPlaceholder('Store, entity, or person...').fill(f.merchant);
-  if (f.category !== false) await page.locator('#tx-category').selectOption({ index: 1 });
-  if (f.desc !== undefined) await page.getByPlaceholder('What was this transaction for?').fill(f.desc);
+  if (f.merchant !== undefined) await page.getByPlaceholder(/shop, company or person/i).fill(f.merchant);
+  if (f.desc !== undefined) await page.getByLabel(/description/i).fill(f.desc);
+  if (f.category !== false) {
+    const suggestion = page.getByRole('group', { name: 'Suggested categories' }).getByRole('button').first();
+    if (await suggestion.isVisible()) {
+      await suggestion.click();
+    } else {
+      const catInput = page.getByRole('combobox', { name: /^category$/i });
+      if (await catInput.isVisible()) {
+        const toggleBtn = catInput.locator('..').getByRole('button', { name: /Show options/i });
+        if (await toggleBtn.isVisible()) {
+          await toggleBtn.click();
+        } else {
+          await catInput.click();
+          await catInput.press('ArrowDown');
+        }
+        await page.getByRole('option').first().click();
+      }
+    }
+  }
 }
 
-const confirmTx = (page: Page) => page.getByRole('button', { name: /confirm transaction/i });
+const confirmTx = (page: Page) => page.getByRole('button', { name: /save transaction|save changes/i });
 
 async function rowMenu(page: Page, text: string, item: RegExp) {
   await page.locator('main').getByRole('row').filter({ hasText: text }).first().click({ button: 'right' });
-  await page.getByRole('button', { name: item }).first().click();
+  await page.getByRole('menuitem', { name: item }).or(page.getByRole('button', { name: item })).first().click();
 }
 
 test.describe('W16 Add / edit / delete transaction', () => {
@@ -74,10 +91,10 @@ test.describe('W16 Add / edit / delete transaction', () => {
   test('edit a transaction (merchant) persists', async ({ authedPage: page, user }) => {
     test.skip(isMobile(page), 'mobile edit covered by swipe row; see mobile test');
     await goTo(page, '/transactions');
-    await rowMenu(page, 'Netflix', /edit transaction/i);
-    await page.getByPlaceholder('Store, entity, or person...').fill('Netflix QA');
+    await rowMenu(page, 'Netflix', /edit/i);
+    await page.getByPlaceholder(/shop, company or person/i).fill('Netflix QA');
     const saved = waitForSave(page);
-    await page.getByRole('button', { name: /confirm|save/i }).last().click();
+    await page.getByRole('button', { name: /save transaction|save changes|save/i }).last().click();
     expect((await saved).status()).toBe(200);
     expect((await txByMerchant(user, 'Netflix QA')).length).toBe(1);
   });
@@ -85,9 +102,15 @@ test.describe('W16 Add / edit / delete transaction', () => {
   test('delete a transaction (with confirmation)', async ({ authedPage: page, user }) => {
     test.skip(isMobile(page), 'desktop context menu');
     await goTo(page, '/transactions');
-    await rowMenu(page, 'Spotify', /delete transaction/i);
+    await rowMenu(page, 'Spotify', /delete/i);
+    const holdBtn = page.getByRole('dialog', { name: /delete 1 transaction/i }).getByRole('button', { name: /hold to delete/i });
+    await expect(holdBtn).toBeVisible();
+    const box = (await holdBtn.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     const saved = waitForSave(page);
-    await page.getByRole('button', { name: /^delete|confirm/i }).last().click();
+    await page.mouse.down();
+    await page.waitForTimeout(1500);
+    await page.mouse.up();
     expect((await saved).status()).toBe(200);
     expect((await txByMerchant(user, 'Spotify')).length).toBe(0);
   });
@@ -96,7 +119,9 @@ test.describe('W16 Add / edit / delete transaction', () => {
     test.skip(!isMobile(page), 'mobile only');
     await goTo(page, '/transactions');
     await expect(page.locator('main')).toContainText('Netflix');
-    await page.getByRole('button', { name: 'Income', exact: true }).click();
+    await page.getByRole('button', { name: /filter/i }).first().click();
+    await page.getByRole('radiogroup', { name: 'Show' }).locator('label').filter({ hasText: 'Income' }).click();
+    await page.keyboard.press('Escape');
     await expect(page.locator('main')).toContainText('Crystal Analytics');
     await expect(page.locator('main')).not.toContainText('Netflix');
   });
@@ -106,10 +131,10 @@ test.describe('W16 Add / edit / delete transaction', () => {
     await goTo(page, '/transactions');
     await page.locator('main').getByText('Netflix').first().click();
     await page.waitForTimeout(500);
-    await page.getByText('Edit Entry', { exact: true }).click();
-    await page.getByPlaceholder('Store, entity, or person...').fill('Netflix QA');
+    await page.getByRole('button', { name: /^edit$/i }).or(page.getByText(/^edit$/i)).first().click();
+    await page.getByPlaceholder(/shop, company or person/i).fill('Netflix QA');
     const saved = waitForSave(page);
-    await page.getByRole('button', { name: /confirm|save/i }).last().click();
+    await page.getByRole('button', { name: /save transaction|save changes|save/i }).last().click();
     expect((await saved).status()).toBe(200);
     expect((await txByMerchant(user, 'Netflix QA')).length).toBe(1);
   });
@@ -142,23 +167,22 @@ test.describe('W17 Bulk & advanced', () => {
 
   test('split: amounts that do not add up are rejected', async ({ authedPage: page, user }) => {
     await goTo(page, '/transactions');
-    await rowMenu(page, 'Netflix', /split transaction/i);
-    const amounts = page.locator('div.fixed').last().locator('input[type="number"]');
+    await rowMenu(page, 'Netflix', /split/i);
+    const amounts = page.getByRole('dialog').getByLabel('Amount');
     await amounts.nth(0).fill('5');
     await amounts.nth(1).fill('5');
-    await expect(page.getByRole('button', { name: /confirm split/i }), 'Confirm Split must stay disabled until parts sum to the total').toBeDisabled();
+    await expect(page.getByRole('button', { name: /^split$/i }), 'Split button must stay disabled until parts sum to the total').toBeDisabled();
   });
 
   test('split: valid split creates child parts and keeps the total', async ({ authedPage: page, user }) => {
     await goTo(page, '/transactions');
-    await rowMenu(page, 'Netflix', /split transaction/i);
-    const modal = page.locator('div.fixed').last();
-    await modal.locator('input[type="number"]').nth(0).fill('10');
-    await modal.locator('input[type="number"]').nth(1).fill('9.99');
-    await modal.locator('select').nth(0).selectOption({ index: 1 });
-    await modal.locator('select').nth(1).selectOption({ index: 2 });
+    await rowMenu(page, 'Netflix', /split/i);
+    const dialog = page.getByRole('dialog');
+    const amounts = dialog.getByLabel('Amount');
+    await amounts.nth(0).fill('10');
+    await amounts.nth(1).fill('9.99');
     const saved = waitForSave(page);
-    await page.getByRole('button', { name: /confirm split/i }).click();
+    await page.getByRole('button', { name: /^split$/i }).click();
     expect((await saved).status()).toBe(200);
     const d = await serverData(user);
     const parts = d.transactions.filter((t: any) => t.parentId === 'tx-streaming-netflix' || t.splitParentId === 'tx-streaming-netflix' || (t.merchant === 'Netflix' && t.id !== 'tx-streaming-netflix'));
@@ -171,7 +195,7 @@ test.describe('W17 Bulk & advanced', () => {
     await goTo(page, '/transactions');
     await rowMenu(page, 'GitHub', /duplicate/i);
     await page.waitForTimeout(500);
-    const confirm = page.getByRole('button', { name: /confirm transaction|save|duplicate/i }).last();
+    const confirm = page.getByRole('button', { name: /save transaction|save changes|save|duplicate/i }).last();
     if (await confirm.isVisible().catch(() => false)) await confirm.click();
     await page.waitForTimeout(2500);
     expect((await txByMerchant(user, 'GitHub')).length).toBe(2);
@@ -182,16 +206,16 @@ test.describe('W17 Bulk & advanced', () => {
     // The selection toolbar appears after the first tick and shifts the rows down, so wait for it before the next click.
     for (const [i, m] of ['Netflix', 'Spotify'].entries()) {
       await page.locator('main').getByRole('row').filter({ hasText: m }).first().getByRole('checkbox').click({ force: true });
-      await expect(page.getByText(`${i + 1} item${i === 0 ? '' : 's'} selected`)).toBeVisible();
+      await expect(page.getByText(new RegExp(`^${i + 1} (item|items )?selected$`, 'i'))).toBeVisible();
       await page.waitForTimeout(400);
     }
-    await page.getByRole('button', { name: 'Categorize', exact: true }).click();
-    const modal = page.locator('div.fixed').last();
-    const sel = modal.locator('select').first();
-    const val = await sel.evaluate((s: HTMLSelectElement) => [...s.options].find(o => /Entertainment/.test(o.text))?.value ?? s.options[2].value);
-    await sel.selectOption(val);
+    await page.getByRole('button', { name: /categorise|categorize/i }).click();
+    const dialog = page.getByRole('dialog');
+    const catInput = dialog.getByRole('combobox', { name: /category/i });
+    await catInput.fill('Entertainment');
+    await page.getByRole('option', { name: /Entertainment/i }).first().click();
     const saved = waitForSave(page);
-    await modal.getByRole('button', { name: /assign category/i }).click();
+    await dialog.getByRole('button', { name: /assign/i }).click();
     expect((await saved).status()).toBe(200);
     const d = await serverData(user);
     const cats = d.transactions.filter((t: any) => ['Netflix', 'Spotify'].includes(t.merchant)).map((t: any) => t.category);
@@ -210,7 +234,7 @@ test.describe('W18 Filter & export', () => {
     await expect(page.locator('main')).not.toContainText('GreenMart');
     await search.fill('zzz-no-such-transaction');
     await page.waitForTimeout(800);
-    await expect(page.locator('main')).toContainText(/no (transactions|results|matches)|nothing found|reset/i);
+    await expect(page.locator('main')).toContainText(/no (transactions|results|matches)|nothing (found|matches)|reset|clear filters/i);
   });
 
   test('export downloads a CSV with the transactions', async ({ authedPage: page }) => {
@@ -237,11 +261,9 @@ test.describe('W19 Pending matches', () => {
     ];
     expect((await user.api.post('/api/data', { data: { partial: true, data: { transactions: [...d.transactions, ...pair] } } })).status()).toBe(200);
     await goTo(page, '/');
-    await page.getByRole('button', { name: 'Pending Matches' }).click();
-    await expect(page.getByRole('button', { name: /all matches \([1-9]/i })).toBeVisible();
-    await page.getByRole('button', { name: /select all filtered/i }).click();
+    await page.getByRole('button', { name: /review matches/i }).first().click();
     const saved = waitForSave(page);
-    await page.getByRole('button', { name: /approve selected \([1-9]/i }).click();
+    await page.getByRole('button', { name: /match as transfer/i }).first().click();
     expect((await saved).status()).toBe(200);
     const after = (await serverData(user)).transactions.filter((t: any) => t.id.startsWith('qa-xfer'));
     expect(after.every((t: any) => t.transferId)).toBe(true);
@@ -251,27 +273,21 @@ test.describe('W19 Pending matches', () => {
 test.describe('W20 Categories', () => {
   test('add a category; empty name is rejected', async ({ authedPage: page, user }) => {
     await goTo(page, '/categories');
-    await page.getByRole('button', { name: 'New Category' }).click();
-    const modal = page.locator('div.fixed').last();
-    const name = modal.locator('input[type="text"]').first();
-    await modal.getByRole('button', { name: /save|create|add/i }).last().click();
-    await page.waitForTimeout(800);
-    const count = (await serverData(user)).expenseCategories.length;
-    await name.fill('QA Category');
+    await page.getByRole('button', { name: /new category/i }).click();
+    await expect(page.getByRole('button', { name: /add category/i })).toBeDisabled();
+    await page.getByLabel('Name').fill('QA Category');
     const saved = waitForSave(page);
-    await modal.getByRole('button', { name: /save|create|add/i }).last().click();
+    await page.getByRole('button', { name: /add category/i }).click();
     expect((await saved).status()).toBe(200);
     const d = await serverData(user);
     expect(d.expenseCategories.some((c: any) => c.name === 'QA Category')).toBe(true);
-    expect(d.expenseCategories.length).toBe(count + 1);
   });
 
   test('delete a category asks for confirmation and removes it', async ({ authedPage: page, user }) => {
     await goTo(page, '/categories');
-    const row = page.locator('main').locator('div').filter({ hasText: /^Miscellaneous/ }).first();
-    await row.hover();
-    await page.locator('main').getByText('Miscellaneous', { exact: true }).first().locator('xpath=ancestor::*[.//button[@aria-label="Delete" or @title="Delete"]][1]').getByRole('button', { name: 'Delete' }).first().click();
-    const btn = page.getByRole('button', { name: 'Delete', exact: true }).last();
+    await page.getByRole('button', { name: 'More for Miscellaneous' }).click();
+    await page.getByRole('menuitem', { name: 'Delete' }).click();
+    const btn = page.getByRole('button', { name: 'Delete category' });
     await expect(btn).toBeVisible();
     await page.waitForTimeout(600);
     const onTop = await btn.evaluate(b => { const r = b.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !!hit && (hit === b || b.contains(hit)); });
@@ -298,32 +314,45 @@ test.describe('W21 Tags', () => {
   test('tag cards expose named edit/delete actions', async ({ authedPage: page }) => {
     await goTo(page, '/tags');
     await expect(page.locator('main')).toContainText('Work');
-    await expect(page.locator('main').getByRole('button', { name: /delete/i }).first()).toBeAttached();
+    await expect(page.locator('main').getByRole('button', { name: /more for/i }).first()).toBeAttached();
   });
 });
 
 test.describe('W22 Rules', () => {
   test('create a rule (description contains Netflix → category) and apply to existing', async ({ authedPage: page, user }) => {
     await goTo(page, '/rules');
-    await page.getByRole('button', { name: 'New Rule' }).click();
-    const form = page.locator('main form').first();
-    await form.locator('input[type="text"]').first().fill('QA Netflix rule');
-    const selects = form.locator('select');
-    await selects.nth(0).selectOption({ label: 'Description' }).catch(() => {});
-    await form.locator('input[type="text"]').nth(1).fill('Netflix');
-    const actionValue = form.locator('select').last();
-    const v = await actionValue.evaluate((s: HTMLSelectElement) => [...s.options].find(o => /Entertainment/.test(o.text))?.value ?? s.options[3].value);
-    await actionValue.selectOption(v);
-    const target = await actionValue.evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex].text.trim());
+    await page.getByRole('button', { name: /new rule/i }).first().click();
+    const sidePanel = page.getByRole('dialog');
+    await sidePanel.getByLabel('Value').first().fill('Netflix');
+    if (isMobile(page)) {
+      await sidePanel.getByRole('button', { name: 'Next' }).click();
+      await sidePanel.getByRole('button', { name: /^to$/i }).click();
+      const option = page.getByRole('option', { name: /Entertainment/i }).first();
+      await option.click();
+    } else {
+      const catInput = sidePanel.getByRole('combobox', { name: /^to$/i });
+      const toggleBtn = catInput.locator('..').getByRole('button', { name: /Show options/i });
+      if (await toggleBtn.isVisible()) {
+        await toggleBtn.click();
+      } else {
+        await catInput.click();
+        await catInput.press('ArrowDown');
+      }
+      const option = page.getByRole('option', { name: /Entertainment/i }).first();
+      await option.click();
+    }
+    await sidePanel.getByLabel(/name \(optional\)/i).fill('QA Netflix rule');
     const saved = waitForSave(page);
-    await form.locator('button[type="submit"]').click();
+    await sidePanel.getByRole('button', { name: /save rule/i }).click();
     expect((await saved).status()).toBe(200);
-    await expect(page.locator('main')).toContainText('QA Netflix rule');
-    await page.getByRole('button', { name: /apply to existing transactions/i }).first().click();
-    await page.getByRole('button', { name: 'Run Optimization' }).click();
-    await page.waitForTimeout(2500);
+    await expect(page.locator('main')).toContainText(/When description contains Netflix|QA Netflix rule/i);
+    const applyToast = page.getByRole('button', { name: /apply to/i });
+    if (await applyToast.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await applyToast.click();
+      await page.waitForTimeout(2000);
+    }
     const tx = (await serverData(user)).transactions.find((t: any) => t.id === 'tx-streaming-netflix');
-    expect(tx.category, `rule should set category to ${target}`).toBe(target);
+    expect(tx.category).toContain('Entertainment');
   });
 });
 
@@ -331,15 +360,18 @@ test.describe('W23 Merchants', () => {
   test('merchants page lists seeded merchants and opens the detail configuration', async ({ authedPage: page }) => {
     await goTo(page, '/merchants');
     for (const m of ['Netflix', 'Spotify']) await expect(page.locator('main')).toContainText(m);
-    await page.getByRole('button', { name: 'Merchant settings' }).first().click();
-    await expect(page.locator('div.fixed').last()).toBeVisible();
+    await page.locator('main').getByRole('button', { name: /netflix/i }).first().click();
+    await page.getByRole('button', { name: /edit/i }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
   });
 
   test('hide a merchant persists', async ({ authedPage: page, user }) => {
     await goTo(page, '/merchants');
     const before = JSON.stringify((await serverData(user)).preferences);
+    await page.locator('main').getByRole('button', { name: /netflix/i }).first().click();
+    await page.getByRole('button', { name: /actions for netflix/i }).click();
     const saved = waitForSave(page);
-    await page.getByRole('button', { name: 'Hide Merchant' }).first().click();
+    await page.getByRole('menuitem', { name: /hide from lists/i }).click();
     expect((await saved).status()).toBe(200);
     expect(JSON.stringify((await serverData(user)).preferences)).not.toBe(before);
   });

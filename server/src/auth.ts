@@ -48,7 +48,7 @@ const loginClientLimiter = createRateLimiter({
 const registerRateLimiter = createRateLimiter({
     namespace: 'register',
     windowMs: 15 * 60 * 1000,
-    maxAttempts: 10,
+    maxAttempts: Number(process.env.RATE_LIMIT_REGISTER_MAX || 10),
     blockMs: 15 * 60 * 1000,
     message: 'Too many registration attempts. Please wait 15 minutes and try again.',
     key: req => `${req.ip}`,

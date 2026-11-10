@@ -469,7 +469,7 @@ const ProfileMenu: React.FC<ShellProps> = ({ user, setCurrentPage, isPrivacyMode
     items={[
       { id: 'profile', label: 'Profile', icon: 'person', onAction: () => setCurrentPage('Personal Info') },
       { id: 'preferences', label: 'Preferences', icon: 'settings', onAction: () => setCurrentPage('Preferences') },
-      { id: 'privacy', label: isPrivacyMode ? 'Show amounts' : 'Hide amounts', icon: isPrivacyMode ? 'visibility' : 'visibility_off', onAction: togglePrivacyMode },
+      { id: 'privacy', label: isPrivacyMode ? 'Show amounts (Privacy mode)' : 'Hide amounts (Privacy mode)', icon: isPrivacyMode ? 'visibility' : 'visibility_off', onAction: togglePrivacyMode },
       ...(onLock ? [{ id: 'lock', label: 'Lock Crystal', icon: 'lock', startsGroup: true, onAction: onLock }] : []),
       { id: 'logout', label: 'Sign out', icon: 'logout', startsGroup: !onLock, isDestructive: true, onAction: onLogout },
     ]}
@@ -644,7 +644,7 @@ export const ToolRail: React.FC<ShellProps> = ({
       </DockIcon>
       <DockTool
         icon={isPrivacyMode ? EyeClosedIcon : EyeIcon}
-        label={isPrivacyMode ? 'Show amounts' : 'Hide amounts'}
+        label={isPrivacyMode ? 'Show amounts (Privacy mode)' : 'Hide amounts (Privacy mode)'}
         isActive={isPrivacyMode}
         onPress={togglePrivacyMode}
       />

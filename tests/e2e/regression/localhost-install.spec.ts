@@ -35,7 +35,7 @@ test('restore on localhost keeps the account live; edits afterwards are saved', 
   await page.waitForTimeout(1800);
   const before = (await serverData(user)).preferences?.excludeTransfersFromAnalytics ?? false;
   const saved = waitForSave(page);
-  await page.getByRole('switch').first().click();
+  await page.getByRole('switch').first().click({ force: true });
   expect((await saved).status()).toBe(200);
   expect((await serverData(user)).preferences?.excludeTransfersFromAnalytics ?? false).toBe(!before);
   await ctx.close();

@@ -280,13 +280,13 @@ export function useFinancialPersistence({
     return () => clearTimeout(timer);
   }, [dataToSave, isDevEnvironment, isDataLoaded, isDemoMode, isAuthenticated, latestDataRef]);
 
-  const refreshFromServer = useCallback(async () => {
-    if (getDirtyKeys(latestDataRef.current).length > 0) return;
+  const refreshFromServer = useCallback(async (force = false) => {
+    if (!force && getDirtyKeys(latestDataRef.current).length > 0) return;
     try {
       const response = await authorizedFetch('/api/data');
       if (!response.ok) return;
       const serverData = await response.json() as FinancialData;
-      if (getDirtyKeys(latestDataRef.current).length > 0) return;
+      if (!force && getDirtyKeys(latestDataRef.current).length > 0) return;
       loadAllFinancialData(serverData);
       toast.info('Synced with changes from another device');
     } catch { /* the next successful save will reconcile */ }
@@ -365,7 +365,7 @@ export function useFinancialPersistence({
         }
         if (mergedFromOtherDeviceRef.current) {
           mergedFromOtherDeviceRef.current = false;
-          await refreshFromServer();
+          await refreshFromServer(true);
         }
       } else {
         setSyncStatus('unsaved');

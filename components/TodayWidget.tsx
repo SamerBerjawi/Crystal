@@ -69,26 +69,30 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         };
 
         // Tasks (due within the lookahead and >= -7 days)
-        tasks.forEach(task => {
-            if (task.status !== 'Done' && task.dueDate) {
-                const days = getDaysUntil(task.dueDate);
-                if (days <= LOOKAHEAD_DAYS && days >= -7) {
-                    const date = parseLocalDate(task.dueDate);
-                    items.push({ type: 'task', data: task, date, daysUntil: days, sortDate: date.getTime() });
+        if (Array.isArray(tasks)) {
+            tasks.forEach(task => {
+                if (task.status !== 'Done' && task.dueDate) {
+                    const days = getDaysUntil(task.dueDate);
+                    if (days <= LOOKAHEAD_DAYS && days >= -7) {
+                        const date = parseLocalDate(task.dueDate);
+                        items.push({ type: 'task', data: task, date, daysUntil: days, sortDate: date.getTime() });
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Bills (unpaid and due within the lookahead and >= -7 days)
-        bills.forEach(bill => {
-            if (bill.status === 'unpaid') {
-                const days = getDaysUntil(bill.dueDate);
-                if (days <= LOOKAHEAD_DAYS && days >= -7) {
-                    const date = parseLocalDate(bill.dueDate);
-                    items.push({ type: 'bill', data: bill, date, daysUntil: days, sortDate: date.getTime() });
+        if (Array.isArray(bills)) {
+            bills.forEach(bill => {
+                if (bill.status === 'unpaid') {
+                    const days = getDaysUntil(bill.dueDate);
+                    if (days <= LOOKAHEAD_DAYS && days >= -7) {
+                        const date = parseLocalDate(bill.dueDate);
+                        items.push({ type: 'bill', data: bill, date, daysUntil: days, sortDate: date.getTime() });
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Recurring Transactions (due within the lookahead and >= -7 days)
         recurringTransactions.forEach(rt => {

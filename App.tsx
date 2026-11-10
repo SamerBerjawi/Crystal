@@ -227,6 +227,7 @@ const App: React.FC = () => {
     viewingHoldingSymbol,
     setViewingHoldingSymbol,
     handleOpenAccountDetail,
+    handleOpenHoldingDetail,
     transactionsViewFilters,
     navigateToTransactions,
     clearPendingTransactionFilters,
@@ -603,7 +604,7 @@ const App: React.FC = () => {
           ? fetchAllExchangeRates('EUR', [...new Set(['USD', 'GBP', 'BTC', 'RON', 'EUR', ...usedCurrencies])], preferences.twelveDataApiKey)
           : Promise.resolve({}),
       ]);
-      results.forEach(result => { if (result.status === 'rejected') console.error('Failed to fetch FX rates:', result.reason); });
+      results.forEach(result => { if (result.status === 'rejected') console.warn('Failed to fetch FX rates:', result.reason); });
       const fetched = Object.assign({}, ...results.map(result => (result.status === 'fulfilled' ? result.value : {}))) as Record<string, number>;
       if (Object.keys(fetched).length === 0) return;
 
@@ -800,34 +801,38 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!isDataLoaded || isJustLoadedRef.current) return;
-    if (accounts.length > accountOrder.length) {
-      const orderedAccountIds = new Set(accountOrder);
-      const newAccountIds = accounts.filter(acc => !orderedAccountIds.has(acc.id)).map(acc => acc.id);
-      if (newAccountIds.length > 0) {
-        setAccountOrder(prev => [...prev, ...newAccountIds]);
-      }
-    } else if (accounts.length < accountOrder.length) {
-      const accountIds = new Set(accounts.map(a => a.id));
-      const nextOrder = accountOrder.filter(id => accountIds.has(id));
-      if (nextOrder.length !== accountOrder.length) {
-        setAccountOrder(nextOrder);
+    if (Array.isArray(accounts) && Array.isArray(accountOrder)) {
+      if (accounts.length > accountOrder.length) {
+        const orderedAccountIds = new Set(accountOrder);
+        const newAccountIds = accounts.filter(acc => !orderedAccountIds.has(acc.id)).map(acc => acc.id);
+        if (newAccountIds.length > 0) {
+          setAccountOrder(prev => [...prev, ...newAccountIds]);
+        }
+      } else if (accounts.length < accountOrder.length) {
+        const accountIds = new Set(accounts.map(a => a.id));
+        const nextOrder = accountOrder.filter(id => accountIds.has(id));
+        if (nextOrder.length !== accountOrder.length) {
+          setAccountOrder(nextOrder);
+        }
       }
     }
   }, [accounts, accountOrder, setAccountOrder, isDataLoaded]);
 
   useEffect(() => {
     if (!isDataLoaded || isJustLoadedRef.current) return;
-    if (tasks.length > taskOrder.length) {
-      const orderedTaskIds = new Set(taskOrder);
-      const newTaskIds = tasks.filter(task => !orderedTaskIds.has(task.id)).map(task => task.id);
-      if (newTaskIds.length > 0) {
-        setTaskOrder(prev => [...prev, ...newTaskIds]);
-      }
-    } else if (tasks.length < taskOrder.length) {
-      const taskIds = new Set(tasks.map(t => t.id));
-      const nextOrder = taskOrder.filter(id => taskIds.has(id));
-      if (nextOrder.length !== taskOrder.length) {
-        setTaskOrder(nextOrder);
+    if (Array.isArray(tasks) && Array.isArray(taskOrder)) {
+      if (tasks.length > taskOrder.length) {
+        const orderedTaskIds = new Set(taskOrder);
+        const newTaskIds = tasks.filter(task => !orderedTaskIds.has(task.id)).map(task => task.id);
+        if (newTaskIds.length > 0) {
+          setTaskOrder(prev => [...prev, ...newTaskIds]);
+        }
+      } else if (tasks.length < taskOrder.length) {
+        const taskIds = new Set(tasks.map(t => t.id));
+        const nextOrder = taskOrder.filter(id => taskIds.has(id));
+        if (nextOrder.length !== taskOrder.length) {
+          setTaskOrder(nextOrder);
+        }
       }
     }
   }, [tasks, taskOrder, setTaskOrder, isDataLoaded]);
@@ -1137,7 +1142,7 @@ const App: React.FC = () => {
     }
   }, [isDataLoaded, viewingAccount, viewingAccountId, viewingHolding, viewingHoldingSymbol, setCurrentPage, setViewingAccountId, setViewingHoldingSymbol]);
 
-  const renderInvestments = (linkedSymbol?: string) => <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} priceHistory={priceHistory} linkedSymbol={linkedSymbol} onCloseLinkedHolding={() => setCurrentPage('Investments')} />;
+  const renderInvestments = (linkedSymbol?: string) => <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} onViewHolding={handleOpenHoldingDetail} priceHistory={priceHistory} linkedSymbol={linkedSymbol} onCloseLinkedHolding={() => setCurrentPage('Investments')} />;
 
   const renderPage = () => {
     if (viewingHoldingSymbol) {
@@ -1145,11 +1150,11 @@ const App: React.FC = () => {
       return <PageLoader label="Loading holding..." />;
     }
     if (viewingAccountId) {
-      if (viewingAccount) return <AccountDetail account={viewingAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onOpenAccount={handleOpenAccountDetail} saveAccount={handleSaveAccount} enableBankingLink={enableBankingLinkMap.get(viewingAccount.id)} onTriggerEnableBankingSync={handleSyncEnableBankingConnection} onCloseAsset={handleCloseAsset} onRevertClosure={handleRevertAccountClosure} />;
+      if (viewingAccount) return <AccountDetail account={viewingAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onOpenAccount={handleOpenAccountDetail} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} onToggleStatus={handleToggleAccountStatus} enableBankingLink={enableBankingLinkMap.get(viewingAccount.id)} onTriggerEnableBankingSync={handleSyncEnableBankingConnection} onCloseAsset={handleCloseAsset} onRevertClosure={handleRevertAccountClosure} />;
       return <PageLoader label="Loading account..." />;
     }
     switch (currentPage) {
-      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} setCurrentPage={setCurrentPage} onOpenAccount={handleOpenAccountDetail} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
+      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={Array.isArray(tasks) ? tasks : []} saveTask={handleSaveTask} setCurrentPage={setCurrentPage} onOpenAccount={handleOpenAccountDetail} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Transactions': return <Transactions user={currentUser!} initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Reports': return <ReportsPage setCurrentPage={setCurrentPage} />;

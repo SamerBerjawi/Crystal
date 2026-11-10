@@ -396,6 +396,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
               const value = parseFloat(prev.amount);
               return applyAutofill(!isNaN(value) && value > 0 ? { ...prev, amount: value.toFixed(2) } : prev);
             })}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
           />
           {errors.amount && <p role="alert" className="type-caption mt-1.5 text-money-out">{errors.amount}</p>}
         </div>

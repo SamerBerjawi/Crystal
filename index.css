@@ -97,6 +97,14 @@
   }
 }
 
+@utility z-dropdown { z-index: 50; }
+@utility z-sticky { z-index: 100; }
+@utility z-popover { z-index: 200; }
+@utility z-modal { z-index: 500; }
+@utility z-toast { z-index: 1000; }
+@utility z-max { z-index: 9999; }
+@utility text-3xs { font-size: 0.625rem; }
+
 /* Chart primitives. They follow the tokens, so dark mode needs no second set. */
 :root {
   --chart-line-primary: var(--chart-1);

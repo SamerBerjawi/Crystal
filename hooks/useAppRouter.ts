@@ -186,6 +186,12 @@ export function useAppRouter(isAuthenticated: boolean, isDataLoaded: boolean) {
     navigateToPath(pageToPath('AccountDetail', accountId) + tabSuffix, false, { fromAccounts: true });
   }, [navigateToPath]);
 
+  const handleOpenHoldingDetail = useCallback((holdingSymbol: string) => {
+    setViewingHoldingSymbol(holdingSymbol);
+    setCurrentPageState('HoldingDetail');
+    navigateToPath(pageToPath('HoldingDetail', holdingSymbol), false);
+  }, [navigateToPath]);
+
   const navigateToTransactions = useCallback((filters?: { accountName?: string | null; tagId?: string | null }) => {
     transactionsViewFilters.current = {
       accountName: filters?.accountName ?? null,
@@ -206,6 +212,7 @@ export function useAppRouter(isAuthenticated: boolean, isDataLoaded: boolean) {
     viewingHoldingSymbol,
     setViewingHoldingSymbol,
     handleOpenAccountDetail,
+    handleOpenHoldingDetail,
     transactionsViewFilters,
     navigateToTransactions,
     clearPendingTransactionFilters,

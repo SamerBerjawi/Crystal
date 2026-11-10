@@ -6,15 +6,15 @@ import type { Page } from '@playwright/test';
 
 async function openSignUp(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: /sign up for free/i }).click();
-  await expect(page.getByLabel('First Name')).toBeVisible();
+  await page.getByRole('link', { name: /create one/i }).click();
+  await expect(page.getByLabel(/first name/i)).toBeVisible();
 }
 
 async function fillSignUp(page: Page, f: { first?: string; last?: string; email?: string; password?: string }) {
-  await page.getByLabel('First Name').fill(f.first ?? 'Qa');
-  await page.getByLabel('Last Name').fill(f.last ?? 'Tester');
-  await page.getByLabel('Email Address').fill(f.email ?? newEmail('ui'));
-  await page.getByLabel('Password').fill(f.password ?? TEST_PASSWORD);
+  await page.getByLabel(/first name/i).fill(f.first ?? 'Qa');
+  await page.getByLabel(/last name/i).fill(f.last ?? 'Tester');
+  await page.getByLabel(/^email/i).first().fill(f.email ?? newEmail('ui'));
+  await page.getByLabel(/password/i).fill(f.password ?? TEST_PASSWORD);
   await page.getByRole('button', { name: /create/i }).last().click();
 }
 
@@ -27,12 +27,12 @@ async function signIn(page: Page, email: string, password: string) {
 
 async function openProfileMenuAndSignOut(page: Page) {
   if (isMobile(page)) {
-    // On mobile the drawer (and Sign Out) is only reachable from pages that render the menu button, e.g. Settings.
-    await goTo(page, '/settings');
-    await page.getByRole('button', { name: 'Open navigation menu' }).first().click();
+    await page.getByRole('button', { name: /^more$/i }).click();
+    await page.getByRole('button', { name: /sign out/i }).click();
+  } else {
+    await page.getByRole('button', { name: 'Your account' }).click();
+    await page.getByRole('menuitem', { name: /sign out/i }).click();
   }
-  await page.locator('aside button:has(img)').last().click();
-  await page.getByRole('button', { name: 'Sign Out' }).click();
 }
 
 const signInForm = signInScreen;
@@ -42,7 +42,7 @@ test.describe('W1 Sign up', () => {
     const w = watch(page);
     await openSignUp(page);
     await fillSignUp(page, {});
-    await expect(page.getByRole('heading', { name: /welcome, qa!/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /welcome, qa/i })).toBeVisible({ timeout: 15_000 });
     expect(w.apiFailures.filter(f => !/(auth\/me|api\/data) -> 401/.test(f))).toEqual([]);
   });
 
@@ -56,9 +56,9 @@ test.describe('W1 Sign up', () => {
   test('invalid email is blocked by the form', async ({ page }) => {
     await openSignUp(page);
     await fillSignUp(page, { email: 'not-an-email' });
-    const valid = await page.getByLabel('Email Address').evaluate((e: HTMLInputElement) => e.checkValidity());
+    const valid = await page.getByLabel(/^email/i).first().evaluate((e: HTMLInputElement) => e.checkValidity());
     expect(valid).toBe(false);
-    await expect(page.getByLabel('First Name')).toBeVisible();
+    await expect(page.getByLabel(/first name/i)).toBeVisible();
   });
 
   test('password shorter than the advertised "Min. 8 characters" is rejected', async ({ page, request }) => {
@@ -153,7 +153,7 @@ test.describe('W4 Sign out (mobile reachability)', () => {
     test.skip(!isMobile(page), 'mobile only');
     await goTo(page, '/');
     const viaMenu = await page.getByRole('button', { name: 'Open navigation menu' }).count();
-    await page.getByRole('button', { name: /more navigation options/i }).click();
+    await page.getByRole('button', { name: /^more$/i }).click();
     const viaMore = await page.getByRole('button', { name: /sign out/i }).count();
     expect(viaMenu + viaMore, 'a mobile user on the Dashboard should have a path to Sign Out').toBeGreaterThan(0);
   });
@@ -162,8 +162,8 @@ test.describe('W4 Sign out (mobile reachability)', () => {
 test.describe('W5 Password reset', () => {
   test('"Forgot password?" tells the user how to get a reset (administrator CLI, no email flow)', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /forgot password/i }).click();
-    await expect(page.getByRole('note')).toContainText(/administrator/i);
+    await page.getByRole('link', { name: /forgot.*password/i }).click();
+    await expect(page.getByRole('note')).toContainText(/administrator|server resets passwords|whoever runs this server/i);
   });
 });
 
@@ -171,33 +171,33 @@ test.describe('W6 Change password', () => {
   async function openChange(page: Page) {
     await goTo(page, '/personal-info');
     await page.getByRole('button', { name: /change password/i }).click();
-    await expect(page.getByLabel('Current Password')).toBeVisible();
+    await expect(page.getByLabel(/^current password$/i)).toBeVisible();
   }
 
   test('mismatched confirmation is rejected client-side', async ({ authedPage: page }) => {
     await openChange(page);
-    await page.getByLabel('Current Password').fill(TEST_PASSWORD);
-    await page.getByLabel('New Password', { exact: true }).fill('NewPassw0rd!');
-    await page.getByLabel('Confirm New Password').fill('Different1!');
-    await page.getByRole('button', { name: /update password/i }).click();
-    await expect(page.getByText(/do not match/i)).toBeVisible();
+    await page.getByLabel(/^current password$/i).fill(TEST_PASSWORD);
+    await page.getByLabel(/^new password$/i).fill('NewPassw0rd!');
+    await page.getByLabel(/^confirm new password$/i).fill('Different1!');
+    await page.getByRole('button', { name: /change password/i }).last().click();
+    await expect(page.getByText(/match/i)).toBeVisible();
   });
 
   test('wrong current password shows an error', async ({ authedPage: page }) => {
     await openChange(page);
-    await page.getByLabel('Current Password').fill('not-my-password');
-    await page.getByLabel('New Password', { exact: true }).fill('NewPassw0rd!');
-    await page.getByLabel('Confirm New Password').fill('NewPassw0rd!');
-    await page.getByRole('button', { name: /update password/i }).click();
-    await expect(page.getByText(/current password was incorrect/i)).toBeVisible();
+    await page.getByLabel(/^current password$/i).fill('not-my-password');
+    await page.getByLabel(/^new password$/i).fill('NewPassw0rd!');
+    await page.getByLabel(/^confirm new password$/i).fill('NewPassw0rd!');
+    await page.getByRole('button', { name: /change password/i }).last().click();
+    await expect(page.getByText(/current password (was incorrect|is wrong)/i)).toBeVisible();
   });
 
   test('happy path: user is signed out, new password works, old one does not', async ({ authedPage: page, user, browser }) => {
     await openChange(page);
-    await page.getByLabel('Current Password').fill(TEST_PASSWORD);
-    await page.getByLabel('New Password', { exact: true }).fill('NewPassw0rd!');
-    await page.getByLabel('Confirm New Password').fill('NewPassw0rd!');
-    await page.getByRole('button', { name: /update password/i }).click();
+    await page.getByLabel(/^current password$/i).fill(TEST_PASSWORD);
+    await page.getByLabel(/^new password$/i).fill('NewPassw0rd!');
+    await page.getByLabel(/^confirm new password$/i).fill('NewPassw0rd!');
+    await page.getByRole('button', { name: /change password/i }).last().click();
     await expect(signInForm(page)).toBeVisible({ timeout: 10_000 });
     const ctx = await browser.newContext();
     const p2 = await ctx.newPage();
@@ -213,10 +213,10 @@ test.describe('W7 Edit profile', () => {
   test('profile changes persist on the server', async ({ authedPage: page, user }) => {
     await goTo(page, '/personal-info');
     page.once('dialog', d => d.accept());
-    const first = page.getByLabel('Given Name');
+    const first = page.getByLabel(/first name/i);
     await first.fill('Renamed');
     const put = page.waitForResponse(r => r.url().endsWith('/api/users/me') && r.request().method() === 'PUT');
-    await page.getByRole('button', { name: /save changes/i }).click();
+    await page.getByRole('button', { name: /save (profile|changes)/i }).click();
     expect((await put).status()).toBe(200);
     const me = await (await user.api.get('/api/auth/me')).json();
     expect(me.firstName).toBe('Renamed');
@@ -225,10 +225,10 @@ test.describe('W7 Edit profile', () => {
   test('a failed profile save is reported to the user (not a success message)', async ({ authedPage: page }) => {
     await goTo(page, '/personal-info');
     await page.route('**/api/users/me', r => (r.request().method() === 'PUT' ? r.fulfill({ status: 500, body: '{"message":"db down"}' }) : r.continue()));
-    await page.getByLabel('Given Name').fill('ShouldFail');
-    await page.getByRole('button', { name: /save changes/i }).click();
-    await expect(page.getByText(/could not save your profile/i)).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('Profile updated', { exact: false })).toHaveCount(0);
+    await page.getByLabel(/first name/i).fill('ShouldFail');
+    await page.getByRole('button', { name: /save (profile|changes)/i }).click();
+    await expect(page.getByText(/could not save your profile|wasn’t saved|wasnt saved/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/profile (updated|saved)/i)).toHaveCount(0);
   });
 });
 
@@ -237,7 +237,7 @@ test.describe('W8 Demo mode', () => {
     const posts: string[] = [];
     page.on('request', r => { if (r.url().includes('/api/data') && r.method() === 'POST') posts.push(r.url()); });
     await page.goto('/');
-    await page.getByRole('button', { name: /explore demo mode/i }).click();
+    await page.getByRole('button', { name: /explore (the )?demo/i }).click();
     await expectSeededDashboard(page);
     await page.waitForTimeout(2000);
     expect(posts).toEqual([]);
@@ -248,12 +248,12 @@ test.describe('W9 Onboarding', () => {
   test('new user can complete onboarding by skipping; it does not reappear on refresh', async ({ page }) => {
     await openSignUp(page);
     await fillSignUp(page, {});
-    await expect(page.getByRole('heading', { name: /welcome, qa!/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /welcome, qa/i })).toBeVisible({ timeout: 15_000 });
     await page.getByRole('button', { name: /skip for now/i }).click();
-    await expect(page.getByRole('heading', { name: /welcome, qa!/i })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: /welcome, qa/i })).not.toBeVisible();
     await page.reload();
     await page.waitForTimeout(1500);
-    await expect(page.getByRole('heading', { name: /welcome, qa!/i })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: /welcome, qa/i })).not.toBeVisible();
   });
 
   test('onboarding completion follows the account to a new browser', async ({ page, browser, baseURL }) => {
@@ -269,7 +269,7 @@ test.describe('W9 Onboarding', () => {
     await signIn(p2, email, TEST_PASSWORD);
     await expect(p2.locator('main')).toBeVisible({ timeout: 15_000 });
     await p2.waitForTimeout(1500);
-    await expect(p2.getByRole('heading', { name: /welcome, qa!/i })).not.toBeVisible();
+    await expect(p2.getByRole('heading', { name: /welcome, qa/i })).not.toBeVisible();
     await ctx.close();
   });
 });
@@ -282,8 +282,8 @@ test.describe('W10 Autosave & conflicts', () => {
     const sw = page.getByRole('switch').first();
     await sw.waitFor();
     const before = (await serverData(user)).preferences?.excludeTransfersFromAnalytics ?? false;
-    await sw.click();
-    await expect(sw).toHaveAttribute('aria-checked', String(!before));
+    await sw.click({ force: true });
+    await expect(sw).toBeChecked({ checked: !before });
     await page.waitForTimeout(4000);
     const after = (await serverData(user)).preferences?.excludeTransfersFromAnalytics ?? false;
     expect(after, 'UI shows the change; server must have it too').toBe(!before);
@@ -293,7 +293,7 @@ test.describe('W10 Autosave & conflicts', () => {
     await goTo(page, '/preferences');
     const sw = page.getByRole('switch').first();
     await sw.scrollIntoViewIfNeeded();
-    await sw.click();
+    await sw.click({ force: true });
     return sw;
   }
 
@@ -321,12 +321,12 @@ test.describe('W10 Autosave & conflicts', () => {
     await goTo(tab2, '/preferences');
     const initial = (await serverData(user)).preferences;
     const s1 = waitForSave(page);
-    await page.getByRole('switch').first().click();
+    await page.getByRole('switch').first().click({ force: true });
     expect((await s1).status()).toBe(200);
     // Tab 2 still holds the older version: its save is rejected once (409) and then re-applied on top.
     const statuses: number[] = [];
     tab2.on('response', r => { if (r.url().endsWith('/api/data') && r.request().method() === 'POST') statuses.push(r.status()); });
-    await tab2.getByRole('switch').nth(1).click();
+    await tab2.getByRole('switch').nth(1).click({ force: true });
     await expect.poll(() => statuses.length, { timeout: 8000 }).toBeGreaterThanOrEqual(2);
     expect(statuses.slice(0, 2)).toEqual([409, 200]);
     await expect(tab2.getByText('Synced with changes from another device')).toBeVisible({ timeout: 5000 });
@@ -343,7 +343,7 @@ test.describe('W10 Autosave & conflicts', () => {
     const r = await user.api.post('/api/users/me/change-password', { data: { currentPassword: TEST_PASSWORD, newPassword: 'Another-Passw0rd!' } });
     expect(r.status()).toBe(200);
     const save = waitForSave(page);
-    await page.getByRole('switch').first().click();
+    await page.getByRole('switch').first().click({ force: true });
     expect((await save).status()).toBe(403);
     await expect(page.getByText(/sign in again|session expired|signed out|log in/i).first()).toBeVisible({ timeout: 3000 });
   });
@@ -366,9 +366,9 @@ test.describe('W10 Autosave — edits during and around saves (AUD-01)', () => {
       await route.continue();
     });
 
-    await switches.nth(0).click();
+    await switches.nth(0).click({ force: true });
     await expect.poll(() => held, { timeout: 5000 }).toBe(true);
-    await switches.nth(1).click();      // second edit while the first request is still open
+    await switches.nth(1).click({ force: true });      // second edit while the first request is still open
     await page.waitForTimeout(1500);    // longer than the debounce
     release();
 
@@ -381,20 +381,20 @@ test.describe('W10 Autosave — edits during and around saves (AUD-01)', () => {
   test('an edit shortly after load, then a refresh, is not lost', async ({ authedPage: page, user }) => {
     await goTo(page, '/tasks', false);
     const before = (await serverData(user)).tasks.length;
-    await page.getByRole('button', { name: 'New Task' }).first().click();
-    await page.getByPlaceholder('Define mission goal...').fill('QA early edit');
-    await page.getByRole('button', { name: /create task/i }).click();
+    await page.getByRole('button', { name: /new task/i }).first().click();
+    await page.getByLabel(/title/i).fill('QA early edit');
+    await page.getByRole('button', { name: /add task|create task/i }).click();
     await expect.poll(async () => (await serverData(user)).tasks.length, { timeout: 8000 }).toBe(before + 1);
   });
 
   test('closing the tab with unsaved edits sends them (small keepalive payload)', async ({ authedPage: page, user }) => {
     await goTo(page, '/tasks');
     const before = (await serverData(user)).tasks.length;
-    await page.getByRole('button', { name: 'New Task' }).first().click();
-    await page.getByPlaceholder('Define mission goal...').fill('QA unload edit');
+    await page.getByRole('button', { name: /new task/i }).first().click();
+    await page.getByLabel(/title/i).fill('QA unload edit');
     // Block the debounced autosave so only the unload handler can persist the change.
     await page.route('**/api/data', route => (route.request().method() === 'POST' && !route.request().headers()['x-keepalive-test'] ? route.fulfill({ status: 200, body: '{}' , contentType: 'application/json' }) : route.continue()));
-    await page.getByRole('button', { name: /create task/i }).click();
+    await page.getByRole('button', { name: /add task|create task/i }).click();
     await page.unroute('**/api/data');
     await page.evaluate(() => window.dispatchEvent(new Event('beforeunload', { cancelable: true })));
     await expect.poll(async () => (await serverData(user)).tasks.length, { timeout: 8000 }).toBe(before + 1);

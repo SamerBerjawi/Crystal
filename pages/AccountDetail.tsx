@@ -25,12 +25,14 @@ const AccountDetail: React.FC<{
     setCurrentPage: (page: any, tab?: string | null) => void;
     setViewingAccountId: (id: string | null) => void;
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
+    deleteAccount?: (id: string) => void;
+    onToggleStatus?: (id: string) => void;
     onOpenAccount?: (id: string, tab?: string) => void;
     enableBankingLink?: { connection: EnableBankingConnection; account: EnableBankingAccount };
     onTriggerEnableBankingSync?: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
     onCloseAsset?: (accountId: string, details: AssetClosureDetails) => void;
     onRevertClosure?: (accountId: string) => void;
-}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount, onOpenAccount, enableBankingLink, onTriggerEnableBankingSync, onCloseAsset, onRevertClosure }) => {
+}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount, deleteAccount, onToggleStatus, onOpenAccount, enableBankingLink, onTriggerEnableBankingSync, onCloseAsset, onRevertClosure }) => {
     const { accounts } = useAccountsContext();
     const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -86,6 +88,7 @@ const AccountDetail: React.FC<{
     const [isValuationModalOpen, setValuationModalOpen] = useState(false);
     const [isCloseModalOpen, setCloseModalOpen] = useState(false);
     const [isEditAccountModalOpen, setEditAccountModalOpen] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     const [syncPrompt, setSyncPrompt] = useState<{
         connectionId: string;
         connectionOverride: EnableBankingConnection;
@@ -387,8 +390,29 @@ const AccountDetail: React.FC<{
                         saveAccount(data);
                         setEditAccountModalOpen(false);
                     }}
+                    onDelete={deleteAccount ? () => {
+                        setEditAccountModalOpen(false);
+                        setIsDeletingAccount(true);
+                    } : undefined}
+                    onToggleStatus={onToggleStatus}
                 />
             )}
+
+            <ConfirmDialog
+                isOpen={isDeletingAccount}
+                onClose={() => setIsDeletingAccount(false)}
+                onConfirm={() => {
+                    setIsDeletingAccount(false);
+                    deleteAccount?.(account.id);
+                    setViewingAccountId(null);
+                    setCurrentPage('Accounts');
+                }}
+                title={`Delete ${account.name}?`}
+                message="This permanently removes the account and all its transactions. You can't undo it."
+                confirmLabel="Delete account"
+                requireText={account.name}
+                isDestructive
+            />
 
             {isValuationModalOpen && (
                 <PropertyValuationModal
