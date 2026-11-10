@@ -24,7 +24,7 @@ import { useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext
 import { useIsMobile } from '../hooks/useIsMobile';
 import { goalMovements } from '../utils/forecastModel';
 import {
-  addDays, buildOccurrences, cadenceLabel, dailyCommitted, emptyFilters, filterOccurrences, groupUpcoming, iso, moveFuture, monthGrid, nextDueAfterPosting, oldUnpaidBills,
+  addDays, buildOccurrences, cadenceLabel, dailyCommitted, emptyFilters, filterOccurrences, groupUpcoming, iso, moveFuture, monthGrid, nextDueAfterPosting, oldUnpaidBills, OVERDUE_DAYS,
   postDetails, scheduledItemOf, seriesGroups, summarize, syntheticSeries, type Flow, type Occurrence, type OccurrenceSource, type SeriesRow,
 } from '../utils/scheduleModel';
 import { pauseService, resumeService } from '../utils/subscriptionsModel';
@@ -45,7 +45,6 @@ const SOURCE_OPTIONS = [
 ];
 const OVERDUE_FILTERS = [{ id: 'all', label: 'All' }, { id: 'recurring', label: 'Recurring' }, { id: 'one-time', label: 'One-time' }];
 const HORIZON_DAYS = 365;
-const OVERDUE_DAYS = 7;
 
 const convert = (amount: number, currency: Parameters<typeof convertToMain>[1]) => convertToMain(amount, currency);
 const longDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });

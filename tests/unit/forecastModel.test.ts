@@ -48,11 +48,17 @@ test('the projection starts from today\'s balances and applies payments on their
   assert.equal(on(p, '2026-12-01'), 0);
 });
 
-test('overdue unpaid bills and past occurrences stack onto today with overdue flag (CRIT-05)', () => {
-  const bills: BillPayment[] = [{ id: 'b', description: 'Tax', amount: -200, type: 'payment', currency: 'EUR', dueDate: '2026-09-01', status: 'unpaid', accountId: 'chk' }];
-  const overdueSeries = series({ id: 'old-rt', nextDueDate: '2026-10-15' });
+test('overdue unpaid bills and past occurrences within 7 days stack onto today with overdue flag', () => {
+  // Within 7 days (TODAY is 2026-10-29): due 2026-10-25 (4 days late) and 2026-10-26 (3 days late)
+  const bills: BillPayment[] = [
+    { id: 'b', description: 'Tax', amount: -200, type: 'payment', currency: 'EUR', dueDate: '2026-10-25', status: 'unpaid', accountId: 'chk' },
+    // More than 7 days late (>7d, e.g. 2026-09-01): excluded from forecast to match Calendar Upcoming
+    { id: 'ancient', description: 'Ancient', amount: -500, type: 'payment', currency: 'EUR', dueDate: '2026-09-01', status: 'unpaid', accountId: 'chk' },
+  ];
+  const overdueSeries = series({ id: 'old-rt', nextDueDate: '2026-10-26' });
   const p = project({ bills, recurring: [overdueSeries] });
-  assert.equal(p.days[0].total, 300); // 1000 - 200 - 500 = 300
+  assert.equal(p.start, 1000); // starts with today's actual balance
+  assert.equal(p.days[0].total, 300); // 1000 - 200 - 500 = 300 (ancient bill ignored)
   assert.equal(p.days[0].events.length, 2);
   assert.equal(p.days[0].events.every(e => e.overdue), true);
   assert.equal(p.days[0].events[0].date, '2026-10-29'); // projected onto today

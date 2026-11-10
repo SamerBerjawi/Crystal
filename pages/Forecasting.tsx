@@ -134,7 +134,7 @@ const Forecasting: React.FC = () => {
       txByDateAndAccount.set(d, acctMap);
     }
 
-    const runningByAccount: Record<string, number> = { ...todayDay.byAccount };
+    const runningByAccount: Record<string, number> = { ...projection.startByAccount };
     const historyDays: typeof projection.days = [];
     const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
@@ -159,7 +159,7 @@ const Forecasting: React.FC = () => {
       });
     }
     return [...historyDays, ...projection.days];
-  }, [showHistory, projection.days, selectedAccounts, transactions, today]);
+  }, [showHistory, projection.days, projection.startByAccount, selectedAccounts, transactions, today]);
 
   const accountLines = useMemo<ChartLine[] | undefined>(() => {
     if (!splitAccounts || selectedAccounts.length < 2) return undefined;

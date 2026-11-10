@@ -315,6 +315,8 @@ export const syntheticSeries = (accounts: Account[], transactions: Transaction[]
   ...generateSyntheticPropertyTransactions(accounts),
 ];
 
+export const OVERDUE_DAYS = 7;
+
 /** Every occurrence in the range, plus recurring ones still unpaid from the last `overdueDays` days. */
 export const buildOccurrences = (input: OccurrenceInput): Occurrence[] => {
   const { recurring, overrides, bills, accounts, transactions, from, to, today, overdueDays = 31, includeSynthetic = true } = input;

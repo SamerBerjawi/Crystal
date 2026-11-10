@@ -1,6 +1,6 @@
 import type { Account, BillPayment, Currency, FinancialGoal, RecurrenceFrequency, Warrant } from '../types';
 import { advanceRecurrenceDate, getMainCurrency, parseLocalDate, round2, safeAdd } from '../utils';
-import { addDays, buildOccurrences, iso, isOpen, makeConverter, owningAccountId, type Converter, type Occurrence, type OccurrenceInput } from './scheduleModel';
+import { addDays, buildOccurrences, iso, isOpen, makeConverter, owningAccountId, OVERDUE_DAYS, type Converter, type Occurrence, type OccurrenceInput } from './scheduleModel';
 
 /*
  * Forecast model. Projects the selected accounts'
@@ -173,8 +173,9 @@ export const projectBalances = (input: ProjectInput): Projection => {
     return value;
   };
 
-  // Occurrences from the Schedule engine (today onwards, plus open overdue items within 60 days projected onto today).
-  const overdueLookback = iso(addDays(today, -60));
+  // Occurrences from the Schedule engine (today onwards, plus open overdue items within 7 days projected onto today,
+  // matching the Upcoming section in Schedule / Calendar).
+  const overdueLookback = iso(addDays(today, -OVERDUE_DAYS));
   for (const o of occurrences) {
     if (!isOpen(o)) continue;
     if (o.date > endStr || o.date < overdueLookback) continue;
@@ -552,7 +553,7 @@ export const forecastFromData = (data: ForecastData, selected: Account[], goals:
   return projectBalances({
     accounts: selected,
     startBalances,
-    occurrences: buildOccurrences({ ...data, from: today, to: end, today, overdueDays: 31 }),
+    occurrences: buildOccurrences({ ...data, from: today, to: end, today, overdueDays: OVERDUE_DAYS }),
     goals,
     activeGoalIds,
     today,
