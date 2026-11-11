@@ -88,8 +88,8 @@ const QueueRowItem = React.memo<{
       className={cn(
         'group flex min-h-16 items-center gap-2.5 px-3.5 py-2.5 transition-colors duration-150',
         isActive
-          ? 'bg-primary-soft/90 border-l-4 border-primary'
-          : 'hover:bg-inset/60 border-l-4 border-transparent'
+          ? 'bg-primary-soft'
+          : 'hover:bg-inset/60'
       )}
     >
       <Checkbox
