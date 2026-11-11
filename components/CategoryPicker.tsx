@@ -48,15 +48,16 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({ categories, suggestions
         <div className="flex flex-wrap gap-2" role="group" aria-label="Suggested categories">
           {suggestions.map(name => {
             const details = getCategoryDetails(name, categories);
+            const isPicked = value === name;
             return (
               <button
                 key={name}
                 type="button"
-                aria-pressed={value === name}
+                aria-pressed={isPicked}
                 onClick={() => onChange(name)}
                 className={cn(
-                  'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold pointer-coarse:h-11',
-                  value === name ? 'border-primary bg-primary-soft text-ink' : 'border-line-strong text-ink hover:bg-inset',
+                  'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm font-bold transition-colors pointer-coarse:h-11',
+                  isPicked ? 'border-primary bg-primary-soft text-ink shadow-2xs' : 'border-line-strong text-ink hover:bg-inset',
                 )}
               >
                 {details.icon && (
