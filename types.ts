@@ -765,6 +765,8 @@ export interface BillPayment {
   status: BillPaymentStatus;
   accountId?: string; // The account it was paid from/to
   warrantId?: string;
+  merchant?: string;
+  category?: string;
 }
 
 export interface AccountDetailProps {

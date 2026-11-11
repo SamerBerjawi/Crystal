@@ -383,6 +383,8 @@ export const buildOccurrences = (input: OccurrenceInput): Occurrence[] => {
       flow: classifyFlow(bill.type, bill.accountId, undefined, accountsById),
       type: bill.type,
       description: bill.description,
+      merchant: bill.merchant,
+      category: bill.category,
       accountId: bill.accountId,
       status: bill.status === 'paid' ? 'paid' : statusFor(bill.dueDate, todayStr),
       isOverride: false,
@@ -755,7 +757,7 @@ export const draftFromSeries = (rt: RecurringTransaction): SeriesDraft => ({
 
 export const draftFromBill = (bill: BillPayment): SeriesDraft => ({
   kind: 'bill', type: bill.type === 'deposit' ? 'income' : 'expense', amount: String(Math.abs(bill.amount)), currency: bill.currency,
-  description: bill.description, merchant: '', category: '', accountId: bill.accountId ?? '', toAccountId: '', startDate: bill.dueDate,
+  description: bill.description, merchant: bill.merchant ?? '', category: bill.category ?? '', accountId: bill.accountId ?? '', toAccountId: '', startDate: bill.dueDate,
   frequency: 'monthly', frequencyInterval: '1', dueDateOfMonth: '', weekendAdjustment: 'on', endDate: '',
   autopay: false, paymentUrl: '', notifyDaysBefore: '', overdueGraceDays: '', trialEndsOn: '',
 });
@@ -813,6 +815,8 @@ export const planSeries = (draft: SeriesDraft, existingId?: string, existingBill
         ...(existingBill ?? {}),
         id: existingId,
         description: draft.description.trim() || draft.merchant.trim(),
+        merchant: draft.merchant.trim() || undefined,
+        category: draft.category || undefined,
         amount: deposit ? amount : -amount,
         type: deposit ? 'deposit' : 'payment',
         currency: draft.currency,
