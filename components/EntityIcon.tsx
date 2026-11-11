@@ -58,46 +58,59 @@ export const LogoTile: React.FC<{
   fallbackIcon?: string;
   className?: string;
 }> = ({ url, label, size = 26, rounded = 'lg', fallbackIcon, className }) => {
+  const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const isDark = useIsDark();
   const shape = rounded === 'full' ? 'rounded-full' : rounded === 'md' ? 'rounded-[6px]' : 'rounded-[7px]';
   const style = { width: size, height: size };
+  const hasImage = Boolean(url && !failed);
 
-  if (url && !failed) {
-    return (
-      <span
-        className={cn('flex shrink-0 items-center justify-center overflow-hidden bg-white shadow-2xs', shape, className)}
-        style={style}
-        aria-hidden
-      >
-        <img
-          src={url}
-          alt=""
-          loading="lazy"
-          onError={() => setFailed(true)}
-          className="size-full object-cover"
-        />
-      </span>
-    );
-  }
+  const initial = useMemo(() => {
+    const clean = (label || '')
+      .replace(/^(Transfer\s+(to|from)|To|From)\s+/i, '')
+      .replace(/^[0-9\s#*_\/.\-\\:]+/, '')
+      .trim() || label.trim();
+    return (clean[0] || label.trim()[0] || '?').toUpperCase();
+  }, [label]);
 
   return (
     <span
       className={cn(
-        'flex shrink-0 items-center justify-center border font-bold select-none',
-        isDark ? 'bg-white/10 border-white/10 text-muted' : 'bg-black/5 border-black/10 text-muted',
+        'relative flex shrink-0 items-center justify-center overflow-hidden bg-inset border border-line shadow-2xs font-bold select-none text-muted',
         shape,
         className,
       )}
       style={style}
       aria-hidden
     >
-      {fallbackIcon ? (
-        <Icon name={fallbackIcon} size={Math.round(size * 0.55)} />
-      ) : (
-        <span className="text-ink" style={{ fontSize: Math.round(size * 0.44) }}>
-          {(label.trim()[0] || '?').toUpperCase()}
-        </span>
+      {(!hasImage || !loaded) && (
+        fallbackIcon ? (
+          <Icon name={fallbackIcon} size={Math.round(size * 0.55)} className="text-muted" />
+        ) : (
+          <span className="text-ink font-bold leading-none" style={{ fontSize: Math.round(size * 0.44) }}>
+            {initial}
+          </span>
+        )
+      )}
+      {hasImage && (
+        <img
+          src={url!}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            if (img.naturalWidth <= 1 && img.naturalHeight <= 1) {
+              setFailed(true);
+            } else {
+              setLoaded(true);
+            }
+          }}
+          onError={() => setFailed(true)}
+          className={cn(
+            'size-full object-cover transition-opacity duration-150',
+            loaded ? 'opacity-100' : 'opacity-0'
+          )}
+        />
       )}
     </span>
   );
@@ -184,7 +197,10 @@ export const MerchantLogo: React.FC<{
     });
   }, [merchantName, brandfetchClientId, effectiveOverrides, size]);
 
-  const resolvedFallbackIcon = isTransfer ? 'arrow-data-transfer-horizontal' : (fallbackIcon || (account ? accountIcon(account) : 'wallet-02'));
+  const isTransferTx = isTransfer || /^Transfer\s+(to|from)\s+/i.test(rawName);
+  const resolvedFallbackIcon = isTransferTx
+    ? 'arrow-data-transfer-horizontal'
+    : (fallbackIcon || (rawName === 'Transaction' && account ? accountIcon(account) : undefined));
 
   return (
     <LogoTile

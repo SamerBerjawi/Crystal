@@ -37,7 +37,7 @@ export const AccountLogoTile: React.FC<{
   const initial = account?.name?.trim().charAt(0).toUpperCase();
 
   return (
-    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-xs border border-line/40">
+    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-inset shadow-xs border border-line">
       {logoUrl && !failed ? (
         <img src={logoUrl} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
       ) : initial ? (

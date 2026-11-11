@@ -64,7 +64,7 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string;
 
   if (hasImage) {
     return (
-      <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-white shadow-xs">
+      <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-inset border border-line shadow-xs">
         <img src={url!} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
       </span>
     );
@@ -109,7 +109,7 @@ const AccountLogoTile: React.FC<{ url?: string | null; isTransfer?: boolean; lab
 
   if (url && !hasFailed) {
     return (
-      <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-white shadow-xs" aria-hidden="true">
+      <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-inset border border-line shadow-xs" aria-hidden="true">
         <img src={url} alt="" onError={() => setFailed(true)} className="size-full object-cover" />
       </span>
     );

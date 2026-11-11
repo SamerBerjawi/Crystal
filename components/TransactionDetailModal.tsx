@@ -212,7 +212,7 @@ const TransactionDetail: React.FC<{
       {/* 2. Hero Header Content */}
       <div className="relative -mt-10 px-6">
         <div className="flex items-start justify-between gap-3">
-          <span className="relative z-10 flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-line/40 bg-white shadow-md">
+          <span className="relative z-10 flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-line bg-inset shadow-md">
             {logo ? (
               <img
                 src={logo}
