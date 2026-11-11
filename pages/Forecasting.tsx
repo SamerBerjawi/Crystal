@@ -327,57 +327,151 @@ const Forecasting: React.FC = () => {
   </section>
 );
   const lowCard = lows.length > 0 && (
-  <section aria-label="Low points" className="surface-card rounded-[var(--radius-xl)] p-5">
-    <h2 className="type-card-title text-ink">Low points</h2>
-    <ul className="mt-2 space-y-1.5">
-      {lows.map(low => (
-        <li key={low.label} className="flex justify-between gap-3">
-          <span className="type-body text-muted">{low.label}<span className="type-caption block">{shortDay(low.date)}</span></span>
-          <span className="type-figure-row shrink-0 text-ink"><Amount value={low.value} currency={getMainCurrency()} /></span>
-        </li>
-      ))}
-    </ul>
-  </section>
-);
+    <section aria-label="Low points" className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="type-card-title text-ink">Low points</h2>
+          <p className="type-caption text-muted">Projected cash minimums across time horizons</p>
+        </div>
+        {dipsBelow && (
+          <Badge tone="attention" icon="alert-02">
+            {summary.below.count} {summary.below.count === 1 ? 'dip' : 'dips'}
+          </Badge>
+        )}
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {lows.map(low => {
+          const isDeficit = low.value < 0;
+          const isBelowCushion = !isDeficit && low.value < cushion;
+          const bufferDiff = round2(low.value - cushion);
+
+          return (
+            <button
+              key={low.label}
+              type="button"
+              onClick={() => openDay(low.date)}
+              className="group flex flex-col justify-between rounded-[var(--radius-lg)] border border-line bg-inset/50 p-3.5 text-left transition-all hover:border-line-strong hover:bg-inset hover:shadow-xs cursor-pointer"
+            >
+              <div className="flex w-full items-center justify-between gap-2">
+                <span className="type-caption font-semibold uppercase tracking-wider text-muted">{low.label}</span>
+                {isDeficit ? (
+                  <Badge tone="tomato">Deficit</Badge>
+                ) : isBelowCushion ? (
+                  <Badge tone="attention">Below buffer</Badge>
+                ) : (
+                  <Icon name="arrow-right-01" size={14} className="text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                )}
+              </div>
+              <div className="mt-3">
+                <span className={cn('type-figure-lg block', isDeficit ? 'font-bold text-money-out' : 'text-ink')}>
+                  <Amount value={low.value} currency={getMainCurrency()} />
+                </span>
+                <p className="type-caption mt-1 flex flex-wrap items-center gap-1.5 text-muted">
+                  <Icon name="calendar-03" size={13} />
+                  <span>{shortDay(low.date)}</span>
+                  {cushion > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className={isDeficit || isBelowCushion ? 'font-medium text-attention-text' : 'text-muted'}>
+                        {bufferDiff >= 0
+                          ? `+${formatCurrency(bufferDiff, getMainCurrency())}`
+                          : `${formatCurrency(bufferDiff, getMainCurrency())}`}
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  const PRESET_ASSUMPTIONS = [
+    { label: 'High inflation', values: { incomeChange: 0, inflation: 5, marketReturn: 0 } },
+    { label: 'Growth', values: { incomeChange: 5, inflation: 2, marketReturn: 7 } },
+    { label: 'Downturn', values: { incomeChange: -10, inflation: 4, marketReturn: -5 } },
+  ];
+
   const assumptionCard = (
     <section aria-label="What-if assumptions" className="surface-card rounded-[var(--radius-xl)] p-5">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="type-card-title text-ink">Assumptions</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="type-card-title text-ink">Assumptions</h2>
+          {hasAssumptions(assumptions) && (
+            <Badge tone="blue">Active</Badge>
+          )}
+        </div>
         {hasAssumptions(assumptions) && (
           <Button variant="ghost" size="sm" onPress={() => setAssumptions(NO_ASSUMPTIONS)}>Reset</Button>
         )}
       </div>
       <p className="type-caption text-muted">Test how income changes, inflation, or market returns affect your horizon.</p>
+
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        {PRESET_ASSUMPTIONS.map(preset => {
+          const isActive =
+            assumptions.incomeChange === preset.values.incomeChange &&
+            assumptions.inflation === preset.values.inflation &&
+            assumptions.marketReturn === preset.values.marketReturn;
+          return (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => setAssumptions(preset.values)}
+              className={cn(
+                'cursor-pointer rounded-full px-2.5 py-1 type-caption font-medium transition-colors',
+                isActive
+                  ? 'bg-pill text-on-pill'
+                  : 'bg-inset text-muted hover:bg-line/40 hover:text-ink'
+              )}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mt-3 grid grid-cols-3 gap-2">
         <label className="block">
-          <span className="type-caption text-muted">Income %</span>
-          <input
-            type="number"
-            step="1"
-            value={assumptions.incomeChange}
-            onChange={e => setAssumptions(prev => ({ ...prev, incomeChange: Number(e.target.value) || 0 }))}
-            className="mt-1 h-9 w-full rounded-[var(--radius-md)] border border-line bg-inset px-2.5 text-sm text-ink"
-          />
+          <span className="type-caption text-muted">Income</span>
+          <div className="relative mt-1 flex items-center">
+            <input
+              type="number"
+              step="1"
+              value={assumptions.incomeChange}
+              onChange={e => setAssumptions(prev => ({ ...prev, incomeChange: Number(e.target.value) || 0 }))}
+              className="h-9 w-full rounded-[var(--radius-md)] border border-line-strong bg-inset px-2.5 pr-6 text-sm text-ink tabular-nums transition-colors focus:border-pill focus:outline-hidden"
+            />
+            <span className="pointer-events-none absolute right-2 type-caption text-muted">%</span>
+          </div>
         </label>
         <label className="block">
-          <span className="type-caption text-muted">Inflation %</span>
-          <input
-            type="number"
-            step="0.5"
-            value={assumptions.inflation}
-            onChange={e => setAssumptions(prev => ({ ...prev, inflation: Number(e.target.value) || 0 }))}
-            className="mt-1 h-9 w-full rounded-[var(--radius-md)] border border-line bg-inset px-2.5 text-sm text-ink"
-          />
+          <span className="type-caption text-muted">Inflation</span>
+          <div className="relative mt-1 flex items-center">
+            <input
+              type="number"
+              step="0.5"
+              value={assumptions.inflation}
+              onChange={e => setAssumptions(prev => ({ ...prev, inflation: Number(e.target.value) || 0 }))}
+              className="h-9 w-full rounded-[var(--radius-md)] border border-line-strong bg-inset px-2.5 pr-6 text-sm text-ink tabular-nums transition-colors focus:border-pill focus:outline-hidden"
+            />
+            <span className="pointer-events-none absolute right-2 type-caption text-muted">%</span>
+          </div>
         </label>
         <label className="block">
-          <span className="type-caption text-muted">Market %</span>
-          <input
-            type="number"
-            step="0.5"
-            value={assumptions.marketReturn}
-            onChange={e => setAssumptions(prev => ({ ...prev, marketReturn: Number(e.target.value) || 0 }))}
-            className="mt-1 h-9 w-full rounded-[var(--radius-md)] border border-line bg-inset px-2.5 text-sm text-ink"
-          />
+          <span className="type-caption text-muted">Market</span>
+          <div className="relative mt-1 flex items-center">
+            <input
+              type="number"
+              step="0.5"
+              value={assumptions.marketReturn}
+              onChange={e => setAssumptions(prev => ({ ...prev, marketReturn: Number(e.target.value) || 0 }))}
+              className="h-9 w-full rounded-[var(--radius-md)] border border-line-strong bg-inset px-2.5 pr-6 text-sm text-ink tabular-nums transition-colors focus:border-pill focus:outline-hidden"
+            />
+            <span className="pointer-events-none absolute right-2 type-caption text-muted">%</span>
+          </div>
         </label>
       </div>
     </section>
@@ -463,8 +557,18 @@ const Forecasting: React.FC = () => {
                 </ul>
               </section>
             )}
-            {showChart && biggestCard}
-            {showList && <ForecastList days={projection.days} accountName={accountName} onOpen={event => setPanel({ date: event.date, events: [event] })} />}
+            {showChart && (
+              <>
+                {biggestCard}
+                {lowCard}
+              </>
+            )}
+            {showList && (
+              <>
+                {lowCard}
+                <ForecastList days={projection.days} accountName={accountName} onOpen={event => setPanel({ date: event.date, events: [event] })} />
+              </>
+            )}
           </div>
 
           <aside className="min-w-0 space-y-4">
@@ -491,45 +595,57 @@ const Forecasting: React.FC = () => {
               )}
             </section>
 
-            <section aria-label="Buffer status" className="surface-card flex items-start gap-3 rounded-[var(--radius-xl)] p-5">
-              <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]', dipsBelow ? 'bg-amber-soft' : 'bg-primary-soft')}>
-                <Icon name={dipsBelow ? 'warning' : 'check'} size={20} className="text-ink" />
-              </span>
-              <div className="min-w-0">
-                {dipsBelow ? (
-                  <>
-                    <h2 className="type-body-strong text-ink">Under your buffer for {summary.below.count} {summary.below.count === 1 ? 'day' : 'days'}</h2>
-                    <p className="type-body text-muted">From {shortDay(summary.below.first!)}. The lowest point is {summary.lowest && <span className="whitespace-nowrap text-ink"><Amount value={summary.lowest.value} currency={getMainCurrency()} /></span>}.</p>
-                    {suggestions.length > 0 && (
-                      <ul aria-label="Ways to stay above your buffer" className="mt-3 space-y-2">
-                        {suggestions.map(item => (
-                          <li key={item.id} className="rounded-[var(--radius-md)] bg-inset p-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="type-body-strong min-w-0 break-words text-ink">{suggestionTitle(item)}</p>
-                              <Badge className="shrink-0">{item.action === 'pause-goal' ? 'Goal' : item.event.kind === 'bill' ? 'One-time' : 'Recurring'}</Badge>
-                            </div>
-                            <p className="type-caption text-muted">
-                              {item.action === 'pause-goal'
-                                ? <>Keeps <span className="whitespace-nowrap"><Amount value={item.frees} currency={getMainCurrency()} /></span> from going to it before {shortDay(summary.below.first!)}.</>
-                                : <><span className="whitespace-nowrap"><Amount value={item.frees} currency={getMainCurrency()} /></span> now due {shortDay(item.event.date)}, after your next income instead.</>}
-                            </p>
-                            <div className="mt-2 flex gap-2">
-                              <Button size="sm" onPress={() => startSuggestion(item)}>Apply</Button>
-                              <Button size="sm" variant="ghost" onPress={() => dismissSuggestion(item)}>Dismiss</Button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {dismissedCount > 0 && <Button className="mt-2" size="sm" variant="ghost" onPress={() => setDismissed([])}>Show {dismissedCount} dismissed</Button>}
-                  </>
-                ) : (
-                  <>
-                    <h2 className="type-body-strong text-ink">Above your buffer the whole way</h2>
-                    {summary.lowest && <p className="type-body text-muted">Lowest point <span className="whitespace-nowrap text-ink"><Amount value={summary.lowest.value} currency={getMainCurrency()} /></span> on {shortDay(summary.lowest.date)}. Nothing to move.</p>}
-                  </>
-                )}
+            <section aria-label="Buffer status" className="surface-card rounded-[var(--radius-xl)] p-5">
+              <div className="flex items-start gap-3">
+                <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]', dipsBelow ? 'bg-amber-soft text-attention-text' : 'bg-primary-soft text-primary')}>
+                  <Icon name={dipsBelow ? 'alert-02' : 'checkmark-circle-02'} size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  {dipsBelow ? (
+                    <>
+                      <h2 className="type-body-strong text-ink">Under your buffer for {summary.below.count} {summary.below.count === 1 ? 'day' : 'days'}</h2>
+                      <p className="type-caption mt-0.5 text-muted">From {shortDay(summary.below.first!)}. The lowest point is {summary.lowest && <span className="whitespace-nowrap font-medium text-ink"><Amount value={summary.lowest.value} currency={getMainCurrency()} /></span>}.</p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="type-body-strong text-ink">Above your buffer the whole way</h2>
+                      {summary.lowest && <p className="type-caption mt-0.5 text-muted">Lowest point <span className="whitespace-nowrap font-medium text-ink"><Amount value={summary.lowest.value} currency={getMainCurrency()} /></span> on {shortDay(summary.lowest.date)}. Nothing to move.</p>}
+                    </>
+                  )}
+                </div>
               </div>
+
+              {dipsBelow && suggestions.length > 0 && (
+                <div className="-mx-5 mt-4 border-t border-line">
+                  <ul aria-label="Ways to stay above your buffer" className="divide-y divide-line">
+                    {suggestions.map(item => (
+                      <li key={item.id} className="px-5 py-3 transition-colors hover:bg-inset/30">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="type-body-strong text-ink">{suggestionTitle(item)}</p>
+                            <p className="type-caption mt-0.5 text-muted">
+                              {item.action === 'pause-goal'
+                                ? <>Keeps <span className="whitespace-nowrap font-semibold text-ink"><Amount value={item.frees} currency={getMainCurrency()} /></span> from going to it before {shortDay(summary.below.first!)}.</>
+                                : <><span className="whitespace-nowrap font-semibold text-ink"><Amount value={item.frees} currency={getMainCurrency()} /></span> now due {shortDay(item.event.date)}, after your next income instead.</>}
+                            </p>
+                          </div>
+                          <Badge className="shrink-0" tone="neutral">{item.action === 'pause-goal' ? 'Goal' : item.event.kind === 'bill' ? 'One-time' : 'Recurring'}</Badge>
+                        </div>
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <Button size="sm" variant="primary" onPress={() => startSuggestion(item)}>Apply</Button>
+                          <Button size="sm" variant="ghost" onPress={() => dismissSuggestion(item)}>Dismiss</Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {dipsBelow && dismissedCount > 0 && (
+                <div className="mt-3 border-t border-line pt-3">
+                  <Button size="sm" variant="ghost" onPress={() => setDismissed([])}>Show {dismissedCount} dismissed</Button>
+                </div>
+              )}
             </section>
 
             <section aria-label="Cash buffer" className="surface-card rounded-[var(--radius-xl)] p-5">
@@ -542,7 +658,6 @@ const Forecasting: React.FC = () => {
               </div>
             </section>
             {!showChart && biggestCard}
-            {lowCard}
             {assumptionCard}
           </aside>
         </div>

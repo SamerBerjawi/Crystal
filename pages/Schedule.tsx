@@ -13,11 +13,14 @@ import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Badge, DayGroup } from '../components/ui/Display';
 import { TextInput, Switch } from '../components/ui/Fields';
+import Icon from '../components/ui/Icon';
 import { Menu } from '../components/ui/Menu';
 import { Amount } from '../components/ui/Money';
 import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
+import { MerchantLogo } from '../components/EntityIcon';
+import { cn } from '../lib/utils';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import { useAccountsContext, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
@@ -44,6 +47,12 @@ const SOURCE_OPTIONS = [
   { id: 'property', label: 'Property' },
 ];
 const OVERDUE_FILTERS = [{ id: 'all', label: 'All' }, { id: 'recurring', label: 'Recurring' }, { id: 'one-time', label: 'One-time' }];
+const SCHEDULED_STATUS_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'active', label: 'Active' },
+  { id: 'paused', label: 'Paused' },
+  { id: 'ended', label: 'Ended' },
+];
 const HORIZON_DAYS = 365;
 
 const convert = (amount: number, currency: Parameters<typeof convertToMain>[1]) => convertToMain(amount, currency);
@@ -77,6 +86,7 @@ const SchedulePage: React.FC = () => {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [showSkipped, setShowSkipped] = useState(false);
   const [overdueFilter, setOverdueFilter] = useState<OverdueFilter>('all');
+  const [scheduledFilter, setScheduledFilter] = useState<'all' | 'active' | 'paused' | 'ended'>('all');
   const [formMode, setFormMode] = useState<'recurring' | 'one-time' | null>(null);
   const [formDate, setFormDate] = useState<string | undefined>();
   const [editingSeries, setEditingSeries] = useState<RecurringTransaction | null>(null);
@@ -163,6 +173,7 @@ const SchedulePage: React.FC = () => {
   }, [selected, occurrences]);
   const overdueCutoff = useMemo(() => iso(addDays(today, -OVERDUE_DAYS)), [today]);
   const overdue = useMemo(() => occurrences.filter(item => item.status === 'overdue' && item.date >= overdueCutoff), [occurrences, overdueCutoff]);
+  const overdueTotal = useMemo(() => overdue.reduce((sum, item) => sum + item.amount, 0), [overdue]);
 
   const expiredBills = useMemo(() => billsAndPayments.filter(bill => bill.status === 'expired').sort((a, b) => (a.dueDate > b.dueDate ? -1 : 1)), [billsAndPayments]);
   const oldBills = useMemo(() => oldUnpaidBills(billsAndPayments, today), [billsAndPayments, today]);
@@ -322,6 +333,53 @@ const SchedulePage: React.FC = () => {
         }
       />
 
+      {overdue.length > 0 && (
+        <section
+          aria-label="Overdue bills"
+          className="surface-card rounded-[var(--radius-xl)] border border-amber/40 bg-amber-soft p-4 transition-all"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber/25 text-attention-text">
+                <Icon name="alert-02" size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="type-body-strong text-ink">
+                    {overdue.length} {overdue.length === 1 ? 'bill is' : 'bills are'} overdue
+                  </h3>
+                  <Badge tone="attention">Action needed</Badge>
+                </div>
+                <p className="type-caption text-muted">
+                  Totaling <span className="font-semibold text-ink"><Amount value={overdueTotal} currency={getMainCurrency()} /></span> requiring settlement or rescheduling.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={() => {
+                  setTab('upcoming');
+                  setOverdueFilter('all');
+                }}
+              >
+                Review in Upcoming
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={() => {
+                  if (overdue[0]) setPosting(overdue[0]);
+                }}
+              >
+                Pay next bill
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
       <SegmentedControl items={TABS} activeId={tab} onChange={id => setTab(id as Tab)} scrollable />
 
       {tab === 'calendar' && (
@@ -361,9 +419,9 @@ const SchedulePage: React.FC = () => {
 
       {tab === 'upcoming' && (
         <section aria-label="Upcoming" className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
-          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-wrap items-end gap-3 max-sm:w-full">
-              <TextInput className="w-64 max-sm:w-full" label="Search" value={search} onChange={setSearch} />
+              <TextInput className="w-64 max-sm:w-full" label="Search" value={search} onChange={setSearch} placeholder="Search payee or memo..." />
               <Select className="w-44 max-sm:w-full" label="Source" options={SOURCE_OPTIONS} value={sourceFilter} onChange={setSourceFilter} />
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -371,12 +429,56 @@ const SchedulePage: React.FC = () => {
               <SegmentedControl items={FLOWS} activeId={flow} onChange={setFlow} />
             </div>
           </div>
-          {groups.length === 0 ? <p className="type-body text-muted">Nothing matches.</p> : (
-            <div className="space-y-3">
+          {groups.length === 0 ? (
+            <EmptyState
+              icon="calendar-03"
+              title="Nothing matches your filters"
+              description="Try adjusting your search query, source, or flow filters."
+            />
+          ) : (
+            <div className="space-y-4">
               {groups.map(group => (
-                <DayGroup key={group.id} label={group.label} total={<Amount value={group.net} currency={getMainCurrency()} tone="flow" />}>
-                  {group.id === 'overdue' && <SegmentedControl className="my-2" items={OVERDUE_FILTERS} activeId={overdueFilter} onChange={id => setOverdueFilter(id as OverdueFilter)} />}
-                  <ul className="divide-y divide-line">{group.items.map(item => <OccurrenceRow key={item.key} occurrence={item} accountName={accountName} showDate {...actions} />)}</ul>
+                <DayGroup
+                  key={group.id}
+                  label={
+                    <span className="flex items-center gap-2">
+                      <span className={group.id === 'overdue' ? 'text-attention-text font-bold' : ''}>{group.label}</span>
+                      <span
+                        className={cn(
+                          'type-caption rounded-full px-2 py-0.5',
+                          group.id === 'overdue'
+                            ? 'bg-amber/25 text-attention-text font-bold border border-amber/40'
+                            : 'bg-inset text-muted'
+                        )}
+                      >
+                        {group.items.length}
+                      </span>
+                    </span>
+                  }
+                  total={<Amount value={group.net} currency={getMainCurrency()} tone="flow" />}
+                >
+                  {group.id === 'overdue' && (
+                    <div className="my-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <Badge tone="attention" icon="alert-02" className="bg-amber/25 text-attention-text border border-amber/40 font-bold">
+                          Overdue payments
+                        </Badge>
+                        <span className="type-caption text-muted">Items past their scheduled date</span>
+                      </div>
+                      <SegmentedControl items={OVERDUE_FILTERS} activeId={overdueFilter} onChange={id => setOverdueFilter(id as OverdueFilter)} />
+                    </div>
+                  )}
+                  <ul className="divide-y divide-line">
+                    {group.items.map(item => (
+                      <OccurrenceRow
+                        key={item.key}
+                        occurrence={item}
+                        accountName={accountName}
+                        showDate
+                        {...actions}
+                      />
+                    ))}
+                  </ul>
                 </DayGroup>
               ))}
             </div>
@@ -386,68 +488,193 @@ const SchedulePage: React.FC = () => {
 
       {tab === 'scheduled' && (
         <div className="space-y-4">
-          {series.map(group => (
-            <section key={group.id} aria-label={group.label} className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="type-card-title text-ink">{group.label}</h2>
-                <p className="type-caption text-muted">
-                  {group.monthlyIn > 0 && <><Amount value={group.monthlyIn} currency={getMainCurrency()} /> a month in </>}
-                  {group.monthlyOut > 0 && <><Amount value={group.monthlyOut} currency={getMainCurrency()} /> a month out</>}
-                </p>
-              </div>
-              <ul className="mt-2 divide-y divide-line">
-                {group.rows.map(row => (
-                  <li key={row.series.id} className="flex min-h-14 items-center gap-2 py-1.5">
-                    <div className="min-w-0 flex-1">
-                      <p className="type-body-strong truncate text-ink">{row.series.merchant || row.series.description}</p>
-                      <p className="type-caption truncate text-muted">{[row.source === 'recurring' ? cadenceLabel(row.series) : SOURCE_LABEL[row.source], row.series.pausedAt ? 'Paused' : row.next ? `Next ${shortDay(row.next)}` : row.ended ? 'Ended' : '', row.series.autopay ? 'Autopay' : '', accountName(row.series.accountId)].filter(Boolean).join(', ')}</p>
-                    </div>
-                    {row.series.paymentUrl && <a href={row.series.paymentUrl} target="_blank" rel="noopener noreferrer" className="type-caption shrink-0 font-bold text-primary hover:underline">Pay online</a>}
-                    <span className="type-figure-row shrink-0 text-ink"><Amount value={row.monthly} currency={row.series.currency} /><span className="type-caption text-muted"> /mo</span></span>
-                    {row.source === 'recurring'
-                      ? <Menu title={row.series.description} trigger={<IconButton icon="more-horizontal" label={`Actions for ${row.series.description}`} tooltipPlacement="left" />} items={seriesMenu(row)} />
-                      : <Badge tone="neutral">From account</Badge>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-          {series.length === 0 && <EmptyState icon="repeat-one-01" title="Nothing scheduled" description="Add a recurring payment, and it shows on every date." actionLabel="Add a recurring item" onAction={() => openForm('recurring')} />}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <SegmentedControl
+              items={SCHEDULED_STATUS_FILTERS}
+              activeId={scheduledFilter}
+              onChange={id => setScheduledFilter(id as typeof scheduledFilter)}
+            />
+            <Button icon="add-01" size="sm" onPress={() => openForm('recurring')}>Add recurring</Button>
+          </div>
+          {series.map(group => {
+            const filteredRows = group.rows.filter(row => {
+              if (scheduledFilter === 'all') return true;
+              const isPaused = !!row.series.pausedAt;
+              const isEnded = !!row.ended;
+              if (scheduledFilter === 'paused') return isPaused;
+              if (scheduledFilter === 'ended') return isEnded;
+              if (scheduledFilter === 'active') return !isPaused && !isEnded;
+              return true;
+            });
+            if (filteredRows.length === 0) return null;
+
+            return (
+              <section key={group.id} aria-label={group.label} className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-line pb-3">
+                  <div className="flex items-center gap-2">
+                    <h2 className="type-card-title text-ink">{group.label}</h2>
+                    <Badge tone="neutral">{filteredRows.length}</Badge>
+                  </div>
+                  <p className="type-caption text-muted">
+                    {group.monthlyIn > 0 && <><Amount value={group.monthlyIn} currency={getMainCurrency()} /> a month in </>}
+                    {group.monthlyOut > 0 && <><Amount value={group.monthlyOut} currency={getMainCurrency()} /> a month out</>}
+                  </p>
+                </div>
+                <ul className="mt-2 divide-y divide-line">
+                  {filteredRows.map(row => {
+                    const isPaused = !!row.series.pausedAt;
+                    const isEnded = !!row.ended;
+                    const name = row.series.merchant || row.series.description;
+
+                    return (
+                      <li key={row.series.id} className="group -mx-2 flex min-h-16 flex-wrap items-center gap-3 rounded-[var(--radius-md)] px-2 py-2.5 transition-colors hover:bg-inset/30">
+                        <MerchantLogo name={name} size={40} className="shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="type-body-strong truncate text-ink">{name}</span>
+                            <Badge tone="neutral">{row.source === 'recurring' ? cadenceLabel(row.series) : SOURCE_LABEL[row.source]}</Badge>
+                            {row.series.autopay && <Badge tone="positive">Autopay</Badge>}
+                            {isPaused && <Badge tone="attention">Paused</Badge>}
+                            {isEnded && <Badge tone="neutral">Ended</Badge>}
+                          </div>
+                          <p className="type-caption mt-0.5 flex flex-wrap items-center gap-1.5 text-muted">
+                            {row.next && <span>Next due {shortDay(row.next)}</span>}
+                            {row.next && accountName(row.series.accountId) && <span>·</span>}
+                            {accountName(row.series.accountId) && <span>{accountName(row.series.accountId)}</span>}
+                            {row.series.paymentUrl && (
+                              <>
+                                <span>·</span>
+                                <a
+                                  href={row.series.paymentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
+                                >
+                                  <span>Pay online</span>
+                                  <Icon name="link-01" size={12} />
+                                </a>
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="type-figure-row block text-ink">
+                            <Amount value={row.monthly} currency={row.series.currency} />
+                            <span className="type-caption text-muted"> /mo</span>
+                          </span>
+                          <span className="type-caption block text-muted">
+                            ~<Amount value={row.monthly * 12} currency={row.series.currency} /> /yr
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {row.source === 'recurring' ? (
+                            <>
+                              {isPaused ? (
+                                <Button variant="ghost" size="sm" icon="play" onPress={() => resumeSeries(row.series)}>
+                                  Resume
+                                </Button>
+                              ) : (
+                                <Button variant="ghost" size="sm" icon="pause" onPress={() => pauseSeries(row.series)}>
+                                  Pause
+                                </Button>
+                              )}
+                              <Menu
+                                title={row.series.description}
+                                trigger={<IconButton icon="more-horizontal" label={`Actions for ${row.series.description}`} tooltipPlacement="left" />}
+                                items={seriesMenu(row)}
+                              />
+                            </>
+                          ) : (
+                            <Badge tone="neutral">From account</Badge>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+          {series.length === 0 && (
+            <EmptyState
+              icon="repeat-one-01"
+              title="Nothing scheduled"
+              description="Add a recurring payment, and it shows on every date."
+              actionLabel="Add a recurring item"
+              onAction={() => openForm('recurring')}
+            />
+          )}
         </div>
       )}
 
       {tab === 'archive' && (
         <section aria-label="Archive" className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
             <div>
-              <h2 className="type-card-title text-ink">Expired bills</h2>
-              <p className="type-caption text-muted">One-time bills you've archived.</p>
+              <div className="flex items-center gap-2">
+                <h2 className="type-card-title text-ink">Expired & Archived Bills</h2>
+                <Badge tone="neutral">{expiredBills.length}</Badge>
+              </div>
+              <p className="type-caption text-muted">Past one-time bills and completed schedules preserved for your history.</p>
             </div>
             {oldBills.length > 0 && (
-              <Button variant="secondary" onPress={() => {
-                oldBills.forEach(bill => saveBillPayment({ ...bill, status: 'expired' }));
-                toast.success(`${oldBills.length} old ${oldBills.length === 1 ? 'bill' : 'bills'} archived`);
-              }}>Archive {oldBills.length} old {oldBills.length === 1 ? 'bill' : 'bills'}</Button>
+              <Button
+                variant="secondary"
+                icon="archive-01"
+                onPress={() => {
+                  oldBills.forEach(bill => saveBillPayment({ ...bill, status: 'expired' }));
+                  toast.success(`${oldBills.length} old ${oldBills.length === 1 ? 'bill' : 'bills'} archived`);
+                }}
+              >
+                Archive {oldBills.length} unpaid past {oldBills.length === 1 ? 'bill' : 'bills'}
+              </Button>
             )}
           </div>
-          {expiredBills.length === 0 ? <p className="type-body mt-3 text-muted">Nothing here.</p> : (
-            <ul className="mt-2 divide-y divide-line">
+          {expiredBills.length === 0 ? (
+            <EmptyState
+              icon="archive-01"
+              title="Archive is clear"
+              description="One-time bills that expire or get archived will be kept here for reference."
+            />
+          ) : (
+            <ul className="mt-3 divide-y divide-line">
               {expiredBills.map(bill => (
-                <li key={bill.id} className="flex min-h-14 flex-wrap items-center gap-2 py-1.5">
+                <li key={bill.id} className="group -mx-2 flex min-h-14 flex-wrap items-center gap-3 rounded-[var(--radius-md)] px-2 py-2.5 transition-colors hover:bg-inset/30">
+                  <MerchantLogo name={bill.description} size={36} className="shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="type-body-strong truncate text-ink">{bill.description}</p>
-                    <p className="type-caption truncate text-muted">{[`Due ${shortDay(bill.dueDate)}`, accountName(bill.accountId)].filter(Boolean).join(', ')}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="type-body-strong truncate text-ink">{bill.description}</p>
+                      <Badge tone="neutral">Archived</Badge>
+                    </div>
+                    <p className="type-caption mt-0.5 text-muted">
+                      Due {shortDay(bill.dueDate)}
+                      {accountName(bill.accountId) && ` · ${accountName(bill.accountId)}`}
+                    </p>
                   </div>
-                  <span className="type-figure-row shrink-0 text-ink"><Amount value={bill.amount} currency={bill.currency} /></span>
-                  <Button variant="secondary" size="sm" onPress={() => { saveBillPayment({ ...bill, status: 'unpaid' }); toast.success(`${bill.description} restored`); }}>Restore</Button>
-                  <Menu
-                    title={bill.description}
-                    trigger={<IconButton icon="more-horizontal" label={`Actions for ${bill.description}`} tooltipPlacement="left" />}
-                    items={[
-                      { id: 'paid', label: 'Mark as paid', icon: 'tick-02', onAction: () => setPosting(postAs(bill)) },
-                      { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => { deleteBillPayment(bill.id); toast.success(`${bill.description} deleted`); } },
-                    ]}
-                  />
+                  <span className="type-figure-row shrink-0 text-ink">
+                    <Amount value={bill.amount} currency={bill.currency} />
+                  </span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon="refresh"
+                      onPress={() => {
+                        saveBillPayment({ ...bill, status: 'unpaid' });
+                        toast.success(`${bill.description} restored to active plan`);
+                      }}
+                    >
+                      Restore
+                    </Button>
+                    <Menu
+                      title={bill.description}
+                      trigger={<IconButton icon="more-horizontal" label={`Actions for ${bill.description}`} tooltipPlacement="left" />}
+                      items={[
+                        { id: 'paid', label: 'Mark as paid', icon: 'checkmark-circle-02', onAction: () => setPosting(postAs(bill)) },
+                        { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => { deleteBillPayment(bill.id); toast.success(`${bill.description} deleted`); } },
+                      ]}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>
