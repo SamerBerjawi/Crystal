@@ -160,11 +160,16 @@ const summaryText = (w: WrappedData, isPrivate = false) => {
 const Wrapped: React.FC = () => {
   const transactions = useTransactionSelector(tx => tx);
   const accounts = useAccountSelector(acc => acc);
-  const { categories } = useCategoryContext();
+  const { expenseCategories, incomeCategories } = useCategoryContext();
   const currency = getMainCurrency();
   const isPrivate = useContext(PrivacyContext);
 
   const [isStoryOpen, setStoryOpen] = useState(false);
+
+  const allCategories = useMemo(
+    () => [...(expenseCategories || []), ...(incomeCategories || [])],
+    [expenseCategories, incomeCategories]
+  );
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, { icon?: string; color?: string }>();
@@ -174,9 +179,9 @@ const Wrapped: React.FC = () => {
         map.set(sub.name, { icon: sub.icon || cat.icon, color: sub.color || cat.color });
       });
     };
-    categories.forEach(register);
+    allCategories.forEach(register);
     return map;
-  }, [categories]);
+  }, [allCategories]);
 
   const inAnalytics = useMemo(() => {
     const ids = new Set(accounts.filter(acc => acc.includeInAnalytics ?? true).map(acc => acc.id));
