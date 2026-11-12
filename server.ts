@@ -129,6 +129,7 @@ async function startServer() {
     return null;
   }
 
+  let mockTokens: { id: string; name: string; prefix: string; scopes: string[]; createdAt: string; lastUsedAt: string | null; expiresAt: string | null; revokedAt: string | null }[] = [];
   let mockAlerts: { enabled: boolean; channel: { kind: string; url: string; topic?: string; token?: string } | null; rules: Record<string, number | boolean> } = {
     enabled: false,
     channel: null,
@@ -280,6 +281,24 @@ async function startServer() {
       }
       if (subpath === '/alerts/test' && req.method === 'POST') {
         return mockAlerts.channel ? res.json({ message: 'Test sent' }) : res.status(400).json({ message: 'Save a way to send alerts first.' });
+      }
+    }
+
+    if (subpath.startsWith('/tokens')) {
+      if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
+      if (subpath === '/tokens' && req.method === 'GET') return res.json({ tokens: mockTokens, scopes: ['summary', 'transactions', 'investments', 'planning'] });
+      if (subpath === '/tokens' && req.method === 'POST') {
+        const { name, scopes, expiresInDays } = req.body ?? {};
+        if (!name || !Array.isArray(scopes) || scopes.length === 0) return res.status(400).json({ message: 'Give the token a name and at least one scope.' });
+        const token = `cry_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+        const row = { id: `tok-${mockTokens.length + 1}`, name, prefix: token.slice(0, 8), scopes, createdAt: new Date().toISOString(), lastUsedAt: null, expiresAt: expiresInDays ? new Date(Date.now() + expiresInDays * 86400000).toISOString() : null, revokedAt: null };
+        mockTokens = [row, ...mockTokens];
+        return res.status(201).json({ token, ...row });
+      }
+      const revokeId = subpath.match(/^\/tokens\/([^/]+)$/)?.[1];
+      if (revokeId && req.method === 'DELETE') {
+        mockTokens = mockTokens.map(t => (t.id === revokeId ? { ...t, revokedAt: new Date().toISOString() } : t));
+        return res.json({ message: 'Revoked' });
       }
     }
 
