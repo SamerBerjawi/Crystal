@@ -91,6 +91,7 @@ export const HUBS: Hub[] = [
       { label: 'Invoices', page: 'Quotes & Invoices', icon: 'invoice-02' },
       { label: 'Challenges', page: 'Challenges', icon: 'award-01' },
       { label: 'Wrapped', page: 'Wrapped', icon: 'gift' },
+      { label: 'Net worth bridge', page: 'Net worth bridge', icon: 'chart-column' },
     ],
   },
   {
