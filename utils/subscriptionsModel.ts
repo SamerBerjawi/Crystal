@@ -215,6 +215,16 @@ export const seriesFromDetected = (candidate: DetectedSubscription, today: Date)
   };
 };
 
+const NON_SERVICE_CATEGORIES = new Set(['housing', 'rent', 'mortgage', 'loan', 'loans', 'taxes', 'tax', 'alimony']);
+
+/** A recurring payment that is a service you could cancel, as opposed to rent, a loan or tax. The Subscriptions page's "Services only". */
+export const isDigitalOrService = (item: Pick<RecurringTransaction, 'category'>) => {
+  const cat = (item.category || '').trim().toLowerCase();
+  if (!cat) return true;
+  if (cat.includes('subscription') || cat.includes('streaming') || cat.includes('software') || cat.includes('membership')) return true;
+  return !NON_SERVICE_CATEGORIES.has(cat);
+};
+
 export type ServiceStatus = 'active' | 'paused' | 'cancelled';
 
 export const serviceStatus = (rt: Pick<RecurringTransaction, 'pausedAt' | 'endDate'>, today: Date): ServiceStatus => {

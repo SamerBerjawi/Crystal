@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRe
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import CommandCenter from './components/CommandCenter';
+import AskCrystalPanel from './components/AskCrystalPanel';
+import { useScrollMemory } from './hooks/useScrollMemory';
 import PageSkeleton from './components/PageSkeleton';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
@@ -266,6 +268,7 @@ const App: React.FC = () => {
   const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>(emptyFinancialData.lifeEvents || []);
   const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>([]);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isQuickAddTxModalOpen, setIsQuickAddTxModalOpen] = useState(false);
 
@@ -1202,6 +1205,12 @@ const App: React.FC = () => {
         setIsShortcutsModalOpen(false);
         setIsCommandCenterOpen(prev => !prev);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        e.preventDefault();
+        setIsShortcutsModalOpen(false);
+        setIsCommandCenterOpen(false);
+        setIsAssistantOpen(prev => !prev);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -1391,6 +1400,12 @@ const App: React.FC = () => {
             onLock={lockAction}
             onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
             onOpenSetupWizard={() => setIsOnboardingOpen(true)}
+            onOpenAssistant={() => setIsAssistantOpen(true)}
+          />
+          <AskCrystalPanel
+            isOpen={isAssistantOpen}
+            onClose={() => setIsAssistantOpen(false)}
+            onOpenSettings={() => setCurrentPage('Integrations')}
           />
           <KeyboardShortcutsModal
             isOpen={isShortcutsModalOpen}

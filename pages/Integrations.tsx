@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions, Page } from '../types';
 import AlertsSettingsPanel from '../components/AlertsSettingsPanel';
 import ApiTokensPanel from '../components/ApiTokensPanel';
+import AssistantSettingsPanel from '../components/AssistantSettingsPanel';
 import EnableBankingCredentialsPanel from '../components/EnableBankingCredentialsPanel';
 import EnableBankingIntegrationCard from '../components/EnableBankingIntegrationCard';
 import SettingsGroup from '../components/SettingsGroup';
@@ -119,6 +120,10 @@ const Integrations: React.FC<IntegrationsProps> = ({
           onLinkAccount={onLinkAccount}
           onTriggerSync={onTriggerSync}
         />
+      </SettingsGroup>
+
+      <SettingsGroup title="Assistant" description="Ask questions about your money in plain words.">
+        <AssistantSettingsPanel />
       </SettingsGroup>
 
       <SettingsGroup title="Alerts" description="Messages to your phone about balances, budgets and bills.">

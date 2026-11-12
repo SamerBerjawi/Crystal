@@ -150,3 +150,37 @@ export const safeFetchText = async (rawUrl: string, options: SafeFetchOptions = 
     }
     throw new UrlBlockedError('Too many redirects.');
 };
+
+export interface SafeStreamOptions {
+    method?: 'GET' | 'POST' | 'DELETE';
+    headers?: Record<string, string>;
+    body?: string;
+    /** Longest the connection may sit idle, in milliseconds. A model that is still downloading or thinking keeps it alive. */
+    idleTimeoutMs?: number;
+    /** Skip the private-address checks. Only for destinations the operator, or the sole user of this server, approved. */
+    allowPrivate?: boolean;
+}
+
+export interface SafeStreamResult { status: number; headers: http.IncomingHttpHeaders; stream: http.IncomingMessage; abort: () => void }
+
+/**
+ * Starts a request and hands back the response as a stream, without reading it. For answers that arrive over time (a
+ * model's tokens, a download's progress). Redirects are not followed: a 3xx comes back as it is, so a destination the
+ * checks approved cannot send the request somewhere they did not.
+ */
+export const safeRequestStream = (rawUrl: string, options: SafeStreamOptions = {}): Promise<SafeStreamResult> =>
+    new Promise((resolve, reject) => {
+        let url: URL;
+        try { url = parsePublicHttpUrl(rawUrl, options.allowPrivate ?? false); } catch (error) { return reject(error); }
+        const lib = url.protocol === 'https:' ? https : http;
+        const headers = options.body !== undefined ? { ...options.headers, 'Content-Length': String(Buffer.byteLength(options.body)) } : options.headers;
+        const req = lib.request(url, {
+            method: options.method ?? 'GET',
+            headers,
+            timeout: options.idleTimeoutMs ?? 120_000,
+            ...(options.allowPrivate ? {} : { lookup: guardedLookup as any }),
+        }, res => resolve({ status: res.statusCode || 0, headers: res.headers, stream: res, abort: () => req.destroy() }));
+        req.on('timeout', () => req.destroy(new FetchTimeoutError('The server stopped answering.')));
+        req.on('error', reject);
+        req.end(options.body);
+    });
