@@ -131,6 +131,23 @@ export const initializeDatabase = async () => {
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+        // Read-only API tokens. Only the hash is kept.
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS api_tokens (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                prefix TEXT NOT NULL,
+                scopes TEXT[] NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                last_used_at TIMESTAMPTZ,
+                expires_at TIMESTAMPTZ,
+                revoked_at TIMESTAMPTZ,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_api_tokens_user_id ON api_tokens(user_id)`);
         // PIN lock: the hash sits on the user, and locks and failed tries on each session.
         await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_hash TEXT`);
         await db.query(`ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ`);
