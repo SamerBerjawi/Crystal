@@ -133,16 +133,16 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
       <div className="-mx-1 overflow-x-auto px-1">
         <table className="w-full min-w-[480px] border-separate border-spacing-y-1 text-left">
           <thead>
-            <tr>
-              <th scope="col" className="type-label sticky left-0 bg-surface py-1 pr-3 text-muted">Category</th>
-              {months.map(key => <th key={key} scope="col" className="type-label px-1 py-1 text-right text-muted">{monthLabel(key)}</th>)}
-              <th scope="col" className="type-label py-1 pl-3 text-right text-muted">Total</th>
+            <tr className="border-b border-line">
+              <th scope="col" className="type-label py-1.5 pr-3 text-muted">Category</th>
+              {months.map(key => <th key={key} scope="col" className="type-label px-1 py-1.5 text-right text-muted">{monthLabel(key)}</th>)}
+              <th scope="col" className="type-label py-1.5 pl-3 text-right text-muted">Total</th>
             </tr>
           </thead>
           <tbody>
             {table.slice(0, shown).map(row => (
               <tr key={row.category}>
-                <th scope="row" className="type-body sticky left-0 max-w-[160px] truncate bg-surface py-1 pr-3 text-left font-normal text-ink">{row.category}</th>
+                <th scope="row" className="type-body max-w-[160px] truncate py-1 pr-3 text-left font-normal text-ink">{row.category}</th>
                 {months.map(key => {
                   const value = row.cells[key] ?? 0;
                   const strength = max > 0 ? Math.round((value / max) * 70) : 0;
@@ -161,10 +161,10 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
                 <td className="type-figure-row py-1 pl-3 text-right text-ink"><Amount value={row.totalEur} currency={getMainCurrency()} /></td>
               </tr>
             ))}
-            <tr>
-              <th scope="row" className="type-body-strong sticky left-0 bg-surface pt-2 pr-3 text-left text-ink">All spending</th>
-              {monthTotals.map((value, index) => <td key={months[index]} className="type-caption privacy-blur px-2 pt-2 text-right tabular-nums text-ink">{value > 0 ? compactMoney(value) : '–'}</td>)}
-              <td className="type-figure-row pl-3 pt-2 text-right text-ink"><Amount value={report.totalSpend} currency={getMainCurrency()} /></td>
+            <tr className="border-t border-line">
+              <th scope="row" className="type-body-strong pt-2.5 pr-3 text-left text-ink">All spending</th>
+              {monthTotals.map((value, index) => <td key={months[index]} className="type-caption privacy-blur px-2 pt-2.5 text-right tabular-nums text-ink">{value > 0 ? compactMoney(value) : '–'}</td>)}
+              <td className="type-figure-row pl-3 pt-2.5 text-right text-ink"><Amount value={report.totalSpend} currency={getMainCurrency()} /></td>
             </tr>
           </tbody>
         </table>

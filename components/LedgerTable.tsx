@@ -365,7 +365,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
             <col />
             <col className="w-12" />
           </colgroup>
-          <thead className="sticky top-0 z-[var(--z-sticky)] bg-inset">
+          <thead className="border-b border-line">
             <tr>
               <th scope="col" className="w-10 pl-3">
                 <Checkbox
@@ -421,7 +421,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                 const isAll = item.groupTxIds.every(id => selectedIds.has(id));
                 const isSome = !isAll && item.groupTxIds.some(id => selectedIds.has(id));
                 return (
-                  <tr key={item.id} onContextMenu={e => e.stopPropagation()} className="bg-inset">
+                  <tr key={item.id} onContextMenu={e => e.stopPropagation()}>
                     <td className="h-9 border-t border-line pl-3">
                       <Checkbox
                         aria-label={`Select all from ${item.formattedDate}`}

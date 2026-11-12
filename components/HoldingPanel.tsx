@@ -42,6 +42,7 @@ interface HoldingPanelProps {
 const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, grants, priceLog, onClose, onLogPrice, onDeletePrice, onTrade, onEditTrade, onEditGrant, weight }) => {
   const [priceRangeId, setPriceRangeId] = useState('all');
   const [chartMode, setChartMode] = useState('line');
+  const [priceLogShown, setPriceLogShown] = useState(12);
   const currency = holding.currency ?? 'EUR';
   const canShowCandles = priceLog.length >= CANDLE_MIN_POINTS;
   const gain = holding.priceUnavailable ? null : holding.currentValue - holding.totalCost;
@@ -107,14 +108,27 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
         </div>
       }
     >
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <div><dt className="type-label text-muted">Value</dt><dd className="type-figure-lg text-ink"><Amount value={holding.currentValue} currency={getMainCurrency()} /></dd></div>
+      <div className="grid grid-cols-2 gap-3 rounded-[var(--radius-lg)] border border-line/60 bg-surface/40 p-4">
         <div>
-          <dt className="type-label text-muted">Return</dt>
-          <dd className="type-figure-lg text-ink">
-            {gain === null ? <span className="type-body text-muted">No price yet</span> : <><span className={gain >= 0 ? 'text-money-in' : 'text-money-out'}><Amount value={gain} currency={getMainCurrency()} tone="flow" /></span>{gainPct !== null && <Badge tone={gain >= 0 ? 'positive' : 'negative'} className="ml-2 align-middle">{gainPct >= 0 ? '+' : '−'}{Math.abs(gainPct).toFixed(1)}%</Badge>}</>}
+          <dt className="type-label text-muted">Value</dt>
+          <dd className="type-figure-lg mt-0.5 text-ink"><Amount value={holding.currentValue} currency={getMainCurrency()} /></dd>
+        </div>
+        <div>
+          <dt className="type-label text-muted">Total return</dt>
+          <dd className="type-figure-lg mt-0.5 text-ink">
+            {gain === null ? (
+              <span className="type-body text-muted">No price yet</span>
+            ) : (
+              <span className="flex flex-wrap items-center gap-2">
+                <span className={gain >= 0 ? 'text-money-in' : 'text-money-out'}><Amount value={gain} currency={getMainCurrency()} tone="flow" /></span>
+                {gainPct !== null && <Badge tone={gain >= 0 ? 'positive' : 'negative'}>{gainPct >= 0 ? '+' : '−'}{Math.abs(gainPct).toFixed(1)}%</Badge>}
+              </span>
+            )}
           </dd>
         </div>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
         <div><dt className="type-label text-muted">Average cost</dt><dd className="type-figure-row text-ink"><Amount value={averageCost} currency={getMainCurrency()} /></dd></div>
         <div>
           <dt className="type-label text-muted">Market price</dt>
@@ -178,13 +192,18 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
           </>
         )}
         {range && (
-          <div className="mt-4 rounded-[var(--radius-lg)] bg-inset p-3">
+          <div className="mt-4 rounded-[var(--radius-lg)] border border-line/60 bg-inset/50 p-3">
             <div className="type-caption flex justify-between text-muted">
-              <span>Low <span className="tabular-nums text-ink"><Amount value={range.low} currency={currency} /></span></span>
-              <span>High <span className="tabular-nums text-ink"><Amount value={range.high} currency={currency} /></span></span>
+              <span>Low <span className="tabular-nums font-medium text-ink"><Amount value={range.low} currency={currency} /></span></span>
+              <span>High <span className="tabular-nums font-medium text-ink"><Amount value={range.high} currency={currency} /></span></span>
             </div>
-            <div className="relative mt-2 h-1.5 rounded-full bg-line-strong">
-              <span aria-hidden="true" className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-solid bg-ink" style={{ left: `${range.position}%` }} />
+            <div className="relative mt-2.5 h-1.5 rounded-full bg-line-strong overflow-visible">
+              <div className="h-full rounded-full bg-primary/40" style={{ width: `${Math.min(100, Math.max(0, range.position))}%` }} />
+              <span
+                aria-hidden="true"
+                className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-ink shadow-sm transition-transform hover:scale-125"
+                style={{ left: `${Math.min(100, Math.max(0, range.position))}%` }}
+              />
             </div>
             <p className="type-caption mt-2 text-muted">Now {Math.round(range.position)}% of the way from the low to the high in this range.</p>
           </div>
@@ -192,7 +211,13 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
       </section>
 
       <section aria-label="Activity" className="mt-5 border-t border-line pt-4">
-        <h3 className="type-card-title text-ink">Activity</h3>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h3 className="type-card-title text-ink">Activity</h3>
+            {activity.length > 0 && <span className="type-caption text-muted">({activity.length})</span>}
+          </div>
+          <Button variant="ghost" size="sm" icon="add-01" onPress={onTrade}>Add trade</Button>
+        </div>
         {activity.length === 0 ? <p className="type-body mt-1 text-muted">No trades yet.</p> : (
           <ul className="mt-1 divide-y divide-line">
             {activity.map(item => (
@@ -211,24 +236,50 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
       </section>
 
       <section aria-label="Price log" className="mt-5 border-t border-line pt-4">
-        <h3 className="type-card-title text-ink">Price log</h3>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h3 className="type-card-title text-ink">Price log</h3>
+            {descendingLog.length > 0 && <span className="type-caption text-muted">({descendingLog.length})</span>}
+          </div>
+          <Button variant="ghost" size="sm" icon="add-01" onPress={() => onLogPrice()}>Log price</Button>
+        </div>
         {descendingLog.length === 0 ? <p className="type-body mt-1 text-muted">No prices logged yet.</p> : (
-          <ul className="mt-1 divide-y divide-line">
-            {descendingLog.slice(0, 12).map(entry => (
-              <li key={entry.date} className="flex min-h-11 items-center gap-2">
-                <span className="type-body min-w-0 flex-1 text-ink">{fullDate(entry.date)}</span>
-                <span className="type-figure-row shrink-0 text-ink"><Amount value={entry.price} currency={currency} /></span>
-                <Menu
-                  title={fullDate(entry.date)}
-                  trigger={<IconButton icon="more-horizontal" label={`Actions for ${fullDate(entry.date)}`} tooltipPlacement="left" />}
-                  items={[
-                    { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => onLogPrice(entry) },
-                    { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => onDeletePrice(entry.date) },
-                  ]}
-                />
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="mt-1 divide-y divide-line">
+              {descendingLog.slice(0, priceLogShown).map(entry => (
+                <li key={entry.date} className="flex min-h-11 items-center gap-2">
+                  <span className="type-body min-w-0 flex-1 text-ink">{fullDate(entry.date)}</span>
+                  <span className="type-figure-row shrink-0 text-ink"><Amount value={entry.price} currency={currency} /></span>
+                  <Menu
+                    title={fullDate(entry.date)}
+                    trigger={<IconButton icon="more-horizontal" label={`Actions for ${fullDate(entry.date)}`} tooltipPlacement="left" />}
+                    items={[
+                      { id: 'edit', label: 'Edit', icon: 'pencil-edit-02', onAction: () => onLogPrice(entry) },
+                      { id: 'delete', label: 'Delete', icon: 'delete-02', isDestructive: true, startsGroup: true, onAction: () => onDeletePrice(entry.date) },
+                    ]}
+                  />
+                </li>
+              ))}
+            </ul>
+            {descendingLog.length > 12 && (
+              <div className="mt-3 flex items-center justify-between border-t border-line/40 pt-2">
+                <span className="type-caption text-muted">
+                  Showing {Math.min(priceLogShown, descendingLog.length)} of {descendingLog.length}
+                </span>
+                <div className="flex gap-2">
+                  {priceLogShown < descendingLog.length ? (
+                    <Button variant="ghost" size="sm" onPress={() => setPriceLogShown(c => Math.min(c + 24, descendingLog.length))}>
+                      Show more ({descendingLog.length - priceLogShown})
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" onPress={() => setPriceLogShown(12)}>
+                      Show less
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
     </SidePanel>

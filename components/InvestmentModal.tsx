@@ -239,16 +239,25 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
               <div>
                 <TextInput label="Ticker" value={draft.symbol} onChange={symbol => update({ symbol })} isDisabled={isEditingTrade} autoFocus={!startSymbol} />
                 {(suggestions.length > 0 || remoteSuggestions.length > 0) && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {suggestions.map(account => <Button key={account.id} variant="secondary" size="sm" onPress={() => update({ symbol: account.symbol ?? '' })}>{account.symbol}</Button>)}
+                  <div className="mt-2 max-h-48 overflow-y-auto rounded-[var(--radius-lg)] border border-line bg-surface p-1 shadow-sm divide-y divide-line/40">
+                    {suggestions.map(account => (
+                      <button
+                        key={account.id}
+                        type="button"
+                        onClick={() => update({ symbol: account.symbol ?? '' })}
+                        className="flex w-full cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 text-left hover:bg-inset text-sm transition-colors"
+                      >
+                        <span className="font-semibold text-ink">{account.symbol}</span>
+                        <span className="type-caption text-muted">{account.name} (Existing)</span>
+                      </button>
+                    ))}
                     {remoteSuggestions.map(item => {
                       const isKnown = CURRENCIES.some(option => option.id === item.currency);
                       return (
-                        <Button
+                        <button
                           key={`${item.symbol}:${item.exchange}`}
-                          variant="ghost"
-                          size="sm"
-                          onPress={() => {
+                          type="button"
+                          onClick={() => {
                             update({
                               symbol: item.symbol,
                               name: item.name,
@@ -258,9 +267,15 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
                             });
                             setRemoteSuggestions([]);
                           }}
+                          className="flex w-full cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 text-left hover:bg-inset text-sm transition-colors"
                         >
-                          {item.symbol}{item.exchange ? ` (${item.exchange})` : ''} · {item.name}
-                        </Button>
+                          <span className="min-w-0 pr-2">
+                            <span className="font-semibold text-ink">{item.symbol}</span>
+                            {item.exchange && <span className="ml-1.5 text-xs text-muted">({item.exchange})</span>}
+                            <span className="block type-caption truncate text-muted">{item.name}</span>
+                          </span>
+                          <span className="type-caption shrink-0 font-medium text-muted">{item.currency || item.type}</span>
+                        </button>
                       );
                     })}
                   </div>
@@ -278,10 +293,45 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
               <DateInput label="Date" value={draft.date} onChange={date => update({ date })} />
               {isNewSymbol && <Select label="Kind of asset" options={SUB_TYPES.map(item => ({ id: item, label: item }))} value={draft.subType} onChange={id => update({ subType: id as InvestmentSubType })} />}
               {!isEditingTrade && cashAccounts.length > 0 && (
-                <>
-                  <Switch isSelected={draft.createCash} onChange={createCash => update({ createCash })}>{draft.side === 'buy' ? 'Take the money from an account' : 'Pay the money into an account'}</Switch>
-                  {draft.createCash && <Select label="Account" options={cashAccounts.map(account => ({ id: account.id, label: account.name, description: formatCurrency(account.balance, account.currency) }))} value={draft.cashAccountId} onChange={cashAccountId => update({ cashAccountId })} />}
-                </>
+                <div className="space-y-3 rounded-[var(--radius-lg)] border border-line/60 bg-surface/30 p-3.5">
+                  <Switch isSelected={draft.createCash} onChange={createCash => update({ createCash })}>
+                    {draft.side === 'buy' ? 'Deduct funds from a cash account' : 'Deposit funds into a cash account'}
+                  </Switch>
+                  {draft.createCash && (
+                    <>
+                      <Select
+                        label="Account"
+                        options={cashAccounts.map(account => ({
+                          id: account.id,
+                          label: account.name,
+                          description: formatCurrency(account.balance, account.currency),
+                        }))}
+                        value={draft.cashAccountId}
+                        onChange={cashAccountId => update({ cashAccountId })}
+                      />
+                      {(() => {
+                        const selAccount = cashAccounts.find(account => account.id === draft.cashAccountId);
+                        const tradeValue = total;
+                        if (!selAccount || tradeValue <= 0) return null;
+                        const cashAmount = convertCurrency(tradeValue, draft.currency, selAccount.currency, preferences.conversionRates);
+                        const isDiffCurrency = selAccount.currency !== draft.currency;
+                        return (
+                          <div className="rounded-[var(--radius-md)] border border-line/40 bg-inset/40 p-2.5 type-caption">
+                            <div className="flex justify-between items-center text-ink font-medium">
+                              <span>{draft.side === 'buy' ? 'Account deduction' : 'Account deposit'}:</span>
+                              <strong className="text-sm font-semibold">{formatCurrency(cashAmount, selAccount.currency)}</strong>
+                            </div>
+                            {isDiffCurrency && (
+                              <p className="mt-1 text-muted text-xs">
+                                Converted from {formatCurrency(tradeValue, draft.currency)} using your current exchange rates.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
               )}
             </>
           ) : (

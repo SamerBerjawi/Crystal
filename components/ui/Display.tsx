@@ -165,13 +165,13 @@ export const ProgressRing: React.FC<{ value: number; size?: number; tone?: 'pine
   );
 };
 
-/** A sticky day heading in a phone list, or a subheader above a table section. */
-export const DayGroup: React.FC<{ label: React.ReactNode; total?: React.ReactNode; children: React.ReactNode }> = ({ label, total, children }) => (
-  <section>
-    <h3 className="type-label sticky top-0 z-[var(--z-sticky)] flex justify-between bg-glass backdrop-blur-md py-1.5 text-muted">
+/** A clean section day heading in a phone list or table section. */
+export const DayGroup: React.FC<{ label: React.ReactNode; total?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ label, total, children, className }) => (
+  <section className={className}>
+    <div className="type-label flex items-center justify-between py-2 text-muted">
       <span>{label}</span>
       {total && <span className="tabular-nums">{total}</span>}
-    </h3>
+    </div>
     {children}
   </section>
 );
@@ -195,6 +195,7 @@ export interface DataTableProps<T extends { id: string }> {
   columns: TableColumn<T>[];
   rows: T[];
   density?: TableDensity;
+  variant?: 'card' | 'plain';
   /** The phone list row. Tables become `Row` lists under 768 px. */
   renderPhoneRow: (row: T) => React.ReactNode;
   empty?: React.ReactNode;
@@ -207,7 +208,7 @@ export interface DataTableProps<T extends { id: string }> {
 }
 
 /** Comfortable or Compact, with a sticky header, selection and full keyboard support. */
-export function DataTable<T extends { id: string }>({ label, columns, rows, density = 'comfortable', renderPhoneRow, empty, sort, onSortChange, selection, onSelectionChange, onRowOpen, className }: DataTableProps<T>) {
+export function DataTable<T extends { id: string }>({ label, columns, rows, density = 'comfortable', variant = 'card', renderPhoneRow, empty, sort, onSortChange, selection, onSelectionChange, onRowOpen, className }: DataTableProps<T>) {
   const isPhone = useIsMobile();
 
   if (isPhone) {
@@ -221,7 +222,7 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, dens
   const secondary = 'max-lg:hidden';
 
   return (
-    <div className={cn('overflow-x-auto rounded-[var(--radius-xl)] surface-card', className)}>
+    <div className={cn('overflow-x-auto', variant === 'card' && 'rounded-[var(--radius-xl)] surface-card', className)}>
       <Table
         aria-label={label}
         sortDescriptor={sort}
@@ -232,7 +233,7 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, dens
         onRowAction={onRowOpen ? key => { const row = rows.find(item => item.id === key); if (row) onRowOpen(row); } : undefined}
         className="w-full border-separate border-spacing-0"
       >
-        <TableHeader className="sticky top-0 z-[var(--z-sticky)] bg-inset">
+        <TableHeader className="border-b border-line">
           {isSelectable && (
             <Column width={44} className={cn('h-10 outline-hidden', cellPad)}>
               <Checkbox slot="selection">{null}</Checkbox>

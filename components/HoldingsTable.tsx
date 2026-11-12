@@ -1,4 +1,4 @@
-import { getMainCurrency } from '../utils';
+import { getMainCurrency, parseLocalDate } from '../utils';
 import React, { useMemo, useState } from 'react';
 import type { SortDescriptor } from 'react-aria-components';
 import type { HoldingSummary } from '../types';
@@ -15,6 +15,9 @@ import { BrandMark } from './ServiceCard';
 export interface HoldingRow {
   holding: HoldingSummary;
   trend: { value: number }[];
+  lastPriceDate?: string;
+  isUpdatingPrice?: boolean;
+  onRefreshPrice?: () => void;
   menu: MenuAction[];
 }
 
@@ -95,15 +98,44 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, total, onOpen, empt
       ),
     },
     {
-      id: 'price', label: 'Unit price', align: 'right', isSortable: true, render: row => (
-        <span className="inline-flex flex-col items-end">
-          <Amount value={row.holding.currentPrice} currency={row.holding.currency ?? 'EUR'} />
-          <span className="type-caption text-muted">
-            {row.holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} units
-            {row.holding.priceUnavailable && <span className="text-attention-text"> · last trade</span>}
+      id: 'price', label: 'Unit price', align: 'right', isSortable: true, render: row => {
+        const isUnavailable = row.holding.priceUnavailable;
+        const daysAgo = row.lastPriceDate
+          ? Math.max(0, Math.floor((Date.now() - parseLocalDate(row.lastPriceDate.slice(0, 10)).getTime()) / 86_400_000))
+          : null;
+        const isStale = daysAgo !== null && daysAgo > 7;
+
+        return (
+          <span className="inline-flex flex-col items-end group/price">
+            <span className="inline-flex items-center gap-1">
+              <Amount value={row.holding.currentPrice} currency={row.holding.currency ?? 'EUR'} />
+              {row.onRefreshPrice && (
+                <IconButton
+                  icon="refresh"
+                  label={`Refresh quote for ${row.holding.symbol}`}
+                  size="sm"
+                  variant="ghost"
+                  isBusy={row.isUpdatingPrice}
+                  onPress={row.onRefreshPrice}
+                  className="size-6 text-muted hover:text-ink opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity motion-reduce:transition-none"
+                />
+              )}
+            </span>
+            <span className="type-caption flex items-center gap-1 text-muted">
+              <span>{row.holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} units</span>
+              {isUnavailable ? (
+                <span className="text-attention-text font-medium">· last trade</span>
+              ) : isStale ? (
+                <span className="text-attention-text font-medium" title={`Quote from ${row.lastPriceDate ? row.lastPriceDate.slice(0, 10) : ''}`}>· stale ({daysAgo}d)</span>
+              ) : daysAgo === 0 ? (
+                <span>· today</span>
+              ) : daysAgo !== null ? (
+                <span>· {daysAgo}d ago</span>
+              ) : null}
+            </span>
           </span>
-        </span>
-      ),
+        );
+      },
     },
     { id: 'trend', label: '30 days', render: row => <Trend trend={row.trend} /> },
     {
@@ -127,20 +159,36 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, total, onOpen, empt
       onSortChange={setSort}
       onRowOpen={row => onOpen(row.holding)}
       empty={empty}
+      variant="plain"
       className="bg-transparent"
-      renderPhoneRow={row => (
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => onOpen(row.holding)} className="flex min-h-14 min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 py-1.5 text-left">
-            <Identity holding={row.holding} />
-            <span className="shrink-0 text-right">
-              <span className="type-figure-row block text-ink"><Amount value={row.holding.currentValue} currency={getMainCurrency()} /></span>
-              <span className="type-caption block text-muted">{row.holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} × <Amount value={row.holding.currentPrice} currency={row.holding.currency ?? 'EUR'} /></span>
-              <GainCell row={row} />
-            </span>
-          </button>
-          {menuFor(row)}
-        </div>
-      )}
+      renderPhoneRow={row => {
+        const isUnavailable = row.holding.priceUnavailable;
+        const daysAgo = row.lastPriceDate
+          ? Math.max(0, Math.floor((Date.now() - parseLocalDate(row.lastPriceDate.slice(0, 10)).getTime()) / 86_400_000))
+          : null;
+        const isStale = daysAgo !== null && daysAgo > 7;
+
+        return (
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={() => onOpen(row.holding)} className="flex min-h-14 min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 py-1.5 text-left">
+              <Identity holding={row.holding} />
+              <span className="shrink-0 text-right">
+                <span className="type-figure-row block text-ink"><Amount value={row.holding.currentValue} currency={getMainCurrency()} /></span>
+                <span className="type-caption block text-muted">
+                  {row.holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} × <Amount value={row.holding.currentPrice} currency={row.holding.currency ?? 'EUR'} />
+                  {isUnavailable ? (
+                    <span className="text-attention-text font-medium"> · last trade</span>
+                  ) : isStale ? (
+                    <span className="text-attention-text font-medium"> · stale ({daysAgo}d)</span>
+                  ) : null}
+                </span>
+                <GainCell row={row} />
+              </span>
+            </button>
+            {menuFor(row)}
+          </div>
+        );
+      }}
     />
   );
 };

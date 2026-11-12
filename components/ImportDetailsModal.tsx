@@ -18,7 +18,7 @@ const cellStyles = 'whitespace-nowrap px-3 py-2 text-left';
 const DataTable: React.FC<{ headers: string[]; rows: Record<string, any>[]; lead?: { title: string; cells: React.ReactNode[] }[] }> = ({ headers, rows, lead = [] }) => (
   <div className="overflow-x-auto rounded-[var(--radius-md)] border border-line">
     <table className="type-caption min-w-full text-ink">
-      <thead className="bg-inset text-muted">
+      <thead className="border-b border-line text-muted">
         <tr>
           {lead.map(column => <th key={column.title} className={cellStyles}>{column.title}</th>)}
           {headers.map(header => <th key={header} className={cellStyles}>{header}</th>)}

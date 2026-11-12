@@ -34,6 +34,7 @@ import { Amount } from '../components/ui/Money';
 import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
+import Icon from '../components/ui/Icon';
 
 interface InvestmentsProps {
   accounts: Account[];
@@ -97,6 +98,7 @@ const Investments: React.FC<InvestmentsProps> = ({
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [activityToDelete, setActivityToDelete] = useState<{ id: string; isGrant: boolean; label: string } | null>(null);
   const [isUpdatingPrices, setUpdatingPrices] = useSafeState(false);
+  const [updatingSymbols, setUpdatingSymbols] = useState<Set<string>>(new Set());
 
   useEffect(() => setOpenSymbol(linkedSymbol ?? null), [linkedSymbol]);
 
@@ -334,15 +336,62 @@ const Investments: React.FC<InvestmentsProps> = ({
     setAdjustingAccount(null);
   };
 
-  const holdingRows: HoldingRow[] = useMemo(() => shownHoldings.map(holding => ({
-    holding,
-    trend: historyWindow(logFor(holding.symbol), 30, new Date()).points.map(point => ({ value: point.price })),
-    menu: [
-      { id: 'details', label: 'Details', icon: 'view', onAction: () => handleOpenHolding(holding.symbol) },
-      { id: 'price', label: 'Log or fetch a price', icon: 'pencil-edit-02', onAction: () => setPriceTarget({ symbol: holding.symbol, name: holding.name }) },
-      { id: 'trade', label: 'Trade', icon: 'arrow-data-transfer-horizontal', onAction: () => setTradeForm({ mode: 'trade', symbol: holding.symbol }) },
-    ],
-  })), [shownHoldings, logFor, handleOpenHolding]);
+  const updateHoldingPrice = useCallback(async (holding: HoldingSummary) => {
+    if (updatingSymbols.has(holding.symbol)) return;
+    setUpdatingSymbols(prev => new Set(prev).add(holding.symbol));
+    try {
+      let localBindings: Record<string, SmartPriceBinding> = {};
+      try {
+        localBindings = JSON.parse(localStorage.getItem('smartPriceBindings') || '{}');
+      } catch (error) {
+        warnIgnored('reading local price bindings', error);
+      }
+      const config = configs?.[holding.symbol];
+      const binding = preferences.smartPriceBindings?.[holding.symbol] || config?.binding || localBindings[holding.symbol];
+      let price: number;
+      if (binding?.url && binding.selector) {
+        price = await fetchSmartPrice(holding.symbol, binding);
+      } else {
+        if (!preferences.twelveDataApiKey) {
+          toast.error('Missing Twelve Data API key. Configure it in Preferences or log a price manually.');
+          return;
+        }
+        const quote = await fetchBestQuote(config?.ticker || holding.symbol, preferences.twelveDataApiKey, config?.exchange, SUPPORTED_CURRENCIES);
+        price = convertCurrency(quote.price, quote.currency, currencyOf(holding.symbol), rates);
+      }
+      onManualPriceChange(holding.symbol, price, toLocalISOString(new Date()));
+      toast.success(`Updated quote for ${holding.symbol}: ${formatCurrency(price, currencyOf(holding.symbol))}`);
+    } catch (error) {
+      console.error(`Failed to update price for ${holding.symbol}`, error);
+      toast.error(`Couldn't update price for ${holding.symbol}. Check symbol or binding.`);
+    } finally {
+      setUpdatingSymbols(prev => {
+        const next = new Set(prev);
+        next.delete(holding.symbol);
+        return next;
+      });
+    }
+  }, [updatingSymbols, configs, preferences.smartPriceBindings, preferences.twelveDataApiKey, currencyOf, rates, onManualPriceChange]);
+
+  const holdingRows: HoldingRow[] = useMemo(() => shownHoldings.map(holding => {
+    const log = logFor(holding.symbol);
+    const lastEntry = log.length > 0 ? log[log.length - 1] : undefined;
+    const isUpdating = updatingSymbols.has(holding.symbol);
+
+    return {
+      holding,
+      trend: historyWindow(log, 30, new Date()).points.map(point => ({ value: point.price })),
+      lastPriceDate: lastEntry?.date,
+      isUpdatingPrice: isUpdating,
+      onRefreshPrice: () => updateHoldingPrice(holding),
+      menu: [
+        { id: 'details', label: 'Details', icon: 'view', onAction: () => handleOpenHolding(holding.symbol) },
+        { id: 'refresh', label: 'Refresh quote', icon: 'refresh', onAction: () => updateHoldingPrice(holding) },
+        { id: 'price', label: 'Log or fetch a price', icon: 'pencil-edit-02', onAction: () => setPriceTarget({ symbol: holding.symbol, name: holding.name }) },
+        { id: 'trade', label: 'Trade', icon: 'arrow-data-transfer-horizontal', onAction: () => setTradeForm({ mode: 'trade', symbol: holding.symbol }) },
+      ],
+    };
+  }), [shownHoldings, logFor, updatingSymbols, updateHoldingPrice, handleOpenHolding]);
 
   const [holdingQuery, setHoldingQuery] = useState('');
   const filteredHoldingRows = useMemo(() => {
@@ -389,7 +438,19 @@ const Investments: React.FC<InvestmentsProps> = ({
       ) : (
         <>
           {presentSegments.length > 1 && <SegmentedControl scrollable items={segmentItems} activeId={activeSegment} onChange={id => setSegment(id as InvestmentSegment)} />}
-          {current.unpricedValue > 0 && <p className="type-caption text-muted"><Amount value={current.unpricedValue} currency={getMainCurrency()} /> is valued at its last trade, because there's no current price. It's left out of the gain.</p>}
+          {current.unpricedValue > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-line/60 bg-surface/50 px-3.5 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Icon name="alert-circle" size={16} className="shrink-0 text-muted" />
+                <p className="type-caption text-muted">
+                  <strong className="text-ink font-medium"><Amount value={current.unpricedValue} currency={getMainCurrency()} /></strong> is valued at its last trade because there&apos;s no current quote. It&apos;s left out of the gain.
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" icon="refresh" isBusy={isUpdatingPrices} isDisabled={heldHoldings.length === 0} onPress={updateAllPrices}>
+                Update prices
+              </Button>
+            </div>
+          )}
 
           {tab === 'portfolio' && (
             <Board>
@@ -480,9 +541,9 @@ const Investments: React.FC<InvestmentsProps> = ({
           )}
 
           {tab === 'holdings' && (
-            <>
-              <section aria-label="Holdings" className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5">
-                <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div className="space-y-8">
+              <section aria-label="Holdings" className="min-w-0 space-y-4">
+                <div className="flex flex-wrap items-end justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="type-card-title text-ink">Holdings</h2>
                     <p className="type-caption text-muted">
@@ -513,7 +574,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                   {closedAccounts.map(account => <AccountCard key={account.id} account={account} transactions={transactionsByAccount[account.id] || []} layout="row" menuItems={accountMenu(account)} onOpen={() => onViewAccount?.(account.id)} />)}
                 </section>
               )}
-            </>
+            </div>
           )}
 
           {tab === 'activity' && (

@@ -102,7 +102,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, o
           </thead>
           {groups.map(group => (
             <tbody key={group.id}>
-              {group.name && <tr className="bg-inset"><th scope="rowgroup" colSpan={8} className="type-label px-3 py-1.5 text-left text-ink">{group.name}</th></tr>}
+              {group.name && <tr className="border-t border-line"><th scope="rowgroup" colSpan={8} className="type-label px-3 py-2 text-left text-muted">{group.name}</th></tr>}
               {group.rows.map(({ goal, view }) => {
                 const status = GOAL_STATUS[view.status];
                 const account = accounts.find(item => item.id === goal.paymentAccountId)?.name;

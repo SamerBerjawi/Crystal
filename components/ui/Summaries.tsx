@@ -277,14 +277,14 @@ export const AccountsSummary: React.FC<{
       <div className="no-scrollbar -mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1">
         {groups.map(group => (
           <section key={group.type} aria-label={group.type}>
-            <h3 className="type-label sticky top-0 z-10 flex items-center justify-between gap-3 bg-solid/90 py-1 text-muted backdrop-blur-sm">
+            <div className="type-label flex items-center justify-between gap-3 py-1.5 text-muted">
               <span className="flex items-center gap-1.5">
                 <Icon name={ACCOUNT_TYPE_STYLES[group.type]?.icon || 'bank'} size={14} />
                 {group.type}
                 <span className="font-normal">· {group.members.length}</span>
               </span>
               <Amount value={group.total} currency={currency} className="text-ink" />
-            </h3>
+            </div>
             <ul className="divide-y divide-line">
               {group.members.map(account => (
                 <li key={account.id}>

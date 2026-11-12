@@ -179,7 +179,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
             <thead>
               <tr>
                 {['#', 'Date', 'Total', 'Principal', 'Interest', 'Balance', 'Status', ''].map((heading, index) => (
-                  <th key={heading || 'actions'} scope="col" className={`type-label sticky top-0 z-[1] h-10 whitespace-nowrap border-b border-line bg-solid px-3 text-muted ${index >= 2 && index <= 5 ? 'text-right' : 'text-left'}`}>{heading}</th>
+                  <th key={heading || 'actions'} scope="col" className={`type-label sticky top-0 z-[1] h-10 whitespace-nowrap border-b border-line bg-surface/95 backdrop-blur-xs px-3 text-muted ${index >= 2 && index <= 5 ? 'text-right' : 'text-left'}`}>{heading}</th>
                 ))}
               </tr>
             </thead>

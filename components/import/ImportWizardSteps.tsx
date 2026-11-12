@@ -139,7 +139,7 @@ export const StepPreview: React.FC<{ parsedData: any[]; cleanedData: any[]; data
       {errorCount > 0 && <Banner tone="attention" className="mb-4">{errorCount} {errorCount === 1 ? 'row has a problem and won’t' : 'rows have problems and won’t'} be imported.</Banner>}
       <div className="max-h-[60vh] overflow-auto rounded-[var(--radius-md)] border border-line">
         <table className="type-caption min-w-full text-ink">
-          <thead className="sticky top-0 bg-solid text-muted">
+          <thead className="sticky top-0 border-b border-line bg-surface/95 backdrop-blur-xs text-muted">
             <tr>
               <th className={cellStyles}>Row</th>
               {headers.map(header => <th key={header} className={cellStyles}>{FIELD_LABELS[header]}</th>)}
@@ -312,7 +312,7 @@ export const StepClean: React.FC<{
       )}
       <div className="max-h-[60vh] overflow-auto rounded-[var(--radius-md)] border border-line">
         <table className="type-caption min-w-full text-ink">
-          <thead className="sticky top-0 z-10 bg-solid text-muted">
+          <thead className="sticky top-0 z-10 border-b border-line bg-surface/95 backdrop-blur-xs text-muted">
             <tr>
               <th className={cellStyles}>Skip</th>
               {headers.map(header => <th key={header} className={cellStyles}>{FIELD_LABELS[header] ?? header}</th>)}

@@ -135,7 +135,7 @@ const ForecastList: React.FC<ForecastListProps> = ({ days, accountName, onOpen }
                     <col className="w-[84px]" />
                   </colgroup>
                   <thead>
-                    <tr className="type-label text-muted">
+                    <tr className="type-label border-b border-line text-muted">
                       <th scope="col" className="h-9 px-3 text-left font-semibold">Date</th>
                       <th scope="col" className="h-9 px-3 text-left font-semibold">Origin</th>
                       <th scope="col" className="h-9 px-3 text-left font-semibold">Description</th>
