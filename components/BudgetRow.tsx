@@ -33,10 +33,23 @@ export interface BudgetRowProps {
 }
 
 /** One category: spent against its cap, with a tick where even spending would be today (D-015). */
-const BudgetRow: React.FC<BudgetRowProps> = ({ name, icon, color, spent, limit, pct = 0, status, pacePct, usual, currency, onPress }) => {
+const BudgetRow: React.FC<BudgetRowProps> = ({
+  name,
+  icon,
+  color,
+  spent,
+  limit,
+  pct = 0,
+  status,
+  pacePct,
+  usual,
+  currency,
+  onPress,
+}) => {
   const style = status ? STATUS[status] : null;
   const hasLimit = limit !== undefined;
   const remaining = hasLimit ? limit - spent : 0;
+
   // Only worth saying when it differs enough to matter: a tenth of the usual, and at least a few units.
   const gap = usual !== undefined && usual > 0 ? spent - usual : 0;
   const usualNote = usual !== undefined && usual > 0 && Math.abs(gap) > Math.max(usual * 0.1, 5) ? (
@@ -44,9 +57,16 @@ const BudgetRow: React.FC<BudgetRowProps> = ({ name, icon, color, spent, limit, 
       <Amount value={Math.abs(gap)} currency={currency} /> {gap > 0 ? 'over' : 'under'} your usual
     </span>
   ) : null;
+
   return (
-    <button type="button" onClick={onPress} className="flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] p-2 text-left transition-colors duration-[var(--duration-fast)] hover:bg-inset">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset" style={toneDot(color)}><Icon name={icon || 'folder-01'} size={20} /></span>
+    <button
+      type="button"
+      onClick={onPress}
+      className="flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] p-2 text-left transition-colors duration-[var(--duration-fast)] hover:bg-inset"
+    >
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset" style={toneDot(color)}>
+        <Icon name={icon || 'folder-01'} size={20} />
+      </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2">

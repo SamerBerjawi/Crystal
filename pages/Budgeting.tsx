@@ -1,15 +1,18 @@
 import React, { useMemo, useState } from 'react';
+import { Button as AriaButton } from 'react-aria-components';
 import { toast } from 'sonner';
 import { Budget, Category, Transaction, Account, AppPreferences } from '../types';
 import { LIQUID_ACCOUNT_TYPES, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
 import { formatCurrency, convertToMain, getMainCurrency } from '../utils';
 import BudgetModal from '../components/BudgetModal';
 import BudgetRow from '../components/BudgetRow';
+import QuickBudgetPreviewModal from '../components/QuickBudgetPreviewModal';
 import PageHeader, { type PageStat } from '../components/PageHeader';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Badge, ProgressRing } from '../components/ui/Display';
 import { Switch } from '../components/ui/Fields';
-import { Menu } from '../components/ui/Menu';
+import { Menu, type MenuAction } from '../components/ui/Menu';
+import Icon from '../components/ui/Icon';
 import { Amount } from '../components/ui/Money';
 import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
@@ -94,23 +97,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
   const accountIds = useMemo(() => budgetAccountIds(accounts), [accounts]);
   const currentMonth = useMemo(() => monthOf(currentDate), [currentDate]);
 
-  const handleApplyQuickBudget = (periodInMonths: number) => {
-    const todayMonth = monthOf(new Date());
-    const avgMap = averageMonthlySpend(transactions, todayMonth, periodInMonths, {
-      accountIds,
-      categories: expenseCategories,
-      convert: convertToMain,
-    });
-    const drafts = autofillPlan(avgMap, budgets, getMainCurrency(), {
-      keepExisting: false,
-      categories: expenseCategories,
-    });
-
-    if (drafts.length === 0) {
-      toast.info(`No spending found for the last ${periodInMonths === 1 ? 'month' : `${periodInMonths} months`}.`);
-      return;
-    }
-
+  const handleApplyBatchBudgets = (drafts: (Omit<Budget, 'id'> & { id?: string })[]) => {
     drafts.forEach(draft => saveBudget(draft));
     toast.success(`${drafts.length} ${drafts.length === 1 ? 'budget' : 'budgets'} created or updated from your spending.`);
   };
@@ -220,16 +207,53 @@ const Budgeting: React.FC<BudgetingProps> = ({
     return filter === 'attention' ? sorted.filter(line => line.status === 'over' || line.status === 'near') : sorted;
   }, [lines, sort, filter]);
 
+  const uncappedWithSpend = useMemo(() => unbudgeted(spendMap, budgets), [spendMap, budgets]);
+  const totalUnbudgeted = useMemo(
+    () => uncappedWithSpend.reduce((sum, item) => sum + item.spent, 0),
+    [uncappedWithSpend]
+  );
+
   const uncapped = useMemo(() => {
     if (filter === 'attention') return [];
-    const withSpend = unbudgeted(spendMap, budgets);
+    const withSpend = uncappedWithSpend;
     if (filter === 'all') return withSpend;
     const spentNames = new Set(withSpend.map(item => item.name));
     const quiet = expenseCategories
       .filter(category => !category.parentId && !spentNames.has(category.name) && !budgets.some(budget => budget.categoryName === category.name))
       .map(category => ({ name: category.name, spent: 0 }));
     return [...withSpend, ...quiet];
-  }, [filter, spendMap, budgets, expenseCategories]);
+  }, [filter, uncappedWithSpend, budgets, expenseCategories]);
+
+  const monthPickerItems = useMemo<MenuAction[]>(() => {
+    const items: MenuAction[] = [];
+    const now = new Date();
+    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const selectedYearMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+
+    let lastYear: number | null = null;
+    for (let offset = -18; offset <= 6; offset++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+      const label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+      const isCurrent = key === currentYearMonth;
+      const isSelected = key === selectedYearMonth;
+      const startsGroup = lastYear !== null && lastYear !== year;
+      lastYear = year;
+
+      items.push({
+        id: key,
+        label: isCurrent ? `${label} (Current)` : label,
+        icon: isSelected ? 'check' : undefined,
+        startsGroup,
+        onAction: () => {
+          setCurrentDate(new Date(year, month, 1));
+        },
+      });
+    }
+    return items;
+  }, [currentDate]);
 
   const openForm = (budget?: Budget, categoryName?: string) => {
     setEditingBudget(budget || null);
@@ -271,7 +295,20 @@ const Budgeting: React.FC<BudgetingProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <IconButton icon="arrow-left-01" label="Previous month" onPress={() => handleMonthChange(-1)} />
-          <h2 className="type-card-title min-w-36 text-center text-ink" aria-live="polite">{monthName}</h2>
+          <Menu
+            title="Jump to month"
+            placement="bottom start"
+            trigger={
+              <AriaButton
+                className="group flex cursor-pointer items-center gap-1.5 rounded-[var(--radius-md)] px-2.5 py-1 text-left outline-none transition-colors hover:bg-inset focus-visible:outline-2 focus-visible:outline-focus"
+                aria-label="Select month"
+              >
+                <h2 className="type-card-title text-ink" aria-live="polite">{monthName}</h2>
+                <Icon name="arrow-down-01" size={16} className="text-muted transition-transform group-hover:text-ink" />
+              </AriaButton>
+            }
+            items={monthPickerItems}
+          />
           <IconButton icon="arrow-right-01" label="Next month" onPress={() => handleMonthChange(1)} />
           {pace.when !== 'current' && <Button variant="ghost" onPress={() => setCurrentDate(new Date())}>This month</Button>}
         </div>
@@ -314,6 +351,43 @@ const Budgeting: React.FC<BudgetingProps> = ({
             </div>
           </div>
 
+          {totalUnbudgeted > 0 && (
+            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-amber/35 bg-amber/8 p-3.5 sm:p-4 text-ink">
+              <div className="flex items-start sm:items-center gap-3 min-w-0">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-amber/15 text-amber">
+                  <Icon name="alert-02" size={20} />
+                </span>
+                <div className="min-w-0">
+                  <p className="type-body-strong text-ink">
+                    <Amount value={totalUnbudgeted} currency={getMainCurrency()} /> unbudgeted spending
+                  </p>
+                  <p className="type-caption text-muted">
+                    Across {uncappedWithSpend.length} {uncappedWithSpend.length === 1 ? 'category' : 'categories'} without a budget cap this month: {uncappedWithSpend.slice(0, 3).map(u => u.name).join(', ')}{uncappedWithSpend.length > 3 ? `, +${uncappedWithSpend.length - 3} more` : ''}.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                {filter !== 'none' && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onPress={() => setFilter('none')}
+                  >
+                    Review uncapped
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon="flash"
+                  onPress={() => setQuickPeriod(3)}
+                >
+                  Autofill caps
+                </Button>
+              </div>
+            </div>
+          )}
+
           {shownLines.length + uncapped.length > 0 ? (
             <div className="mt-4 grid gap-x-6 gap-y-1 lg:grid-cols-2">
               {shownLines.map(line => {
@@ -337,7 +411,18 @@ const Budgeting: React.FC<BudgetingProps> = ({
               })}
               {uncapped.map(item => {
                 const category = categoryOf(item.name);
-                return <BudgetRow key={item.name} name={item.name} icon={category?.icon} color={category?.color} spent={item.spent} usual={usualMap.has(item.name) ? usualMap.get(item.name)! * (pace.when === 'current' ? pace.elapsedPct / 100 : 1) : undefined} currency={getMainCurrency()} onPress={() => openForm(undefined, category ? item.name : undefined)} />;
+                return (
+                  <BudgetRow
+                    key={item.name}
+                    name={item.name}
+                    icon={category?.icon}
+                    color={category?.color}
+                    spent={item.spent}
+                    usual={usualMap.has(item.name) ? usualMap.get(item.name)! * (pace.when === 'current' ? pace.elapsedPct / 100 : 1) : undefined}
+                    currency={getMainCurrency()}
+                    onPress={() => openForm(undefined, category ? item.name : undefined)}
+                  />
+                );
               })}
             </div>
           ) : (
@@ -425,14 +510,20 @@ const Budgeting: React.FC<BudgetingProps> = ({
         />
       )}
 
-      <ConfirmDialog
-        isOpen={quickPeriod !== null}
-        onClose={() => setQuickPeriod(null)}
-        onConfirm={() => { if (quickPeriod !== null) handleApplyQuickBudget(quickPeriod); setQuickPeriod(null); }}
-        title="Build budgets from your spending?"
-        message={`This creates or updates a budget for each category you spent in, using ${quickOptions.find(option => option.value === quickPeriod)?.label.toLowerCase() ?? 'your history'}.`}
-        confirmLabel="Build budgets"
-      />
+      {quickPeriod !== null && (
+        <QuickBudgetPreviewModal
+          isOpen={quickPeriod !== null}
+          onClose={() => setQuickPeriod(null)}
+          periodInMonths={quickPeriod}
+          periodLabel={quickOptions.find(option => option.value === quickPeriod)?.label ?? `${quickPeriod} months`}
+          transactions={transactions}
+          budgets={budgets}
+          expenseCategories={expenseCategories.filter(c => !c.parentId)}
+          accountIds={accountIds}
+          currency={getMainCurrency()}
+          onApply={handleApplyBatchBudgets}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={!!deletingBudget}
