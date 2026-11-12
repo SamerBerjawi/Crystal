@@ -44,7 +44,7 @@ const InvoicesPage = lazyWithRetry(pageRegistry['Quotes & Invoices'].loader);
 const MerchantsPage = lazyWithRetry(pageRegistry.Merchants.loader);
 const RulesPage = lazyWithRetry(pageRegistry.Rules.loader);
 
-import { Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, InvestmentTransaction, Task, Warrant, FinancialData, BillPayment, Tag, LoanPaymentOverrides, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection } from './types';
+import { Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, InvestmentTransaction, Task, Warrant, FinancialData, BillPayment, Tag, LoanPaymentOverrides, Membership, Invoice, UserStats, Prediction, LifeEvent, PriceHistoryEntry, EnableBankingConnection } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES } from './constants';
 import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
@@ -260,6 +260,7 @@ const App: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>(emptyFinancialData.tags || []);
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
+  const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>(emptyFinancialData.lifeEvents || []);
   const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>([]);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
@@ -322,12 +323,12 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, goalOrder, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions,
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, lifeEvents,
     enableBankingConnections, userProfile: currentUser || undefined
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, goalOrder, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, enableBankingConnections, currentUser
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, lifeEvents, enableBankingConnections, currentUser
   ]);
 
   const isDevEnvironment = import.meta.env.DEV;
@@ -390,6 +391,7 @@ const App: React.FC = () => {
       setInvoices(dataToLoad.invoices || []);
       setTags(dataToLoad.tags || []);
       setPredictions(dataToLoad.predictions || []);
+      setLifeEvents(dataToLoad.lifeEvents || []);
       setIncomeCategories(loadedIncomeCats);
       setExpenseCategories(loadedExpenseCats);
       setUserStats(normalizedStats);
@@ -741,6 +743,7 @@ const App: React.FC = () => {
   useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('invoices'); }, [invoices, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('lifeEvents'); }, [lifeEvents, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
 
   const handleRestoreData = useCallback((data: FinancialData) => {
@@ -963,6 +966,8 @@ const App: React.FC = () => {
     handleSaveInvoice,
     handleDeleteInvoice,
     handleSavePrediction,
+    handleSaveLifeEvent,
+    handleDeleteLifeEvent,
     handleDeletePrediction,
     handleRenameCategory,
     handleDeleteCategoryCascade,
@@ -999,6 +1004,7 @@ const App: React.FC = () => {
     setMemberships,
     setInvoices,
     setPredictions,
+    setLifeEvents,
     incomeCategories,
     setIncomeCategories,
     expenseCategories,
@@ -1224,7 +1230,10 @@ const App: React.FC = () => {
     saveFinancialGoal: handleSaveFinancialGoal,
     deleteFinancialGoal: handleDeleteFinancialGoal,
     setGoalOrder: handleSetGoalOrder,
-  }), [financialGoals, goalOrder, handleDeleteFinancialGoal, handleSaveFinancialGoal, handleSetGoalOrder]);
+    lifeEvents,
+    saveLifeEvent: handleSaveLifeEvent,
+    deleteLifeEvent: handleDeleteLifeEvent,
+  }), [financialGoals, goalOrder, lifeEvents, handleSaveLifeEvent, handleDeleteLifeEvent, handleDeleteFinancialGoal, handleSaveFinancialGoal, handleSetGoalOrder]);
   const scheduleContextValue = useMemo(() => ({ recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, memberships, saveRecurringTransaction: handleSaveRecurringTransaction, deleteRecurringTransaction: handleDeleteRecurringTransaction, saveRecurringOverride: handleSaveRecurringOverride, deleteRecurringOverride: handleDeleteRecurringOverride, saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides, saveBillPayment: handleSaveBillPayment, deleteBillPayment: handleDeleteBillPayment, markBillAsPaid: handleMarkBillAsPaid, saveMembership: handleSaveMembership, deleteMembership: handleDeleteMembership, }), [billsAndPayments, memberships, handleDeleteBillPayment, handleDeleteRecurringOverride, handleDeleteRecurringTransaction, handleMarkBillAsPaid, handleSaveBillPayment, handleSaveLoanPaymentOverrides, handleSaveRecurringOverride, handleSaveRecurringTransaction, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions,]);
 
   if (isLocked && user) {

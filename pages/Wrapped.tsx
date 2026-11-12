@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { formatCurrency, getMainCurrency } from '../utils';
 import { buildWrapped, wrappedDate, wrappedYears, type Wrapped as WrappedData } from '../utils/wrappedModel';
 import { useAccountSelector, useTransactionSelector } from '../contexts/DomainProviders';
-import { useCategoryContext } from '../contexts/FinancialDataContext';
+import { useCategoryContext, useGoalsContext } from '../contexts/FinancialDataContext';
+import { lifeEventKind } from '../utils/lifeEvents';
 import PageHeader from '../components/PageHeader';
 import { Button } from '../components/ui/Actions';
 import Icon from '../components/ui/Icon';
@@ -153,6 +154,7 @@ const summaryText = (w: WrappedData, isPrivate = false) => {
   if (w.topMerchants[0]) lines.push(`Most spent at ${w.topMerchants[0].label}.`);
   if (w.longestNoSpendStreak.days > 1) lines.push(`Longest no-spend streak: ${w.longestNoSpendStreak.days} days.`);
   if (w.kilometres) lines.push(`Drove ${w.kilometres.toLocaleString()} km.`);
+  if (w.lifeEvents.length) lines.push(`Moments: ${w.lifeEvents.map(event => event.title).join(', ')}.`);
   return lines.join('\n');
 };
 
@@ -161,6 +163,7 @@ const Wrapped: React.FC = () => {
   const transactions = useTransactionSelector(tx => tx);
   const accounts = useAccountSelector(acc => acc);
   const { expenseCategories, incomeCategories } = useCategoryContext();
+  const { lifeEvents } = useGoalsContext();
   const currency = getMainCurrency();
   const isPrivate = useContext(PrivacyContext);
 
@@ -192,7 +195,7 @@ const Wrapped: React.FC = () => {
   const year = picked ?? years[0] ?? new Date().getFullYear();
 
   const mileage = useMemo(() => accounts.flatMap(acc => acc.mileageLogs ?? []), [accounts]);
-  const wrapped = useMemo(() => buildWrapped(year, inAnalytics, accounts, mileage), [year, inAnalytics, accounts, mileage]);
+  const wrapped = useMemo(() => buildWrapped(year, inAnalytics, accounts, mileage, new Date(), lifeEvents), [year, inAnalytics, accounts, mileage, lifeEvents]);
   const archetype = useMemo(() => getFinancialArchetype(wrapped), [wrapped]);
 
   const share = async () => {
@@ -351,6 +354,27 @@ const Wrapped: React.FC = () => {
             </div>
             <MonthBars months={wrapped.months} />
           </section>
+
+          {/* Moments you marked on the net-worth line */}
+          {wrapped.lifeEvents.length > 0 && (
+            <section className={CARD}>
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="type-card-title text-ink">Moments</h2>
+                <span className="type-caption text-muted">Marked on your net-worth line</span>
+              </div>
+              <ol className="space-y-3">
+                {wrapped.lifeEvents.map(event => (
+                  <li key={event.id} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-inset text-muted"><Icon name={lifeEventKind(event.kind).icon} size={16} /></span>
+                    <div className="min-w-0">
+                      <p className="type-body-strong text-ink">{event.title}</p>
+                      <p className="type-caption text-muted">{wrappedDate(event.date)}{event.note ? ` · ${event.note}` : ''}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
 
           {/* Story Presentation Modal */}
           <WrappedStoryModal

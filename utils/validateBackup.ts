@@ -3,7 +3,7 @@ import { parseLocalDateStrict } from '../utils';
 const ARRAY_KEYS = [
     'accounts', 'transactions', 'investmentTransactions', 'recurringTransactions', 'recurringTransactionOverrides',
     'financialGoals', 'budgets', 'tasks', 'warrants', 'memberships', 'importExportHistory', 'billsAndPayments',
-    'invoices', 'tags', 'predictions', 'enableBankingConnections', 'incomeCategories', 'expenseCategories',
+    'invoices', 'tags', 'predictions', 'lifeEvents', 'enableBankingConnections', 'incomeCategories', 'expenseCategories',
     'accountOrder', 'taskOrder', 'goalOrder',
 ];
 const OBJECT_KEYS = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats', 'preferences', 'userProfile'];
