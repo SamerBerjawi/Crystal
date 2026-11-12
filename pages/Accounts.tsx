@@ -16,6 +16,7 @@ import AccountsListSection from '../components/AccountsListSection';
 import AccountPot from '../components/AccountPot';
 import AccountsSplitBar from '../components/AccountsSplitBar';
 import CardsWallet from '../components/CardsWallet';
+import DebtPayoffPlanner from '../components/accounts/DebtPayoffPlanner';
 import AllAccountsView from '../components/accounts/AllAccountsView';
 import { AssetsSummary, CardsSummary, LoansSummary } from '../components/accounts/HubSummaries';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
@@ -66,7 +67,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   
   const urlTab = useUrlTab();
-  const activeTab = (['accounts', 'cards', 'loans', 'assets'].includes(urlTab ?? '') ? urlTab : 'all') as AccountsTab;
+  const activeTab = (['accounts', 'cards', 'loans', 'payoff', 'assets'].includes(urlTab ?? '') ? urlTab : 'all') as AccountsTab;
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const visibleAccounts = useMemo(
@@ -104,6 +105,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       case 'accounts':
         return [money('Total balance', 'wallet-02', totals.netWorth), money('Net this month', 'chart-line-data-01', computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates })), count('Accounts', 'bank', tabAccounts.length)];
       case 'loans':
+      case 'payoff':
         return [money('Still to pay', 'coins-01', Math.abs(totals.totalDebt)), count('Loans', 'bank', tabAccounts.length)];
       case 'assets':
         return [money('Total value', 'home-01', totals.totalAssets), count('Assets', 'layers-01', tabAccounts.length)];
@@ -279,7 +281,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         stats={stats}
         actions={
           <>
-            {activeTab !== 'cards' && activeTab !== 'all' && (
+            {activeTab !== 'cards' && activeTab !== 'all' && activeTab !== 'payoff' && (
               <Popover title="View options" placement="bottom end" trigger={<IconButton icon="sliders-horizontal" label="View options" tooltipPlacement="bottom" />}>
                 {viewOptions}
               </Popover>
@@ -306,7 +308,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </section>
       )}
 
-      {activeTab === 'all' ? (
+      {activeTab === 'payoff' ? (
+        <DebtPayoffPlanner accounts={accounts} transactions={transactions} />
+      ) : activeTab === 'all' ? (
         <>
           <CardsWallet
             stripOnly
@@ -381,11 +385,11 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </>
       ) : section('', tabAccounts)}
 
-      {activeTab === 'assets' && openAccounts.some(acc => acc.type === 'Investment') && (
+      {activeTab !== 'payoff' && activeTab === 'assets' && openAccounts.some(acc => acc.type === 'Investment') && (
         <Button variant="ghost" icon="chart-line-data-01" onPress={() => setCurrentPage('Investments')}>Investments are in their own hub</Button>
       )}
 
-      {accountsInTab(closedAccounts, activeTab).length > 0 && section('Closed', accountsInTab(closedAccounts, activeTab), { isCollapsible: true, defaultExpanded: false })}
+      {activeTab !== 'payoff' && accountsInTab(closedAccounts, activeTab).length > 0 && section('Closed', accountsInTab(closedAccounts, activeTab), { isCollapsible: true, defaultExpanded: false })}
     </div>
   );
 };

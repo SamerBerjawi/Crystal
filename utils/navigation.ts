@@ -39,6 +39,7 @@ export const HUBS: Hub[] = [
       { label: 'Cash', page: 'Accounts', tab: 'accounts', icon: 'wallet-02' },
       { label: 'Cards', page: 'Accounts', tab: 'cards', icon: 'credit-card' },
       { label: 'Loans', page: 'Accounts', tab: 'loans', icon: 'agreement-01' },
+      { label: 'Payoff', page: 'Accounts', tab: 'payoff', icon: 'target-02' },
       { label: 'Assets', page: 'Accounts', tab: 'assets', icon: 'home-01' },
     ],
     otherPages: ['AccountDetail'],
