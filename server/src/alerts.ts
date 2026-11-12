@@ -31,6 +31,7 @@ const rulesSchema = z.object({
     lowBalanceFloor: z.number().min(-1_000_000_000).max(1_000_000_000),
     lowBalanceDays: z.number().int().min(1).max(30),
     priceHike: z.boolean(),
+    weekly: z.boolean(),
 });
 
 const updateSchema = z.object({
