@@ -513,19 +513,6 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
                     {tiles[activeId].says}
                   </p>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon="sliders-horizontal"
-                    onPress={() => setFilterOpen(true)}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      Filters{activeFilters > 0 && <CountPill count={activeFilters} />}
-                    </span>
-                  </Button>
-                </div>
               </div>
 
               {/* Date Presets Strip */}
