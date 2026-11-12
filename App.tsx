@@ -40,6 +40,7 @@ const InvestmentsPage = lazyWithRetry(pageRegistry.Investments.loader);
 const TasksPage = lazyWithRetry(pageRegistry.Tasks.loader);
 const Documentation = lazyWithRetry(pageRegistry.Documentation.loader);
 const SubscriptionsPage = lazyWithRetry(pageRegistry.Subscriptions.loader);
+const DebtPayoffPage = lazyWithRetry(pageRegistry['Debt Payoff'].loader);
 const InvoicesPage = lazyWithRetry(pageRegistry['Quotes & Invoices'].loader);
 const MerchantsPage = lazyWithRetry(pageRegistry.Merchants.loader);
 const RulesPage = lazyWithRetry(pageRegistry.Rules.loader);
@@ -1175,6 +1176,7 @@ const App: React.FC = () => {
       case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation': return <Documentation setCurrentPage={setCurrentPage} />;
       case 'Subscriptions': return <SubscriptionsPage />;
+      case 'Debt Payoff': return <DebtPayoffPage />;
       case 'Quotes & Invoices': return <InvoicesPage />;
       case 'Merchants': return <MerchantsPage setCurrentPage={setCurrentPage} />;
       case 'Rules': return <RulesPage preferences={preferences} setPreferences={setPreferences} transactions={transactions} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} setCurrentPage={setCurrentPage} />;

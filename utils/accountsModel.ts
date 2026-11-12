@@ -357,7 +357,7 @@ export const computeCashSegmentNetFlow = (
     }, 0);
 };
 
-export type AccountsTab = 'all' | 'cards' | 'accounts' | 'loans' | 'payoff' | 'assets';
+export type AccountsTab = 'all' | 'cards' | 'accounts' | 'loans' | 'assets';
 
 /** Read from the account itself: any card detail on it, a credit card, or a meal voucher, which is a card by nature. */
 export const accountHasCard = (a: Account): boolean =>
@@ -374,8 +374,7 @@ export const accountsInTab = (accounts: Account[], tab: AccountsTab): Account[] 
     case 'all': return accounts;
     case 'cards': return accounts.filter(accountHasCard);
     case 'accounts': return accounts.filter(a => isCashAccount(a) && !isMealVoucherAccount(a));
-    case 'loans':
-    case 'payoff': return accounts.filter(a => a.type === 'Loan' || a.type === 'Lending' || a.type === 'Other Liabilities');
+    case 'loans': return accounts.filter(a => a.type === 'Loan' || a.type === 'Lending' || a.type === 'Other Liabilities');
     default: return accounts.filter(a => (a.type === 'Property' || a.type === 'Vehicle' || a.type === 'Other Assets') && !isCashAccount(a) && !isMealVoucherAccount(a));
   }
 };
