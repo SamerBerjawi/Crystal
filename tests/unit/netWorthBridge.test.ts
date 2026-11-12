@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bridgeBars, bridgeHeadline, bridgePeriods, buildNetWorthBridge } from '../../utils/netWorthBridge';
+import { bridgeBars, bridgeHeadline, buildNetWorthBridge } from '../../utils/netWorthBridge';
 import { setMainCurrency } from '../../utils';
 import type { Transaction } from '../../types';
 
@@ -76,8 +76,4 @@ test('headline names the biggest mover, bars chain', () => {
   const { bars } = bridgeBars(b);
   assert.equal(bars[0].from, b.startValue);
   assert.equal(bars[bars.length - 1].to, b.endValue);
-});
-
-test('periods end by today', () => {
-  bridgePeriods(TODAY).forEach(p => assert.ok(p.end <= TODAY && p.start <= p.end, p.id));
 });

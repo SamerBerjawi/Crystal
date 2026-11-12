@@ -139,25 +139,6 @@ export const buildNetWorthBridge = (input: BridgeInput): NetWorthBridge => {
   };
 };
 
-export interface BridgePeriod { id: string; label: string; start: Date; end: Date }
-
-/** The periods offered on the page, ending at or before today. */
-export const bridgePeriods = (today: Date, dataYears: number[] = []): BridgePeriod[] => {
-  const y = today.getFullYear();
-  const m = today.getMonth();
-  const day = (year: number, month: number, date: number) => new Date(year, month, date);
-  const older = dataYears.filter(year => year < y - 1).sort((a, b) => b - a).map(year => ({ id: `y${year}`, label: String(year), start: day(year, 0, 1), end: day(year, 11, 31) }));
-  return [
-    { id: 'mtd', label: 'This month', start: day(y, m, 1), end: today },
-    { id: 'last-month', label: 'Last month', start: day(y, m - 1, 1), end: day(y, m, 0) },
-    { id: 'qtd', label: 'This quarter', start: day(y, Math.floor(m / 3) * 3, 1), end: today },
-    { id: 'ytd', label: 'This year', start: day(y, 0, 1), end: today },
-    { id: 'last-year', label: 'Last year', start: day(y - 1, 0, 1), end: day(y - 1, 11, 31) },
-    { id: '12m', label: 'Last 12 months', start: day(y - 1, m, today.getDate() + 1), end: today },
-    ...older,
-  ];
-};
-
 /** One sentence on what drove the change, for the top of the page. */
 export const bridgeHeadline = (bridge: NetWorthBridge): { direction: 'up' | 'down' | 'flat'; driver?: BridgeStep } => {
   const direction = Math.abs(bridge.change) < 0.005 ? 'flat' : bridge.change > 0 ? 'up' : 'down';

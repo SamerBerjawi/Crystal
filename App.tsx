@@ -27,7 +27,6 @@ const Forecasting = lazyWithRetry(pageRegistry.Forecasting.loader);
 const GoalsPage = lazyWithRetry(pageRegistry.Goals.loader);
 const ChallengesPage = lazyWithRetry(pageRegistry.Challenges.loader);
 const WrappedPage = lazyWithRetry(pageRegistry.Wrapped.loader);
-const NetWorthBridgePage = lazyWithRetry(pageRegistry['Net worth bridge'].loader);
 const SchedulePage = lazyWithRetry(pageRegistry['Schedule & Bills'].loader);
 const CategoriesPage = lazyWithRetry(pageRegistry.Categories.loader);
 const TagsPage = lazyWithRetry(pageRegistry.Tags.loader);
@@ -1163,7 +1162,6 @@ const App: React.FC = () => {
       case 'Forecasting': return <Forecasting />;
       case 'Goals': return <GoalsPage />;
       case 'Wrapped': return <WrappedPage />;
-      case 'Net worth bridge': return <NetWorthBridgePage />;
       case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
       case 'Schedule & Bills': return <SchedulePage />;
       case 'Categories': return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} onRenameCategory={handleRenameCategory} onDeleteCategory={handleDeleteCategoryCascade} />;
