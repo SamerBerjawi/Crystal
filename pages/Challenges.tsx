@@ -30,6 +30,7 @@ const TABS = [
 
 /** Compact cards that comfortably fit 3 columns across desktop and laptop viewports */
 const CARD = 'surface-card min-w-0 rounded-[var(--radius-lg)] p-4 border border-line transition-all duration-200 hover:border-line-strong';
+const SCORE_CARD = 'surface-card min-w-0 rounded-[var(--radius-xl)] p-5 border border-line transition-all duration-200 hover:border-line-strong';
 const GRID = 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3';
 
 const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -258,14 +259,14 @@ const Challenges: React.FC<ChallengesProps> = ({
 
       {/* TAB 1: SCORE & LEVEL */}
       {tab === 'score' && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* RPG Player Level Banner */}
-          <section className="relative overflow-hidden rounded-[var(--radius-xl)] border border-primary/25 bg-gradient-to-r from-primary-soft via-surface-card to-surface-card p-4 sm:p-5 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="relative flex size-14 shrink-0 items-center justify-center rounded-2xl border-2 border-primary/40 bg-surface-card text-2xl shadow-md">
+          <section className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-primary/25 bg-gradient-to-r from-primary-soft via-surface-card to-surface-card p-6 shadow-sm">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative flex size-16 shrink-0 items-center justify-center rounded-2xl border-2 border-primary/40 bg-surface-card text-3xl shadow-lg">
                   {tier.badge}
-                  <span className="absolute -bottom-1.5 -right-1 rounded-full bg-primary px-1.5 py-0.2 text-[9px] font-black text-white">
+                  <span className="absolute -bottom-2 -right-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-black text-white">
                     Lv.{playerLevel}
                   </span>
                 </div>
@@ -274,20 +275,20 @@ const Challenges: React.FC<ChallengesProps> = ({
                     <span className="text-xs font-semibold uppercase tracking-wider text-primary">Financial Tier</span>
                     <Badge tone={tier.badgeTone}>{tier.title}</Badge>
                   </div>
-                  <h3 className="type-card-title text-ink text-base mt-0.5">Level {playerLevel}</h3>
-                  <p className="type-caption text-muted text-xs">
-                    {totalXp.toLocaleString()} Total XP accumulated across habits and quests.
+                  <h2 className="type-page-title text-ink mt-0.5">Level {playerLevel}</h2>
+                  <p className="type-caption text-muted">
+                    {totalXp.toLocaleString()} Total XP accumulated across savings, streaks, and missions.
                   </p>
                 </div>
               </div>
 
               {/* XP Progress Bar */}
               <div className="w-full sm:max-w-xs">
-                <div className="flex items-center justify-between text-xs font-medium mb-1">
+                <div className="flex items-center justify-between text-xs font-medium mb-1.5">
                   <span className="text-ink font-semibold">{currentLevelXp} / 500 XP</span>
                   <span className="text-muted">+{xpToNextLevel} XP to Level {playerLevel + 1}</span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-inset border border-line">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-inset border border-line">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-primary to-chart-4 transition-[width] duration-700"
                     style={{ width: `${levelProgressPct}%` }}
@@ -298,39 +299,39 @@ const Challenges: React.FC<ChallengesProps> = ({
           </section>
 
           {/* Health Score & Flaming Streak Grid */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-3">
             {/* Health Score */}
-            <section aria-label="Health score" className={`${CARD} flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left lg:col-span-2`}>
+            <section aria-label="Health score" className={`${SCORE_CARD} flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left min-[900px]:col-span-2`}>
               <ProgressRing value={health.score} tone={health.score >= 50 ? 'pine' : 'amber'} label={String(Math.round(health.score))} caption="of 100" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 justify-center sm:justify-start">
                   <span className="type-caption text-muted">Financial Health</span>
                   <Badge tone={health.score >= 50 ? 'positive' : 'neutral'}>{health.rank}</Badge>
                 </div>
-                <h3 className="type-card-title text-ink mt-0.5 text-base">{health.rank}</h3>
-                <p className="type-caption mt-1 text-muted text-xs leading-relaxed">
-                  Evaluated from your savings velocity, liquidity runway, debt control, and asset diversification.
+                <h3 className="type-page-title text-ink mt-1">{health.rank}</h3>
+                <p className="type-body mt-1 text-muted text-sm">
+                  Calculated from your saving velocity, liquidity buffer, debt management, and asset distribution.
                 </p>
               </div>
             </section>
 
             {/* Flaming Streak Card */}
-            <section aria-label="Streak" className={`${CARD} relative overflow-hidden bg-gradient-to-br from-amber-500/10 via-surface-card to-surface-card border-amber-500/25`}>
+            <section aria-label="Streak" className={`${SCORE_CARD} relative overflow-hidden bg-gradient-to-br from-amber-500/10 via-surface-card to-surface-card border-amber-500/25`}>
               <div className="flex items-center justify-between">
-                <span className="type-caption text-amber-500 font-semibold uppercase tracking-wider text-[11px]">Activity Streak</span>
-                <span className="text-lg">🔥</span>
+                <span className="type-caption text-amber-500 font-semibold uppercase tracking-wider">Activity Streak</span>
+                <span className="text-xl">🔥</span>
               </div>
-              <div className="mt-1 flex items-baseline gap-2">
-                <p className="type-figure-lg text-ink font-black text-2xl">{userStats.currentStreak}</p>
-                <span className="text-xs font-semibold text-amber-500">Days on Fire!</span>
+              <div className="mt-2 flex items-baseline gap-2">
+                <p className="type-figure-lg text-ink font-black">{userStats.currentStreak}</p>
+                <span className="text-sm font-semibold text-amber-500">Days on Fire!</span>
               </div>
-              <p className="type-caption text-muted text-xs mt-0.5">Best record: {userStats.longestStreak} consecutive days.</p>
+              <p className="type-caption text-muted mt-1">Best record: {userStats.longestStreak} consecutive days.</p>
 
               {/* Milestone Progress */}
-              <div className="mt-3 border-t border-line pt-2.5">
+              <div className="mt-4 border-t border-line pt-3">
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-ink font-medium truncate text-[11px]">{streakMilestone.label}</span>
-                  <span className="text-muted font-mono text-[11px]">{streakMilestone.current}/{streakMilestone.max}</span>
+                  <span className="text-ink font-medium truncate">{streakMilestone.label}</span>
+                  <span className="text-muted font-mono">{streakMilestone.current}/{streakMilestone.max}</span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-inset">
                   <div
@@ -343,19 +344,19 @@ const Challenges: React.FC<ChallengesProps> = ({
           </div>
 
           {/* 4 Health Factors */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 min-[1100px]:grid-cols-4">
             {health.factors.map(factor => (
-              <section key={factor.id} aria-label={factor.label} className={CARD}>
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-inset text-muted">
-                    <Icon name={factor.icon} size={15} />
+              <section key={factor.id} aria-label={factor.label} className={SCORE_CARD}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-inset text-muted">
+                    <Icon name={factor.icon} size={18} />
                   </span>
-                  <span className="type-figure-row text-ink font-semibold text-sm">
-                    {factor.score.toFixed(0)} <span className="type-caption text-muted font-normal text-[11px]">/ {factor.max}</span>
+                  <span className="type-figure-row text-ink font-semibold">
+                    {factor.score.toFixed(0)} <span className="type-caption text-muted font-normal">of {factor.max}</span>
                   </span>
                 </div>
-                <h4 className="type-body-strong mt-2 text-ink text-xs truncate">{factor.label}</h4>
-                <p className="type-caption mb-1.5 text-muted text-[11px] truncate">{factor.value}</p>
+                <h4 className="type-body-strong mt-3 text-ink">{factor.label}</h4>
+                <p className="type-caption mb-2 text-muted">{factor.value}</p>
                 <Meter percent={(factor.score / factor.max) * 100} />
               </section>
             ))}
