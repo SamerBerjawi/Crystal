@@ -205,11 +205,11 @@ const Challenges: React.FC<ChallengesProps> = ({
   const levelProgressPct = (currentLevelXp / 500) * 100;
 
   const getTier = (lvl: number) => {
-    if (lvl >= 20) return { title: 'Celestial Luminary', icon: 'sparkles', badgeTone: 'purple' as const, color: '#8b5cf6', badge: '🌌' };
+    if (lvl >= 20) return { title: 'Celestial Luminary', icon: 'sparkles', badgeTone: 'teal' as const, color: '#8b5cf6', badge: '🌌' };
     if (lvl >= 15) return { title: 'Diamond Titan', icon: 'star', badgeTone: 'blue' as const, color: '#06b6d4', badge: '💎' };
-    if (lvl >= 10) return { title: 'Gold Sovereign', icon: 'crown', badgeTone: 'butter' as const, color: '#f59e0b', badge: '🥇' };
+    if (lvl >= 10) return { title: 'Gold Sovereign', icon: 'crown', badgeTone: 'attention' as const, color: '#f59e0b', badge: '🥇' };
     if (lvl >= 5) return { title: 'Silver Strategist', icon: 'medal', badgeTone: 'neutral' as const, color: '#94a3b8', badge: '🥈' };
-    return { title: 'Bronze Pioneer', icon: 'target-01', badgeTone: 'amber' as const, color: '#d97706', badge: '🥉' };
+    return { title: 'Bronze Pioneer', icon: 'target-01', badgeTone: 'tomato' as const, color: '#d97706', badge: '🥉' };
   };
   const tier = getTier(playerLevel);
 
@@ -219,7 +219,7 @@ const Challenges: React.FC<ChallengesProps> = ({
     (prediction.type === 'price_target' && prediction.targetId ? preferences.investmentPriceConfigs?.[prediction.targetId]?.currency ?? 'EUR' : 'EUR');
 
   const stats: PageStat[] = [
-    { label: 'Player Level', icon: 'award-01', value: playerLevel, format: 'number', badge: tier.title, badgeTone: tier.badgeTone },
+    { label: 'Player Level', icon: 'award-01', value: playerLevel, format: 'number', badge: tier.title, badgeTone: 'butter' },
     { label: 'Health score', icon: 'analytics-01', value: Math.round(health.score), format: 'number', badge: health.rank, badgeTone: 'pine' },
     { label: 'Day streak', icon: 'fire', value: userStats.currentStreak, format: 'number', badge: `best ${userStats.longestStreak}`, badgeTone: 'butter' },
     { label: 'Savings rate', icon: 'piggy-bank', value: metrics.savingsRate * 100, format: 'percent' },
@@ -649,7 +649,7 @@ const Challenges: React.FC<ChallengesProps> = ({
                       </span>
                       <span className="type-body-strong text-ink text-sm">Debt Elimination</span>
                     </div>
-                    <Badge tone="pine">{debtsSummary.paidPct.toFixed(0)}% Slashed</Badge>
+                    <Badge tone="positive">{debtsSummary.paidPct.toFixed(0)}% Slashed</Badge>
                   </div>
                   <div className="mt-3 flex items-baseline justify-between">
                     <div>
@@ -846,7 +846,7 @@ const Challenges: React.FC<ChallengesProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold uppercase tracking-wider text-amber-500">Hall of Records</span>
-                    {records.isNewRecord && <Badge tone="butter">All-Time Peak Today 🌟</Badge>}
+                    {records.isNewRecord && <Badge tone="attention">All-Time Peak Today 🌟</Badge>}
                   </div>
                   <h3 className="type-page-title text-ink text-xl sm:text-2xl mt-0.5">
                     <InMain value={peakValue} />

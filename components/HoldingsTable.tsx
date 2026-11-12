@@ -113,8 +113,6 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({ rows, total, onOpen, empt
                 <IconButton
                   icon="refresh"
                   label={`Refresh quote for ${row.holding.symbol}`}
-                  size="sm"
-                  variant="ghost"
                   isBusy={row.isUpdatingPrice}
                   onPress={row.onRefreshPrice}
                   className="size-6 text-muted hover:text-ink opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity motion-reduce:transition-none"

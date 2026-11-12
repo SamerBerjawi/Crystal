@@ -62,7 +62,6 @@ export const PositionStrip: React.FC<{ items: PositionCardData[]; currency: Curr
           <IconButton
             icon="chevron_left"
             label="Scroll left"
-            size="sm"
             className="rounded-full shadow-md bg-surface/90 backdrop-blur-sm border border-line text-ink hover:bg-surface"
             onPress={() => scrollBy(-248)}
           />
@@ -113,7 +112,6 @@ export const PositionStrip: React.FC<{ items: PositionCardData[]; currency: Curr
           <IconButton
             icon="chevron_right"
             label="Scroll right"
-            size="sm"
             className="rounded-full shadow-md bg-surface/90 backdrop-blur-sm border border-line text-ink hover:bg-surface"
             onPress={() => scrollBy(248)}
           />

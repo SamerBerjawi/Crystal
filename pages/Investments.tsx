@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import type { Account, Currency, HoldingsOverview, InvestmentTransaction, PriceHistoryEntry, SmartPriceBinding, Transaction, Warrant } from '../types';
+import type { Account, Currency, HoldingSummary, HoldingsOverview, InvestmentTransaction, PriceHistoryEntry, SmartPriceBinding, Transaction, Warrant } from '../types';
 import { CURRENCY_OPTIONS } from '../constants';
 import { convertCurrency, convertToMain, formatCurrency, parseLocalDate, toLocalISOString, getMainCurrency } from '../utils';
 import { buildHoldingsOverview, formatHoldingType, historyWindow, holdingsInSegment, mergedPriceLog, portfolioBySegment, realizedGains, SEGMENT_NAMES, segmentOf, type InvestmentSegment, type SegmentName } from '../utils/investments';

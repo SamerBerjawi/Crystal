@@ -20,7 +20,7 @@ export const getBadgeRarity = (id: string): {
   rarity: BadgeRarity;
   xp: number;
   glowClass: string;
-  badgeTone: 'neutral' | 'blue' | 'purple' | 'butter';
+  badgeTone: 'neutral' | 'blue' | 'teal' | 'attention';
   textColor: string;
   bgGradient: string;
 } => {
@@ -33,7 +33,7 @@ export const getBadgeRarity = (id: string): {
         rarity: 'Legendary',
         xp: 500,
         glowClass: 'ring-2 ring-amber-400/60 shadow-amber-500/30 shadow-xl',
-        badgeTone: 'butter',
+        badgeTone: 'attention',
         textColor: 'text-amber-400',
         bgGradient: 'from-amber-500/20 via-yellow-500/10 to-transparent',
       };
@@ -46,7 +46,7 @@ export const getBadgeRarity = (id: string): {
         rarity: 'Epic',
         xp: 300,
         glowClass: 'ring-2 ring-purple-400/60 shadow-purple-500/30 shadow-xl',
-        badgeTone: 'purple',
+        badgeTone: 'teal',
         textColor: 'text-purple-400',
         bgGradient: 'from-purple-500/20 via-indigo-500/10 to-transparent',
       };

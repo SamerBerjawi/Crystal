@@ -21,7 +21,7 @@ import { useAccountsContext, usePreferencesContext } from '../contexts/DomainPro
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 import { AccountLogo, accountIcon } from '../components/AccountCard';
 import { LogoTile } from '../components/EntityIcon';
-import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { goalViews } from '../utils/budgetModel';
 import { RingChart, Ring, RingCenter } from '../src/components/charts';
 import { goalCategoryOf } from '../utils/forecastModel';
@@ -50,6 +50,10 @@ const Goals: React.FC = () => {
   const { financialGoals, goalOrder, setGoalOrder, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
   const { accounts } = useAccountsContext();
   const { preferences } = usePreferencesContext();
+  const logoOverrides = useMemo(
+    () => buildEffectiveMerchantLogoOverrides(preferences?.merchantLogoOverrides, preferences?.merchantRules),
+    [preferences?.merchantLogoOverrides, preferences?.merchantRules],
+  );
   const { activeGoalIds, setActiveGoalIds } = useInsightsView();
 
   const [isFormOpen, setFormOpen] = useState(false);
@@ -114,8 +118,8 @@ const Goals: React.FC = () => {
       { id: ALL, label: 'All accounts', visual: <LogoTile label="All" size={24} fallbackIcon="account_balance" /> },
       ...sortAccountsByType(accounts.filter(account => used.has(account.id))).map(account => {
         const logoUrl = account.imageUrl
-          || getAccountBrandfetchUrl(account, preferences?.brandfetchClientId, preferences?.logoOverrides)
-          || (account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, preferences?.brandfetchClientId, preferences?.logoOverrides) : null);
+          || getAccountBrandfetchUrl(account, preferences?.brandfetchClientId, logoOverrides)
+          || (account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, preferences?.brandfetchClientId, logoOverrides) : null);
         return {
           id: account.id,
           label: account.name,
@@ -124,7 +128,7 @@ const Goals: React.FC = () => {
         };
       }),
     ];
-  }, [accounts, financialGoals, preferences?.brandfetchClientId, preferences?.logoOverrides]);
+  }, [accounts, financialGoals, preferences?.brandfetchClientId, logoOverrides]);
 
   const isIncluded = (goal: FinancialGoal) => !goal.disabled && activeGoalIds.includes(goal.id);
   const allIncluded = visibleGoals.length > 0 && visibleGoals.every(goal => activeGoalIds.includes(goal.id));

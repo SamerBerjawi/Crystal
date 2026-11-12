@@ -23,7 +23,7 @@ import { MerchantPicker } from '../components/MerchantPicker';
 import { AccountLogo } from '../components/AccountCard';
 import { EntityGlyph, LogoTile, MerchantLogo } from '../components/EntityIcon';
 import { getCategoryDetails } from '../utils/categories';
-import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
+import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { AreaSparkline, useSparklineHover } from '../src/components/charts';
 import { cn } from '../lib/utils';
 
@@ -221,6 +221,10 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
   const transactions = useTransactionSelector(tx => tx);
   const accounts = useAccountSelector(acc => acc);
   const { preferences, setPreferences } = usePreferencesContext();
+  const logoOverrides = useMemo(
+    () => buildEffectiveMerchantLogoOverrides(preferences.merchantLogoOverrides, preferences.merchantRules),
+    [preferences.merchantLogoOverrides, preferences.merchantRules],
+  );
   const { budgets } = useBudgetsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const isPhone = useIsMobile();
@@ -321,8 +325,8 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
     const items = sorted.map(item => {
       const logoUrl = item.imageUrl
-        || getAccountBrandfetchUrl(item, preferences.brandfetchClientId, preferences.logoOverrides)
-        || (item.financialInstitution ? getMerchantLogoUrl(item.financialInstitution, preferences.brandfetchClientId, preferences.logoOverrides) : null);
+        || getAccountBrandfetchUrl(item, preferences.brandfetchClientId, logoOverrides)
+        || (item.financialInstitution ? getMerchantLogoUrl(item.financialInstitution, preferences.brandfetchClientId, logoOverrides) : null);
       return {
         id: item.id,
         label: item.name,
@@ -333,7 +337,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
     });
 
     return [allOption, ...items];
-  }, [accounts, preferences.brandfetchClientId, preferences.logoOverrides]);
+  }, [accounts, preferences.brandfetchClientId, logoOverrides]);
 
   const categorySuggestions = useMemo(() => {
     const top = report.categories.slice(0, 3).map(c => c.category);
@@ -644,7 +648,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
             transactions={transactions}
             rules={preferences.merchantRules}
             brandfetchClientId={preferences.brandfetchClientId}
-            logoOverrides={preferences.logoOverrides}
+            logoOverrides={logoOverrides}
           />
         </div>
       </SidePanel>
