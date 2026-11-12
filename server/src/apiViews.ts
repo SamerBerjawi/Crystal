@@ -155,3 +155,54 @@ export const planningView = (data: Json) => {
         unconvertedCurrencies: unconverted(),
     };
 };
+
+const inRange = (tx: Json, from: string | null, to: string | null) => { const d = String(tx.date).slice(0, 10); return (!from || d >= from) && (!to || d <= to); };
+const validDay = (v?: string) => (v && DAY.test(v) ? v : null);
+
+/** Where spending went, rolled up to each top-level category, in the main currency. */
+export const spendingByCategoryView = (data: Json, query: { from?: string; to?: string }) => {
+    const { main, toMain, unconverted } = converter(data);
+    const from = validDay(query.from), to = validDay(query.to);
+    const topOf = (name: string): string => {
+        const find = (nodes: Json[], top: string | null): string | null => {
+            for (const node of nodes) {
+                const t = top ?? String(node.name);
+                if (node.name === name) return t;
+                const hit = find(list(node.subCategories), t);
+                if (hit) return hit;
+            }
+            return null;
+        };
+        return find(list(data.expenseCategories), null) ?? (name || 'Uncategorized');
+    };
+    const sums = new Map<string, { total: number; count: number }>();
+    list(data.transactions).filter(tx => typeof tx.date === 'string' && isSpend(tx) && inRange(tx, from, to)).forEach(tx => {
+        const key = topOf(String(tx.category ?? ''));
+        const entry = sums.get(key) ?? { total: 0, count: 0 };
+        entry.total += Math.abs(toMain(num(tx.amount) ?? 0, tx.currency));
+        entry.count += 1;
+        sums.set(key, entry);
+    });
+    const rows = [...sums.entries()].map(([category, v]) => ({ category, total: round2(v.total), count: v.count })).sort((a, b) => b.total - a.total);
+    return { currency: main, from, to, total: round2(rows.reduce((s, r) => s + r.total, 0)), categories: rows, unconvertedCurrencies: unconverted() };
+};
+
+/** Merchants matching a search, with how often and how much. */
+export const merchantsView = (data: Json, query: { query?: string; from?: string; to?: string; limit?: number }) => {
+    const { main, toMain, unconverted } = converter(data);
+    const from = validDay(query.from), to = validDay(query.to);
+    const needle = (query.query ?? '').trim().toLowerCase();
+    const limit = Math.min(100, Math.max(1, Math.floor(query.limit ?? 20)));
+    const sums = new Map<string, { total: number; count: number; last: string }>();
+    list(data.transactions).filter(tx => typeof tx.date === 'string' && isSpend(tx) && inRange(tx, from, to)).forEach(tx => {
+        const name = String(tx.merchant || tx.description || '').trim();
+        if (!name || (needle && !name.toLowerCase().includes(needle))) return;
+        const entry = sums.get(name) ?? { total: 0, count: 0, last: '' };
+        entry.total += Math.abs(toMain(num(tx.amount) ?? 0, tx.currency));
+        entry.count += 1;
+        entry.last = entry.last > String(tx.date).slice(0, 10) ? entry.last : String(tx.date).slice(0, 10);
+        sums.set(name, entry);
+    });
+    const rows = [...sums.entries()].map(([merchant, v]) => ({ merchant, total: round2(v.total), count: v.count, lastDate: v.last })).sort((a, b) => b.total - a.total);
+    return { currency: main, matches: rows.length, merchants: rows.slice(0, limit), unconvertedCurrencies: unconverted() };
+};

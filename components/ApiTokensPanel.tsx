@@ -105,7 +105,7 @@ const ApiTokensPanel: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      <p className="type-body text-muted">Let a script or an AI tool read your data without your password. Tokens are read-only and limited to the scopes you pick. Revoke one and it stops working at once.</p>
+      <p className="type-body text-muted">Let a script or an AI tool read your data without your password. Tokens are read-only and limited to the scopes you pick. Revoke one and it stops working at once. For MCP clients, use <code className="select-all">{window.location.origin}/api/mcp</code> as the server address and the token as a bearer token.</p>
 
       {error && <Banner tone="error">{error}</Banner>}
       {fresh && (

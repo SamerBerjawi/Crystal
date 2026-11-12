@@ -1,4 +1,4 @@
-import { summaryView, transactionsView, investmentsView, planningView } from './apiViews';
+import { summaryView, transactionsView, investmentsView, planningView, spendingByCategoryView, merchantsView } from './apiViews';
 import { generateToken, hashToken, expiryFor, tokenProblem, TOKEN_PREFIX } from './apiTokens';
 
 function assert(condition: boolean, message: string) {
@@ -82,4 +82,22 @@ run('investments: holdings from trades at cost, sold-out positions dropped', () 
 run('malformed data never throws', () => {
     const junk = { accounts: [null, 5, { balance: 'x' }], transactions: [{}, null], budgets: 'no', investmentTransactions: [{ symbol: 1 }] };
     summaryView(junk, NOW); transactionsView(junk, {}); investmentsView(junk); planningView(junk); summaryView({}, NOW);
+});
+
+run('spending by category rolls up to the parent and skips transfers', () => {
+    const v = spendingByCategoryView(data, { from: '2026-11-01', to: '2026-11-30' });
+    assert(v.categories.length === 1 && v.categories[0].category === 'Food' && v.categories[0].total === 150 && v.categories[0].count === 2, 'Food 150');
+    assert(spendingByCategoryView(data, {}).total === 160, 'all time includes October');
+});
+
+run('merchant search matches, sums and caps', () => {
+    const d = { transactions: [
+        { id: '1', date: '2026-11-01', amount: -10, currency: 'EUR', type: 'expense', merchant: 'Cafe Nero' },
+        { id: '2', date: '2026-11-03', amount: -5, currency: 'EUR', type: 'expense', merchant: 'Cafe Nero' },
+        { id: '3', date: '2026-11-02', amount: -50, currency: 'EUR', type: 'expense', description: 'Rent' },
+    ] };
+    const hit = merchantsView(d, { query: 'cafe' });
+    assert(hit.matches === 1 && hit.merchants[0].total === 15 && hit.merchants[0].count === 2 && hit.merchants[0].lastDate === '2026-11-03', 'cafe');
+    assert(merchantsView(d, {}).merchants[0].merchant === 'Rent', 'biggest first');
+    assert(merchantsView(d, { limit: 1 }).merchants.length === 1, 'limit');
 });

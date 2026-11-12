@@ -7,7 +7,7 @@ import { investmentsView, planningView, summaryView, transactionsView } from './
 /** The read-only API for scoped tokens. Every route is a GET over the user's own data, and nothing writes. */
 const router = express.Router();
 
-const loadData = async (userId: number) => (await db.query(`SELECT data FROM financial_data WHERE user_id = $1`, [userId])).rows?.[0]?.data ?? {};
+export const loadData = async (userId: number) => (await db.query(`SELECT data FROM financial_data WHERE user_id = $1`, [userId])).rows?.[0]?.data ?? {};
 const text = (v: unknown) => (typeof v === 'string' && v ? v : undefined);
 const int = (v: unknown) => (typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : undefined);
 

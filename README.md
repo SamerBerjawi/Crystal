@@ -76,6 +76,7 @@ Designed for data sovereignty, Crystal ensures your financial data remains yours
 ## 🔌 Integrations & automation
 
 * **Enable Banking (beta):** connect 2,500+ European banks to import transactions and balances, with consent-expiry handling, re-authorisation, webhooks and a credential self-test. Bank sync never overwrites your manual edits.
+* **MCP server and API tokens:** create a read-only token in Settings → Connections, limited to the scopes you pick (summary, transactions, investments, planning) and optionally expiring, then point an MCP client at `https://<your-crystal>/api/mcp` with `Authorization: Bearer cry_…`. Tools: `get_summary`, `list_transactions`, `spending_by_category`, `search_merchants`, `get_investments`, `get_planning`, plus a `crystal://summary` resource and a `monthly_review` prompt. A token only sees the tools its scopes allow, and nothing can write.
 * **Rules:** one rule model to categorise, tag and rename transactions automatically, with suggestions drawn from your history.
 * **Merchant intelligence:** detect and profile merchants, fetch logos via **Brandfetch**, and manage branches and keyword rules.
 * **Taxonomy:** hierarchical categories plus flat tags (`#trip`, `#project`) that cut across them.
