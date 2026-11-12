@@ -916,6 +916,9 @@ export interface Task {
   priority: TaskPriority;
   reminderDate?: string;
   linkedPage?: Page;
+  linkedEntityType?: 'goal' | 'bill' | 'account';
+  linkedEntityId?: string;
+  linkedEntityName?: string;
 }
 
 export interface Warrant {

@@ -13,6 +13,7 @@
     "test": "tsx --test tests/unit/*.test.ts server/src/alerts.test.ts server/src/ebAuthOptions.test.ts server/src/ebErrors.test.ts server/src/ebRedirect.test.ts && tsx utils.test.ts && tsx server/src/crypto.test.ts && tsx server/src/schemas.test.ts && tsx server/src/rateLimit.test.ts && tsx server/src/lockRules.test.ts"
   },
   "dependencies": {
+    "@base-ui/react": "^1.9.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -37,6 +38,7 @@
     "big.js": "^7.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cn": "^0.5.2",
     "cors": "^2.8.6",
     "countries-list": "^3.4.1",
     "d3-array": "^3.2.4",

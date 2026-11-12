@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { FinancialGoal } from '../types';
 import { convertToMain, currencyCode, getMainCurrency } from '../utils';
 import { sortAccountsByType } from '../utils/accountsModel';
-import GoalCard from '../components/GoalCard';
+import GoalCard, { progressAccentColor } from '../components/GoalCard';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import GoalTable from '../components/GoalTable';
 import PageHeader, { type PageStat } from '../components/PageHeader';
@@ -87,7 +87,19 @@ const Goals: React.FC = () => {
       .filter(share => share.saved > 0);
   }, [tree]);
   const ringData = useMemo(
-    () => goalViews(visibleGoals, convertToMain).filter(goal => !goal.done && goal.target > 0).slice(0, 5).map((goal, index) => ({ label: goal.name, value: goal.saved, maxValue: goal.target, color: SHARE_COLOURS[index % SHARE_COLOURS.length] })),
+    () =>
+      goalViews(visibleGoals, convertToMain)
+        .filter(goal => !goal.done && goal.target > 0)
+        .slice(0, 5)
+        .map(goal => {
+          const pct = goal.target > 0 ? (goal.saved / goal.target) * 100 : 0;
+          return {
+            label: goal.name,
+            value: goal.saved,
+            maxValue: goal.target,
+            color: progressAccentColor(pct),
+          };
+        }),
     [visibleGoals]
   );
   const sharesTotal = shares.reduce((sum, share) => sum + share.saved, 0);
@@ -243,6 +255,7 @@ const Goals: React.FC = () => {
                           items={node.children}
                           isIncluded={isIncluded(node.goal)}
                           today={today}
+                          priorityRank={index + 1}
                           onToggleIncluded={toggleIncluded}
                           onToggleComplete={toggleComplete}
                           onEdit={openForm}
@@ -266,35 +279,107 @@ const Goals: React.FC = () => {
           )}
 
           <section aria-label="Monthly targets" className="surface-card rounded-[var(--radius-xl)] p-6 max-md:p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-line/60">
               <div>
-                <h2 className="type-card-title text-ink">What your goals ask for</h2>
-                <p className="type-caption text-muted">Every account in every month for the next twelve months, for goals included in the forecast.</p>
+                <h2 className="type-card-title text-ink font-semibold">What your goals ask for</h2>
+                <p className="type-caption text-muted mt-0.5">
+                  12-month forward commitment schedule for goals included in your forecast.
+                </p>
               </div>
-              <SegmentedControl items={SCHEDULES} activeId={schedule} onChange={id => setSchedule(id as 'account' | 'month')} />
+              <div className="flex items-center gap-3">
+                <SegmentedControl items={SCHEDULES} activeId={schedule} onChange={id => setSchedule(id as 'account' | 'month')} />
+              </div>
             </div>
+
             {targets.length > 0 ? (
-              <div className="mt-4 md:columns-2 md:gap-x-8">
-                {targets.map((group, index) => (
-                  <section key={group.key} aria-label={group.label} className="mb-6 min-w-0 break-inside-avoid">
-                    <h3 className="type-body-strong flex items-center gap-2 text-ink">
-                      {schedule === 'account' && <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: DOTS[index % DOTS.length] }} />}
-                      <span className="truncate">{group.label}</span>
-                    </h3>
-                    <ul className="mt-1 divide-y divide-line border-l-2 border-line pl-3">
-                      {group.items.map(item => (
-                        <li key={item.key} className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
-                          <span className="type-body min-w-0 truncate text-muted">{item.label}</span>
-                          <span className="flex flex-wrap justify-end gap-x-4">
-                            {item.savings > 0 && <span className="type-caption text-muted">Saving <span className="type-figure-row whitespace-nowrap text-ink"><Amount value={item.savings} currency={getMainCurrency()} /></span></span>}
-                            {item.expense > 0 && <span className="type-caption text-muted">Spending <span className="type-figure-row whitespace-nowrap text-ink"><Amount value={item.expense} currency={getMainCurrency()} /></span></span>}
-                            {item.income > 0 && <span className="type-caption text-muted">Income <span className="type-figure-row whitespace-nowrap text-ink"><Amount value={item.income} currency={getMainCurrency()} /></span></span>}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                ))}
+              <div className="mt-5 space-y-6">
+                {/* Visual Summary Metric Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-xl bg-inset/70 border border-line/60 p-3.5">
+                    <span className="type-caption block text-muted text-[11px] font-semibold uppercase tracking-wider">
+                      12-Month Total Planned
+                    </span>
+                    <span className="type-figure-lg block text-ink mt-0.5">
+                      <Amount
+                        value={targets.reduce((sum, g) => sum + g.items.reduce((s, i) => s + i.savings + i.expense - i.income, 0), 0)}
+                        currency={getMainCurrency()}
+                      />
+                    </span>
+                  </div>
+                  <div className="rounded-xl bg-inset/70 border border-line/60 p-3.5">
+                    <span className="type-caption block text-muted text-[11px] font-semibold uppercase tracking-wider">
+                      Monthly Average
+                    </span>
+                    <span className="type-figure-lg block text-ink mt-0.5">
+                      <Amount
+                        value={targets.reduce((sum, g) => sum + g.items.reduce((s, i) => s + i.savings + i.expense - i.income, 0), 0) / 12}
+                        currency={getMainCurrency()}
+                      />
+                    </span>
+                  </div>
+                  <div className="rounded-xl bg-inset/70 border border-line/60 p-3.5">
+                    <span className="type-caption block text-muted text-[11px] font-semibold uppercase tracking-wider">
+                      {schedule === 'account' ? 'Contributing Accounts' : 'Scheduled Periods'}
+                    </span>
+                    <span className="type-figure-lg block text-ink mt-0.5">
+                      {targets.length} {schedule === 'account' ? (targets.length === 1 ? 'account' : 'accounts') : 'months'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Original Clean 2-Column Schedule Breakdown */}
+                <div className="mt-4 md:columns-2 md:gap-x-8">
+                  {targets.map((group, index) => (
+                    <section key={group.key} aria-label={group.label} className="mb-6 min-w-0 break-inside-avoid">
+                      <h3 className="type-body-strong flex items-center gap-2 text-ink">
+                        {schedule === 'account' && (
+                          <span
+                            aria-hidden="true"
+                            className="size-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: DOTS[index % DOTS.length] }}
+                          />
+                        )}
+                        <span className="truncate">{group.label}</span>
+                      </h3>
+                      <ul className="mt-1 divide-y divide-line border-l-2 border-line pl-3">
+                        {group.items.map(item => (
+                          <li
+                            key={item.key}
+                            className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2"
+                          >
+                            <span className="type-body min-w-0 truncate text-muted">{item.label}</span>
+                            <span className="flex flex-wrap justify-end gap-x-4">
+                              {item.savings > 0 && (
+                                <span className="type-caption text-muted">
+                                  Saving{' '}
+                                  <span className="type-figure-row whitespace-nowrap text-ink">
+                                    <Amount value={item.savings} currency={getMainCurrency()} />
+                                  </span>
+                                </span>
+                              )}
+                              {item.expense > 0 && (
+                                <span className="type-caption text-muted">
+                                  Spending{' '}
+                                  <span className="type-figure-row whitespace-nowrap text-ink">
+                                    <Amount value={item.expense} currency={getMainCurrency()} />
+                                  </span>
+                                </span>
+                              )}
+                              {item.income > 0 && (
+                                <span className="type-caption text-muted">
+                                  Income{' '}
+                                  <span className="type-figure-row whitespace-nowrap text-ink">
+                                    <Amount value={item.income} currency={getMainCurrency()} />
+                                  </span>
+                                </span>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
               </div>
             ) : (
               <p className="type-body mt-3 text-muted">Nothing is due in the next twelve months.</p>

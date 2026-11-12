@@ -1,11 +1,13 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { Page, Task, TaskPriority, TaskStatus } from '../types';
 import { Button } from './ui/Actions';
 import { DateInput, Textarea, TextInput } from './ui/Fields';
 import { Dialog } from './ui/Overlays';
-import { Select } from './ui/Pickers';
+import { Select, type PickerOption } from './ui/Pickers';
 import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
+import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
+import { useAccountsContext } from '../contexts/DomainProviders';
 
 interface TaskModalProps {
   isOpen?: boolean;
@@ -15,13 +17,15 @@ interface TaskModalProps {
   onDelete: (id: string) => void;
 }
 
-const PRIORITIES: SwipeTabItem[] = ([
+const PRIORITIES: SwipeTabItem[] = [
   { id: 'Low', title: 'Low' },
   { id: 'Medium', title: 'Medium' },
   { id: 'High', title: 'High', activeColor: 'bg-money-out', activeTextColor: 'text-on-danger' },
-]);
+];
+
 const STATUSES: SwipeTabItem[] = (['To Do', 'In Progress', 'Done'] as TaskStatus[]).map(id => ({ id, title: id }));
-const LINKED_SECTION_OPTIONS = [
+
+const LINKED_SECTION_OPTIONS: PickerOption[] = [
   { id: 'none', label: 'None' },
   { id: 'Accounts', label: 'Accounts' },
   { id: 'Transactions', label: 'Transactions' },
@@ -32,15 +36,94 @@ const LINKED_SECTION_OPTIONS = [
   { id: 'Investments', label: 'Investments' },
 ];
 
-/** Add or edit a task (TSK-04). */
+/** Add or edit a task with priority, status, due dates, and financial entity linking (TSK-04). */
 const TaskModal: React.FC<TaskModalProps> = ({ task, onClose, onSave, onDelete }) => {
+  const { accounts } = useAccountsContext();
+  const { financialGoals } = useGoalsContext();
+  const { recurringTransactions } = useScheduleContext();
+
   const initial = useRef({
-    title: task?.title ?? '', description: task?.description ?? '', dueDate: task?.dueDate ?? '', reminderDate: task?.reminderDate ?? '',
-    status: task?.status ?? ('To Do' as TaskStatus), priority: task?.priority ?? ('Medium' as TaskPriority),
+    title: task?.title ?? '',
+    description: task?.description ?? '',
+    dueDate: task?.dueDate ?? '',
+    reminderDate: task?.reminderDate ?? '',
+    status: task?.status ?? ('To Do' as TaskStatus),
+    priority: task?.priority ?? ('Medium' as TaskPriority),
     linkedPage: task?.linkedPage ?? ('' as Page | ''),
+    linkedEntityType: task?.linkedEntityType,
+    linkedEntityId: task?.linkedEntityId ?? '',
+    linkedEntityName: task?.linkedEntityName ?? '',
   });
+
   const [draft, setDraft] = useState(initial.current);
   const update = (patch: Partial<typeof draft>) => setDraft(prev => ({ ...prev, ...patch }));
+
+  // Options for entity pickers depending on linked section
+  const goalOptions: PickerOption[] = useMemo(
+    () => [
+      { id: 'none', label: 'Select a goal...' },
+      ...financialGoals.map(g => ({ id: g.id, label: g.name })),
+    ],
+    [financialGoals]
+  );
+
+  const billOptions: PickerOption[] = useMemo(
+    () => [
+      { id: 'none', label: 'Select a bill / subscription...' },
+      ...recurringTransactions.map(b => ({ id: b.id, label: b.merchant || b.description || 'Recurring bill' })),
+    ],
+    [recurringTransactions]
+  );
+
+  const accountOptions: PickerOption[] = useMemo(
+    () => [
+      { id: 'none', label: 'Select an account...' },
+      ...accounts.map(a => ({ id: a.id, label: a.name })),
+    ],
+    [accounts]
+  );
+
+  const handleSectionChange = (sectionId: string) => {
+    if (sectionId === 'none') {
+      update({
+        linkedPage: '',
+        linkedEntityType: undefined,
+        linkedEntityId: '',
+        linkedEntityName: '',
+      });
+    } else {
+      update({
+        linkedPage: sectionId as Page,
+        linkedEntityType:
+          sectionId === 'Goals'
+            ? 'goal'
+            : sectionId === 'Schedule & Bills' || sectionId === 'Subscriptions'
+              ? 'bill'
+              : sectionId === 'Accounts'
+                ? 'account'
+                : undefined,
+        linkedEntityId: '',
+        linkedEntityName: '',
+      });
+    }
+  };
+
+  const handleEntityChange = (entityId: string) => {
+    if (entityId === 'none') {
+      update({ linkedEntityId: '', linkedEntityName: '' });
+      return;
+    }
+    if (draft.linkedPage === 'Goals') {
+      const g = financialGoals.find(item => item.id === entityId);
+      update({ linkedEntityId: entityId, linkedEntityName: g?.name ?? '' });
+    } else if (draft.linkedPage === 'Schedule & Bills' || draft.linkedPage === 'Subscriptions') {
+      const b = recurringTransactions.find(item => item.id === entityId);
+      update({ linkedEntityId: entityId, linkedEntityName: b?.merchant || b?.description || 'Bill' });
+    } else if (draft.linkedPage === 'Accounts') {
+      const a = accounts.find(item => item.id === entityId);
+      update({ linkedEntityId: entityId, linkedEntityName: a?.name ?? 'Account' });
+    }
+  };
 
   const handleSave = () => {
     if (!draft.title.trim()) {
@@ -58,6 +141,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, onClose, onSave, onDelete }
       description: draft.description.trim(),
       reminderDate: draft.dueDate ? draft.reminderDate : '',
       linkedPage: draft.linkedPage ? (draft.linkedPage as Page) : undefined,
+      linkedEntityType: draft.linkedEntityId ? draft.linkedEntityType : undefined,
+      linkedEntityId: draft.linkedEntityId || undefined,
+      linkedEntityName: draft.linkedEntityName || undefined,
     });
   };
 
@@ -92,12 +178,41 @@ const TaskModal: React.FC<TaskModalProps> = ({ task, onClose, onSave, onDelete }
           <DateInput label="Due date" value={draft.dueDate} onChange={dueDate => update({ dueDate })} />
           {draft.dueDate && <DateInput label="Remind me" value={draft.reminderDate} onChange={reminderDate => update({ reminderDate })} />}
         </div>
-        <Select
-          label="Linked section"
-          options={LINKED_SECTION_OPTIONS}
-          value={draft.linkedPage || 'none'}
-          onChange={id => update({ linkedPage: id === 'none' ? '' : (id as Page) })}
-        />
+        <div className="space-y-3 pt-1">
+          <Select
+            label="Linked section"
+            options={LINKED_SECTION_OPTIONS}
+            value={draft.linkedPage || 'none'}
+            onChange={handleSectionChange}
+          />
+
+          {draft.linkedPage === 'Goals' && financialGoals.length > 0 && (
+            <Select
+              label="Linked goal"
+              options={goalOptions}
+              value={draft.linkedEntityId || 'none'}
+              onChange={handleEntityChange}
+            />
+          )}
+
+          {(draft.linkedPage === 'Schedule & Bills' || draft.linkedPage === 'Subscriptions') && recurringTransactions.length > 0 && (
+            <Select
+              label="Linked bill or subscription"
+              options={billOptions}
+              value={draft.linkedEntityId || 'none'}
+              onChange={handleEntityChange}
+            />
+          )}
+
+          {draft.linkedPage === 'Accounts' && accounts.length > 0 && (
+            <Select
+              label="Linked account"
+              options={accountOptions}
+              value={draft.linkedEntityId || 'none'}
+              onChange={handleEntityChange}
+            />
+          )}
+        </div>
       </form>
     </Dialog>
   );

@@ -10,6 +10,15 @@ import Icon from './ui/Icon';
 import { Menu, type MenuAction } from './ui/Menu';
 import { Amount } from './ui/Money';
 
+/** Returns Crystal's accent color based on goal completion progress */
+export const progressAccentColor = (pct: number): string => {
+  if (pct >= 100) return 'var(--money-in)';
+  if (pct >= 75) return 'var(--teal)';
+  if (pct >= 50) return 'var(--blue)';
+  if (pct >= 25) return 'var(--amber)';
+  return 'var(--rose)';
+};
+
 const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 export const GOAL_STATUS = {
@@ -52,6 +61,8 @@ interface GoalCardProps {
   onDuplicate: (goal: FinancialGoal) => void;
   onDelete: (goal: FinancialGoal) => void;
   onAddItem: (bucketId: string) => void;
+  /** Numerical priority ranking (#1, #2, etc.) */
+  priorityRank?: number;
   /** Handles shown in reorder mode. */
   reorder?: React.ReactNode;
 }
@@ -75,7 +86,9 @@ const ItemRow: React.FC<{ item: FinancialGoal; today: Date; card: GoalCardProps 
           <Badge tone={status.tone}>{status.label}</Badge>
         </span>
         <span className="type-caption block text-muted"><Amount value={view.saved} currency={getMainCurrency()} /> of <Amount value={view.target} currency={getMainCurrency()} /></span>
-        <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-inset"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${view.pct}%` }} /></span>
+        <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-inset">
+          <span className="block h-full rounded-full transition-all duration-300" style={{ width: `${view.pct}%`, backgroundColor: progressAccentColor(view.pct) }} />
+        </span>
       </button>
       <Menu title={item.name} trigger={<IconButton icon="more-horizontal" label={`Actions for ${item.name}`} tooltipPlacement="left" />} items={goalMenu(item, view, card)} />
     </li>
@@ -95,7 +108,19 @@ const GoalCard: React.FC<GoalCardProps> = props => {
   return (
     <article className="surface-card flex h-full flex-col gap-4 rounded-[var(--radius-xl)] p-5">
       <header className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset text-ink"><Icon name={goal.isBucket ? 'folder' : 'flag'} size={20} /></span>
+        <div className="relative shrink-0">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-inset text-ink">
+            <Icon name={goal.isBucket ? 'folder' : 'flag'} size={20} />
+          </span>
+          {props.priorityRank && (
+            <span
+              title={`Priority #${props.priorityRank}`}
+              className="absolute -top-1.5 -left-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-on-primary shadow-xs"
+            >
+              #{props.priorityRank}
+            </span>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <h3 className="type-card-title truncate text-ink">{goal.name}</h3>
           <p className="type-caption text-muted">{goal.isBucket ? `${items.length} ${items.length === 1 ? 'item' : 'items'}` : view.date ? `By ${shortDate(view.date)}` : 'Ongoing'}</p>
@@ -104,7 +129,14 @@ const GoalCard: React.FC<GoalCardProps> = props => {
       </header>
 
       <div className="flex items-center gap-4">
-        <ProgressRing size={96} value={view.pct} tone={ringTone} label={`${Math.round(view.pct)}%`} caption="saved" />
+        <ProgressRing
+          size={96}
+          value={view.pct}
+          strokeColor={progressAccentColor(view.pct)}
+          tone={ringTone}
+          label={`${Math.round(view.pct)}%`}
+          caption="saved"
+        />
         <dl className="min-w-0 flex-1 space-y-1.5">
           <div className="flex justify-between gap-3"><dt className="type-body text-muted">Saved</dt><dd className="type-figure-row text-ink"><Amount value={view.saved} currency={getMainCurrency()} /></dd></div>
           <div className="flex justify-between gap-3"><dt className="type-body text-muted">Target</dt><dd className="type-figure-row text-ink"><Amount value={view.target} currency={getMainCurrency()} /></dd></div>

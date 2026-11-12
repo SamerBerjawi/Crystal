@@ -134,11 +134,11 @@ export const Row: React.FC<{
 };
 
 /** A progress ring that sweeps round on arrival, with its label in the middle. */
-export const ProgressRing: React.FC<{ value: number; size?: number; tone?: 'pine' | 'amber' | 'loss'; label: string; caption?: string }> = ({ value, size = 128, tone = 'pine', label, caption }) => {
+export const ProgressRing: React.FC<{ value: number; size?: number; tone?: 'pine' | 'amber' | 'loss'; strokeColor?: string; label: string; caption?: string }> = ({ value, size = 128, tone = 'pine', strokeColor, label, caption }) => {
   const radius = 44;
   const length = 2 * Math.PI * radius;
   const share = Math.min(100, Math.max(0, value)) / 100;
-  const stroke = { pine: 'var(--primary)', amber: 'var(--amber)', loss: 'var(--money-out)' }[tone];
+  const stroke = strokeColor || { pine: 'var(--primary)', amber: 'var(--amber)', loss: 'var(--money-out)' }[tone];
   return (
     <div role="img" aria-label={`${label}${caption ? ` ${caption}` : ''}`} style={{ width: size, height: size }} className="relative shrink-0">
       <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden="true">
