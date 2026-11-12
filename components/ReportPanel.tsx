@@ -1,8 +1,8 @@
 import React, { useContext, useMemo, useState } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Page, Transaction } from '../types';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
-import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
+import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { reportInsights, type GroupBy, type Report, type ReportId } from '../utils/reportsModel';
 import { PieCenter, PieChart, PieSlice } from '../src/components/charts';
 import { LINE_MOTION } from '../src/components/charts/animation';
@@ -319,38 +319,505 @@ const PhoneCashflow: React.FC<{ report: Report }> = ({ report }) => {
   );
 };
 
-const SummaryReport: React.FC<{ report: Report }> = ({ report }) => {
+const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) => void }> = ({ report, setCurrentPage }) => {
+  const isPrivate = useContext(PrivacyContext);
   const insights = reportInsights(report);
+
+  // Cumulative spending velocity trajectory
+  const cumulativeVelocity = useMemo(() => {
+    let cumCurrent = 0;
+    let cumPrevious = 0;
+    return report.velocity.map(pt => {
+      cumCurrent += pt.current;
+      cumPrevious += pt.previous;
+      return {
+        date: pt.date,
+        label: shortDate(pt.date),
+        current: Number(cumCurrent.toFixed(2)),
+        previous: Number(cumPrevious.toFixed(2)),
+      };
+    });
+  }, [report.velocity]);
+
+  // Donut slices for top 4 categories + other
+  const topCategories = report.categories.slice(0, 4);
+  const restSpend = Math.max(0, report.totalSpend - topCategories.reduce((sum, row) => sum + row.totalEur, 0));
+  const donutSlices = useMemo(() => [
+    ...topCategories.map((row, index) => ({
+      label: row.category,
+      value: row.totalEur,
+      color: SLICE_COLORS[index] ?? 'var(--muted)',
+    })),
+    ...(restSpend > 0.005 ? [{
+      label: 'Other',
+      value: restSpend,
+      color: 'var(--muted)',
+    }] : [])
+  ], [topCategories, restSpend]);
+
+  // Top merchants by spend in this period
+  const topMerchants = useMemo(() => {
+    const map = new Map<string, { total: number; count: number }>();
+    report.rows.forEach(tx => {
+      const name = tx.merchant || tx.description || 'Unknown';
+      const entry = map.get(name) || { total: 0, count: 0 };
+      entry.total += Math.abs(convertToMain(tx.amount, tx.currency));
+      entry.count += 1;
+      map.set(name, entry);
+    });
+    return Array.from(map.entries())
+      .map(([name, { total, count }]) => ({ name, total, count }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 4);
+  }, [report.rows]);
+
+  // 50/30/20 Breakdown metrics
+  const needsItem = report.needs.find(n => n.name === 'Needs');
+  const wantsItem = report.needs.find(n => n.name === 'Wants');
+  const othersItem = report.needs.find(n => n.name === 'Others');
+  const needsVal = needsItem?.value ?? 0;
+  const wantsVal = wantsItem?.value ?? 0;
+  const othersVal = othersItem?.value ?? 0;
+  const netSavings = report.income - report.totalSpend;
+  const isSurplus = netSavings >= 0;
+
+  // Periods & Velocity pacing
+  const daysInPeriod = Math.max(1, report.velocity.length);
+  const dailyRunRate = report.totalSpend / daysInPeriod;
+  const overBudgets = report.budget.filter(b => b.varianceEur < 0);
 
   return (
     <div className="space-y-6">
+      {/* 1. Executive Headline KPI Cards */}
       <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
+        {/* Outflow / Total Spend */}
         <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
-          <div className="type-label text-muted">Money in</div>
-          <div className="type-figure-row mt-1 text-ink"><Amount value={report.income} currency={getMainCurrency()} /></div>
-          <div className="type-caption mt-1 text-muted">Total period income</div>
+          <div className="flex items-center justify-between">
+            <span className="type-label text-muted">Total Outflow</span>
+            {report.changePct !== null && (
+              <Badge tone={report.changePct > 0 ? 'attention' : 'positive'} className="px-1.5 py-0.5 text-[11px]">
+                {report.changePct >= 0 ? '+' : ''}{report.changePct.toFixed(0)}%
+              </Badge>
+            )}
+          </div>
+          <div className="type-figure-row mt-1 text-ink">
+            <Amount value={report.totalSpend} currency={getMainCurrency()} />
+          </div>
+          <div className="type-caption mt-1 text-muted">
+            {report.count} payments · <Amount value={dailyRunRate} currency={getMainCurrency()} />/day
+          </div>
         </div>
+
+        {/* Inflow / Total Income */}
         <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
-          <div className="type-label text-muted">Period before</div>
-          <div className="type-figure-row mt-1 text-ink"><Amount value={report.previousSpend} currency={getMainCurrency()} /></div>
-          <div className="type-caption mt-1 text-muted">Comparison spend</div>
+          <div className="flex items-center justify-between">
+            <span className="type-label text-muted">Total Inflow</span>
+            <span className="size-2 shrink-0 rounded-full bg-pine" />
+          </div>
+          <div className="type-figure-row mt-1 text-pine">
+            +<Amount value={report.income} currency={getMainCurrency()} />
+          </div>
+          <div className="type-caption mt-1 text-muted">
+            {report.incomeReport.sources.length} sources · {report.incomeReport.count} deposits
+          </div>
         </div>
+
+        {/* Net Savings & Savings Rate */}
         <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
-          <div className="type-label text-muted">Average payment</div>
-          <div className="type-figure-row mt-1 text-ink"><Amount value={report.average} currency={getMainCurrency()} /></div>
-          <div className="type-caption mt-1 text-muted">Across {report.count} payments</div>
+          <div className="flex items-center justify-between">
+            <span className="type-label text-muted">Net Cash Flow</span>
+            <Badge tone={isSurplus ? 'positive' : 'negative'} className="px-1.5 py-0.5 text-[11px]">
+              {report.savingsRate.toFixed(0)}% saved
+            </Badge>
+          </div>
+          <div className="type-figure-row mt-1">
+            <Amount value={netSavings} currency={getMainCurrency()} tone="flow" />
+          </div>
+          <div className="type-caption mt-1 text-muted">
+            {isSurplus ? 'Period surplus retained' : 'Funded from savings'}
+          </div>
         </div>
+
+        {/* Fixed Commitments */}
         <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
-          <div className="type-label text-muted">Repeat monthly cost</div>
-          <div className="type-figure-row mt-1 text-ink"><Amount value={report.recurringImpact} currency={getMainCurrency()} /></div>
-          <div className="type-caption mt-1 text-muted">Recurring baseline</div>
+          <div className="flex items-center justify-between">
+            <span className="type-label text-muted">Repeat Commitments</span>
+            <span className="type-caption font-medium text-muted">{report.recurring.length} svcs</span>
+          </div>
+          <div className="type-figure-row mt-1 text-ink">
+            <Amount value={report.recurringImpact} currency={getMainCurrency()} />
+          </div>
+          <div className="type-caption mt-1 text-muted">
+            Estimated monthly baseline
+          </div>
         </div>
       </div>
 
+      {/* 2. Visual Graphs & Charts Row (Trajectory & Categories Donut) */}
+      <div className="grid gap-5 min-[900px]:grid-cols-2">
+        {/* Left: Cumulative Spending Trajectory Chart */}
+        <div className="flex flex-col justify-between rounded-[var(--radius-lg)] border border-line bg-surface p-4">
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
+              <div>
+                <h3 className="type-body-strong text-ink">Cumulative Trajectory</h3>
+                <p className="type-caption text-muted">Daily pace vs prior period</p>
+              </div>
+              <ul className="flex items-center gap-3 text-xs" aria-label="Legend">
+                <li className="flex items-center gap-1.5 font-medium text-ink">
+                  <span className="h-1 w-3.5 rounded-full bg-chart-1" />
+                  <span>This period</span>
+                </li>
+                <li className="flex items-center gap-1.5 text-muted">
+                  <span className="h-0.5 w-3.5 rounded-full bg-muted border-dashed" />
+                  <span>Prior</span>
+                </li>
+              </ul>
+            </div>
+            {cumulativeVelocity.length < 2 ? (
+              <div className="flex h-[200px] items-center justify-center text-xs text-muted">
+                Insufficient velocity data in this timeframe
+              </div>
+            ) : (
+              <div className="h-[210px] w-full pt-3">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={cumulativeVelocity}>
+                    <defs>
+                      <linearGradient id="summarySpendGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} stroke="var(--line)" />
+                    <XAxis
+                      dataKey="label"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                      minTickGap={28}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                      width={44}
+                      tickFormatter={val => isPrivate ? '•••' : formatCurrency(val, getMainCurrency(), { compact: true })}
+                    />
+                    <Tooltip
+                      contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 12 }}
+                      formatter={(val: number, name: string) => [
+                        isPrivate ? '•••' : formatCurrency(val, getMainCurrency()),
+                        name === 'current' ? 'This period' : 'Prior period'
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="previous"
+                      stroke="var(--muted)"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      dot={false}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="current"
+                      stroke="var(--chart-1)"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#summarySpendGrad)"
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+          <div className="mt-2 flex items-center justify-between border-t border-line/60 pt-2 text-xs text-muted">
+            <span>Period Total: <span className="font-semibold text-ink"><Amount value={report.totalSpend} currency={getMainCurrency()} /></span></span>
+            <span>Prior Total: <span className="font-medium text-ink"><Amount value={report.previousSpend} currency={getMainCurrency()} /></span></span>
+          </div>
+        </div>
+
+        {/* Right: Category Distribution Donut Chart */}
+        <div className="flex flex-col justify-between rounded-[var(--radius-lg)] border border-line bg-surface p-4">
+          <div>
+            <div className="flex items-center justify-between border-b border-line pb-2.5">
+              <div>
+                <h3 className="type-body-strong text-ink">Category Distribution</h3>
+                <p className="type-caption text-muted">Top spending buckets</p>
+              </div>
+              <span className="type-caption text-muted">{report.categories.length} total categories</span>
+            </div>
+
+            {donutSlices.length === 0 ? (
+              <div className="flex h-[200px] items-center justify-center text-xs text-muted">
+                No categorical spending recorded
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 items-center gap-4 pt-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <div className="mx-auto size-[140px]">
+                  <PieChart data={donutSlices} innerRadius={46} padAngle={0.03}>
+                    {donutSlices.map((_, index) => <PieSlice key={index} index={index} />)}
+                    <PieCenter defaultLabel="Spent">
+                      {({ value, label, isHovered }) => (
+                        <span className="flex flex-col items-center">
+                          <span className="text-[10px] font-semibold uppercase text-muted">{label}</span>
+                          <span className="text-xs font-bold text-ink">
+                            <Amount value={isHovered ? value : report.totalSpend} currency={getMainCurrency()} />
+                          </span>
+                        </span>
+                      )}
+                    </PieCenter>
+                  </PieChart>
+                </div>
+
+                <ul className="min-w-0 space-y-1.5">
+                  {donutSlices.map((slice) => {
+                    const pct = report.totalSpend > 0 ? (slice.value / report.totalSpend) * 100 : 0;
+                    return (
+                      <li key={slice.label} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="flex min-w-0 items-center gap-2 truncate">
+                          <span className="size-2 shrink-0 rounded-full" style={{ background: slice.color }} />
+                          <span className="truncate text-ink">{slice.label}</span>
+                        </span>
+                        <div className="flex shrink-0 items-center gap-2 text-right">
+                          <span className="tabular-nums font-medium text-ink">
+                            <Amount value={slice.value} currency={getMainCurrency()} />
+                          </span>
+                          <span className="w-9 text-right tabular-nums text-[11px] text-muted">
+                            {pct.toFixed(0)}%
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+          <div className="mt-2 flex items-center justify-between border-t border-line/60 pt-2 text-xs text-muted">
+            <span>Leading: <span className="font-semibold text-ink">{topCategories[0]?.category ?? 'None'}</span></span>
+            {topCategories[0] && (
+              <span>{((topCategories[0].totalEur / Math.max(1, report.totalSpend)) * 100).toFixed(0)}% of total</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Financial Wellness & 50 / 30 / 20 Allocation Gauge */}
+      <div className="space-y-3.5 rounded-[var(--radius-lg)] border border-line bg-surface p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
+          <div>
+            <h3 className="type-body-strong text-ink">Allocation Balance (50 · 30 · 20)</h3>
+            <p className="type-caption text-muted">Needs vs Wants vs Net Savings / Retention</p>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-chart-1" />Needs (50% target)</span>
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-chart-4" />Wants (30% target)</span>
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-pine" />Savings (20% target)</span>
+          </div>
+        </div>
+
+        {/* Tripartite multi-segment progress bar */}
+        <div className="relative flex h-3 w-full overflow-hidden rounded-full bg-inset">
+          {needsVal > 0 && (
+            <div
+              className="h-full bg-chart-1 transition-all duration-normal"
+              style={{ width: `${(needsVal / Math.max(1, needsVal + wantsVal + Math.max(0, netSavings) + othersVal)) * 100}%` }}
+              title={`Needs: ${formatCurrency(needsVal, getMainCurrency())}`}
+            />
+          )}
+          {wantsVal > 0 && (
+            <div
+              className="h-full bg-chart-4 transition-all duration-normal"
+              style={{ width: `${(wantsVal / Math.max(1, needsVal + wantsVal + Math.max(0, netSavings) + othersVal)) * 100}%` }}
+              title={`Wants: ${formatCurrency(wantsVal, getMainCurrency())}`}
+            />
+          )}
+          {netSavings > 0 && (
+            <div
+              className="h-full bg-pine transition-all duration-normal"
+              style={{ width: `${(netSavings / Math.max(1, needsVal + wantsVal + Math.max(0, netSavings) + othersVal)) * 100}%` }}
+              title={`Savings: ${formatCurrency(netSavings, getMainCurrency())}`}
+            />
+          )}
+          {othersVal > 0 && (
+            <div
+              className="h-full bg-muted transition-all duration-normal"
+              style={{ width: `${(othersVal / Math.max(1, needsVal + wantsVal + Math.max(0, netSavings) + othersVal)) * 100}%` }}
+              title={`Other / Unclassified: ${formatCurrency(othersVal, getMainCurrency())}`}
+            />
+          )}
+        </div>
+
+        {/* 3 Allocation Cards */}
+        <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-3">
+          <div className="rounded-md border border-line/60 bg-inset/30 p-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-ink">Needs (Essentials)</span>
+              <span className="text-muted">Target 50%</span>
+            </div>
+            <div className="type-body-strong mt-1 text-ink">
+              <Amount value={needsVal} currency={getMainCurrency()} />
+            </div>
+            <div className="type-caption mt-0.5 text-muted">
+              {report.totalSpend > 0 ? `${((needsVal / report.totalSpend) * 100).toFixed(0)}% of expenses` : '0%'}
+            </div>
+          </div>
+
+          <div className="rounded-md border border-line/60 bg-inset/30 p-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-ink">Wants (Lifestyle)</span>
+              <span className="text-muted">Target 30%</span>
+            </div>
+            <div className="type-body-strong mt-1 text-ink">
+              <Amount value={wantsVal} currency={getMainCurrency()} />
+            </div>
+            <div className="type-caption mt-0.5 text-muted">
+              {report.totalSpend > 0 ? `${((wantsVal / report.totalSpend) * 100).toFixed(0)}% of expenses` : '0%'}
+            </div>
+          </div>
+
+          <div className="rounded-md border border-line/60 bg-inset/30 p-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-ink">Savings / Buffer</span>
+              <span className="text-muted">Target 20%</span>
+            </div>
+            <div className="type-body-strong mt-1">
+              <Amount value={netSavings} currency={getMainCurrency()} tone="flow" />
+            </div>
+            <div className="type-caption mt-0.5 text-muted">
+              {report.income > 0 ? `${report.savingsRate.toFixed(0)}% of period income` : 'No income'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Top Merchants & Operational Health Spotlight */}
+      <div className="grid gap-5 min-[900px]:grid-cols-2">
+        {/* Top Merchants List */}
+        <div className="rounded-[var(--radius-lg)] border border-line bg-surface p-4">
+          <div className="mb-3 flex items-center justify-between border-b border-line pb-2.5">
+            <div>
+              <h3 className="type-body-strong text-ink">Leading Merchants</h3>
+              <p className="type-caption text-muted">Where the largest sums were paid</p>
+            </div>
+            {setCurrentPage && (
+              <Button variant="ghost" size="sm" onPress={() => setCurrentPage('Merchants')} className="-mr-1">
+                View all
+              </Button>
+            )}
+          </div>
+
+          {topMerchants.length === 0 ? (
+            <p className="type-caption py-6 text-center text-muted">No merchant data in this range</p>
+          ) : (
+            <ul className="divide-y divide-line/60">
+              {topMerchants.map((m, idx) => (
+                <li key={m.name} className="flex items-center justify-between py-2 text-xs">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-inset text-[10px] font-bold text-muted">
+                      {idx + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-ink">{m.name}</div>
+                      <div className="text-[11px] text-muted">{m.count} {m.count === 1 ? 'payment' : 'payments'}</div>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="tabular-nums font-semibold text-ink">
+                      <Amount value={m.total} currency={getMainCurrency()} />
+                    </div>
+                    <div className="text-[11px] text-muted">
+                      Avg <Amount value={m.total / m.count} currency={getMainCurrency()} />
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Operational Signals & Alerts */}
+        <div className="flex flex-col justify-between rounded-[var(--radius-lg)] border border-line bg-surface p-4">
+          <div>
+            <div className="mb-3 border-b border-line pb-2.5">
+              <h3 className="type-body-strong text-ink">Period Signals & Health</h3>
+              <p className="type-caption text-muted">Budget pacing, velocity, and statistical alerts</p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Daily burn rate */}
+              <div className="flex items-start gap-3 rounded-md border border-line/50 bg-inset/20 p-2.5">
+                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-inset text-primary">
+                  <Icon name="trend-up-01" size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between text-xs font-semibold text-ink">
+                    <span>Daily Burn Rate</span>
+                    <span className="tabular-nums font-bold"><Amount value={dailyRunRate} currency={getMainCurrency()} />/day</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    Averaged across {daysInPeriod} active days in this selected period
+                  </p>
+                </div>
+              </div>
+
+              {/* Budget health */}
+              <div className="flex items-start gap-3 rounded-md border border-line/50 bg-inset/20 p-2.5">
+                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-inset text-primary">
+                  <Icon name="wallet-02" size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between text-xs font-semibold text-ink">
+                    <span>Budget Tracking</span>
+                    {overBudgets.length > 0 ? (
+                      <Badge tone="negative" className="text-[11px]">{overBudgets.length} over limit</Badge>
+                    ) : (
+                      <Badge tone="positive" className="text-[11px]">All on track</Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {report.budget.length === 0
+                      ? 'No active budgets established for this period'
+                      : overBudgets.length > 0
+                        ? `${overBudgets.length} of ${report.budget.length} category budgets exceeded their limits`
+                        : `${report.budget.length} active category budgets remained within spending targets`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Statistical Outliers */}
+              <div className="flex items-start gap-3 rounded-md border border-line/50 bg-inset/20 p-2.5">
+                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-inset text-primary">
+                  <Icon name="alert-02" size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between text-xs font-semibold text-ink">
+                    <span>Outlier Payments</span>
+                    {report.unusual.length > 0 ? (
+                      <Badge tone="attention" className="text-[11px]">{report.unusual.length} detected</Badge>
+                    ) : (
+                      <Badge tone="neutral" className="text-[11px]">Normal variance</Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {report.unusual.length > 0
+                      ? `${report.unusual.length} transactions deviated by more than 2σ from your normal payments`
+                      : 'No unusual large anomalies detected in this timeframe'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Key Insights Cards */}
       <div className="space-y-3">
         <div className="type-body-strong flex items-center gap-2 text-ink">
           <Icon name="sparkles" size={16} className="text-primary" />
-          <span>Key Insights</span>
+          <span>Executive Takeaways</span>
         </div>
         <div className="grid gap-2.5 sm:grid-cols-2">
           {insights.map((line, idx) => (
@@ -770,7 +1237,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ id, report, cashflowTransacti
 
   switch (id) {
     case 'summary':
-      return <SummaryReport report={report} />;
+      return <SummaryReport report={report} setCurrentPage={setCurrentPage} />;
     case 'spending':
       return <SpendingChart report={report} />;
     case 'categories':
