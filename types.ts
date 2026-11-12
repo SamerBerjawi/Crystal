@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // Financial data and page definitions
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Weekly Recap' | 'FIRE' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Debt Payoff' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Weekly Recap' | 'FIRE' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
   type: AccountType;
@@ -721,6 +721,8 @@ export interface AppPreferences {
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
+  /** The debt payoff planner: the extra paid each month, and a rate and payment for debts that have none. */
+  debtPlan?: DebtPlanSettings;
   smartPriceBindings?: Record<string, SmartPriceBinding>;
   investmentPriceConfigs?: Record<string, InvestmentPriceConfig>;
   conversionRates?: Record<string, number>;
@@ -971,6 +973,12 @@ export interface ScraperConfig {
   id: string; // ISIN
   resource: ScraperResource;
   options: ScraperOptions;
+}
+
+/** What you set yourself in the debt payoff planner: the extra each month, and a rate and payment for debts that carry neither. */
+export interface DebtPlanSettings {
+  extra?: number;
+  overrides?: Record<string, { rate?: number; payment?: number }>;
 }
 
 export interface ScheduledPayment {
