@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // Financial data and page definitions
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Debt Payoff' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Debt Payoff' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'FIRE' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
   type: AccountType;
@@ -698,6 +698,8 @@ export interface AppPreferences {
   ignoredSubscriptions?: string[];
   ignoredBillMatches?: string[];
   ignoredTransferMatches?: string[];
+  /** Financial independence plan (utils/fireCone.ts). Missing values use your own figures or the defaults. */
+  fire?: import('./utils/fireCone').FireSettings;
   dismissedBillNotifications?: string[];
   /** Insight card ids you dismissed on the Overview (utils/insightsModel.ts). */
   dismissedInsights?: string[];
@@ -861,6 +863,18 @@ export interface UserStats {
 export type PredictionType = 'spending_cap' | 'net_worth_goal' | 'price_target';
 export type PredictionStatus = 'active' | 'won' | 'lost';
 
+export type LifeEventKind = 'home' | 'job' | 'family' | 'move' | 'education' | 'travel' | 'health' | 'other';
+
+/** A dated moment marked on the net-worth line, such as buying a home or changing jobs. */
+export interface LifeEvent {
+  id: string;
+  /** `YYYY-MM-DD`. */
+  date: string;
+  title: string;
+  kind: LifeEventKind;
+  note?: string;
+}
+
 export interface Prediction {
   id: string;
   type: PredictionType;
@@ -900,6 +914,7 @@ export interface FinancialData {
   invoices?: Invoice[];
   userStats?: UserStats;
   predictions?: Prediction[];
+  lifeEvents?: LifeEvent[];
   enableBankingConnections?: EnableBankingConnection[];
   lastUpdatedAt?: string;
   userProfile?: User;

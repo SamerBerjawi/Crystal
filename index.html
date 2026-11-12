@@ -236,6 +236,10 @@
 
       document.documentElement.classList.toggle('dark', !shouldUseLight);
 
+      // Apply the accent preset before first paint, so a non-default accent does not flash green.
+      const storedAccent = localStorage.getItem('accent');
+      if (storedAccent && /^(ocean|plum|copper|graphite)$/.test(storedAccent)) document.documentElement.setAttribute('data-accent', storedAccent);
+
       // Apply initial font preference from localStorage to prevent font flashing
       let initialFont = 'manrope';
       try {

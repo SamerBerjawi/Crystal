@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense } from 'react';
-import { Page, User, Transaction, Account, Category, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency } from '../types';
+import { Page, User, Transaction, Account, Category, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, LifeEvent } from '../types';
 import PageHeader from '../components/PageHeader';
 import { liveSeries } from '../utils/scheduleModel';
 import { formatCurrency, convertCurrency, convertToMain, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, generateSyntheticPropertyTransactions, toLocalISOString, calculateAccountTotals, safeRound, getMainCurrency } from '../utils';
@@ -19,6 +19,7 @@ import PullToRefresh from '../components/PullToRefresh';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Amount, PrivacyContext, useFirstVisit } from '../components/ui/Money';
 import { BottomSheet } from '../components/ui/Overlays';
+import LifeEventsDialog from '../components/LifeEventsDialog';
 import WidgetGrid, { WidgetBody, type WidgetGridItem, type WidgetLayoutItem } from '../components/ui/WidgetGrid';
 import { useBillNotifications } from '../hooks/useBillNotifications';
 import { computeSafeToSpend } from '../utils/safeToSpend';
@@ -69,6 +70,7 @@ interface DashboardProps {
 }
 
 const EMPTY_IDS: string[] = [];
+const EMPTY_EVENTS: LifeEvent[] = [];
 
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBanks, setCurrentPage, onOpenAccount }) => {
   const { activeGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
@@ -76,7 +78,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   const { warrants } = useWarrantsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
-  const { financialGoals } = useGoalsContext();
+  const { financialGoals, lifeEvents, saveLifeEvent, deleteLifeEvent } = useGoalsContext();
   const { recurringTransactions: everySeries, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
@@ -87,6 +89,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
   const [showForecast, setShowForecast] = useState(true);
   const [showGoals, setShowGoals] = useState(true);
+  const [showLifeEvents, setShowLifeEvents] = useState(true);
+  const [isLifeEventsOpen, setLifeEventsOpen] = useState(false);
   const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
   const isPrivate = React.useContext(PrivacyContext);
   const isFirstVisit = useFirstVisit('overview');
@@ -391,10 +395,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
   const allWidgets: Widget[] = useMemo(() => {
     const widgets = buildDashboardWidgets({
-      income, expenses, incomeChange, expenseChange, periodFlowBuckets, preferredCurrency, eurToDisplay, displayToEur, toPreferred, safeToSpend, setCushion, accounts, transactions, conversionRates, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, next30, lowestBalanceForecasts, creditCardStatements, analyticsTransactions, analyticsSelectedAccountIds, expenseCategories, incomeCategories, allCategories, handleCategoryClick, calendarTransactions, handleCalendarDay, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, budgets, duration, handleBudgetClick, recentTransactions, handleTransactionClick, filteredTransactions, activeInsights, dismissInsight,
+      income, expenses, incomeChange, expenseChange, periodFlowBuckets, preferredCurrency, eurToDisplay, displayToEur, toPreferred, safeToSpend, setCushion, accounts, transactions, conversionRates, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, next30, lowestBalanceForecasts, creditCardStatements, analyticsTransactions, analyticsSelectedAccountIds, expenseCategories, incomeCategories, allCategories, handleCategoryClick, calendarTransactions, handleCalendarDay, netWorthData, netWorthTrendColor, showForecast, showGoals, lifeEvents: showLifeEvents ? lifeEvents : EMPTY_EVENTS, selectedAccountIds, budgets, duration, handleBudgetClick, recentTransactions, handleTransactionClick, filteredTransactions, activeInsights, dismissInsight,
     });
     return widgets.filter(widget => OVERVIEW_WIDGETS[widget.id]?.tab === activeTab);
-  }, [activeTab, next30, calendarTransactions, handleCalendarDay, conversionRates, periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, analyticsSelectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
+  }, [activeTab, next30, calendarTransactions, handleCalendarDay, conversionRates, periodFlowBuckets, activeInsights, dismissInsight, safeToSpend, eurToDisplay, displayToEur, toPreferred, isFirstVisit, setCushion, selectedAccounts, onOpenAccount, setCurrentPage, keyRatios, assetAllocationData, assetGroups, liabilityGroups, netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, showLifeEvents, lifeEvents, selectedAccountIds, analyticsSelectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const saveLayout = useCallback((next: WidgetConfig[]) => {
     setPreferences(prev => ({ ...prev, dashboardLayouts: { ...(prev.dashboardLayouts || {}), [layoutKey]: next } }));
@@ -576,6 +580,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
         setShowForecast={setShowForecast}
         showGoals={showGoals}
         setShowGoals={setShowGoals}
+        showLifeEvents={showLifeEvents}
+        setShowLifeEvents={setShowLifeEvents}
+        onManageLifeEvents={() => setLifeEventsOpen(true)}
         isEditMode={isEditMode}
         setIsEditMode={setIsEditMode}
         setIsAddWidgetModalOpen={setIsAddWidgetModalOpen}
@@ -668,6 +675,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
           ))}
         </ul>
       </BottomSheet>
+
+      <LifeEventsDialog isOpen={isLifeEventsOpen} onClose={() => setLifeEventsOpen(false)} events={lifeEvents} onSave={saveLifeEvent} onDelete={deleteLifeEvent} today={toLocalISOString(new Date())} />
 
       <PendingMatchesModal isOpen={isMatchesModalOpen} onClose={() => setMatchesModalOpen(false)} initialFilter={matchesModalFilter} onOpenFullQueue={openReview} />
     </div>

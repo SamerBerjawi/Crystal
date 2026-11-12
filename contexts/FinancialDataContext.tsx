@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
-import { Category, Tag, Budget, FinancialGoal, RecurringTransaction, RecurringTransactionOverride, LoanPaymentOverrides, BillPayment, ScheduledPayment, Membership } from '../types';
+import { Category, Tag, Budget, FinancialGoal, RecurringTransaction, RecurringTransactionOverride, LoanPaymentOverrides, BillPayment, ScheduledPayment, Membership, LifeEvent } from '../types';
 import { AccountsContextValue, AccountsProvider, PreferencesContextValue, PreferencesProvider, TransactionsContextValue, TransactionsProvider, WarrantsContextValue, WarrantsProvider, InvoicesContextValue, InvoicesProvider } from './DomainProviders';
 
 interface CategoryContextValue {
@@ -27,6 +27,9 @@ interface GoalsContextValue {
   saveFinancialGoal: (goal: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
   deleteFinancialGoal: (goalId: string) => void;
   setGoalOrder: (order: string[]) => void;
+  lifeEvents: LifeEvent[];
+  saveLifeEvent: (event: Omit<LifeEvent, 'id'> & { id?: string }) => void;
+  deleteLifeEvent: (eventId: string) => void;
 }
 
 interface ScheduleContextValue {

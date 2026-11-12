@@ -54,6 +54,19 @@ test('kilometres use the last reading before the year as the start', () => {
   assert.equal(w.kilometres, 2500);
 });
 
+test('life events of the year are carried into Wrapped, oldest first', () => {
+  const events = [
+    { id: 'b', date: '2025-09-01', title: 'New job', kind: 'job' as const },
+    { id: 'x', date: '2024-12-31', title: 'Last year', kind: 'other' as const },
+    { id: 'a', date: '2025-03-02', title: 'Bought the flat', kind: 'home' as const },
+  ];
+  const w = buildWrapped(2025, [tx('1', '2025-01-02', 'expense', 5)], [], [], TODAY, events);
+  assert.deepEqual(w.lifeEvents.map(e => e.id), ['a', 'b']);
+  assert.deepEqual(buildWrapped(2025, [tx('1', '2025-01-02', 'expense', 5)], [], [], TODAY).lifeEvents, []);
+  // Events alone do not make a year worth reviewing.
+  assert.equal(buildWrapped(2025, [], [], [], TODAY, events).hasData, false);
+});
+
 test('wrappedYears lists years newest first; empty year has no data', () => {
   assert.deepEqual(wrappedYears([tx('1', '2024-05-01', 'expense', 1), tx('2', '2026-01-01', 'expense', 1)]), [2026, 2024]);
   assert.equal(buildWrapped(2020, [], [], [], TODAY).hasData, false);

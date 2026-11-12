@@ -20,6 +20,7 @@ import type {
   Membership,
   Page,
   Prediction,
+  LifeEvent,
   PriceHistoryEntry,
   RecurringTransaction,
   RecurringTransactionOverride,
@@ -69,6 +70,7 @@ interface UseDomainCrudHandlersParams {
   setMemberships: React.Dispatch<React.SetStateAction<Membership[]>>;
   setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>;
   setPredictions: React.Dispatch<React.SetStateAction<Prediction[]>>;
+  setLifeEvents: React.Dispatch<React.SetStateAction<LifeEvent[]>>;
   incomeCategories: Category[];
   setIncomeCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   expenseCategories: Category[];
@@ -116,6 +118,7 @@ export function useDomainCrudHandlers({
   setMemberships,
   setInvoices,
   setPredictions,
+  setLifeEvents,
   incomeCategories,
   setIncomeCategories,
   expenseCategories,
@@ -713,6 +716,14 @@ export function useDomainCrudHandlers({
     setPredictions(prev => upsertEntity(prev, predictionData, () => `pred-${uuidv4()}`));
   }, [setPredictions]);
 
+  const handleSaveLifeEvent = useCallback((eventData: Omit<LifeEvent, 'id'> & { id?: string }) => {
+    setLifeEvents(prev => upsertEntity(prev, eventData, () => `event-${uuidv4()}`));
+  }, [setLifeEvents]);
+
+  const handleDeleteLifeEvent = useCallback((id: string) => {
+    setLifeEvents(prev => removeEntityById(prev, id));
+  }, [setLifeEvents]);
+
   const handleDeletePrediction = useCallback((id: string) => {
     setPredictions(prev => removeEntityById(prev, id));
   }, [setPredictions]);
@@ -878,6 +889,8 @@ export function useDomainCrudHandlers({
     handleSaveInvoice,
     handleDeleteInvoice,
     handleSavePrediction,
+    handleSaveLifeEvent,
+    handleDeleteLifeEvent,
     handleDeletePrediction,
     handleRenameCategory,
     handleDeleteCategoryCascade,

@@ -20,7 +20,7 @@ const DATA_TYPES = [
   { id: 'invoices', label: 'Quotes and invoices' },
   { id: 'schedule', label: 'Schedule and bills' },
   { id: 'memberships', label: 'Loyalty cards' },
-  { id: 'goals', label: 'Goals and predictions' },
+  { id: 'goals', label: 'Goals, predictions and life events' },
   { id: 'investments', label: 'Investments' },
   { id: 'budgets', label: 'Budgets' },
   { id: 'tasks', label: 'Tasks' },

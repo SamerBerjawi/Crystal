@@ -3,6 +3,8 @@ import { toast } from 'sonner';
 import type { Account, Currency, HoldingSummary, HoldingsOverview, InvestmentTransaction, PriceHistoryEntry, SmartPriceBinding, Transaction, Warrant } from '../types';
 import { CURRENCY_OPTIONS } from '../constants';
 import { convertCurrency, convertToMain, formatCurrency, parseLocalDate, toLocalISOString, getMainCurrency } from '../utils';
+import { buildPerformance } from '../utils/investmentMetrics';
+import PerformancePanel from '../components/investments/PerformancePanel';
 import { buildHoldingsOverview, formatHoldingType, historyWindow, holdingsInSegment, mergedPriceLog, portfolioBySegment, realizedGains, SEGMENT_NAMES, segmentOf, type InvestmentSegment, type SegmentName } from '../utils/investments';
 import { buildPortfolioHistory } from '../utils/portfolioHistory';
 import { fetchSmartPrice } from '../utils/smartPrice';
@@ -85,7 +87,7 @@ const Investments: React.FC<InvestmentsProps> = ({
   const { preferences, setPreferences } = usePreferencesContext();
   const isPhone = useIsMobile();
   const urlTab = useUrlTab();
-  const tab = urlTab === 'holdings' || urlTab === 'activity' ? urlTab : 'portfolio';
+  const tab = urlTab === 'holdings' || urlTab === 'activity' || urlTab === 'performance' ? urlTab : 'portfolio';
   const [segment, setSegment] = useState<InvestmentSegment>('all');
   const [range, setRange] = useState('182');
   const [showInactive, setShowInactive] = useState(false);
@@ -214,6 +216,10 @@ const Investments: React.FC<InvestmentsProps> = ({
   const tradesInView = useMemo(() => investmentTransactions.filter(trade => activeSegment === 'all' || symbolsInView.has(trade.symbol)), [investmentTransactions, activeSegment, symbolsInView]);
   const grantsInView = useMemo(() => warrants.filter(grant => activeSegment === 'all' || symbolsInView.has(grant.isin)), [warrants, activeSegment, symbolsInView]);
   const realized = useMemo(() => realizedGains(tradesInView, grantsInView, toEur, currencyOf), [tradesInView, grantsInView, toEur, currencyOf]);
+  const performance = useMemo(
+    () => buildPerformance({ trades: tradesInView, grants: grantsInView, holdings: holdingsInSegment(everything.holdings, activeSegment), today: new Date(), toEur, currencyOf }),
+    [tradesInView, grantsInView, everything, activeSegment, toEur, currencyOf],
+  );
   const activity = useMemo(() => [
     ...tradesInView.map(trade => ({
       id: trade.id, date: trade.date, kind: trade.type?.toLowerCase() === 'buy' ? 'Buy' : 'Sell', symbol: trade.symbol, name: trade.name, quantity: trade.quantity, price: trade.price, currency: (trade.currency ?? currencyOf(trade.symbol)) as Currency, trade, grant: undefined as Warrant | undefined,
@@ -576,6 +582,8 @@ const Investments: React.FC<InvestmentsProps> = ({
               )}
             </div>
           )}
+
+          {tab === 'performance' && <PerformancePanel performance={performance} currency={getMainCurrency()} apiKey={preferences.twelveDataApiKey} onOpenHolding={handleOpenHolding} />}
 
           {tab === 'activity' && (
             <Board>
