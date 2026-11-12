@@ -131,7 +131,21 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       addLink(drawIdx, hubIdx, capitalDrawdown);
     }
 
-    expMap.forEach((subs, parentName) => {
+    const expEntries = Array.from(expMap.entries()).map(([parentName, subs]) => ({
+      parentName,
+      subs,
+      total: Array.from(subs.values()).reduce((sum, val) => sum + val, 0),
+    })).sort((a, b) => b.total - a.total);
+
+    const shouldGroupSmall = !isDetailed && expEntries.length > 7 && totalExpense > 0;
+    const majorExp = shouldGroupSmall
+      ? expEntries.filter((item, idx) => idx < 6 || (item.total / totalExpense) >= 0.02)
+      : expEntries;
+    const minorExp = shouldGroupSmall
+      ? expEntries.filter((item, idx) => idx >= 6 && (item.total / totalExpense) < 0.02)
+      : [];
+
+    majorExp.forEach(({ parentName, subs, total }) => {
       const pColor = getCategoryColor(parentName, expenseCategories);
       const pNodeIdx = addNode(parentName, pColor, 'outcome');
 
@@ -155,10 +169,15 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         }
         addLink(hubIdx, pNodeIdx, pTotal);
       } else {
-        pTotal = Array.from(subs.values()).reduce((sum, val) => sum + val, 0);
-        addLink(hubIdx, pNodeIdx, pTotal);
+        addLink(hubIdx, pNodeIdx, total);
       }
     });
+
+    if (minorExp.length > 0) {
+      const minorTotal = minorExp.reduce((sum, item) => sum + item.total, 0);
+      const otherNodeIdx = addNode(`Other (${minorExp.length})`, 'var(--muted)', 'outcome');
+      addLink(hubIdx, otherNodeIdx, minorTotal);
+    }
 
     if (netSurplus > 0) {
       const surplusIdx = addNode('Left over', COLOR_SAVINGS, 'outcome');

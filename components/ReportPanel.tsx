@@ -9,8 +9,10 @@ import { LINE_MOTION } from '../src/components/charts/animation';
 import CashflowSankey from './CashflowSankey';
 import { Button } from './ui/Actions';
 import { Badge, ShowMore } from './ui/Display';
+import Icon from './ui/Icon';
 import { Amount, PrivacyContext } from './ui/Money';
 import SegmentedControl from './ui/SegmentedControl';
+import { cn } from '../lib/utils';
 
 const GROUPS = [{ id: 'merchant', label: 'Merchants' }, { id: 'category', label: 'Categories' }];
 const SLICE_COLORS = ['var(--chart-1)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-2)'];
@@ -130,19 +132,19 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
   if (table.length === 0) return <Empty>There is no spending in this period.</Empty>;
   return (
     <>
-      <div className="-mx-1 overflow-x-auto px-1">
-        <table className="w-full min-w-[480px] border-separate border-spacing-y-1 text-left">
+      <div className="-mx-1 max-h-[600px] overflow-auto px-1">
+        <table className="w-full min-w-[500px] border-separate border-spacing-y-1 text-left">
           <thead>
             <tr className="border-b border-line">
-              <th scope="col" className="type-label py-1.5 pr-3 text-muted">Category</th>
-              {months.map(key => <th key={key} scope="col" className="type-label px-1 py-1.5 text-right text-muted">{monthLabel(key)}</th>)}
-              <th scope="col" className="type-label py-1.5 pl-3 text-right text-muted">Total</th>
+              <th scope="col" className="type-label sticky top-0 left-0 z-20 bg-surface py-2 pr-3 text-muted">Category</th>
+              {months.map(key => <th key={key} scope="col" className="type-label sticky top-0 z-10 bg-surface px-1 py-2 text-right text-muted">{monthLabel(key)}</th>)}
+              <th scope="col" className="type-label sticky top-0 z-10 bg-surface py-2 pl-3 text-right text-muted">Total</th>
             </tr>
           </thead>
           <tbody>
             {table.slice(0, shown).map(row => (
               <tr key={row.category}>
-                <th scope="row" className="type-body max-w-[160px] truncate py-1 pr-3 text-left font-normal text-ink">{row.category}</th>
+                <th scope="row" className="type-body sticky left-0 z-10 max-w-[160px] truncate bg-surface py-1 pr-3 text-left font-normal text-ink">{row.category}</th>
                 {months.map(key => {
                   const value = row.cells[key] ?? 0;
                   const strength = max > 0 ? Math.round((value / max) * 70) : 0;
@@ -150,7 +152,7 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
                     <td key={key} className="px-0.5 py-0">
                       <span
                         title={`${row.category}, ${monthLabel(key)}: ${isPrivate ? '•••' : formatCurrency(value, getMainCurrency())}`}
-                        className="type-caption privacy-blur block rounded-md px-2 py-1.5 text-right tabular-nums text-ink"
+                        className="type-caption privacy-blur block rounded-md px-2 py-1.5 text-right tabular-nums text-ink transition-transform hover:scale-105 hover:ring-1 hover:ring-primary/40 cursor-default"
                         style={{ background: value > 0 ? `color-mix(in srgb, var(--chart-1) ${Math.max(8, strength)}%, transparent)` : 'transparent' }}
                       >
                         {value > 0 ? compactMoney(value) : '–'}
@@ -162,7 +164,7 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
               </tr>
             ))}
             <tr className="border-t border-line">
-              <th scope="row" className="type-body-strong pt-2.5 pr-3 text-left text-ink">All spending</th>
+              <th scope="row" className="type-body-strong sticky left-0 z-10 bg-surface pt-2.5 pr-3 text-left text-ink">All spending</th>
               {monthTotals.map((value, index) => <td key={months[index]} className="type-caption privacy-blur px-2 pt-2.5 text-right tabular-nums text-ink">{value > 0 ? compactMoney(value) : '–'}</td>)}
               <td className="type-figure-row pl-3 pt-2.5 text-right text-ink"><Amount value={report.totalSpend} currency={getMainCurrency()} /></td>
             </tr>
@@ -237,15 +239,520 @@ const BreakdownReport: React.FC<{ report: Report; groupBy: GroupBy; onGroupBy: (
   );
 };
 
-/** On phones a Sankey can't fit its labels, so the money in and out reads as a list (`D-034`). */
-const PhoneCashflow: React.FC<{ report: Report }> = ({ report }) => (
-  <Rows>
-    <Row title="Money in" value={<Amount value={report.income} currency={getMainCurrency()} />} />
-    {report.categories.slice(0, 6).map(row => <Row key={row.category} title={row.category} value={<Amount value={row.totalEur} currency={getMainCurrency()} />} note={report.income > 0 ? share(row.totalEur, report.income) : undefined} />)}
-    {report.categories.length > 6 && <Row title={`${report.categories.length - 6} others`} value={<Amount value={report.categories.slice(6).reduce((sum, row) => sum + row.totalEur, 0)} currency={getMainCurrency()} />} />}
-    <Row title="Left over" value={<Amount value={report.income - report.totalSpend} currency={getMainCurrency()} tone="flow" />} />
-  </Rows>
-);
+/** On phones a Sankey can't fit its labels, so the money in and out reads as a structured waterfall (`D-034`). */
+const PhoneCashflow: React.FC<{ report: Report }> = ({ report }) => {
+  const net = report.income - report.totalSpend;
+  const isSurplus = net >= 0;
+
+  return (
+    <div className="space-y-3.5">
+      {/* Inflow Step */}
+      <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+        <div className="flex items-center justify-between">
+          <span className="type-body-strong flex items-center gap-2 text-ink">
+            <span className="size-2 shrink-0 rounded-full bg-pine" />
+            <span>Money In</span>
+          </span>
+          <span className="type-figure-row text-pine">
+            +<Amount value={report.income} currency={getMainCurrency()} />
+          </span>
+        </div>
+      </div>
+
+      {/* Outflow Step */}
+      <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-line bg-surface p-3.5">
+        <div className="flex items-center justify-between border-b border-line pb-2">
+          <span className="type-body-strong flex items-center gap-2 text-ink">
+            <span className="size-2 shrink-0 rounded-full bg-tomato" />
+            <span>Money Out</span>
+          </span>
+          <span className="type-figure-row text-ink">
+            −<Amount value={report.totalSpend} currency={getMainCurrency()} />
+          </span>
+        </div>
+
+        <ul className="divide-y divide-line/60">
+          {report.categories.slice(0, 6).map(row => (
+            <li key={row.category} className="flex items-center justify-between py-1.5 text-xs">
+              <span className="mr-2 truncate text-muted">{row.category}</span>
+              <div className="flex shrink-0 items-center gap-2 text-right">
+                <span className="tabular-nums font-medium text-ink">
+                  <Amount value={row.totalEur} currency={getMainCurrency()} />
+                </span>
+                {report.income > 0 && (
+                  <span className="w-12 text-right text-[11px] text-muted">
+                    {share(row.totalEur, report.income)}
+                  </span>
+                )}
+              </div>
+            </li>
+          ))}
+          {report.categories.length > 6 && (
+            <li className="flex items-center justify-between py-1.5 text-xs text-muted">
+              <span>{report.categories.length - 6} other categories</span>
+              <span className="tabular-nums font-medium">
+                <Amount value={report.categories.slice(6).reduce((sum, row) => sum + row.totalEur, 0)} currency={getMainCurrency()} />
+              </span>
+            </li>
+          )}
+        </ul>
+      </div>
+
+      {/* Net Outcome */}
+      <div className={cn(
+        'flex items-center justify-between rounded-[var(--radius-lg)] border p-3.5',
+        isSurplus ? 'border-pine/30 bg-pine/10 text-pine' : 'border-tomato/30 bg-tomato/10 text-tomato'
+      )}>
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wider">
+            {isSurplus ? 'Net Left Over (Surplus)' : 'Net Deficit (From Savings)'}
+          </div>
+          <div className="mt-0.5 text-xs text-muted">
+            {report.income > 0 ? `${Math.abs(Math.round((net / report.income) * 100))}% of period income` : 'No income recorded'}
+          </div>
+        </div>
+        <div className="text-lg font-bold tabular-nums">
+          <Amount value={net} currency={getMainCurrency()} tone="flow" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SummaryReport: React.FC<{ report: Report }> = ({ report }) => {
+  const insights = reportInsights(report);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Money in</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={report.income} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Total period income</div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Period before</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={report.previousSpend} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Comparison spend</div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Average payment</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={report.average} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Across {report.count} payments</div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Repeat monthly cost</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={report.recurringImpact} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Recurring baseline</div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="type-body-strong flex items-center gap-2 text-ink">
+          <Icon name="sparkles" size={16} className="text-primary" />
+          <span>Key Insights</span>
+        </div>
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {insights.map((line, idx) => (
+            <div
+              key={idx}
+              className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-line bg-surface p-3.5 shadow-xs transition-colors hover:border-line-strong hover:bg-inset/30"
+            >
+              <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-inset text-primary">
+                <Icon name={idx === 0 ? 'analytics-01' : idx === 1 ? 'trend-up-01' : idx === 2 ? 'repeat-01' : 'wallet-02'} size={15} />
+              </div>
+              <p className="type-body text-sm leading-relaxed text-ink">{line}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const UsualReport: React.FC<{ report: Report }> = ({ report }) => {
+  if (report.usual.length === 0) return <Empty>There's no earlier spending to compare with.</Empty>;
+
+  const overCount = report.usual.filter(r => r.difference > 0.01).length;
+  const underCount = report.usual.filter(r => r.difference < -0.01).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+        <div className="type-caption text-muted">
+          Comparing category spending against your 3-period historical baseline
+        </div>
+        <div className="flex items-center gap-2">
+          {overCount > 0 && <Badge tone="attention">{overCount} over usual</Badge>}
+          {underCount > 0 && <Badge tone="positive">{underCount} under usual</Badge>}
+        </div>
+      </div>
+
+      <div className="divide-y divide-line">
+        {report.usual.map(row => {
+          const maxVal = Math.max(row.spent, row.usual, 1);
+          const spentPct = Math.min(100, (row.spent / maxVal) * 100);
+          const usualPct = Math.min(100, (row.usual / maxVal) * 100);
+          const isOver = row.difference > 0.005;
+          const isUnder = row.difference < -0.005;
+          const diffPct = row.usual > 0 ? (row.difference / row.usual) * 100 : 0;
+
+          return (
+            <div key={row.category} className="space-y-2 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="type-body-strong truncate text-ink">{row.category}</div>
+                  <div className="type-caption flex items-center gap-2 text-muted">
+                    <span>Usually <Amount value={row.usual} currency={getMainCurrency()} /></span>
+                    <span>·</span>
+                    <span>Spent <Amount value={row.spent} currency={getMainCurrency()} /></span>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="type-figure-row text-ink">
+                    <Amount value={row.spent} currency={getMainCurrency()} />
+                  </div>
+                  <div className="type-caption">
+                    {!isOver && !isUnder ? (
+                      <span className="text-muted">Spot on</span>
+                    ) : isOver ? (
+                      <span className="font-medium text-tomato">
+                        +<Amount value={row.difference} currency={getMainCurrency()} /> (+{Math.abs(diffPct).toFixed(0)}%)
+                      </span>
+                    ) : (
+                      <span className="font-medium text-pine">
+                        −<Amount value={Math.abs(row.difference)} currency={getMainCurrency()} /> (−{Math.abs(diffPct).toFixed(0)}%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Visual Variance Bar with Baseline Marker */}
+              <div className="relative h-2 w-full rounded-full bg-inset">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all duration-normal',
+                    isOver ? 'bg-tomato' : isUnder ? 'bg-pine' : 'bg-muted'
+                  )}
+                  style={{ width: `${spentPct}%` }}
+                />
+                <div
+                  className="absolute -top-0.5 -bottom-0.5 w-0.5 rounded-full bg-ink shadow-xs"
+                  style={{ left: `${usualPct}%` }}
+                  title={`Baseline: ${formatCurrency(row.usual, getMainCurrency())}`}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const BudgetReport: React.FC<{ report: Report }> = ({ report }) => {
+  const [sortMode, setSortMode] = useState<'overspend' | 'budget' | 'remaining'>('overspend');
+
+  if (report.budget.length === 0) return <Empty>You have no budgets yet.</Empty>;
+
+  const totalBudget = report.budget.reduce((sum, b) => sum + b.budgetEur, 0);
+  const totalActual = report.budget.reduce((sum, b) => sum + b.actualEur, 0);
+  const overCount = report.budget.filter(b => b.varianceEur < 0).length;
+
+  const sortedRows = [...report.budget].sort((a, b) => {
+    if (sortMode === 'overspend') return a.varianceEur - b.varianceEur;
+    if (sortMode === 'budget') return b.budgetEur - a.budgetEur;
+    return b.varianceEur - a.varianceEur;
+  });
+
+  const SORT_ITEMS = [
+    { id: 'overspend', label: 'Worst overspend' },
+    { id: 'budget', label: 'Largest budget' },
+    { id: 'remaining', label: 'Most left' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* KPI Summary Strip */}
+      <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3">
+          <div className="type-label text-muted">Total Budgeted</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={totalBudget} currency={getMainCurrency()} /></div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3">
+          <div className="type-label text-muted">Actual Spent</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={totalActual} currency={getMainCurrency()} /></div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3">
+          <div className="type-label text-muted">Remaining Balance</div>
+          <div className="type-figure-row mt-1">
+            <Amount value={totalBudget - totalActual} currency={getMainCurrency()} tone="flow" />
+          </div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3">
+          <div className="type-label text-muted">Status</div>
+          <div className="type-figure-row mt-1">
+            {overCount > 0 ? (
+              <span className="font-semibold text-tomato">{overCount} over limit</span>
+            ) : (
+              <span className="font-semibold text-pine">All within limit</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Sort switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
+        <div className="type-caption text-muted">Limits scaled to selected period</div>
+        <SegmentedControl items={SORT_ITEMS} activeId={sortMode} onChange={id => setSortMode(id as any)} />
+      </div>
+
+      {/* Rows */}
+      <div className="divide-y divide-line">
+        {sortedRows.map(row => {
+          const ratio = row.budgetEur > 0 ? (row.actualEur / row.budgetEur) : 0;
+          const pct = Math.round(ratio * 100);
+          const isOver = row.varianceEur < 0;
+          const isWarning = !isOver && ratio >= 0.8;
+          const fillWidth = Math.min(100, Math.max(0, ratio * 100));
+
+          return (
+            <div key={row.categoryName} className="space-y-2 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="type-body-strong truncate text-ink">{row.categoryName}</div>
+                  <div className="type-caption text-muted">
+                    Limit: <Amount value={row.budgetEur} currency={getMainCurrency()} />
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="type-figure-row text-ink">
+                    <Amount value={row.actualEur} currency={getMainCurrency()} />
+                  </div>
+                  <div className="type-caption">
+                    {isOver ? (
+                      <Badge tone="negative" className="mt-0.5">
+                        <Amount value={Math.abs(row.varianceEur)} currency={getMainCurrency()} /> over ({pct}%)
+                      </Badge>
+                    ) : isWarning ? (
+                      <Badge tone="attention" className="mt-0.5">
+                        <Amount value={row.varianceEur} currency={getMainCurrency()} /> left ({pct}%)
+                      </Badge>
+                    ) : (
+                      <span className="font-medium text-pine">
+                        <Amount value={row.varianceEur} currency={getMainCurrency()} /> left ({pct}%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress gauge bar */}
+              <div className="relative h-2 w-full overflow-hidden rounded-full bg-inset">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all duration-normal',
+                    isOver ? 'bg-tomato' : isWarning ? 'bg-amber' : 'bg-pine'
+                  )}
+                  style={{ width: `${fillWidth}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const RecurringReport: React.FC<{ report: Report }> = ({ report }) => {
+  if (report.recurring.length === 0) return <Empty>Nothing here repeats on a steady schedule.</Empty>;
+
+  const frequencies = ['Monthly', 'Every two weeks', 'Weekly'];
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof report.recurring>();
+    report.recurring.forEach(item => {
+      const list = map.get(item.frequency) || [];
+      list.push(item);
+      map.set(item.frequency, list);
+    });
+    return map;
+  }, [report.recurring]);
+
+  return (
+    <div className="space-y-6">
+      {/* Top figures */}
+      <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-3">
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Repeat monthly cost</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={report.recurringImpact} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Across all frequencies</div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Active Merchants</div>
+          <div className="type-figure-row mt-1 text-ink">{report.recurring.length}</div>
+          <div className="type-caption mt-1 text-muted">Recurring subscriptions & bills</div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Annual Equivalent</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={report.recurringImpact * 12} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Estimated yearly spend</div>
+        </div>
+      </div>
+
+      {/* Grouped lists */}
+      {frequencies.map(freq => {
+        const items = grouped.get(freq);
+        if (!items || items.length === 0) return null;
+        const subtotal = items.reduce((sum, item) => sum + item.estimatedMonthlyEur, 0);
+
+        return (
+          <div key={freq} className="space-y-2">
+            <div className="flex items-center justify-between border-b border-line pb-1.5">
+              <span className="type-label flex items-center gap-2 font-semibold text-ink">
+                <span>{freq}</span>
+                <span className="rounded-full bg-inset px-2 py-0.5 text-xs font-normal text-muted">{items.length}</span>
+              </span>
+              <span className="type-caption font-medium text-muted">
+                Subtotal: <Amount value={subtotal} currency={getMainCurrency()} />/mo
+              </span>
+            </div>
+            <ul className="divide-y divide-line">
+              {items.map(row => (
+                <Row
+                  key={row.merchant}
+                  title={row.merchant}
+                  detail={`${row.occurrences} payments detected · Avg <Amount value={row.averageEur} />/charge`}
+                  value={<Amount value={row.estimatedMonthlyEur} currency={getMainCurrency()} />}
+                  note="a month"
+                />
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const UnusualReport: React.FC<{ report: Report }> = ({ report }) => {
+  if (report.unusual.length === 0) return <Empty>Nothing stands out.</Empty>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-line pb-2 type-caption text-muted">
+        <span>Transactions statistically deviating (&gt;2σ) from your period average</span>
+        <Badge tone="attention">{report.unusual.length} outliers detected</Badge>
+      </div>
+
+      <ul className="divide-y divide-line">
+        {report.unusual.map(row => {
+          const ratio = report.average > 0 ? (row.amountEur / report.average).toFixed(1) : null;
+          return (
+            <li key={row.id} className="flex min-h-14 items-center justify-between gap-3 py-2.5">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="type-body-strong truncate text-ink">{row.merchant}</span>
+                  <Badge tone="attention" className="px-1.5 py-0.5 text-[11px] font-medium">
+                    {ratio ? `${ratio}× normal` : `+${row.zScore.toFixed(1)}σ`}
+                  </Badge>
+                </div>
+                <div className="type-caption mt-0.5 text-muted">
+                  {row.category} · {shortDate(row.date)}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="type-figure-row text-ink">
+                  <Amount value={row.amountEur} currency={getMainCurrency()} />
+                </div>
+                <div className="type-caption text-muted">
+                  avg was <Amount value={report.average} currency={getMainCurrency()} />
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};
+
+const ForecastReport: React.FC<{ report: Report }> = ({ report }) => {
+  const f = report.forecast;
+  const today = new Date();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const dayOfMonth = Math.min(daysInMonth, Math.max(1, daysInMonth - f.remainingDays));
+  const monthProgress = Math.round((dayOfMonth / daysInMonth) * 100);
+
+  const prevDiffPct = report.previousSpend > 0 ? ((f.projectedMonthEnd - report.previousSpend) / report.previousSpend) * 100 : null;
+
+  return (
+    <div className="space-y-6">
+      {/* 4 KPI Figures */}
+      <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Spent so far</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={f.mtdSpendEur} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Day {dayOfMonth} of {daysInMonth}</div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Daily burn rate</div>
+          <div className="type-figure-row mt-1 text-ink"><Amount value={f.dailyAverage} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Average per day</div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Days remaining</div>
+          <div className="type-figure-row mt-1 text-ink">{f.remainingDays}</div>
+          <div className="type-caption mt-1 text-muted">In current month</div>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-line bg-inset/30 p-3.5">
+          <div className="type-label text-muted">Projected month-end</div>
+          <div className="type-figure-row mt-1 text-primary"><Amount value={f.projectedMonthEnd} currency={getMainCurrency()} /></div>
+          <div className="type-caption mt-1 text-muted">Estimated final spend</div>
+        </div>
+      </div>
+
+      {/* Trajectory & Pacing Card */}
+      <div className="rounded-[var(--radius-lg)] border border-line bg-surface p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="type-body-strong text-ink">Month-End Trajectory</div>
+            <div className="type-caption text-muted">
+              {monthProgress}% of month elapsed ({dayOfMonth} of {daysInMonth} days)
+            </div>
+          </div>
+          {prevDiffPct !== null && (
+            <Badge tone={prevDiffPct > 5 ? 'attention' : prevDiffPct < -5 ? 'positive' : 'neutral'}>
+              {prevDiffPct > 0 ? '+' : ''}{prevDiffPct.toFixed(0)}% vs last month (<Amount value={report.previousSpend} currency={getMainCurrency()} />)
+            </Badge>
+          )}
+        </div>
+
+        {/* Visual Progress Bar */}
+        <div className="space-y-1.5">
+          <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-inset">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-normal"
+              style={{ width: `${Math.min(100, Math.max(2, (f.mtdSpendEur / Math.max(1, f.projectedMonthEnd)) * 100))}%` }}
+            />
+          </div>
+          <div className="flex justify-between type-caption text-muted">
+            <span>MTD: <Amount value={f.mtdSpendEur} currency={getMainCurrency()} /></span>
+            <span>Est. total: <Amount value={f.projectedMonthEnd} currency={getMainCurrency()} /></span>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-start gap-2.5 rounded-md border border-line/60 bg-inset/40 p-3 text-xs text-muted">
+          <Icon name="analytics-01" size={16} className="mt-0.5 shrink-0 text-primary" />
+          <p className="leading-relaxed">
+            At your current pace of <span className="font-semibold text-ink"><Amount value={f.dailyAverage} currency={getMainCurrency()} />/day</span> across the next <span className="font-semibold text-ink">{f.remainingDays} days</span>, month-end spending is estimated to land at <span className="font-semibold text-ink"><Amount value={f.projectedMonthEnd} currency={getMainCurrency()} /></span>.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface ReportPanelProps {
   id: ReportId;
@@ -263,37 +770,13 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ id, report, cashflowTransacti
 
   switch (id) {
     case 'summary':
-      return (
-        <>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 min-[900px]:grid-cols-4">
-            <Figure label="Money in"><Amount value={report.income} currency={getMainCurrency()} /></Figure>
-            <Figure label="Period before"><Amount value={report.previousSpend} currency={getMainCurrency()} /></Figure>
-            <Figure label="Average payment"><Amount value={report.average} currency={getMainCurrency()} /></Figure>
-            <Figure label="Repeat costs a month"><Amount value={report.recurringImpact} currency={getMainCurrency()} /></Figure>
-          </dl>
-          <ul className="mt-4 space-y-2 border-t border-line pt-4">
-            {reportInsights(report).map(line => <li key={line} className="type-body text-ink">{line}</li>)}
-          </ul>
-        </>
-      );
+      return <SummaryReport report={report} />;
     case 'spending':
       return <SpendingChart report={report} />;
     case 'categories':
       return <CategoryReport report={report} />;
     case 'usual':
-      return report.usual.length === 0 ? <Empty>There's no earlier spending to compare with.</Empty> : (
-        <Rows>
-          {report.usual.map(row => (
-            <Row
-              key={row.category}
-              title={row.category}
-              detail={<>Usually <Amount value={row.usual} currency={getMainCurrency()} /></>}
-              value={<Amount value={row.spent} currency={getMainCurrency()} />}
-              note={Math.abs(row.difference) < 0.005 ? 'As usual' : <><Amount value={Math.abs(row.difference)} currency={getMainCurrency()} /> {row.difference > 0 ? 'over' : 'under'}</>}
-            />
-          ))}
-        </Rows>
-      );
+      return <UsualReport report={report} />;
     case 'needs':
       return report.needs.length === 0 ? <Empty>There is no spending in this period.</Empty> : (
         <ul className="space-y-5">
@@ -320,46 +803,17 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ id, report, cashflowTransacti
     case 'cashflow':
       return isPhone ? <PhoneCashflow report={report} /> : <CashflowSankey transactions={cashflowTransactions} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />;
     case 'budget':
-      return report.budget.length === 0 ? <Empty>You have no budgets yet.</Empty> : (
-        <Rows>
-          {report.budget.map(row => (
-            <Row
-              key={row.categoryName}
-              title={row.categoryName}
-              detail={<>Limit <Amount value={row.budgetEur} currency={getMainCurrency()} /></>}
-              value={<Amount value={row.actualEur} currency={getMainCurrency()} />}
-              note={row.varianceEur < 0 ? <Badge tone="negative"><Amount value={-row.varianceEur} currency={getMainCurrency()} /> over</Badge> : <><Amount value={row.varianceEur} currency={getMainCurrency()} /> left</>}
-            />
-          ))}
-        </Rows>
-      );
+      return <BudgetReport report={report} />;
     case 'recurring':
-      return report.recurring.length === 0 ? <Empty>Nothing here repeats on a steady schedule.</Empty> : (
-        <Rows>
-          {report.recurring.map(row => (
-            <Row key={row.merchant} title={row.merchant} detail={`${row.frequency}, ${row.occurrences} payments`} value={<Amount value={row.estimatedMonthlyEur} currency={getMainCurrency()} />} note="a month" />
-          ))}
-        </Rows>
-      );
+      return <RecurringReport report={report} />;
     case 'unusual':
-      return report.unusual.length === 0 ? <Empty>Nothing stands out.</Empty> : (
-        <Rows>
-          {report.unusual.map(row => <Row key={row.id} title={row.merchant} detail={`${row.category}, ${shortDate(row.date)}`} value={<Amount value={row.amountEur} currency={getMainCurrency()} />} />)}
-        </Rows>
-      );
+      return <UnusualReport report={report} />;
     case 'categoryMonths':
       return <CategoryMonthsReport report={report} />;
     case 'income':
       return <IncomeReport report={report} />;
     case 'forecast':
-      return (
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 min-[900px]:grid-cols-4">
-          <Figure label="Spent this month"><Amount value={report.forecast.mtdSpendEur} currency={getMainCurrency()} /></Figure>
-          <Figure label="A day"><Amount value={report.forecast.dailyAverage} currency={getMainCurrency()} /></Figure>
-          <Figure label="Days left">{report.forecast.remainingDays}</Figure>
-          <Figure label="Month ends on"><Amount value={report.forecast.projectedMonthEnd} currency={getMainCurrency()} /></Figure>
-        </dl>
-      );
+      return <ForecastReport report={report} />;
   }
 };
 
