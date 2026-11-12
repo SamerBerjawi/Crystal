@@ -1,4 +1,5 @@
-import { AssistantError, readChatStream, type ChatFn } from './assistantAgent';
+import { AssistantError, readChatStream, type ChatFn, type ChatMessage, type ToolStep, type TurnResult } from './assistantAgent';
+import { toolSpecs, type AssistantTool } from './assistantTools';
 
 /*
  * The browser's side of the conversation with this server's /api/assistant routes. Settings and model management are
@@ -15,6 +16,8 @@ export interface AssistantSettings {
   builtin: { reachable: boolean; version?: string };
   catalog: CatalogModel[];
   privateUrlsAllowed: boolean;
+  /** The server runs the agent loop and can use outside MCP servers. Older servers and the dev mock do not. */
+  agent?: boolean;
 }
 
 export interface InstalledModel { name: string; sizeBytes?: number; parameterSize?: string | null; quantization?: string | null }
@@ -122,4 +125,101 @@ export const pullModel = async (model: string, onProgress: (progress: PullProgre
 export const serverChat: ChatFn = async (messages, tools, { signal, onText }) => {
   const response = await call('/chat', { method: 'POST', body: JSON.stringify({ messages, tools, stream: true }), signal }, 'The model did not answer.');
   return readChatStream(response, onText);
+};
+
+export interface McpServerInfo { id: string; name: string; url: string; hasToken: boolean; enabled: boolean }
+
+export const listMcpServers = async (): Promise<McpServerInfo[]> => (await call('/mcp-servers', {}, 'Could not list the connected servers.').then(r => r.json())).servers ?? [];
+
+export const addMcpServer = async (body: { name: string; url: string; token?: string }): Promise<McpServerInfo> =>
+  (await call('/mcp-servers', { method: 'POST', body: JSON.stringify(body) }, 'Could not add the server.')).json();
+
+export const setMcpServerEnabled = async (id: string, enabled: boolean): Promise<McpServerInfo> =>
+  (await call(`/mcp-servers/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) }, 'Could not change the server.')).json();
+
+export const removeMcpServer = async (id: string): Promise<void> => { await call(`/mcp-servers/${id}`, { method: 'DELETE' }, 'Could not remove the server.'); };
+
+export const testMcpServer = async (id: string): Promise<{ exposed: string[]; hidden: string[] }> =>
+  (await call(`/mcp-servers/${id}/test`, { method: 'POST' }, 'Could not use that server.')).json();
+
+const RESULT_CAP = 150_000;
+
+export interface ServerAgentOptions {
+  question: string;
+  history: ChatMessage[];
+  /** The tools that run in this browser, on the data it already holds. */
+  tools: AssistantTool[];
+  today: Date;
+  signal?: AbortSignal;
+  onText?: (visible: string) => void;
+  onRoundStart?: () => void;
+  onStep?: (step: ToolStep) => void;
+  onNotice?: (message: string) => void;
+}
+
+const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * One question answered by the server's agent loop. The server streams what it is doing as one JSON object per line.
+ * When the model wants a tool that only runs here (the app's own forecast and report models), the server asks for it
+ * over the same stream and this function runs it and posts the result back.
+ */
+export const runServerAgent = async (options: ServerAgentOptions): Promise<TurnResult> => {
+  const { question, history, tools, today, signal, onText, onRoundStart, onStep, onNotice } = options;
+  const response = await call('/agent', {
+    method: 'POST', signal,
+    body: JSON.stringify({
+      question,
+      history: history.filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string').map(m => ({ role: m.role, content: m.content })),
+      clientTools: toolSpecs(tools),
+      today: localDay(today),
+    }),
+  }, 'The model did not answer.');
+  if (!response.body) throw new AssistantError('The answer did not start.');
+
+  let runId = '';
+  let result: TurnResult | null = null;
+  const answerTool = async (callId: string, name: string, args: Record<string, unknown>) => {
+    let output: unknown;
+    try {
+      const tool = tools.find(candidate => candidate.name === name);
+      if (!tool) throw new Error(`There is no tool called "${name}".`);
+      output = tool.run(args);
+      if (JSON.stringify(output ?? null).length > RESULT_CAP) output = { error: 'That result was too large. Ask a narrower question.' };
+    } catch (error) {
+      output = { error: error instanceof Error ? error.message : 'The lookup failed.' };
+    }
+    await fetch('/api/assistant/agent/result', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ runId, callId, result: output }) }).catch(() => undefined);
+  };
+
+  const handle = (line: string) => {
+    if (!line.trim()) return;
+    let event: any;
+    try { event = JSON.parse(line); } catch { return; }
+    switch (event.type) {
+      case 'run': runId = String(event.runId); break;
+      case 'round': onRoundStart?.(); break;
+      case 'text': onText?.(String(event.text ?? '')); break;
+      case 'step': onStep?.(event.step); break;
+      case 'notice': onNotice?.(String(event.message ?? '')); break;
+      case 'tool_request': void answerTool(String(event.callId), String(event.name), event.args ?? {}); break;
+      case 'error': throw new AssistantError(String(event.message ?? 'The model did not answer.'), event.code);
+      case 'done': result = { answer: event.answer, steps: event.steps, remember: event.remember, unverified: event.unverified }; break;
+    }
+  };
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffered += decoder.decode(value, { stream: true });
+    const lines = buffered.split('\n');
+    buffered = lines.pop() ?? '';
+    lines.forEach(handle);
+  }
+  handle(buffered);
+  if (!result) throw new AssistantError('The answer stopped before it finished. Try again.');
+  return result;
 };

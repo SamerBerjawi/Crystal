@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { formatCurrency, getMainCurrency } from '../utils';
 import { AssistantError, runAssistantTurn, systemPrompt, type ChatMessage, type ToolStep } from '../utils/assistantAgent';
-import { fetchAssistantSettings, serverChat, type AssistantSettings } from '../utils/assistantApi';
+import { fetchAssistantSettings, runServerAgent, serverChat, type AssistantSettings } from '../utils/assistantApi';
 import { explainUnavailable, type Unavailable } from '../utils/apiError';
 import { buildAssistantTools, type AssistantData } from '../utils/assistantTools';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
@@ -20,6 +20,7 @@ interface UiMessage {
   role: 'user' | 'assistant';
   text: string;
   steps: ToolStep[];
+  notices?: string[];
   unverified: string[];
   error?: { message: string; code?: string };
   pending?: boolean;
@@ -34,6 +35,7 @@ const HISTORY_LIMIT = 8;
 const TOOL_LABEL: Record<string, string> = {
   get_overview: 'Overview', list_accounts: 'Accounts', list_categories: 'Categories', spending: 'Spending', income: 'Income', search_transactions: 'Transactions',
   budget_status: 'Budgets', safe_to_spend: 'Safe to spend', forecast: 'Forecast', can_afford: 'Can I afford it', subscriptions: 'Subscriptions', net_worth_history: 'Net worth',
+  get_investments: 'Investments', get_planning: 'Planning', search_merchants: 'Merchants',
 };
 
 /** **bold** is the only formatting kept. The model's text is never treated as markup. */
@@ -123,17 +125,19 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
     controller.current = abort;
     const today = new Date();
     try {
-      const result = await runAssistantTurn({
+      const turn = {
         question,
         history: history.current.slice(-HISTORY_LIMIT),
         tools: buildAssistantTools({ ...dataRef.current, today }),
-        chat: serverChat,
-        system: systemPrompt(today, currency, settings?.model),
         signal: abort.signal,
         onRoundStart: () => patch(answerId, { text: '' }),
-        onText: visible => patch(answerId, { text: visible }),
-        onStep: step => patch(answerId, message => ({ steps: message.steps.some(s => s.id === step.id) ? message.steps.map(s => (s.id === step.id ? step : s)) : [...message.steps, step] })),
-      });
+        onText: (visible: string) => patch(answerId, { text: visible }),
+        onStep: (step: ToolStep) => patch(answerId, message => ({ steps: message.steps.some(s => s.id === step.id) ? message.steps.map(s => (s.id === step.id ? step : s)) : [...message.steps, step] })),
+      };
+      // The server runs the loop when it can (and can use outside MCP servers). Older servers and the dev mock use the browser's.
+      const result = settings?.agent
+        ? await runServerAgent({ ...turn, today, onNotice: notice => patch(answerId, message => ({ notices: [...(message.notices ?? []), notice] })) })
+        : await runAssistantTurn({ ...turn, chat: serverChat, system: systemPrompt(today, currency, settings?.model) });
       history.current = [...history.current, ...result.remember].slice(-HISTORY_LIMIT);
       patch(answerId, { text: result.answer, steps: result.steps, unverified: result.unverified, pending: false });
     } catch (error) {
@@ -143,7 +147,7 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
       controller.current = null;
       setBusy(false);
     }
-  }, [currency, isBusy, patch, settings?.model]);
+  }, [currency, isBusy, patch, settings?.agent, settings?.model]);
 
   const stop = () => controller.current?.abort();
   const clear = () => { controller.current?.abort(); history.current = []; setMessages([]); };
@@ -233,6 +237,7 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
                 <span>I could not match {message.unverified.length === 1 ? 'this figure' : 'these figures'} to your data: <span className={isPrivate ? 'privacy-blur' : undefined}>{message.unverified.join(', ')}</span>. Check {message.unverified.length === 1 ? 'it' : 'them'} against the lookups below.</span>
               </p>
             )}
+            {message.notices?.map(notice => <p key={notice} className="type-caption text-muted">{notice}</p>)}
             {message.steps.length > 0 && !message.pending && (
               <details className="mt-1.5 type-caption text-muted">
                 <summary className="cursor-pointer select-none">How I found this ({message.steps.length} {message.steps.length === 1 ? 'lookup' : 'lookups'})</summary>
@@ -241,6 +246,7 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
                     <li key={step.id} className="rounded-[var(--radius-sm)] border border-line px-2.5 py-2">
                       <p className="flex flex-wrap items-center gap-2 text-ink">
                         <span className="type-body-strong">{TOOL_LABEL[step.name] ?? step.name}</span>
+                        {step.origin === 'external' && <Badge tone="blue">Outside server</Badge>}
                         {step.status === 'error' && <Badge tone="attention">Retried</Badge>}
                       </p>
                       {Object.keys(step.args).length > 0 && <p className="break-words">{argsText(step.args)}</p>}

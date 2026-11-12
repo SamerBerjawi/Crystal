@@ -26,6 +26,8 @@ export type ChatFn = (messages: ChatMessage[], tools: ReturnType<typeof toolSpec
 export interface ToolStep {
   id: string;
   name: string;
+  /** Where the lookup ran. Unset for lookups run by the browser's own loop. */
+  origin?: 'crystal' | 'browser' | 'external';
   args: Record<string, unknown>;
   status: 'running' | 'done' | 'error';
   /** The sentence the tool gave for its result, or the error. */

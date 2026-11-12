@@ -5,7 +5,8 @@ import { z } from 'zod';
 import { AuthRequest } from './middleware';
 import { apiRateLimit, resolveApiToken, type Scope } from './apiTokens';
 import { loadData } from './publicApi';
-import { investmentsView, merchantsView, planningView, spendingByCategoryView, summaryView, transactionsView } from './apiViews';
+import { summaryView } from './apiViews';
+import { toolsForScopes } from './toolRegistry';
 
 /*
  * Crystal as an MCP server, over Streamable HTTP at /api/mcp. It is read-only: a bearer API token (apiTokens.ts)
@@ -24,51 +25,13 @@ export const buildMcpServer = (userId: number, scopes: readonly Scope[], load: (
     });
     const can = (scope: Scope) => scopes.includes(scope);
 
+    for (const tool of toolsForScopes(scopes)) {
+        server.registerTool(tool.name, { title: tool.title, description: tool.description, ...(tool.inputSchema ? { inputSchema: tool.inputSchema } : {}), annotations: READ_ONLY },
+            (async (args: any) => asText(tool.run(await load(userId), tool.inputSchema ? args : {}))) as any);
+    }
     if (can('summary')) {
-        server.registerTool('get_summary', {
-            title: 'Financial summary',
-            description: 'Net worth, assets, debts, every open account with its balance, and this month\'s budgets with how much is used.',
-            annotations: READ_ONLY,
-        }, async () => asText(summaryView(await load(userId))));
         server.registerResource('summary', 'crystal://summary', { title: 'Financial summary', description: 'Net worth, accounts and budgets.', mimeType: 'application/json' },
             async uri => ({ contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(summaryView(await load(userId)), null, 2) }] }));
-    }
-
-    if (can('transactions')) {
-        server.registerTool('list_transactions', {
-            title: 'List transactions',
-            description: 'The ledger, newest first. Filter by date range, category, account or type. Pages of up to 500; use offset for the next page.',
-            inputSchema: { from: day, to: day, category: z.string().max(100).optional(), accountId: z.string().max(100).optional(), type: z.enum(['income', 'expense', 'transfer']).optional(), limit: z.number().int().min(1).max(500).optional(), offset: z.number().int().min(0).optional() },
-            annotations: READ_ONLY,
-        }, async args => asText(transactionsView(await load(userId), args)));
-        server.registerTool('spending_by_category', {
-            title: 'Spending by category',
-            description: 'Total spending per top-level category in the main currency, largest first. Transfers and adjustments are left out.',
-            inputSchema: { from: day, to: day },
-            annotations: READ_ONLY,
-        }, async args => asText(spendingByCategoryView(await load(userId), args)));
-        server.registerTool('search_merchants', {
-            title: 'Search merchants',
-            description: 'Merchants matching a name, with how many payments, the total spent and the last date. Leave the query empty for the biggest merchants.',
-            inputSchema: { query: z.string().max(100).optional(), from: day, to: day, limit: z.number().int().min(1).max(100).optional() },
-            annotations: READ_ONLY,
-        }, async args => asText(merchantsView(await load(userId), args)));
-    }
-
-    if (can('investments')) {
-        server.registerTool('get_investments', {
-            title: 'Investment holdings',
-            description: 'Current holdings from the trade history, valued at cost (live prices are not available here).',
-            annotations: READ_ONLY,
-        }, async () => asText(investmentsView(await load(userId))));
-    }
-
-    if (can('planning')) {
-        server.registerTool('get_planning', {
-            title: 'Goals, bills and recurring payments',
-            description: 'Savings goals with progress, recurring income and expenses with their next date, and bills and payments.',
-            annotations: READ_ONLY,
-        }, async () => asText(planningView(await load(userId))));
     }
 
     if (can('summary') && can('transactions')) {

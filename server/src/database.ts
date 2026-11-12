@@ -133,6 +133,20 @@ export const initializeDatabase = async () => {
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+        // Outside MCP servers Ask Crystal may call. The token is encrypted and never returned.
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS assistant_mcp_servers (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                url TEXT NOT NULL,
+                encrypted_token TEXT,
+                enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE (user_id, name),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
         // What was already sent, so each event alerts once.
         await db.query(`
             CREATE TABLE IF NOT EXISTS alert_log (

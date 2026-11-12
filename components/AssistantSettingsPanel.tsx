@@ -11,6 +11,7 @@ import { TextInput } from './ui/Fields';
 import { ConfirmDialog } from './ui/Overlays';
 import { Select } from './ui/Pickers';
 import { Banner } from './ui/States';
+import McpServersPanel from './McpServersPanel';
 
 const PROVIDERS = [
   { id: 'builtin', label: 'Built-in engine', description: 'Crystal runs the model next to your data. Nothing leaves your server.' },
@@ -297,6 +298,8 @@ const AssistantSettingsPanel: React.FC = () => {
       <div>
         <Button variant="ghost" icon="checkmark-circle-02" isBusy={isBusy && !pull} isDisabled={!isReady || !!pull} onPress={() => void test()}>Test the model</Button>
       </div>
+
+      {settings.agent && <McpServersPanel />}
 
       <ConfirmDialog
         isOpen={!!removing}

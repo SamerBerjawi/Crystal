@@ -5,20 +5,34 @@ Plain-language questions about your own money: "How much did I spend eating out 
 ## How it works
 
 ```
- you ──question──▶ browser ──messages + tool list──▶ Crystal server ──▶ model
-                      ▲                                                   │
-                      └── tool calls ◀────────────────────────────────────┘
-        runs Crystal's own functions on the data it already holds
+ you ──question──▶ Crystal server (agent loop) ──messages + tools──▶ model
+                      │   ▲                                            │
+                      │   └──────────── tool calls ◀───────────────────┘
+                      ├── Crystal's own tools ........ run on the server, on your data
+                      ├── browser tools ............... asked of your browser over the same stream
+                      └── connected MCP servers ....... read-only tools of servers you added
 ```
 
-1. The browser sends your question, and a list of **tools**, to the model through the Crystal server.
-2. The model answers with a tool call, such as `spending({ period: "last_month", category: "Dining Out" })`.
-3. The browser **runs that tool on your data, here**, using the functions the rest of the app uses (`reportsModel`, `forecastModel`, `safeToSpend`, the budget and subscription models). It sends back the result.
-4. The model words the answer from the result. It may look up several things first.
+1. The browser sends your question, and the list of tools it can run itself, to the Crystal server.
+2. The server runs the loop. It sends the model your question and every tool, and the model answers with a tool call such as `spending({ period: "last_month", category: "Dining Out" })`.
+3. The server runs the tool where it lives. **Crystal's own tools** (`get_summary`, `list_transactions`, `spending_by_category`, `search_merchants`, `get_investments`, `get_planning`) are the same ones the MCP endpoint offers, so the assistant and an outside client give identical answers. **Browser tools** use the functions the rest of the app uses (`reportsModel`, `forecastModel`, `safeToSpend`, the budget and subscription models): the server asks the browser for the result over the open stream and waits up to a minute. **Connected servers** are covered below.
+4. The model words the answer from the results. It may look up several things first.
 
-The model never does arithmetic and never sees your whole ledger. That is why the numbers match the Reports page and the Overview widgets: they come from the same code. Figures that no lookup contained are flagged under the answer.
+The model never does arithmetic and never sees your whole ledger. Where a browser tool and a server tool answer the same question (overview, transactions, spending), only the browser's is offered, so the model has one choice and the numbers match the Reports page. Figures that no lookup contained are flagged under the answer. Each lookup in "How I found this" shows where it ran, and lookups on an outside server are marked.
 
-The tools are in [`utils/assistantTools.ts`](../utils/assistantTools.ts), the loop in [`utils/assistantAgent.ts`](../utils/assistantAgent.ts), the server in [`server/src/assistant.ts`](../server/src/assistant.ts).
+Older servers and the dev mock have no agent loop; the app then runs the loop in the browser, with the same tools.
+
+The tools are in [`utils/assistantTools.ts`](../utils/assistantTools.ts) (browser) and [`server/src/toolRegistry.ts`](../server/src/toolRegistry.ts) (server). The loop is in [`server/src/agentLoop.ts`](../server/src/agentLoop.ts), the routes in [`server/src/assistant.ts`](../server/src/assistant.ts).
+
+## Connected tools (outside MCP servers)
+
+Under **Settings, Connections, Ask Crystal, Connected tools** you can add up to five MCP servers (Streamable HTTP), with an optional bearer token. For each one:
+
+- Crystal lists its tools and **only offers those that declare `readOnlyHint: true`**. Tools that do not say so are left out, and "Test" tells you how many.
+- Its tools appear to the model as `name__tool` and run on the server with a 30-second limit and a 20,000-character result cap.
+- What comes back is treated as data: the model is told never to follow instructions found in it. Nothing an outside server returns can change anything in Crystal, because no tool can write.
+- Your question and the arguments the model chooses are sent to that server. Add only servers you trust with that.
+- The same address rules as a custom model server apply: no redirects, and addresses on your own network only for a sole user or with `ASSISTANT_ALLOW_PRIVATE_URLS=true`. The token is encrypted at rest and never returned.
 
 ### What a tool will not do
 - **Guess.** A category or account name that does not match exactly comes back as an error listing the real names, so the model asks again instead of answering from a near miss.
@@ -45,7 +59,7 @@ Sizes are approximate. The first answer after a model has been idle can take a w
 
 - **Built-in engine, or a server on your network:** your questions and the figures looked up go to that machine only.
 - **A hosted service:** they go to that provider. That is what you chose when you entered its address and key.
-- Nothing is stored on the Crystal server except the connection settings. Conversations live in the browser tab and are gone when you reload. The key is encrypted at rest and never sent back.
+- Nothing is stored on the Crystal server except the connection settings and the list of connected servers. Conversations live in the browser tab and are gone when you reload. The key is encrypted at rest and never sent back.
 - With **privacy mode** on, answers and lookup details are blurred like any other amount.
 
 ## Security notes
@@ -69,3 +83,5 @@ Tests:
 - `npx tsx --test tests/unit/assistantAgent.test.ts` - the loop, stream parsing, figure checking.
 - `npx tsx server/src/assistant.test.ts` - request validation, URL rules, error messages.
 - `npx tsx server/src/assistant.integration.test.ts` - the real routes against a fake model server: streaming, downloads, keys, errors.
+
+Server tests for the agent: `npx tsx server/src/agent.test.ts` (loop, hand-off to the browser, request checks), `npx tsx server/src/externalMcp.test.ts`, and the routes, including a real outside MCP server, in `assistant.integration.test.ts`. The browser side is `npx tsx --test tests/unit/serverAgent.test.ts`.

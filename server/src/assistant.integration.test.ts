@@ -11,19 +11,35 @@ import { db } from './database';
 import { JWT_SECRET } from './authConfig';
 import { decryptSecret } from './crypto';
 import assistantRouter, { clearUserCountCache } from './assistant';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
 function assert(condition: boolean, message: string) {
     if (!condition) throw new Error(`Test Failed: ${message}`);
 }
+let hybridRunId = '';
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ---- a stand-in database ----
 let settingsRow: any = null;
+let mcpRows: any[] = [];
 let userCount = 1;
 (db as any).query = async (sql: string, params: any[] = []) => {
     if (/FROM user_sessions/.test(sql)) return { rows: [{ id: params[0], locked_at: null }] };
     if (/UPDATE user_sessions/.test(sql)) return { rows: [] };
     if (/FROM users/.test(sql)) return { rows: [{ n: String(userCount) }] };
+    if (/INSERT INTO assistant_mcp_servers/.test(sql)) {
+        if (mcpRows.some(r => r.name === params[2])) throw Object.assign(new Error('duplicate'), { code: '23505' });
+        const row = { id: params[0], user_id: params[1], name: params[2], url: params[3], encrypted_token: params[4], enabled: true };
+        mcpRows.push(row);
+        return { rows: [row] };
+    }
+    if (/COUNT\(\*\) AS n FROM assistant_mcp_servers/.test(sql)) return { rows: [{ n: String(mcpRows.length) }] };
+    if (/UPDATE assistant_mcp_servers SET enabled/.test(sql)) { const row = mcpRows.find(r => r.id === params[0]); if (row) row.enabled = params[2]; return { rows: row ? [row] : [] }; }
+    if (/DELETE FROM assistant_mcp_servers/.test(sql)) { const before = mcpRows.length; mcpRows = mcpRows.filter(r => r.id !== params[0]); return { rows: [], rowCount: before - mcpRows.length }; }
+    if (/FROM assistant_mcp_servers WHERE id/.test(sql)) return { rows: mcpRows.filter(r => r.id === params[0]) };
+    if (/FROM assistant_mcp_servers/.test(sql)) return { rows: mcpRows.filter(r => !/enabled = TRUE/.test(sql) || r.enabled) };
+    if (/FROM financial_data/.test(sql)) return { rows: [{ data: { preferences: { currency: 'EUR' }, accounts: [{ id: 'a1', name: 'Main', type: 'Checking', balance: 1234.5, currency: 'EUR' }] } }] };
     if (/SELECT provider/.test(sql)) return { rows: settingsRow ? [settingsRow] : [] };
     if (/INSERT INTO assistant_settings/.test(sql)) {
         settingsRow = { provider: params[1], base_url: params[2], model: params[3], encrypted_key: params[4] };
@@ -59,6 +75,18 @@ const engine = http.createServer((req, res) => {
         if (req.url === '/v1/chat/completions') {
             if (body?.tools?.length && body?.model === 'plain:1b') return json(400, { error: { message: 'registry.ollama.ai/library/plain:1b does not support tools' } });
             if (body?.model === 'missing:1b') return json(404, { error: { message: 'model "missing:1b" not found, try pulling it first' } });
+            if (body?.model === 'agent:1b') {
+                // A scripted model: look up the summary, then answer with what the tool returned. A browser tool comes first on request.
+                const last = body.messages[body.messages.length - 1];
+                const asksBrowser = JSON.stringify(body.messages).includes('use_browser');
+                const asksExternal = JSON.stringify(body.messages).includes('use_external');
+                const call = (name: string) => ({ choices: [{ delta: { tool_calls: [{ index: 0, id: `call_${name}`, function: { name, arguments: '{}' } }] } }] });
+                res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+                if (last.role === 'user') res.write(`data: ${JSON.stringify(call(asksBrowser ? 'browser_net' : asksExternal ? 'rates__get_rate' : 'get_summary'))}\n\n`);
+                else res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `Answer: ${last.content.includes('4242') ? '4242.00 from your browser' : last.content.includes('0.9137') ? 'Rate 0.9137 from outside' : '1,234.50'}` } }] })}\n\n`);
+                res.write('data: [DONE]\n\n');
+                return res.end();
+            }
             if (!body?.stream) return json(200, { choices: [{ message: { role: 'assistant', content: body?.max_tokens === 16 ? 'ok' : 'plain reply' } }] });
             res.writeHead(200, { 'Content-Type': 'text/event-stream' });
             res.on('close', () => { if (!res.writableEnded) engineClosedEarly = true; });
@@ -229,6 +257,101 @@ const main = async () => {
         await call('/', { method: 'PUT', body: JSON.stringify({ provider: 'builtin', model: 'plain:1b' }) });
         const plain: any = await (await call('/test', { method: 'POST' })).json();
         assert(plain.supportsTools === false, 'a model without tools is flagged');
+    });
+
+    await run('the agent loop runs on the server, streams its steps, and hands browser tools to the browser', async () => {
+        const before = settingsRow;
+        settingsRow = { provider: 'builtin', base_url: null, model: 'agent:1b', encrypted_key: null };
+        try {
+            const readEvents = async (response: Response, onEvent?: (event: any) => Promise<void>) => {
+                const events: any[] = [];
+                const reader = response.body!.getReader();
+                const decoder = new TextDecoder();
+                let buffered = '';
+                for (;;) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffered += decoder.decode(value, { stream: true });
+                    const lines = buffered.split('\n');
+                    buffered = lines.pop() ?? '';
+                    for (const line of lines.filter(Boolean)) { const event = JSON.parse(line); events.push(event); await onEvent?.(event); }
+                }
+                return events;
+            };
+
+            const plain = await readEvents(await call('/agent', { method: 'POST', body: JSON.stringify({ question: 'what is my net worth?' }) }));
+            const done = plain.find(e => e.type === 'done');
+            assert(plain[0].type === 'run' && done.answer === 'Answer: 1,234.50', `answer ${JSON.stringify(done)}`);
+            assert(done.steps.length === 1 && done.steps[0].name === 'get_summary' && done.steps[0].origin === 'crystal', 'ran the server tool');
+            assert(done.unverified.length === 0, 'the figure came from the lookup');
+
+            const browserTool = { type: 'function', function: { name: 'browser_net', description: 'x', parameters: { type: 'object', properties: {} } } };
+            const hybrid = await readEvents(
+                await call('/agent', { method: 'POST', body: JSON.stringify({ question: 'use_browser please', clientTools: [browserTool] }) }),
+                async event => {
+                    if (event.type === 'tool_request') {
+                        const runId = hybridRunId;
+                        const reply = await call('/agent/result', { method: 'POST', body: JSON.stringify({ runId, callId: event.callId, result: { summary: 'net', value: '4242.00' } }) });
+                        assert(reply.status === 200, 'result accepted');
+                    }
+                    if (event.type === 'run') hybridRunId = event.runId;
+                },
+            );
+            const hybridDone = hybrid.find(e => e.type === 'done');
+            assert(hybrid.some(e => e.type === 'tool_request' && e.name === 'browser_net'), 'browser asked');
+            assert(hybridDone.steps[0].origin === 'browser' && hybridDone.answer.includes('4242.00'), `browser answer ${JSON.stringify(hybridDone)}`);
+
+            const bad = await call('/agent', { method: 'POST', body: JSON.stringify({ question: '', history: [] }) });
+            assert(bad.status === 400, 'empty question refused');
+            assert((await call('/agent/result', { method: 'POST', body: JSON.stringify({ runId: 'nope', callId: 'x' }) })).status === 404, 'unknown run');
+        } finally { settingsRow = before; }
+    });
+
+    await run('outside MCP servers: added, tested, only read-only tools used, called by the agent', async () => {
+        const before = settingsRow;
+        settingsRow = { provider: 'builtin', base_url: null, model: 'agent:1b', encrypted_key: null };
+        // A real MCP server standing in for an outside one: one tool says it is read-only, one does not.
+        const outside = express();
+        outside.use(express.json());
+        const seenAuth: (string | undefined)[] = [];
+        outside.post('/mcp', async (req, res) => {
+            seenAuth.push(req.headers.authorization);
+            const server = new McpServer({ name: 'rates', version: '1.0.0' });
+            server.registerTool('get_rate', { description: 'EUR to USD', annotations: { readOnlyHint: true } }, async () => ({ content: [{ type: 'text', text: '0.9137' }] }));
+            server.registerTool('wipe', { description: 'Bad', annotations: { readOnlyHint: false } }, async () => ({ content: [{ type: 'text', text: 'wiped' }] }));
+            const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+            res.on('close', () => { void transport.close(); void server.close(); });
+            await server.connect(transport);
+            await transport.handleRequest(req, res, req.body);
+        });
+        const outsideServer = await new Promise<http.Server>(resolve => { const listening = outside.listen(0, '127.0.0.1', () => resolve(listening)); });
+        const outsideUrl = `http://127.0.0.1:${(outsideServer.address() as AddressInfo).port}/mcp`;
+        try {
+            const bad = await call('/mcp-servers', { method: 'POST', body: JSON.stringify({ name: 'Bad Name', url: outsideUrl }) });
+            assert(bad.status === 400, 'a bad name is refused');
+            const added: any = await (await call('/mcp-servers', { method: 'POST', body: JSON.stringify({ name: 'rates', url: outsideUrl, token: 'secret-token' }) })).json();
+            assert(added.name === 'rates' && added.hasToken === true && !('token' in added) && !('encrypted_token' in added), 'saved without the token coming back');
+            assert((await call('/mcp-servers', { method: 'POST', body: JSON.stringify({ name: 'rates', url: outsideUrl }) })).status === 409, 'names are unique');
+            assert(decryptSecret(mcpRows[0].encrypted_token) === 'secret-token', 'token stored encrypted');
+
+            const tested: any = await (await call(`/mcp-servers/${added.id}/test`, { method: 'POST' })).json();
+            assert(tested.exposed.join() === 'get_rate' && tested.hidden.join() === 'wipe', 'only the read-only tool is exposed');
+            assert(seenAuth.includes('Bearer secret-token'), 'the token was sent to the outside server');
+
+            const text = await (await call('/agent', { method: 'POST', body: JSON.stringify({ question: 'use_external rate?' }) })).text();
+            const events = text.split('\n').filter(Boolean).map(l => JSON.parse(l));
+            const done = events.find(e => e.type === 'done');
+            assert(done.steps[0].name === 'rates__get_rate' && done.steps[0].origin === 'external', `step ${JSON.stringify(done.steps)}`);
+            assert(done.answer.includes('0.9137'), 'the answer used the outside result');
+
+            await call(`/mcp-servers/${added.id}`, { method: 'PATCH', body: JSON.stringify({ enabled: false }) });
+            const off = (await (await call('/agent', { method: 'POST', body: JSON.stringify({ question: 'use_external rate?' }) })).text()).split('\n').filter(Boolean).map(l => JSON.parse(l));
+            assert(off.find(e => e.type === 'done').steps[0].status === 'error', 'a disabled server is not offered');
+
+            assert((await call(`/mcp-servers/${added.id}`, { method: 'DELETE' })).status === 200 && mcpRows.length === 0, 'removed');
+            userCount = 3; clearUserCountCache();
+            assert((await call('/mcp-servers', { method: 'POST', body: JSON.stringify({ name: 'lan', url: outsideUrl }) })).status === 400, 'private addresses are refused on a shared server');
+        } finally { outsideServer.close(); settingsRow = before; userCount = 1; clearUserCountCache(); }
     });
 
     await run('with the engine down, the page is told plainly', async () => {
