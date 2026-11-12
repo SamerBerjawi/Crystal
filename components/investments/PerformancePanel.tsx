@@ -3,6 +3,7 @@ import type { Performance } from '../../utils/investmentMetrics';
 import { MIN_RELIABLE_DAYS } from '../../utils/investmentMetrics';
 import { Amount } from '../ui/Money';
 import { EmptyState } from '../ui/States';
+import BenchmarkSection from './BenchmarkSection';
 
 const CARD = 'surface-card min-w-0 rounded-[var(--radius-xl)] p-5 border border-line';
 const pct = (v: number, digits = 1) => `${v < 0 ? '−' : ''}${Math.abs(v * 100).toFixed(digits)}%`;
@@ -16,7 +17,7 @@ const LEVEL_TEXT: Record<Performance['concentration']['level'], string> = {
 };
 
 /** Returns, contributions against growth, and concentration, from what you bought, sold and hold. */
-const PerformancePanel: React.FC<{ performance: Performance; currency: string; onOpenHolding: (symbol: string) => void }> = ({ performance, currency, onOpenHolding }) => {
+const PerformancePanel: React.FC<{ performance: Performance; currency: string; apiKey?: string; onOpenHolding: (symbol: string) => void }> = ({ performance, currency, apiKey, onOpenHolding }) => {
   const { portfolio, contributions, concentration, holdings } = performance;
   if (holdings.length === 0) return <EmptyState icon="chart-line-data-01" title="No trades to measure yet" description="Add buys and sales, and Crystal will work out what your investments earned each year." />;
   const growthShare = contributions.growthShare;
@@ -91,6 +92,8 @@ const PerformancePanel: React.FC<{ performance: Performance; currency: string; o
         </div>
         <p className="type-caption mt-3 text-muted">* Under {MIN_RELIABLE_DAYS} days of history, so the yearly rate is only a rough guide. Amounts use today's exchange rates, and prices are the ones you or the quote service last set.</p>
       </section>
+
+      <BenchmarkSection performance={performance} currency={currency} apiKey={apiKey} />
 
       <section className={CARD} aria-label="Concentration">
         <h2 className="type-card-title mb-1 text-ink">How spread out it is</h2>

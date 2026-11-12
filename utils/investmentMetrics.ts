@@ -78,6 +78,8 @@ export interface PortfolioPerformance {
   reliable: boolean;
   /** Holdings left out of the return for want of a price. */
   excluded: number;
+  /** Every dated buy (negative) and sale (positive), in EUR, for the priced holdings. */
+  flows: Flow[];
 }
 
 export interface Concentration {
@@ -159,7 +161,7 @@ export const buildPerformance = ({ trades, grants = [], holdings, today, toEur =
   const gain = proceeds + pricedValue - invested;
   const portfolio: PortfolioPerformance = {
     invested: round2(invested), proceeds: round2(proceeds), value: round2(pricedValue), gain: round2(gain), gainPct: invested > 0 ? gain / invested : null,
-    xirr: portfolioRate, days: portfolioDays, reliable: portfolioRate !== null && portfolioDays >= MIN_RELIABLE_DAYS, excluded: rows.length - pricedRows.length,
+    xirr: portfolioRate, days: portfolioDays, reliable: portfolioRate !== null && portfolioDays >= MIN_RELIABLE_DAYS, excluded: rows.length - pricedRows.length, flows: allFlows,
   };
 
   const net = invested - proceeds;

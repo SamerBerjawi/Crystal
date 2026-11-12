@@ -7,6 +7,7 @@ import dataRouter from './data';
 import usersRouter from './users';
 import enableBankingRouter from './enableBanking';
 import smartFetcherRouter from './smartFetcher';
+import benchmarksRouter from './benchmarks';
 import alertsRouter, { startAlertScheduler } from './alerts';
 import { initializeDatabase, db, purgeStaleSessions } from './database';
 import { authenticateToken } from './middleware';
@@ -160,6 +161,7 @@ const startServer = async () => {
         app.use('/api/users', usersRouter);
         app.use('/api/lock', lockRouter);
         app.use('/api/smart-fetch', smartFetcherRouter);
+        app.use('/api/benchmarks', benchmarksRouter);
         app.use('/api/alerts', alertsRouter);
 
         // Last line of defence: anything that escapes a route becomes a JSON 500, never a crash or an HTML page.
