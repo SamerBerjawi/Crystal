@@ -221,14 +221,9 @@ const Wrapped: React.FC = () => {
           <div className="flex items-center gap-2">
             {picker}
             {wrapped.hasData && (
-              <>
-                <Button icon="play" variant="primary" onPress={openStory}>
-                  Play Story
-                </Button>
-                <Button icon="copy-01" variant="ghost" onPress={share}>
-                  Copy summary
-                </Button>
-              </>
+              <Button icon="copy-01" variant="ghost" onPress={share}>
+                Copy summary
+              </Button>
             )}
           </div>
         }
@@ -239,11 +234,10 @@ const Wrapped: React.FC = () => {
       ) : (
         <>
           {/* Hero Story Banner Card */}
-          <section className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-primary/20 bg-gradient-to-br from-primary-soft via-surface-card to-surface-card p-6 md:p-8 shadow-sm">
-            <div className="absolute top-0 right-0 -mr-16 -mt-16 size-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <section className="surface-card relative rounded-[var(--radius-2xl)] border border-primary/25 bg-primary-soft p-6 md:p-8">
             <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div className="max-w-xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-surface/50 px-3 py-1 text-xs font-semibold text-primary">
                   <Icon name="sparkles" size={14} />
                   <span>Your {year} Recap is Ready</span>
                 </div>
@@ -257,7 +251,7 @@ const Wrapped: React.FC = () => {
                   {wrapped.transactionCount.toLocaleString()} transactions in {year}.
                 </p>
                 <div className="mt-3 flex items-center gap-2 text-xs font-medium text-ink">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-inset text-base">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-surface/60 text-base">
                     {archetype.badge}
                   </span>
                   <span>Archetype: <strong>{archetype.title}</strong></span>
@@ -269,10 +263,10 @@ const Wrapped: React.FC = () => {
                 <button
                   type="button"
                   onClick={openStory}
-                  className="group relative flex items-center gap-3 overflow-hidden rounded-2xl bg-primary px-6 py-3.5 text-white font-semibold shadow-lg shadow-primary/25 transition-all duration-200 hover:scale-105 hover:shadow-primary/40 active:scale-95"
+                  className="group flex items-center gap-3 rounded-full bg-primary px-6 py-3.5 text-on-primary font-semibold shadow-md transition-all duration-200 hover:opacity-95 active:scale-95 cursor-pointer"
                 >
-                  <span className="flex size-8 items-center justify-center rounded-full bg-white/20 text-white transition-transform group-hover:scale-110">
-                    <Icon name="play" size={16} />
+                  <span className="flex size-7 items-center justify-center rounded-full bg-black/10 text-on-primary transition-transform group-hover:scale-110">
+                    <Icon name="play" size={15} />
                   </span>
                   <span>Play {year} Story</span>
                 </button>
