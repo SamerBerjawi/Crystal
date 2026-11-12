@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import type { Membership, RecurringTransaction, Transaction } from '../../types';
 import { buildOccurrences, liveSeries, seriesGroups } from '../../utils/scheduleModel';
 import {
-  cancelService, detectSubscriptions, expiringCards, normalizeString, pauseService, renewals, resumeService, savedByPausing, seriesFromDetected, serviceStatus, serviceTotals, services,
+  cancelService, detectSubscriptions, expiringCards, normalizeString, pauseService, priceChanges, renewals, resumeService, savedByPausing, seriesFromDetected, serviceStatus, serviceTotals, services,
 } from '../../utils/subscriptionsModel';
 
 const today = new Date(2026, 9, 15);
@@ -92,4 +92,86 @@ test('timeline labels take the first free lane and never overlap', () => {
   assert.deepEqual(assignLabelLanes([0, 5, 20, 22, 24], 10, 2), [0, 1, 0, 1, null]);
   assert.deepEqual(assignLabelLanes([10, 40, 70], 10, 2), [0, 0, 0]);
   assert.deepEqual(assignLabelLanes([], 10, 2), []);
+});
+
+test('priceChanges matches full detail and eliminates false positives from parent merchant name', () => {
+  const pensionSeries = series({
+    id: 'kbc-pension',
+    merchant: 'KBC',
+    description: 'Complimentary Pension Plan',
+    amount: 55.52,
+    accountId: 'acc-checking',
+    startDate: '2026-01-01',
+  });
+  const mortgageSeries = series({
+    id: 'kbc-mortgage',
+    merchant: 'KBC',
+    description: 'Mortgage Loan',
+    amount: 500.0,
+    accountId: 'acc-checking',
+    startDate: '2026-01-01',
+  });
+  const netflixSeries = series({
+    id: 'netflix',
+    merchant: 'Netflix',
+    description: 'Netflix',
+    amount: 12.0,
+    accountId: 'acc-checking',
+    startDate: '2026-01-01',
+  });
+
+  // A random KBC banking fee or card transaction of 27.78
+  const kbcFeeTx: Transaction = {
+    id: 'tx-fee',
+    accountId: 'acc-checking',
+    date: '2026-11-05',
+    description: 'KBC Monthly Maintenance Fee',
+    merchant: 'KBC',
+    amount: -27.78,
+    category: 'Bank Fees',
+    type: 'expense',
+    currency: 'EUR',
+  };
+
+  // Legitimate Netflix price increase
+  const netflixHikeTx: Transaction = {
+    id: 'tx-netflix',
+    accountId: 'acc-checking',
+    date: '2026-11-01',
+    description: 'Netflix.com',
+    merchant: 'Netflix',
+    amount: -14.99,
+    category: 'Entertainment',
+    type: 'expense',
+    currency: 'EUR',
+  };
+
+  const changes = priceChanges(
+    [pensionSeries, mortgageSeries, netflixSeries],
+    [kbcFeeTx, netflixHikeTx]
+  );
+
+  // KBC fee must NOT match the pension or mortgage series
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0].service.id, 'netflix');
+  assert.equal(changes[0].previousAmount, 12.0);
+  assert.equal(changes[0].newAmount, 14.99);
+
+  // If a real pension transaction arrives with changed price, it should match
+  const pensionHikeTx: Transaction = {
+    id: 'tx-pension-new',
+    accountId: 'acc-checking',
+    date: '2026-11-06',
+    description: 'KBC Complimentary Pension Plan Contribution',
+    merchant: 'KBC',
+    amount: -60.0,
+    category: 'Pension',
+    type: 'expense',
+    currency: 'EUR',
+  };
+
+  const pensionChanges = priceChanges([pensionSeries], [pensionHikeTx]);
+  assert.equal(pensionChanges.length, 1);
+  assert.equal(pensionChanges[0].service.id, 'kbc-pension');
+  assert.equal(pensionChanges[0].newAmount, 60.0);
 });

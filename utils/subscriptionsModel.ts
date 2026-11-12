@@ -285,34 +285,136 @@ export interface SubscriptionPriceChange {
   date: string;
 }
 
+/**
+ * Determines whether a transaction matches an active recurring subscription by comparing full detail.
+ * Prevents false positives where unrelated transactions sharing only a parent merchant name
+ * (e.g. general banking fees from KBC vs. a specific "Complimentary Pension Plan" or mortgage)
+ * would otherwise be flagged as price changes.
+ */
+export const matchesSubscriptionDetail = (rt: RecurringTransaction, tx: Transaction): boolean => {
+  // 1. Explicit link is definitive
+  if (tx.recurringSourceId === rt.id) return true;
+
+  // 2. Account mismatch check: if both specify an account, they must match
+  if (rt.accountId && tx.accountId && rt.accountId !== tx.accountId) return false;
+
+  // 3. Date check: transaction cannot precede the subscription start date
+  if (rt.startDate && tx.date < rt.startDate) return false;
+
+  // 4. Category compatibility check (if both specify specific categories)
+  if (rt.category && tx.category) {
+    const c1 = rt.category.trim().toLowerCase();
+    const c2 = tx.category.trim().toLowerCase();
+    const isGeneric = (c: string) =>
+      c === 'uncategorised' || c === 'other' || c === 'general' || c === 'subscriptions';
+    if (!isGeneric(c1) && !isGeneric(c2) && c1 !== c2 && !c1.includes(c2) && !c2.includes(c1)) {
+      return false;
+    }
+  }
+
+  const rtMerchant = normalizeString(rt.merchant || '');
+  const rtDesc = normalizeString(rt.description || '');
+  const txMerchant = normalizeString(tx.merchant || '');
+  const txDesc = normalizeString(tx.description || '');
+  const txRaw = `${tx.merchant || ''} ${tx.description || ''}`.toLowerCase();
+
+  // Case A: Subscription has a distinct description different from merchant
+  // (e.g. merchant: "KBC", description: "Complimentary Pension Plan" or "Mortgage")
+  if (rtDesc && rtMerchant && rtDesc !== rtMerchant) {
+    const STOPWORDS = new Set(['the', 'and', 'for', 'with', 'from', 'monthly', 'recurring', 'plan', 'payment']);
+    const descTokens = (rt.description || '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(w => w.length >= 3 && !STOPWORDS.has(w));
+
+    const exactNormDescMatch = txDesc === rtDesc || txDesc.includes(rtDesc) || normalizeString(txRaw).includes(rtDesc);
+    const tokensMatch = descTokens.length > 0 && descTokens.some(token => txRaw.includes(token));
+
+    if (!exactNormDescMatch && !tokensMatch) {
+      return false;
+    }
+
+    // Also verify merchant consistency if transaction specifies one
+    if (txMerchant && rtMerchant && !txMerchant.includes(rtMerchant) && !rtMerchant.includes(txMerchant)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  // Case B: Subscription description is identical to merchant or one is missing (e.g. "Netflix")
+  const primaryKey = rtMerchant || rtDesc;
+  if (!primaryKey || primaryKey.length < 3) return false;
+
+  if (txMerchant === primaryKey || txDesc === primaryKey) return true;
+
+  // Check word boundary match in raw transaction detail
+  const rawKey = (rt.merchant || rt.description || '').toLowerCase().trim();
+  if (rawKey.length >= 3) {
+    const cleanKey = rawKey.replace(/[^a-z0-9]/g, '');
+    if (cleanKey.length >= 3 && txRaw.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).includes(cleanKey)) {
+      return true;
+    }
+  }
+
+  return normalizeString(txRaw) === primaryKey;
+};
+
 /** Detects active recurring services whose latest matching transaction differs in price (converted to the service's currency). */
-export const priceChanges = (active: RecurringTransaction[], transactions: Transaction[], dismissedKeys: string[] = []): SubscriptionPriceChange[] => {
+export const priceChanges = (
+  active: RecurringTransaction[],
+  transactions: Transaction[],
+  dismissedKeys: string[] = []
+): SubscriptionPriceChange[] => {
   const changes: SubscriptionPriceChange[] = [];
   for (const rt of active) {
-    const rtName = normalizeString(rt.merchant || rt.description);
-    if (rtName.length < 3) continue;
+    const expected = round2(Math.abs(rt.amount));
+    if (expected <= 0) continue;
+
     const matching = transactions
-      .filter(tx => tx.type === 'expense' && !tx.transferId && !tx.isBalanceAdjustment && !tx.isSplitParent && !tx.isCombinedParent)
-      .filter(tx => {
-        if (tx.recurringSourceId === rt.id) return true;
-        const txName = normalizeString(tx.merchant || tx.description);
-        return txName.length >= 3 && (txName === rtName || txName.includes(rtName) || rtName.includes(txName));
-      })
+      .filter(
+        tx =>
+          tx.type === 'expense' &&
+          !tx.transferId &&
+          !tx.isBalanceAdjustment &&
+          !tx.isSplitParent &&
+          !tx.isCombinedParent
+      )
+      .filter(tx => matchesSubscriptionDetail(rt, tx))
       .sort((a, b) => b.date.localeCompare(a.date));
+
     const latest = matching[0];
     if (!latest) continue;
+
     const rtCurrency = (rt.currency || 'EUR') as Currency;
     const latestInRtCurrency = round2(
       latest.currency && latest.currency !== rtCurrency
         ? convertCurrency(Math.abs(latest.amount), latest.currency, rtCurrency)
         : Math.abs(latest.amount)
     );
-    const expected = round2(Math.abs(rt.amount));
+
     const diff = Math.abs(latestInRtCurrency - expected);
-    if (expected > 0 && diff >= 0.5 && diff / expected >= 0.03 && diff / expected <= 1.5) {
+
+    // Plausible subscription price change bounds:
+    // An unlinked match must fall within 0.5x to 2.0x of expected amount to prevent
+    // small incidental fees or large unrelated purchases from triggering false price alerts.
+    const isExplicitlyLinked = latest.recurringSourceId === rt.id;
+    if (!isExplicitlyLinked) {
+      if (latestInRtCurrency < expected * 0.5 || latestInRtCurrency > expected * 2.0) {
+        continue;
+      }
+    }
+
+    if (diff >= 0.5 && diff / expected >= 0.03 && diff / expected <= 1.0) {
       const key = `${rt.id}:${latest.id}:${latestInRtCurrency}`;
       if (!dismissedKeys.includes(key)) {
-        changes.push({ key, service: rt, previousAmount: expected, newAmount: latestInRtCurrency, date: latest.date });
+        changes.push({
+          key,
+          service: rt,
+          previousAmount: expected,
+          newAmount: latestInRtCurrency,
+          date: latest.date,
+        });
       }
     }
   }

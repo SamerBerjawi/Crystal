@@ -274,11 +274,16 @@ import {
   Sun01Icon,
   TrophyIcon,
   ViewIcon,
+  BarCode02Icon,
 } from '@hugeicons/core-free-icons';
 
 // Keys are the icon names stored in saved data, so they stay as they are. Each one points at its Hugeicon (D-058).
 const ICONS: Record<string, IconSvgElement> = {
   // Direct Hugeicons registry (all 262 installed free stroke rounded icons)
+  BarCode02: BarCode02Icon,
+  BarCode02Icon: BarCode02Icon,
+  Barcode02: BarCode02Icon,
+  Barcode: BarCode02Icon,
   Add01: Add01Icon,
   AddCircle: AddCircleIcon,
   AddSquare: AddSquareIcon,
@@ -773,6 +778,11 @@ const ICONS: Record<string, IconSvgElement> = {
 
 // Mapping from legacy Material Symbol / Lucide / UntitledUI icon names to the icon keys in ICONS
 export const ICON_NAME_MAP: Record<string, string> = {
+  'barcode-02': 'BarCode02',
+  barcode: 'BarCode02',
+  'bar-code': 'BarCode02',
+  'bar-code-02': 'BarCode02',
+  BarCode02Icon: 'BarCode02',
   logs: 'Logs',
   ledger: 'Logs',
   'chart-evaluation': 'ChartEvaluation',

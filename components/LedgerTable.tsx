@@ -81,16 +81,27 @@ const Logo: React.FC<{ tx: DisplayTransaction; url: string | null; icon: string;
     );
   }
 
+  const rawLabel = tx.merchant || tx.description || '';
+  const clean = rawLabel
+    .replace(/^(Transfer\s+(to|from)|To|From)\s+/i, '')
+    .replace(/^[0-9\s#*_\/.\-\\:]+/, '')
+    .trim() || rawLabel.trim();
+  const initial = clean ? clean[0].toUpperCase() : null;
   const fallbackIcon = account ? accountIcon(account) : icon;
 
   return (
     <span
       className={cn(
         'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px]',
-        'bg-inset text-ink font-bold border border-line/40'
+        'bg-inset text-ink font-bold border border-line shadow-2xs select-none'
       )}
+      aria-hidden="true"
     >
-      <Icon name={fallbackIcon} size={18} className="text-muted" />
+      {initial ? (
+        <span className="text-sm font-bold text-ink leading-none">{initial}</span>
+      ) : (
+        <Icon name={fallbackIcon} size={18} className="text-muted" />
+      )}
     </span>
   );
 };
