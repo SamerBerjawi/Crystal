@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { Page } from '../types';
-import { toLocalISOString, getMainCurrency, formatCurrency } from '../utils';
+import { toLocalISOString, getMainCurrency, formatCurrency, parseLocalDate } from '../utils';
+import { formatShortDate } from '../utils/dateFormat';
 import { sortAccountsByType } from '../utils/accountsModel';
 import { categoryPickerOptions } from '../utils/categoryTree';
 import { automaticReports, buildReport, dailySpend, expensesIn, exportReportCsv, inScope, MAX_SAVED_VIEWS, NO_FILTERS, reportTiles, type GroupBy, type ReportFilters, type ReportId, type SavedReportView } from '../utils/reportsModel';
@@ -17,27 +18,101 @@ import { DateInput, TextInput } from '../components/ui/Fields';
 import Icon from '../components/ui/Icon';
 import { Amount } from '../components/ui/Money';
 import { Dialog, SidePanel } from '../components/ui/Overlays';
-import { Select } from '../components/ui/Pickers';
+import { Select, type PickerOption } from '../components/ui/Pickers';
 import { AreaSparkline, useSparklineHover } from '../src/components/charts';
 import { cn } from '../lib/utils';
 
 const LEGACY_VIEWS_KEY = 'reports.savedViews.v1';
 
-const TILES: { id: ReportId; label: string; icon: string }[] = [
-  { id: 'summary', label: 'Summary', icon: 'analytics-01' },
-  { id: 'spending', label: 'Spending pace', icon: 'chart-line-data-01' },
-  { id: 'categories', label: 'Categories', icon: 'pie-chart-01' },
-  { id: 'categoryMonths', label: 'Category by month', icon: 'calendar-03' },
-  { id: 'income', label: 'Income', icon: 'wallet-02' },
-  { id: 'usual', label: 'Compared with usual', icon: 'exchange-01' },
-  { id: 'needs', label: 'Needs and wants', icon: 'balance-scale' },
-  { id: 'breakdown', label: 'Spend breakdown', icon: 'receipt' },
-  { id: 'cashflow', label: 'Cash flow', icon: 'arrow-data-transfer-horizontal' },
-  { id: 'budget', label: 'Budget and actual', icon: 'sliders-horizontal' },
-  { id: 'recurring', label: 'Repeat spending', icon: 'repeat-one-01' },
-  { id: 'unusual', label: 'Unusual payments', icon: 'alert-circle' },
-  { id: 'forecast', label: 'Month-end forecast', icon: 'clock-01' },
+export interface ReportGroup {
+  title: string;
+  tiles: { id: ReportId; label: string; icon: string }[];
+}
+
+export const REPORT_GROUPS: ReportGroup[] = [
+  {
+    title: 'Overview & Cash Flow',
+    tiles: [
+      { id: 'summary', label: 'Summary', icon: 'analytics-01' },
+      { id: 'spending', label: 'Spending pace', icon: 'chart-line-data-01' },
+      { id: 'cashflow', label: 'Cash flow', icon: 'arrow-data-transfer-horizontal' },
+      { id: 'forecast', label: 'Month-end forecast', icon: 'clock-01' },
+    ],
+  },
+  {
+    title: 'Categories & Outflows',
+    tiles: [
+      { id: 'categories', label: 'Categories', icon: 'pie-chart-01' },
+      { id: 'categoryMonths', label: 'Category by month', icon: 'calendar-03' },
+      { id: 'breakdown', label: 'Spend breakdown', icon: 'receipt' },
+      { id: 'needs', label: 'Needs and wants', icon: 'balance-scale' },
+    ],
+  },
+  {
+    title: 'Income & Budgets',
+    tiles: [
+      { id: 'income', label: 'Income', icon: 'wallet-02' },
+      { id: 'budget', label: 'Budget and actual', icon: 'sliders-horizontal' },
+    ],
+  },
+  {
+    title: 'Patterns & Outliers',
+    tiles: [
+      { id: 'usual', label: 'Compared with usual', icon: 'exchange-01' },
+      { id: 'recurring', label: 'Repeat spending', icon: 'repeat-one-01' },
+      { id: 'unusual', label: 'Unusual payments', icon: 'alert-circle' },
+    ],
+  },
 ];
+
+const TILES: { id: ReportId; label: string; icon: string }[] = REPORT_GROUPS.flatMap(group => group.tiles);
+
+const DATE_PRESETS = [
+  { id: 'mtd', label: 'MTD' },
+  { id: 'lastMonth', label: 'Last month' },
+  { id: '3m', label: '3M' },
+  { id: 'ytd', label: 'YTD' },
+  { id: '12m', label: '12M' },
+];
+
+const getPresetRange = (presetId: string, todayStr: string, fyStartMonth = 1) => {
+  const now = parseLocalDate(todayStr);
+  switch (presetId) {
+    case 'mtd':
+      return {
+        startDate: toLocalISOString(new Date(now.getFullYear(), now.getMonth(), 1)),
+        endDate: todayStr,
+      };
+    case 'lastMonth':
+      return {
+        startDate: toLocalISOString(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+        endDate: toLocalISOString(new Date(now.getFullYear(), now.getMonth(), 0)),
+      };
+    case '3m':
+      return {
+        startDate: toLocalISOString(new Date(now.getFullYear(), now.getMonth() - 2, 1)),
+        endDate: todayStr,
+      };
+    case 'ytd': {
+      const yearStart = new Date(
+        now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1,
+        fyStartMonth - 1,
+        1
+      );
+      return {
+        startDate: toLocalISOString(yearStart),
+        endDate: todayStr,
+      };
+    }
+    case '12m':
+      return {
+        startDate: toLocalISOString(new Date(now.getFullYear(), now.getMonth() - 11, 1)),
+        endDate: todayStr,
+      };
+    default:
+      return null;
+  }
+};
 
 export type Point = {
   day?: string;
@@ -246,6 +321,41 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
     { label: 'Transactions', icon: 'receipt', value: report.count, format: 'number' },
   ];
 
+  const reportOptions: PickerOption[] = useMemo(
+    () =>
+      REPORT_GROUPS.flatMap(group =>
+        group.tiles.map(tile => ({
+          id: tile.id,
+          label: tile.label,
+          group: group.title,
+        }))
+      ),
+    []
+  );
+
+  const activePresetId = useMemo(() => {
+    if (filters.merchant.trim() || filters.category !== 'all' || filters.accountId !== 'all') {
+      return 'custom';
+    }
+    for (const preset of ['mtd', 'lastMonth', '3m', 'ytd', '12m'] as const) {
+      const range = getPresetRange(preset, today, preferences.financialYearStartMonth);
+      if (range && range.startDate === filters.startDate && range.endDate === filters.endDate) {
+        return preset;
+      }
+    }
+    return 'custom';
+  }, [filters, today, preferences.financialYearStartMonth]);
+
+  const handleSelectPreset = (presetId: string) => {
+    const range = getPresetRange(presetId, today, preferences.financialYearStartMonth);
+    if (!range) return;
+    setFilters(prev => ({
+      ...prev,
+      startDate: range.startDate,
+      endDate: range.endDate,
+    }));
+  };
+
   const openTile = (id: ReportId) => {
     setActiveId(id);
     setPhoneReportOpen(true);
@@ -289,38 +399,143 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[240px_minmax(0,1fr)] min-[1100px]:grid-cols-[300px_minmax(0,1fr)]">
         {showPicker && (
-          <nav aria-label="Reports" className="min-w-0">
-            <ul className="space-y-1.5">
-              {TILES.map(tile => {
-                const isActive = !isPhone && tile.id === activeId;
-                return (
-                  <li key={tile.id}>
-                    <button
-                      type="button"
-                      aria-current={isActive ? 'true' : undefined}
-                      onClick={() => openTile(tile.id)}
-                      className={cn('surface-card flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] px-3 py-2 text-left transition-colors duration-[var(--duration-fast)]', isActive && 'border-primary')}
-                    >
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-inset text-muted"><Icon name={tile.icon} size={18} /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="type-body-strong block truncate text-ink">{tile.label}</span>
-                        <span className="type-caption block truncate text-muted">{tiles[tile.id].value}</span>
-                      </span>
-                      {isPhone && <Icon name="chevron_right" size={18} className="shrink-0 text-muted" />}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+          <nav aria-label="Reports" className="min-w-0 space-y-4">
+            {REPORT_GROUPS.map(group => (
+              <div key={group.title} className="space-y-1.5">
+                <h3 className="type-label px-1 text-muted uppercase tracking-wider text-[0.6875rem] font-semibold">
+                  {group.title}
+                </h3>
+                <ul className="space-y-1.5">
+                  {group.tiles.map(tile => {
+                    const isActive = !isPhone && tile.id === activeId;
+                    return (
+                      <li key={tile.id}>
+                        <button
+                          type="button"
+                          aria-current={isActive ? 'true' : undefined}
+                          onClick={() => openTile(tile.id)}
+                          className={cn(
+                            'surface-card flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] px-3 py-2 text-left transition-colors duration-[var(--duration-fast)]',
+                            isActive && 'border-primary'
+                          )}
+                        >
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-inset text-muted">
+                            <Icon name={tile.icon} size={18} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="type-body-strong block truncate text-ink">{tile.label}</span>
+                            <span className="type-caption block truncate text-muted">{tiles[tile.id].value}</span>
+                          </span>
+                          {isPhone && <Icon name="chevron_right" size={18} className="shrink-0 text-muted" />}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </nav>
         )}
 
         {showReport && (
-          <section aria-label={active.label} className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 md:self-start">
-            {isPhone && <Button variant="ghost" size="sm" icon="arrow-left-01" className="-ml-2 mb-2" onPress={() => setPhoneReportOpen(false)}>All reports</Button>}
-            <h2 className="type-card-title text-ink">{active.label}</h2>
-            <p className="type-caption mb-4 mt-1 text-muted"><span className="font-semibold">What it says: </span>{tiles[activeId].says}</p>
-            <ReportPanel id={activeId} report={report} cashflowTransactions={cashflowTransactions} groupBy={groupBy} onGroupBy={setGroupBy} isPhone={isPhone} setCurrentPage={setCurrentPage} />
+          <section aria-label={active.label} className="surface-card min-w-0 rounded-[var(--radius-xl)] p-6 max-md:p-5 md:self-start space-y-5">
+            {isPhone && (
+              <div className="flex items-center justify-between gap-2 border-b border-line/60 pb-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon="arrow-left-01"
+                  className="-ml-2"
+                  onPress={() => setPhoneReportOpen(false)}
+                >
+                  All reports
+                </Button>
+                <div className="min-w-0 flex-1 max-w-[200px]">
+                  <Select
+                    label="Switch report"
+                    variant="chip"
+                    options={reportOptions}
+                    value={activeId}
+                    onChange={id => setActiveId(id as ReportId)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3.5 border-b border-line/60 pb-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-inset text-muted">
+                      <Icon name={active.icon} size={18} />
+                    </span>
+                    <h2 className="type-card-title text-ink">{active.label}</h2>
+                  </div>
+                  <p className="type-caption mt-1.5 text-muted">
+                    <span className="font-semibold text-ink">What it says: </span>
+                    {tiles[activeId].says}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon="sliders-horizontal"
+                    onPress={() => setFilterOpen(true)}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      Filters{activeFilters > 0 && <CountPill count={activeFilters} />}
+                    </span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Date Presets Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-lg)] border border-line/50 bg-inset/40 p-1.5">
+                <div className="flex flex-wrap items-center gap-1">
+                  {DATE_PRESETS.map(preset => {
+                    const isSelected = activePresetId === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleSelectPreset(preset.id)}
+                        className={cn(
+                          'cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-colors duration-fast',
+                          isSelected
+                            ? 'bg-surface text-ink shadow-xs border border-line/60'
+                            : 'text-muted hover:text-ink hover:bg-surface/50'
+                        )}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                  {activePresetId === 'custom' && (
+                    <span className="rounded-md border border-primary/30 bg-primary-soft/50 px-2 py-1 text-xs font-semibold text-primary">
+                      Custom range
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 px-2 text-xs text-muted">
+                  <Icon name="calendar-03" size={14} className="shrink-0" />
+                  <span className="font-medium tabular-nums text-ink">
+                    {formatShortDate(filters.startDate)} – {formatShortDate(filters.endDate)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <ReportPanel
+              id={activeId}
+              report={report}
+              cashflowTransactions={cashflowTransactions}
+              groupBy={groupBy}
+              onGroupBy={setGroupBy}
+              isPhone={isPhone}
+              setCurrentPage={setCurrentPage}
+            />
           </section>
         )}
       </div>
