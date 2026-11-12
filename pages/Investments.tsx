@@ -583,7 +583,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             </div>
           )}
 
-          {tab === 'performance' && <PerformancePanel performance={performance} currency={getMainCurrency()} onOpenHolding={handleOpenHolding} />}
+          {tab === 'performance' && <PerformancePanel performance={performance} currency={getMainCurrency()} apiKey={preferences.twelveDataApiKey} onOpenHolding={handleOpenHolding} />}
 
           {tab === 'activity' && (
             <Board>
