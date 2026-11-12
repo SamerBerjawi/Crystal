@@ -41,22 +41,37 @@ const apiRateLimiter = createRateLimiter({
     key: req => req.ip || 'unknown',
 });
 
+export interface ApiTokenIdentity { id: string; userId: number; email: string; scopes: Scope[] }
+
+const bearerOf = (req: AuthRequest) => {
+    const header = req.headers['authorization'];
+    return typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+};
+
+/** Finds the token on a request. `scope` is optional: leave it out to accept a token with any scope. */
+export const resolveApiToken = async (req: AuthRequest, scope?: Scope): Promise<{ identity: ApiTokenIdentity } | { status: number; message: string }> => {
+    const token = bearerOf(req);
+    if (!token.startsWith(TOKEN_PREFIX)) return { status: 401, message: 'An API token is required.' };
+    const row = (await db.query(
+        `SELECT t.id, t.user_id, t.scopes, t.expires_at, t.revoked_at, u.email
+         FROM api_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = $1`,
+        [hashToken(token)],
+    )).rows?.[0];
+    if (!row) return { status: 401, message: 'That token is not valid.' };
+    const problem = tokenProblem(row, scope ?? (row.scopes?.[0] as Scope));
+    if (problem) return { status: 403, message: problem };
+    await db.query(`UPDATE api_tokens SET last_used_at = NOW() WHERE id = $1 AND (last_used_at IS NULL OR last_used_at < NOW() - INTERVAL '1 minute')`, [row.id]);
+    return { identity: { id: row.id, userId: row.user_id, email: row.email, scopes: row.scopes } };
+};
+
+export const apiRateLimit = apiRateLimiter;
+
 /** Lets a request through when it carries a valid API token with the scope. */
 export const authenticateApiToken = (scope: Scope) => [apiRateLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const header = req.headers['authorization'];
-    const token = typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-    if (!token.startsWith(TOKEN_PREFIX)) return res.status(401).json({ message: 'An API token is required.' });
     try {
-        const row = (await db.query(
-            `SELECT t.id, t.user_id, t.scopes, t.expires_at, t.revoked_at, u.email
-             FROM api_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = $1`,
-            [hashToken(token)],
-        )).rows?.[0];
-        if (!row) return res.status(401).json({ message: 'That token is not valid.' });
-        const problem = tokenProblem(row, scope);
-        if (problem) return res.status(403).json({ message: problem });
-        await db.query(`UPDATE api_tokens SET last_used_at = NOW() WHERE id = $1 AND (last_used_at IS NULL OR last_used_at < NOW() - INTERVAL '1 minute')`, [row.id]);
-        req.user = { id: row.user_id, email: row.email, sessionId: `token:${row.id}` };
+        const result = await resolveApiToken(req, scope);
+        if ('status' in result) return res.status(result.status).json({ message: result.message });
+        req.user = { id: result.identity.userId, email: result.identity.email, sessionId: `token:${result.identity.id}` };
         next();
     } catch (error) {
         console.error('API token check failed', error);
