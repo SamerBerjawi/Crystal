@@ -8,7 +8,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { buildEffectiveMerchantLogoOverrides, getCardNetworkLogoUrl, getMerchantLogoUrl, isCashAccount } from '../utils/brandfetch';
 import Icon from './ui/Icon';
 import { IconButton } from './ui/Actions';
-import { Sparkline } from './ui/Display';
+import { LineSparkline } from '../src/components/charts/sparkline';
 import { Menu, type MenuAction } from './ui/Menu';
 import { Amount, Change } from './ui/Money';
 import { cn } from '../lib/utils';
@@ -137,7 +137,17 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
       <div {...shared} className={cn(shared.className, 'flex min-h-16 items-center gap-3 px-3 py-2')}>
         <AccountLogo account={account} />
         <div className="min-w-0 flex-1">{name}</div>
-        {hasTrend && <Sparkline data={sparklineData} isPositive={isPositiveTrend} className="max-lg:hidden" />}
+        {hasTrend && (
+          <span className="block w-24 shrink-0 max-lg:hidden">
+            <LineSparkline
+              data={sparklineData.map((point, index) => ({ index, value: point.value }))}
+              dataKey="value"
+              height={28}
+              curve="natural"
+              color={isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'}
+            />
+          </span>
+        )}
         <div className="shrink-0 text-right">
           <p className="type-figure-row text-ink"><Amount value={eur} currency={getMainCurrency()} /></p>
           {isForeign && <p className="type-caption text-muted"><Amount value={balance} currency={account.currency} /></p>}
@@ -160,7 +170,17 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
           {isForeign && <p className="type-caption text-muted"><Amount value={balance} currency={account.currency} /></p>}
           {hasTrend && <Change value={convertToMain(trend, account.currency)} currency={getMainCurrency()} period="in 90 days" className="type-caption text-muted" />}
         </div>
-        {hasTrend && <Sparkline data={sparklineData} isPositive={isPositiveTrend} width={96} height={36} />}
+        {hasTrend && (
+          <span className="block w-24 shrink-0">
+            <LineSparkline
+              data={sparklineData.map((point, index) => ({ index, value: point.value }))}
+              dataKey="value"
+              height={32}
+              curve="natural"
+              color={isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'}
+            />
+          </span>
+        )}
       </div>
     </div>
   );
