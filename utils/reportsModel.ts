@@ -41,7 +41,7 @@ const amountOf = (tx: Transaction) => Math.abs(convertToMain(tx.amount, tx.curre
 const merchantOf = (tx: Transaction, fallback = 'Unknown merchant') => tx.merchant?.trim() || tx.description || fallback;
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 
-const isCounted = (tx: Transaction, showAdjustments: boolean) =>
+export const isCounted = (tx: Transaction, showAdjustments: boolean) =>
   !tx.isSplitParent && !tx.isCombinedParent && (showAdjustments || !tx.isBalanceAdjustment) && !tx.transferId;
 
 const collectDescendantNames = (cat: Category, out: Set<string>) => {

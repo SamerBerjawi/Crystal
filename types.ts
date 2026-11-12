@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // Financial data and page definitions
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'FIRE' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
   type: AccountType;
@@ -698,6 +698,8 @@ export interface AppPreferences {
   ignoredSubscriptions?: string[];
   ignoredBillMatches?: string[];
   ignoredTransferMatches?: string[];
+  /** Financial independence plan (utils/fireCone.ts). Missing values use your own figures or the defaults. */
+  fire?: import('./utils/fireCone').FireSettings;
   dismissedBillNotifications?: string[];
   /** Insight card ids you dismissed on the Overview (utils/insightsModel.ts). */
   dismissedInsights?: string[];
