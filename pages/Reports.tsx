@@ -4,7 +4,6 @@ import type { Page } from '../types';
 import { toLocalISOString, getMainCurrency, formatCurrency, parseLocalDate } from '../utils';
 import { formatShortDate } from '../utils/dateFormat';
 import { sortAccountsByType } from '../utils/accountsModel';
-import { categoryPickerOptions } from '../utils/categoryTree';
 import { automaticReports, buildReport, dailySpend, expensesIn, exportReportCsv, inScope, MAX_SAVED_VIEWS, NO_FILTERS, reportTiles, type GroupBy, type ReportFilters, type ReportId, type SavedReportView } from '../utils/reportsModel';
 import { warnIgnored } from '../utils/logging';
 import { useAccountSelector, usePreferencesContext, useTransactionSelector } from '../contexts/DomainProviders';
@@ -18,7 +17,11 @@ import { DateInput, TextInput } from '../components/ui/Fields';
 import Icon from '../components/ui/Icon';
 import { Amount } from '../components/ui/Money';
 import { Dialog, SidePanel } from '../components/ui/Overlays';
-import { Select, type PickerOption } from '../components/ui/Pickers';
+import { Combobox, Select, type PickerOption } from '../components/ui/Pickers';
+import CategoryPicker from '../components/CategoryPicker';
+import { MerchantPicker } from '../components/MerchantPicker';
+import { LogoTile } from '../components/EntityIcon';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { AreaSparkline, useSparklineHover } from '../src/components/charts';
 import { cn } from '../lib/utils';
 
@@ -303,6 +306,38 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
   const activeFilters = [filters.merchant.trim(), filters.category !== 'all', filters.accountId !== 'all'].filter(Boolean).length;
   const update = (patch: Partial<ReportFilters>) => setFilters(prev => ({ ...prev, ...patch }));
 
+  const accountOptions = useMemo<PickerOption[]>(() => {
+    const sorted = sortAccountsByType(accounts);
+    const openCount = accounts.filter(a => a.status !== 'closed').length;
+
+    const allOption: PickerOption = {
+      id: 'all',
+      label: 'All accounts',
+      description: `${openCount} active accounts`,
+      visual: <LogoTile label="All" size={24} fallbackIcon="account_balance" />,
+    };
+
+    const items = sorted.map(item => {
+      const logoUrl = item.imageUrl
+        || getAccountBrandfetchUrl(item, preferences.brandfetchClientId, preferences.logoOverrides)
+        || (item.financialInstitution ? getMerchantLogoUrl(item.financialInstitution, preferences.brandfetchClientId, preferences.logoOverrides) : null);
+      return {
+        id: item.id,
+        label: item.name,
+        description: `${item.financialInstitution || item.type}, ${formatCurrency(item.balance, item.currency)}`,
+        group: item.status === 'closed' ? 'Closed' : item.type,
+        visual: <LogoTile url={logoUrl} label={item.name} size={24} fallbackIcon="account_balance" />,
+      };
+    });
+
+    return [allOption, ...items];
+  }, [accounts, preferences.brandfetchClientId, preferences.logoOverrides]);
+
+  const categorySuggestions = useMemo(() => {
+    const top = report.categories.slice(0, 3).map(c => c.category);
+    return ['all', ...top];
+  }, [report.categories]);
+
   const saveView = () => {
     const name = viewName.trim();
     if (!name) {
@@ -556,29 +591,30 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
             <DateInput label="From" value={filters.startDate} onChange={startDate => update({ startDate })} />
             <DateInput label="To" value={filters.endDate} onChange={endDate => update({ endDate })} />
           </div>
-          <Select
+          <Combobox
             label="Account"
-            options={[
-              { id: 'all', label: 'All accounts' },
-              ...sortAccountsByType(accounts).map(account => ({
-                id: account.id,
-                label: account.name,
-                group: account.status === 'closed' ? 'Closed' : account.type,
-              })),
-            ]}
-            value={filters.accountId}
-            onChange={accountId => update({ accountId })}
+            placeholder="Search accounts"
+            options={accountOptions}
+            value={filters.accountId || 'all'}
+            onChange={id => update({ accountId: id || 'all' })}
           />
-          <Select
-            label="Category"
-            options={[
-              { id: 'all', label: 'All categories' },
-              ...categoryPickerOptions(expenseCategories, incomeCategories),
-            ]}
+          <CategoryPicker
+            categories={allCategories}
+            suggestions={categorySuggestions}
             value={filters.category}
             onChange={category => update({ category })}
+            allowAll
           />
-          <TextInput label="Merchant" value={filters.merchant} onChange={merchant => update({ merchant })} />
+          <MerchantPicker
+            label="Merchant"
+            value={filters.merchant}
+            onChange={merchant => update({ merchant })}
+            placeholder="Shop, company or person"
+            transactions={transactions}
+            rules={preferences.merchantRules}
+            brandfetchClientId={preferences.brandfetchClientId}
+            logoOverrides={preferences.logoOverrides}
+          />
         </div>
       </SidePanel>
 
