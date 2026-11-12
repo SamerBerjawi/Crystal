@@ -1,5 +1,6 @@
 import React from 'react';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import { FireIcon, FlameIcon } from '@hugeicons/core-free-icons';
 import {
   Add01Icon,
   AddCircleIcon,
@@ -279,6 +280,10 @@ import {
 
 // Keys are the icon names stored in saved data, so they stay as they are. Each one points at its Hugeicon (D-058).
 const ICONS: Record<string, IconSvgElement> = {
+  Fire: FireIcon,
+  Flame: FlameIcon,
+  FireIcon: FireIcon,
+  FlameIcon: FlameIcon,
   // Direct Hugeicons registry (all 262 installed free stroke rounded icons)
   BarCode02: BarCode02Icon,
   BarCode02Icon: BarCode02Icon,
@@ -817,6 +822,9 @@ export const ICON_NAME_MAP: Record<string, string> = {
   account_balance_wallet: 'Wallet',
   receipt_long: 'Receipt',
   receipt: 'Receipt',
+  fire: 'Fire',
+  flame: 'Flame',
+  'fire-02': 'Fire',
   analytics: 'TrendUp',
   show_chart: 'TrendUp',
   trending_up: 'TrendUp',
