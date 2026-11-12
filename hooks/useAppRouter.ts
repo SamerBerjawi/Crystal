@@ -29,6 +29,7 @@ export const pageRegistry = {
   HoldingDetail: { path: '/investments', loader: () => import('../pages/Investments') },
   Documentation: { path: '/documentation', loader: () => import('../pages/Documentation') },
   Subscriptions: { path: '/subscriptions', loader: () => import('../pages/Subscriptions') },
+  'Debt Payoff': { path: '/debt-payoff', loader: () => import('../pages/DebtPayoff') },
   'Quotes & Invoices': { path: '/invoices', loader: () => import('../pages/Invoices') },
   Merchants: { path: '/merchants', loader: () => import('../pages/Merchants') },
   Rules: { path: '/rules', loader: () => import('../pages/Rules') },
