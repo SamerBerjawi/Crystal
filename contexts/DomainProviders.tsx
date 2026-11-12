@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useMemo, useRef, ReactNode } from 'react';
 import { I18nProvider } from 'react-aria-components';
-import { Account, AppPreferences, Transaction, Warrant, Invoice } from '../types';
+import { Account, AppPreferences, Transaction, Warrant, Invoice, CleanupProposal } from '../types';
 
 export const getLocaleForDateFormat = (format?: string): string => {
   const normalized = (format || 'DD/MM/YYYY').trim().toUpperCase();
@@ -19,6 +19,9 @@ export interface TransactionsContextValue {
     options?: { autoSpareChange?: boolean; skipRules?: boolean; applyRules?: boolean }
   ) => void;
   deleteTransactions: (transactionIds: string[]) => void;
+  /** Tidy-ups waiting for approval, and the ones already decided. See utils/cleanup.ts. */
+  cleanupProposals: CleanupProposal[];
+  setCleanupProposals: React.Dispatch<React.SetStateAction<CleanupProposal[]>>;
   digest?: string;
 }
 

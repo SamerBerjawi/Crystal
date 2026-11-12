@@ -888,6 +888,27 @@ export interface Prediction {
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
+/** One edit a tidy-up proposes: a field on a transaction, from what it is now to what it should be. */
+export interface CleanupChange {
+  transactionId: string;
+  field: 'merchant' | 'category';
+  from: string;
+  to: string;
+}
+
+/** A tidy-up waiting for your approval. Nothing changes until you approve it, and an applied one can be undone. */
+export interface CleanupProposal {
+  id: string;
+  kind: 'merchant-spelling' | 'category-outlier' | 'assistant';
+  title: string;
+  detail: string;
+  source: 'crystal' | 'assistant';
+  status: 'pending' | 'applied' | 'dismissed';
+  createdAt: string;
+  resolvedAt?: string;
+  changes: CleanupChange[];
+}
+
 export interface FinancialData {
   accounts: Account[];
   transactions: Transaction[];
@@ -915,6 +936,7 @@ export interface FinancialData {
   userStats?: UserStats;
   predictions?: Prediction[];
   lifeEvents?: LifeEvent[];
+  cleanupProposals?: CleanupProposal[];
   enableBankingConnections?: EnableBankingConnection[];
   lastUpdatedAt?: string;
   userProfile?: User;

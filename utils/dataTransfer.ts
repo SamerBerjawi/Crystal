@@ -46,7 +46,10 @@ export const buildJsonExport = (config: ExportConfig, source: ExportSource): Rec
   const data: Record<string, unknown> = {};
 
   if (chosen('accounts')) data.accounts = accounts;
-  if (chosen('transactions')) data.transactions = transactions;
+  if (chosen('transactions')) {
+    data.transactions = transactions;
+    data.cleanupProposals = full.cleanupProposals;
+  }
   if (chosen('budgets')) data.budgets = source.budgets;
   if (chosen('schedule')) {
     data.recurringTransactions = source.recurringTransactions;

@@ -49,7 +49,7 @@ const InvoicesPage = lazyWithRetry(pageRegistry['Quotes & Invoices'].loader);
 const MerchantsPage = lazyWithRetry(pageRegistry.Merchants.loader);
 const RulesPage = lazyWithRetry(pageRegistry.Rules.loader);
 
-import { Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, InvestmentTransaction, Task, Warrant, FinancialData, BillPayment, Tag, LoanPaymentOverrides, Membership, Invoice, UserStats, Prediction, LifeEvent, PriceHistoryEntry, EnableBankingConnection } from './types';
+import { Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, InvestmentTransaction, Task, Warrant, FinancialData, BillPayment, Tag, LoanPaymentOverrides, Membership, Invoice, UserStats, Prediction, LifeEvent, CleanupProposal, PriceHistoryEntry, EnableBankingConnection } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES } from './constants';
 import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
@@ -266,6 +266,7 @@ const App: React.FC = () => {
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
   const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>(emptyFinancialData.lifeEvents || []);
+  const [cleanupProposals, setCleanupProposals] = useState<CleanupProposal[]>(emptyFinancialData.cleanupProposals || []);
   const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>([]);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -329,12 +330,12 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, goalOrder, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, lifeEvents,
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, lifeEvents, cleanupProposals,
     enableBankingConnections, userProfile: currentUser || undefined
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, goalOrder, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, lifeEvents, enableBankingConnections, currentUser
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, lifeEvents, cleanupProposals, enableBankingConnections, currentUser
   ]);
 
   const isDevEnvironment = import.meta.env.DEV;
@@ -398,6 +399,7 @@ const App: React.FC = () => {
       setTags(dataToLoad.tags || []);
       setPredictions(dataToLoad.predictions || []);
       setLifeEvents(dataToLoad.lifeEvents || []);
+      setCleanupProposals(dataToLoad.cleanupProposals || []);
       setIncomeCategories(loadedIncomeCats);
       setExpenseCategories(loadedExpenseCats);
       setUserStats(normalizedStats);
@@ -750,6 +752,7 @@ const App: React.FC = () => {
   useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('lifeEvents'); }, [lifeEvents, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('cleanupProposals'); }, [cleanupProposals, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
 
   const handleRestoreData = useCallback((data: FinancialData) => {
@@ -1230,9 +1233,11 @@ const App: React.FC = () => {
       transactions,
       saveTransaction: handleSaveTransaction,
       deleteTransactions: handleDeleteTransactions,
+      cleanupProposals,
+      setCleanupProposals,
       digest: transactionsDigest,
     }),
-    [transactions, handleDeleteTransactions, handleSaveTransaction, transactionsDigest]
+    [transactions, handleDeleteTransactions, handleSaveTransaction, cleanupProposals, transactionsDigest]
   );
   const warrantsContextValue = useMemo(() => ({ warrants, prices: warrantPrices }), [warrantPrices, warrants]);
   const invoicesContextValue = useMemo(() => ({ invoices, saveInvoice: handleSaveInvoice, deleteInvoice: handleDeleteInvoice }), [invoices, handleSaveInvoice, handleDeleteInvoice]);

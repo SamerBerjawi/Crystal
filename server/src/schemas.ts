@@ -117,6 +117,7 @@ export const financialDataSchema = z.object({
     tags: z.array(entityRecordSchema).optional(),
     predictions: z.array(entityRecordSchema).optional(),
     lifeEvents: z.array(entityRecordSchema).optional(),
+    cleanupProposals: z.array(entityRecordSchema).optional(),
     enableBankingConnections: z.array(entityRecordSchema).optional(),
     incomeCategories: z.array(entityRecordSchema).optional(),
     expenseCategories: z.array(entityRecordSchema).optional(),
