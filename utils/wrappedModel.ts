@@ -1,4 +1,5 @@
-import type { Account, Transaction } from '../types';
+import type { Account, LifeEvent, Transaction } from '../types';
+import { lifeEventsInYear } from './lifeEvents';
 import { convertCurrency, convertToMain, getMainCurrency, parseLocalDate, safeAdd, safeSubtract, round2 } from '../utils';
 import { netWorthHistory } from './challengesModel';
 
@@ -26,6 +27,8 @@ export interface Wrapped {
   noSpendDays: number;
   netWorth?: { start: number; end: number; change: number; changePct?: number };
   kilometres?: number;
+  /** Life events marked in this year, oldest first. */
+  lifeEvents: LifeEvent[];
 }
 
 const amountOf = (tx: Transaction) => Math.abs(convertToMain(tx.amount, tx.currency));
@@ -85,6 +88,7 @@ export const buildWrapped = (
   accounts: Account[],
   mileage: { date: string; reading: number }[] = [],
   today: Date = new Date(),
+  lifeEvents: LifeEvent[] = [],
 ): Wrapped => {
   const prefix = `${year}-`;
   const rows = transactions.filter(tx => isCounted(tx) && tx.date.startsWith(prefix));
@@ -163,6 +167,7 @@ export const buildWrapped = (
     noSpendDays,
     netWorth,
     kilometres,
+    lifeEvents: lifeEventsInYear(lifeEvents, year),
   };
 };
 

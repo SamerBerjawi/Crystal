@@ -1053,6 +1053,7 @@ export const initialFinancialData: FinancialData = {
     priceHistory: {},
     userStats: { currentStreak: 5, longestStreak: 14, lastLogDate: '2024-06-28', predictionWins: 3, predictionTotal: 4 },
     predictions: [],
+    lifeEvents: [],
     enableBankingConnections: demoEnableBankingConnections,
     preferences: defaultPreferences,
 };

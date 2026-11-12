@@ -14,7 +14,8 @@ import { curveNatural } from '@visx/curve';
 import { HorizonArea, clip, compact, labelWidth, shortDay } from './ForecastHorizonChart';
 import { iso } from '../utils/scheduleModel';
 import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
-import { FinancialGoal } from '../types';
+import { FinancialGoal, LifeEvent } from '../types';
+import { lifeEventKind, netWorthOn } from '../utils/lifeEvents';
 import Icon from './ui/Icon';
 import { EmptyState } from './ui/States';
 import { useWidgetBox } from './ui/WidgetGrid';
@@ -26,27 +27,26 @@ interface ChartData {
   forecast?: number;
 }
 
-export interface MilestoneAnnotation {
-  date: string;
-  label: string;
-  type?: 'milestone' | 'event';
-}
-
 interface NetWorthChartProps {
   data: ChartData[];
   lineColor?: string;
   showForecast?: boolean;
   showGoals?: boolean;
   goals?: FinancialGoal[];
-  annotations?: MilestoneAnnotation[];
+  /** Life events to mark on the line. Empty hides them. */
+  lifeEvents?: LifeEvent[];
   margin?: { top?: number; right?: number; bottom?: number; left?: number };
   minHeight?: string;
 }
 
 const GOAL_ROWS = 3;
+const EVENT_ROWS = 2;
+const EVENT_COLOR = 'var(--chart-5)';
+
+interface EventMark { date: Date; label: string; icon: string; kind: string; value?: number }
 
 /** Today, dated goals and the lowest point, drawn over the line the way the cash horizon draws them. */
-const NetWorthLayer: React.FC<{ today?: Date; goals: { date: Date; label: string }[]; lowest: { value: number; date: Date } | null; compactLabels: boolean }> = ({ today, goals, lowest, compactLabels }) => {
+const NetWorthLayer: React.FC<{ today?: Date; goals: { date: Date; label: string }[]; events: EventMark[]; lowest: { value: number; date: Date } | null; compactLabels: boolean }> = ({ today, goals, events, lowest, compactLabels }) => {
   const { xScale, innerWidth, innerHeight } = useChartStable();
   const yScale = useYScale();
   const dayLabel = (date: Date) => shortDay(iso(date));
@@ -72,6 +72,24 @@ const NetWorthLayer: React.FC<{ today?: Date; goals: { date: Date; label: string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goals, xScale, innerWidth]);
 
+  // Events sit on the line itself, with their names in rows along the bottom so they do not meet the goal flags above.
+  const marks = useMemo(() => {
+    const ends: number[] = [];
+    return events
+      .map(event => ({ event, x: xScale(event.date) }))
+      .sort((a, b) => a.x - b.x)
+      .map(({ event, x }) => {
+        const text = clip(event.label, 20);
+        const w = labelWidth(text) + 14;
+        const start = Math.max(0, Math.min(x - w / 2, innerWidth - w));
+        let row = ends.findIndex(end => start >= end + 6);
+        if (row === -1) row = ends.length < EVENT_ROWS ? ends.length : -1;
+        if (row >= 0) ends[row] = start + w;
+        return { event, x, text, w, start, row };
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, xScale, innerWidth]);
+
   const todayX = today ? xScale(today) : undefined;
   const todayFlip = todayX !== undefined && todayX + 6 + 52 > innerWidth;
 
@@ -93,6 +111,23 @@ const NetWorthLayer: React.FC<{ today?: Date; goals: { date: Date; label: string
           )}
         </g>
       ))}
+
+      {marks.map(({ event, x, text, w, start, row }) => {
+        const y = event.value !== undefined ? yScale(event.value) : undefined;
+        return (
+          <g key={`${event.label}-${event.date.getTime()}`}>
+            <title>{`${event.label}, ${dayLabel(event.date)}`}</title>
+            <line x1={x} x2={x} y1={y !== undefined ? Math.max(0, Math.min(y, innerHeight)) : 0} y2={innerHeight} stroke={EVENT_COLOR} strokeWidth={1.5} strokeDasharray="2 3" pointerEvents="none" />
+            {y !== undefined && <circle cx={x} cy={Math.max(0, Math.min(y, innerHeight))} r={5.5} fill="var(--solid)" stroke={EVENT_COLOR} strokeWidth={2.5} pointerEvents="none" />}
+            {row >= 0 && !compactLabels && (
+              <g transform={`translate(${start},${innerHeight - 8 - (row + 1) * 24})`} pointerEvents="none">
+                <rect width={w} height={20} rx={10} fill="var(--solid)" stroke={EVENT_COLOR} strokeWidth={1.5} />
+                <text x={w / 2} y={14} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--ink)">{text}</text>
+              </g>
+            )}
+          </g>
+        );
+      })}
 
       {todayX !== undefined && (
         <g aria-hidden="true" pointerEvents="none">
@@ -136,6 +171,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   showForecast = true,
   showGoals = true,
   goals = [],
+  lifeEvents = [],
   margin,
   minHeight = 'min-h-[120px]',
 }) => {
@@ -209,6 +245,17 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
       .filter(flag => flag.date.getTime() >= start && flag.date.getTime() <= end);
   }, [showGoals, goals, chartData]);
 
+  // Events inside the chart's range, each on the line where the series has a value for that day.
+  const eventMarks = useMemo<EventMark[]>(() => {
+    if (chartData.length === 0 || lifeEvents.length === 0) return [];
+    const start = chartData[0].date.getTime();
+    const end = chartData[chartData.length - 1].date.getTime();
+    return lifeEvents
+      .map(event => ({ event, date: parseLocalDate(event.date) }))
+      .filter(({ date }) => !Number.isNaN(date.getTime()) && date.getTime() >= start && date.getTime() <= end)
+      .map(({ event, date }) => ({ date, label: event.title, icon: lifeEventKind(event.kind).icon, kind: event.kind, value: netWorthOn(chartData.map(p => ({ name: p.name, value: p.netWorth })), event.date) }));
+  }, [lifeEvents, chartData]);
+
   const lowest = useMemo(() => {
     let best: { value: number; date: Date } | null = null;
     for (const point of chartData) {
@@ -230,6 +277,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     { label: 'Net worth', color: lineColor, dashed: false },
     ...(isDashedProjection ? [{ label: 'Projected', color: projectionColor, dashed: true }] : []),
     ...(goalFlags.length > 0 ? [{ label: 'Goals', color: 'var(--chart-4)', dashed: true }] : []),
+    ...(eventMarks.length > 0 ? [{ label: 'Life events', color: EVENT_COLOR, dashed: false, dot: true }] : []),
     { label: 'Lowest point', color: 'var(--money-out)', dashed: false, dot: true },
   ];
   const showLegend = !tight && (box.height === 0 || box.height >= 240);
@@ -265,7 +313,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         />
         {isDashedProjection && <LineSeriesTerminalMarker dataKey="netWorth" stroke={projectionColor} fill={projectionColor} />}
 
-        <NetWorthLayer today={todayDate} goals={goalFlags} lowest={lowest} compactLabels={tight} />
+        <NetWorthLayer today={todayDate} goals={goalFlags} events={eventMarks} lowest={lowest} compactLabels={tight} />
 
         <ChartTooltip
           showCrosshair={false}

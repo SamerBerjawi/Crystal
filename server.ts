@@ -260,6 +260,25 @@ async function startServer() {
       }
     }
 
+    if (subpath === '/benchmarks/history') {
+      if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
+      const symbol = String(req.query.symbol || '').toUpperCase();
+      const from = String(req.query.from || '');
+      if (!/^[A-Z0-9.:\-/^]{1,24}$/.test(symbol) || !/^\d{4}-\d{2}-\d{2}$/.test(from)) return res.status(400).json({ error: 'A valid symbol and from date are required.' });
+      if (!req.header('x-twelve-data-key')) return res.status(400).json({ error: 'A Twelve Data API key is required.' });
+      // Dev only: a repeatable made-up walk per symbol, so the page can be tried without a live key.
+      let seed = [...symbol].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7);
+      const next = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      const points: { date: string; close: number }[] = [];
+      let close = 100;
+      for (let d = new Date(`${from}T00:00:00Z`); d <= new Date(); d = new Date(d.getTime() + 86400000)) {
+        if (d.getUTCDay() === 0 || d.getUTCDay() === 6) continue;
+        close = Math.max(1, close * (1 + 0.0004 + (next() - 0.5) * 0.02));
+        points.push({ date: d.toISOString().slice(0, 10), close: Math.round(close * 100) / 100 });
+      }
+      return res.json({ symbol, currency: symbol.startsWith('VWCE') ? 'EUR' : 'USD', name: `${symbol} (sample data)`, points, asOf: new Date().toISOString() });
+    }
+
     if (subpath.startsWith('/alerts')) {
       if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
       const view = () => ({

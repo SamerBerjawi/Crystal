@@ -11,6 +11,7 @@ import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialData
 import { useIsMobile } from '../hooks/useIsMobile';
 import PageHeader, { type PageStat } from '../components/PageHeader';
 import ReportPanel from '../components/ReportPanel';
+import NetWorthBridgeSection from '../components/NetWorthBridgeSection';
 import { Button, IconButton } from '../components/ui/Actions';
 import { CountPill } from '../components/ui/Display';
 import { DateInput, TextInput } from '../components/ui/Fields';
@@ -609,6 +610,8 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
           </section>
         )}
       </div>
+
+      <NetWorthBridgeSection startDate={filters.startDate} endDate={filters.endDate} accountId={filters.accountId} />
 
       <SidePanel
         isOpen={isFilterOpen}

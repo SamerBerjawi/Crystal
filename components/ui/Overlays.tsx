@@ -282,11 +282,13 @@ export const Popover: React.FC<{
   trigger: React.ReactElement;
   title: string;
   placement?: string;
-  children: React.ReactNode;
+  /** A function receives `close`, for an action inside that should dismiss the popover. */
+  children: React.ReactNode | ((close: () => void) => React.ReactNode);
   className?: string;
 }> = ({ trigger, title, placement = 'bottom start', children, className }) => {
   const isPhone = useIsMobile();
   const [isOpen, setOpen] = useState(false);
+  const content = typeof children === 'function' ? children(() => setOpen(false)) : children;
 
   if (isPhone) {
     const handleTrigger = (e: React.MouseEvent) => {
@@ -302,7 +304,7 @@ export const Popover: React.FC<{
           onPress: handleTrigger,
         } as React.HTMLAttributes<HTMLElement> & { onPress?: () => void })}
         <BottomSheet isOpen={isOpen} onClose={() => setOpen(false)} title={title}>
-          {children}
+          {content}
         </BottomSheet>
       </>
     );
@@ -314,7 +316,7 @@ export const Popover: React.FC<{
     <DialogTrigger isOpen={isOpen} onOpenChange={setOpen}>
       {anchored}
       <AriaPopover placement={placement as PopoverPlacement} offset={8} className={cn(popoverStyles, 'max-h-[min(28rem,75vh)] overflow-y-auto p-3', className)}>
-        <AriaDialog aria-label={title} className="outline-none">{children}</AriaDialog>
+        <AriaDialog aria-label={title} className="outline-none">{content}</AriaDialog>
       </AriaPopover>
     </DialogTrigger>
   );

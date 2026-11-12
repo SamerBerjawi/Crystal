@@ -77,6 +77,7 @@ export const HUBS: Hub[] = [
     tabs: [
       { label: 'Portfolio', page: 'Investments', icon: 'chart-candlestick' },
       { label: 'Holdings', page: 'Investments', tab: 'holdings', icon: 'coins-01' },
+      { label: 'Performance', page: 'Investments', tab: 'performance', icon: 'chart-increase' },
       { label: 'Activity', page: 'Investments', tab: 'activity', icon: 'clock-01' },
     ],
     otherPages: ['HoldingDetail'],
@@ -92,6 +93,7 @@ export const HUBS: Hub[] = [
       { label: 'Invoices', page: 'Quotes & Invoices', icon: 'invoice-02' },
       { label: 'Challenges', page: 'Challenges', icon: 'award-01' },
       { label: 'Wrapped', page: 'Wrapped', icon: 'gift' },
+      { label: 'FIRE', page: 'FIRE', icon: 'fire' },
     ],
   },
   {

@@ -70,6 +70,7 @@ export const buildJsonExport = (config: ExportConfig, source: ExportSource): Rec
   if (chosen('goals')) {
     data.financialGoals = full.financialGoals;
     data.predictions = full.predictions;
+    data.lifeEvents = full.lifeEvents;
     if (full.goalOrder !== undefined) data.goalOrder = full.goalOrder;
   }
   if (chosen('tasks')) data.tasks = full.tasks;

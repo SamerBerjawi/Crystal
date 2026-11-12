@@ -12,6 +12,8 @@ import Icon from '../components/ui/Icon';
 import { Combobox, Select } from '../components/ui/Pickers';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { cn } from '../lib/utils';
+import { ACCENTS, applyAccent, readAccent, type AccentId } from '../utils/accent';
+import { useIsDark } from '../hooks/useIsDark';
 
 interface PreferencesProps {
   preferences: AppPreferences;
@@ -40,6 +42,40 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const FONT_LIST = Object.values(FONT_DEFINITIONS).filter(
   (font, index, all) => all.findIndex(item => normalizeFontKey(item.id) === normalizeFontKey(font.id)) === index,
 );
+
+/** Five colour presets. Each swatch shows the colour for the current theme and is named, since colour alone is not enough. */
+const AccentPicker: React.FC = () => {
+  const [accent, setAccent] = useState<AccentId>(readAccent);
+  const isDark = useIsDark();
+  const choose = (id: AccentId) => { setAccent(id); applyAccent(id); };
+  return (
+    <div role="radiogroup" aria-label="Accent colour" className="flex flex-wrap gap-2">
+      {ACCENTS.map(option => {
+        const selected = option.id === accent;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => choose(option.id)}
+            className={cn(
+              'flex min-h-11 items-center gap-2.5 rounded-full border px-3.5 py-2 text-left transition-colors',
+              selected ? 'border-primary bg-primary-soft' : 'border-line bg-surface hover:border-line-strong',
+            )}
+          >
+            <span aria-hidden="true" className="h-5 w-5 shrink-0 rounded-full border border-line-strong" style={{ backgroundColor: option.swatch[isDark ? 'dark' : 'light'] }} />
+            <span>
+              <span className="type-body-strong block text-ink">{option.label}</span>
+              <span className="type-caption block text-muted">{option.description}</span>
+            </span>
+            {selected && <Icon name="check" size={16} className="text-primary" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
 
 const toOptions = (values: string[]) => values.map(value => ({ id: value, label: value }));
 
@@ -76,6 +112,9 @@ export const Preferences: React.FC<PreferencesProps> = ({ preferences, setPrefer
       <SettingsGroup id="preferences-appearance" title="Appearance" description="How Crystal looks.">
         <p className="type-label mb-1.5 text-ink">Theme</p>
         <SegmentedControl items={THEMES} activeId={theme} onChange={id => setTheme(id as Theme)} />
+
+        <p className="type-label mb-1.5 mt-6 text-ink">Accent colour</p>
+        <AccentPicker />
 
         <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
           <p className="type-label text-ink">Typeface</p>
