@@ -22,6 +22,15 @@ export const HELP_SECTIONS: HelpSection[] = [
     ],
   },
   {
+    id: 'ask-crystal',
+    title: 'Ask Crystal',
+    points: [
+      { title: 'Ask in your own words', text: 'Press Ctrl or ⌘ and / , or choose Ask Crystal in search, then ask things like “What did I spend on dining last month?” or “Can I afford €500 next week?”.' },
+      { title: 'Numbers you can trust', text: 'Crystal looks the numbers up with the same calculations the rest of the app uses. The model only chooses what to look up and words the answer. “How I found this” shows each lookup, and any figure that could not be matched to your data is flagged.' },
+      { title: 'Choose a model', text: 'Under Connections, either download a model to the built-in engine or connect one you already run (Ollama, LM Studio, or a hosted service). Your questions and the figures looked up go only to the model you choose.' },
+    ],
+  },
+  {
     id: 'accounts',
     title: 'Accounts and banks',
     points: [

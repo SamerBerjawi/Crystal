@@ -2,6 +2,18 @@
 
 All notable changes to Crystal are documented here. Versions before 3.0.0 were tagged `v1.x`–`v2.x`.
 
+## [Unreleased]
+
+### Added
+- **Ask Crystal.** Ask about your money in plain words ("What did I spend eating out last month?", "Can I afford 2,000 in March?"). Open it with Ctrl or ⌘ and `/`, or from search. The numbers are looked up in your browser with the same calculations the rest of Crystal uses, so they match what you see; the model only chooses what to look up and words the answer. "How I found this" lists every lookup, and any figure in an answer that no lookup contained is flagged.
+- **Choose how it thinks** (Settings, Connections, Ask Crystal). Download a model to the built-in engine from inside the app, with live progress, or connect a model server you already run (Ollama, LM Studio, llama.cpp, vLLM, or a hosted service). The key is stored encrypted on the server and never sent back to the browser.
+- **Built-in engine** (optional). `docker compose --profile ai up -d` starts an Ollama container next to Crystal. It is off unless asked for.
+
+### Configuration
+- `OLLAMA_URL` (default `http://ollama:11434`) is where the backend finds the built-in engine.
+- `ASSISTANT_ALLOW_PRIVATE_URLS` (default `false`) lets Ask Crystal use a model server on your own network when other people share your server. When you are the only user it is always allowed.
+- A new table `assistant_settings` is created on startup. nginx gets a streaming-friendly `/api/assistant/` location.
+
 ## [3.1.0] - 2026-11-08
 
 Annual Wrapped, alerts from the server and a subscription audit.

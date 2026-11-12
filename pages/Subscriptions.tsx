@@ -28,6 +28,7 @@ import {
   cancelService,
   detectSubscriptions,
   expiringCards,
+  isDigitalOrService,
   pauseService,
   priceChanges,
   renewals,
@@ -49,13 +50,6 @@ type SeriesDraft = Omit<RecurringTransaction, 'id'> & { id?: string };
 
 const convert = (amount: number, currency: Parameters<typeof convertToMain>[1]) => convertToMain(amount, currency);
 const shortDay = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-const NON_SERVICE_CATEGORIES = new Set(['housing', 'rent', 'mortgage', 'loan', 'loans', 'taxes', 'tax', 'alimony']);
-const isDigitalOrService = (item: RecurringTransaction) => {
-  const cat = (item.category || '').trim().toLowerCase();
-  if (!cat) return true;
-  if (cat.includes('subscription') || cat.includes('streaming') || cat.includes('software') || cat.includes('membership')) return true;
-  return !NON_SERVICE_CATEGORIES.has(cat);
-};
 
 /** Services and cards in one place (D-028). Pausing changes what Crystal counts, and cancels nothing with the provider (D-093). */
 const Subscriptions: React.FC = () => {

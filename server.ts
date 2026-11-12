@@ -3,7 +3,9 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { randomBytes } from 'crypto';
 import { fileURLToPath } from 'url';
+import { Readable } from 'stream';
 import * as urlGuardNs from './server/src/urlGuard';
+import { fakeCompletion, fakeReply, fakeStreamLines } from './dev/fakeLlm';
 
 // server/ is a CommonJS package; under tsx its exports arrive on `default`.
 const urlGuard: typeof urlGuardNs = (urlGuardNs as any).default ?? urlGuardNs;
@@ -135,6 +137,14 @@ async function startServer() {
     channel: null,
     rules: { consent: true, budget: true, budgetThreshold: 0.8, duplicate: true, lowBalance: true, lowBalanceFloor: 0, lowBalanceDays: 7, priceHike: true, weekly: false },
   };
+  // Ask Crystal in the mock: a scripted model (dev/fakeLlm.ts) behind the same routes the real server has.
+  const mockCatalog = [
+    { name: 'qwen3:4b', label: 'Qwen3 4B', approxGb: 2.5, note: 'A good balance for a NAS CPU. Start here.' },
+    { name: 'qwen3:8b', label: 'Qwen3 8B', approxGb: 5.2, note: 'More accurate. Wants about 8 GB of free memory, or a GPU.' },
+    { name: 'llama3.2:3b', label: 'Llama 3.2 3B', approxGb: 2.0, note: 'Smallest and fastest, but weaker on multi-step questions.' },
+  ];
+  const mockAssistant = { provider: 'builtin' as 'builtin' | 'custom', baseUrl: '', model: 'qwen3:4b', apiKey: '' };
+  let mockModels: { name: string; sizeBytes: number; parameterSize: string; quantization: string }[] = [{ name: 'qwen3:4b', sizeBytes: 2.5e9, parameterSize: '4B', quantization: 'Q4_K_M' }];
   const mockLockedSessions = new Set<string>();
   const mockPins = new Map<number, string>();
   const mockPinFailures = new Map<string, number>();
@@ -302,6 +312,65 @@ async function startServer() {
       }
     }
 
+    if (subpath.startsWith('/assistant')) {
+      if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
+      const view = () => ({
+        provider: mockAssistant.provider, baseUrl: mockAssistant.baseUrl, model: mockAssistant.model, hasKey: Boolean(mockAssistant.apiKey),
+        builtin: { reachable: true, version: 'mock' }, catalog: mockCatalog, privateUrlsAllowed: true,
+      });
+      if (subpath === '/assistant' && req.method === 'GET') return res.json(view());
+      if (subpath === '/assistant' && req.method === 'PUT') {
+        const { provider, baseUrl, model, apiKey } = req.body ?? {};
+        mockAssistant.provider = provider === 'custom' ? 'custom' : 'builtin';
+        mockAssistant.baseUrl = provider === 'custom' ? String(baseUrl ?? '') : '';
+        mockAssistant.model = model ? String(model) : '';
+        if (apiKey !== undefined) mockAssistant.apiKey = String(apiKey);
+        return res.json(view());
+      }
+      if (subpath === '/assistant/models' && req.method === 'GET') {
+        return res.json({ models: mockAssistant.provider === 'builtin' ? mockModels : [{ name: 'qwen3:4b' }, { name: 'llama3.1:8b' }] });
+      }
+      if (subpath === '/assistant/models' && req.method === 'DELETE') {
+        mockModels = mockModels.filter(m => m.name !== req.body?.model);
+        if (mockAssistant.model === req.body?.model) mockAssistant.model = '';
+        return res.json({ message: 'Removed' });
+      }
+      if (subpath === '/assistant/models/info') return res.json({ supportsTools: true });
+      if (subpath === '/assistant/models/pull' && req.method === 'POST') {
+        const name = String(req.body?.model ?? '');
+        res.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-store' });
+        const total = 2.5e9;
+        let step = 0;
+        res.write(`${JSON.stringify({ status: 'pulling manifest' })}\n`);
+        const timer = setInterval(() => {
+          step += 1;
+          if (step <= 10) res.write(`${JSON.stringify({ status: 'pulling aaa', digest: 'aaa', total, completed: (total * step) / 10 })}\n`);
+          else {
+            clearInterval(timer);
+            if (!mockModels.some(m => m.name === name)) mockModels.push({ name, sizeBytes: total, parameterSize: '4B', quantization: 'Q4_K_M' });
+            res.write(`${JSON.stringify({ status: 'success' })}\n`);
+            res.end();
+          }
+        }, 300);
+        res.on('close', () => clearInterval(timer));
+        return;
+      }
+      if (subpath === '/assistant/test' && req.method === 'POST') return res.json({ ok: true, reply: 'ok', supportsTools: true });
+      if (subpath === '/assistant/chat' && req.method === 'POST') {
+        const reply = fakeReply(Array.isArray(req.body?.messages) ? req.body.messages : []);
+        if (!req.body?.stream) return res.json(fakeCompletion(reply));
+        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' });
+        const lines = fakeStreamLines(reply);
+        let i = 0;
+        const timer = setInterval(() => {
+          if (i < lines.length) res.write(lines[i++]);
+          else { clearInterval(timer); res.end(); }
+        }, 25);
+        res.on('close', () => clearInterval(timer));
+        return;
+      }
+    }
+
     if (subpath.startsWith('/enable-banking')) {
       if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
       return res.json({ status: 'ok', aspsps: [], sessions: [] });
@@ -350,6 +419,15 @@ async function startServer() {
       });
 
       res.status(backendRes.status);
+      const contentType = backendRes.headers.get('content-type') ?? '';
+      if (backendRes.body && (contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson'))) {
+        // Answers that arrive over time (a model's words, a download's progress) must not wait to be buffered whole.
+        res.flushHeaders();
+        const upstream = Readable.fromWeb(backendRes.body as any);
+        res.on('close', () => upstream.destroy());
+        upstream.pipe(res);
+        return;
+      }
       const arrayBuffer = await backendRes.arrayBuffer();
       res.send(Buffer.from(arrayBuffer));
     } catch (err: any) {

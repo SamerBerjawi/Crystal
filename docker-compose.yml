@@ -46,10 +46,34 @@ services:
       # Enable Banking. The callback URL must match one registered in the Enable Banking control panel exactly; when it
       # is empty the server builds it from the address you opened Crystal at, which is rarely the registered one.
       ENABLE_BANKING_REDIRECT_URL: ${ENABLE_BANKING_REDIRECT_URL:-}
+      # Ask Crystal's built-in engine (the `ollama` service below). Only used once that service is running.
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      # Let someone point Ask Crystal at a model server on your own network. Always allowed when you are the only
+      # user; set this to true if other people share the server and you still want it.
+      ASSISTANT_ALLOW_PRIVATE_URLS: ${ASSISTANT_ALLOW_PRIVATE_URLS:-false}
     volumes:
       # If your backend needs persistent storage for logs, configuration, etc.
       # Create an empty directory inside the container if it's not needed, e.g., /app/config
       - ${DATA_ROOT}/backend-config:/app/config:rw 
+
+  # Optional: the language-model engine behind Ask Crystal, so no separate setup is needed. It is left out unless asked
+  # for. Start it with:  docker compose --profile ai up -d
+  # Then choose and download a model under Settings, Connections, Ask Crystal. Models are several GB each and need
+  # that much free memory (more is faster); they are kept under ${DATA_ROOT}/ollama. Not published on any port.
+  # For an NVIDIA GPU, install the NVIDIA Container Toolkit and add to this service:
+  #   deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ai"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - ${DATA_ROOT}/ollama:/root/.ollama:rw
 
   frontend:
     # ⚠️ Use the tagged GHCR image instead of 'build'
