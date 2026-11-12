@@ -17,6 +17,7 @@ interface AlertRules {
   lowBalanceFloor: number;
   lowBalanceDays: number;
   priceHike: boolean;
+  weekly: boolean;
 }
 
 interface AlertSettings {
@@ -32,12 +33,13 @@ const KINDS: { id: ChannelKind; label: string; description: string }[] = [
   { id: 'webhook', label: 'Webhook', description: 'Crystal posts JSON to an address you choose' },
 ];
 
-const RULE_ROWS: { key: 'consent' | 'budget' | 'duplicate' | 'lowBalance' | 'priceHike'; label: string }[] = [
+const RULE_ROWS: { key: 'consent' | 'budget' | 'duplicate' | 'lowBalance' | 'priceHike' | 'weekly'; label: string }[] = [
   { key: 'lowBalance', label: 'A checking account is about to run low' },
   { key: 'budget', label: 'A monthly budget is nearly used up' },
   { key: 'duplicate', label: 'The same payment is charged twice' },
   { key: 'priceHike', label: 'A recurring payment costs more than expected' },
   { key: 'consent', label: 'A bank connection is about to expire' },
+  { key: 'weekly', label: 'A recap of your week, on Monday' },
 ];
 
 const request = async (path: string, init?: RequestInit) => {

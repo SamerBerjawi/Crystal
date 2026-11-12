@@ -116,3 +116,24 @@ run('private addresses are refused unless the operator allows them', () => {
     try { parsePublicHttpUrl('ftp://192.168.1.20', true); } catch { stillBlocked = true; }
     assert(stillBlocked, 'scheme is still checked with the opt-in');
 });
+
+run('weekly recap: Monday to Wednesday, once, last full week', () => {
+    const MON = new Date(2026, 10, 9, 8, 0, 0); // 9 Nov 2026, a Monday
+    const on = { ...DEFAULT_RULES, weekly: true };
+    const data = { preferences: { currency: 'EUR' }, transactions: [
+        tx('w1', '2026-11-03', -120, { category: 'Groceries' }),
+        tx('w2', '2026-11-05', -30, { category: 'Dining' }),
+        tx('w3', '2026-11-04', 1000, { type: 'income', category: 'Salary' }),
+        tx('w4', '2026-10-27', -100, { category: 'Groceries' }),
+        tx('w5', '2026-11-04', -500, { transferId: 't1' }),
+    ] };
+    const out = evaluateAlerts(data, on, MON).filter(a => a.kind === 'weekly');
+    assert(out.length === 1 && out[0].key === 'weekly:2026-11-02', 'keyed by the Monday of the recap week');
+    assert(out[0].message.includes('+50%'), 'spent 150 against 100');
+    assert(out[0].message.includes('Groceries'), 'names the top category');
+    assert(evaluateAlerts(data, DEFAULT_RULES, MON).every(a => a.kind !== 'weekly'), 'off by default');
+    assert(evaluateAlerts(data, on, new Date(2026, 10, 12)).every(a => a.kind !== 'weekly'), 'quiet on Thursday');
+    assert(evaluateAlerts({ transactions: [] }, on, MON).every(a => a.kind !== 'weekly'), 'quiet for an empty week');
+    const wed = evaluateAlerts(data, on, new Date(2026, 10, 11)).find(a => a.kind === 'weekly');
+    assert(wed?.key === 'weekly:2026-11-02', 'same key on Wednesday, so it is not sent twice');
+});

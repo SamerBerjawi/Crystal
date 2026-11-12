@@ -132,7 +132,7 @@ async function startServer() {
   let mockAlerts: { enabled: boolean; channel: { kind: string; url: string; topic?: string; token?: string } | null; rules: Record<string, number | boolean> } = {
     enabled: false,
     channel: null,
-    rules: { consent: true, budget: true, budgetThreshold: 0.8, duplicate: true, lowBalance: true, lowBalanceFloor: 0, lowBalanceDays: 7, priceHike: true },
+    rules: { consent: true, budget: true, budgetThreshold: 0.8, duplicate: true, lowBalance: true, lowBalanceFloor: 0, lowBalanceDays: 7, priceHike: true, weekly: false },
   };
   const mockLockedSessions = new Set<string>();
   const mockPins = new Map<number, string>();

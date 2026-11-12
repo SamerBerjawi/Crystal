@@ -6,7 +6,7 @@
  * throws. Amounts are only compared in the currency they were recorded in, because the server has no exchange rates.
  */
 
-export type AlertKind = 'consent' | 'budget' | 'duplicate' | 'lowBalance' | 'priceHike';
+export type AlertKind = 'consent' | 'budget' | 'duplicate' | 'lowBalance' | 'priceHike' | 'weekly';
 
 export interface AlertRules {
     consent: boolean;
@@ -19,6 +19,8 @@ export interface AlertRules {
     lowBalanceFloor: number;
     lowBalanceDays: number;
     priceHike: boolean;
+    /** A short summary of the week that just ended, sent Monday to Wednesday. */
+    weekly: boolean;
 }
 
 export const DEFAULT_RULES: AlertRules = {
@@ -30,6 +32,7 @@ export const DEFAULT_RULES: AlertRules = {
     lowBalanceFloor: 0,
     lowBalanceDays: 7,
     priceHike: true,
+    weekly: false,
 };
 
 export interface AlertCandidate {
@@ -219,10 +222,70 @@ const lowBalanceAlerts = (data: Json, now: Date, rules: AlertRules): AlertCandid
     });
 };
 
+/** Rate of one unit in EUR. Saved preferences first, EUR is 1. Null when unknown. */
+const rateIn = (rates: Json, code: string): number | null => {
+    if (code === 'EUR') return 1;
+    const rate = num(rates[code]);
+    return rate && rate > 0 ? rate : null;
+};
+
+const shortDay = (d: Date) => new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(d);
+
+/**
+ * A short recap of the Monday-to-Sunday week that just ended, offered Monday to Wednesday and once per week.
+ * Spending and income are converted to the main currency with the rates saved in preferences. Amounts that cannot
+ * be converted are left out.
+ */
+export const weeklyRecapAlerts = (data: Json, rules: AlertRules, now: Date): AlertCandidate[] => {
+    const weekday = now.getDay(); // 0 Sunday
+    if (weekday < 1 || weekday > 3) return [];
+    const preferences: Json = data.preferences && typeof data.preferences === 'object' ? data.preferences : {};
+    const main = String(preferences.currency || 'EUR').toUpperCase();
+    const rates: Json = { ...(preferences.conversionRates ?? {}), ...(preferences.manualRates ?? {}) };
+    const toMain = (amount: number, currency: unknown) => {
+        const from = String(currency || main).toUpperCase();
+        if (from === main) return amount;
+        const a = rateIn(rates, from), b = rateIn(rates, main);
+        return a && b ? (amount * a) / b : 0;
+    };
+
+    const thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((weekday + 6) % 7));
+    const start = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() - 7);
+    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+    const prevStart = new Date(start.getFullYear(), start.getMonth(), start.getDate() - 7);
+    const [from, to, prevFrom] = [isoOf(start), isoOf(end), isoOf(prevStart)];
+
+    const real = list(data.transactions).filter(tx => !tx.transferId && !tx.isSplitParent && !tx.isCombinedParent && !tx.isBalanceAdjustment && !tx.isMarketAdjustment && typeof tx.date === 'string');
+    const inRange = (tx: Json, a: string, b: string) => { const day = String(tx.date).slice(0, 10); return day >= a && day <= b; };
+    const sum = (type: string, a: string, b: string) => real.filter(tx => tx.type === type && inRange(tx, a, b)).reduce((t, tx) => t + Math.abs(toMain(num(tx.amount) ?? 0, tx.currency)), 0);
+
+    const week = real.filter(tx => inRange(tx, from, to));
+    if (week.length === 0) return [];
+    const spent = sum('expense', from, to), earned = sum('income', from, to), before = sum('expense', prevFrom, isoOf(new Date(start.getTime() - DAY_MS)));
+
+    const byCategory = new Map<string, number>();
+    week.filter(tx => tx.type === 'expense').forEach(tx => byCategory.set(String(tx.category || 'Uncategorized'), (byCategory.get(String(tx.category || 'Uncategorized')) ?? 0) + Math.abs(toMain(num(tx.amount) ?? 0, tx.currency))));
+    const top = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+    const lines = [`Spent ${money(spent, main)}${before > 0 ? ` (${spent >= before ? '+' : '-'}${Math.round(Math.abs(spent - before) / before * 100)}% on the week before)` : ''}, earned ${money(earned, main)}.`];
+    if (top.length) lines.push(`Most went to ${top.map(([name, total]) => `${name} ${money(total, main)}`).join(', ')}.`);
+
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+    const bills = list(data.recurringTransactions).filter(s => s.type === 'expense' && !s.pausedAt && !s.isSkipped && !s.isSynthetic)
+        .flatMap(s => occurrencesBetween(s, new Date(today.getTime() - DAY_MS), horizon).map(() => Math.abs(toMain(num(s.amount) ?? 0, s.currency))));
+    if (bills.length) lines.push(`${bills.length} bill${bills.length === 1 ? '' : 's'} due in the next 7 days, ${money(bills.reduce((a, b) => a + b, 0), main)}.`);
+    const high = budgetAlerts(data, now, rules).length;
+    if (high) lines.push(`${high} budget${high === 1 ? ' is' : 's are'} running high this month.`);
+
+    return [{ key: `weekly:${from}`, kind: 'weekly', title: `Your week, ${shortDay(start)} to ${shortDay(end)}`, message: lines.join(' '), priority: 'default' }];
+};
+
 export const evaluateAlerts = (data: Json, rules: AlertRules, now: Date): AlertCandidate[] => [
     ...(rules.consent ? consentAlerts(data, now) : []),
     ...(rules.budget ? budgetAlerts(data, now, rules) : []),
     ...(rules.duplicate ? duplicateAlerts(data, now) : []),
     ...(rules.lowBalance ? lowBalanceAlerts(data, now, rules) : []),
     ...(rules.priceHike ? priceHikeAlerts(data) : []),
+    ...(rules.weekly ? weeklyRecapAlerts(data, rules, now) : []),
 ];

@@ -14,6 +14,7 @@ export const pageRegistry = {
   Goals: { path: '/goals', loader: () => import('../pages/Goals') },
   Challenges: { path: '/challenges', loader: () => import('../pages/Challenges') },
   Wrapped: { path: '/wrapped', loader: () => import('../pages/Wrapped') },
+  'Weekly Recap': { path: '/weekly', loader: () => import('../pages/WeeklyRecap') },
   'Schedule & Bills': { path: '/schedule', loader: () => import('../pages/Schedule') },
   Tasks: { path: '/tasks', loader: () => import('../pages/Tasks') },
   Categories: { path: '/categories', loader: () => import('../pages/Categories') },
