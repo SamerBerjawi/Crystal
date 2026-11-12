@@ -785,6 +785,14 @@ export const WrappedStoryModal: React.FC<WrappedStoryModalProps> = ({
                           {wrapped.longestNoSpendStreak.days} Days
                         </p>
                       </div>
+                      {wrapped.lifeEvents.length > 0 && (
+                        <div className="col-span-2">
+                          <span className="text-[10px] text-white/50 uppercase">Moments</span>
+                          <p className="text-sm font-bold text-white">
+                            {wrapped.lifeEvents.slice(0, 3).map(event => event.title).join(' · ')}{wrapped.lifeEvents.length > 3 ? ` · +${wrapped.lifeEvents.length - 3} more` : ''}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between border-t border-white/10 pt-3 text-[10px] text-white/40">

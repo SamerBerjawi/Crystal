@@ -43,6 +43,7 @@ export const emptyFinancialData: FinancialData = {
     invoices: [],
     userStats: { currentStreak: 0, longestStreak: 0, lastLogDate: '', predictionWins: 0, predictionTotal: 0 },
     predictions: [],
+    lifeEvents: [],
     enableBankingConnections: [],
 };
 

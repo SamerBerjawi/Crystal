@@ -15,6 +15,7 @@ import {
   Task,
   Transaction,
   Widget,
+  LifeEvent,
 } from '../../types';
 import { DURATION_OPTIONS, FORECAST_DURATION_OPTIONS } from '../../constants';
 import { sortAccountsByType } from '../../utils/accountsModel';
@@ -162,6 +163,8 @@ export interface BuildDashboardWidgetsParams {
   netWorthTrendColor: string;
   showForecast: boolean;
   showGoals: boolean;
+  /** Life events to mark on the net-worth line. Empty when the chart option is off. */
+  lifeEvents: LifeEvent[];
   selectedAccountIds: string[];
   budgets: Budget[];
   duration: Duration;
@@ -380,6 +383,7 @@ export const buildDashboardWidgets = (p: BuildDashboardWidgetsParams): Widget[] 
       goals: p.financialGoals.filter(
         g => g.date && (!g.paymentAccountId || p.selectedAccountIds.includes(g.paymentAccountId))
       ),
+      lifeEvents: p.lifeEvents,
     },
   },
   {
@@ -671,6 +675,9 @@ export const DashboardFilterToolbar: React.FC<{
   setShowForecast: (v: boolean) => void;
   showGoals: boolean;
   setShowGoals: (v: boolean) => void;
+  showLifeEvents: boolean;
+  setShowLifeEvents: (v: boolean) => void;
+  onManageLifeEvents: () => void;
   isEditMode: boolean;
   setIsEditMode: (v: boolean) => void;
   setIsAddWidgetModalOpen: (v: boolean) => void;
@@ -688,12 +695,15 @@ export const DashboardFilterToolbar: React.FC<{
   setShowForecast,
   showGoals,
   setShowGoals,
+  showLifeEvents,
+  setShowLifeEvents,
+  onManageLifeEvents,
   isEditMode,
   setIsEditMode,
   setIsAddWidgetModalOpen,
   setPhoneEditOpen,
 }) => {
-  const chartOptions = (
+  const chartOptions = (close: () => void) => (
     <div className="flex flex-col gap-2">
       <Select
         label="Forecast period"
@@ -710,6 +720,12 @@ export const DashboardFilterToolbar: React.FC<{
       <Switch isSelected={showGoals} onChange={setShowGoals}>
         Show goals
       </Switch>
+      <Switch isSelected={showLifeEvents} onChange={setShowLifeEvents}>
+        Show life events
+      </Switch>
+      <Button variant="soft" size="sm" icon="flag" onPress={() => { close(); onManageLifeEvents(); }}>
+        Manage life events
+      </Button>
     </div>
   );
 
@@ -725,6 +741,7 @@ export const DashboardFilterToolbar: React.FC<{
             </AriaButton>
           }
         >
+          {close => (
           <div className="flex flex-col gap-4">
             <MultiSelect
               label="Accounts"
@@ -742,8 +759,9 @@ export const DashboardFilterToolbar: React.FC<{
               value={duration}
               onChange={id => setDuration(id as Duration)}
             />
-            {chartOptions}
+            {chartOptions(close)}
           </div>
+          )}
         </Popover>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
@@ -757,7 +775,7 @@ export const DashboardFilterToolbar: React.FC<{
             title="Chart options"
             trigger={<IconButton icon="more-horizontal" label="Chart options" />}
           >
-            <div className="w-64">{chartOptions}</div>
+            {close => <div className="w-64">{chartOptions(close)}</div>}
           </Popover>
         </div>
       )}

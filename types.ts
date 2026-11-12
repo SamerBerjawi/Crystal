@@ -859,6 +859,18 @@ export interface UserStats {
 export type PredictionType = 'spending_cap' | 'net_worth_goal' | 'price_target';
 export type PredictionStatus = 'active' | 'won' | 'lost';
 
+export type LifeEventKind = 'home' | 'job' | 'family' | 'move' | 'education' | 'travel' | 'health' | 'other';
+
+/** A dated moment marked on the net-worth line, such as buying a home or changing jobs. */
+export interface LifeEvent {
+  id: string;
+  /** `YYYY-MM-DD`. */
+  date: string;
+  title: string;
+  kind: LifeEventKind;
+  note?: string;
+}
+
 export interface Prediction {
   id: string;
   type: PredictionType;
@@ -898,6 +910,7 @@ export interface FinancialData {
   invoices?: Invoice[];
   userStats?: UserStats;
   predictions?: Prediction[];
+  lifeEvents?: LifeEvent[];
   enableBankingConnections?: EnableBankingConnection[];
   lastUpdatedAt?: string;
   userProfile?: User;
