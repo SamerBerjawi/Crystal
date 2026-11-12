@@ -2,14 +2,16 @@ import React from 'react';
 import { TransactionRule } from '../types';
 import { cn } from '../lib/utils';
 import { useAccountsContext } from '../contexts/DomainProviders';
+import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { isAlwaysFile } from '../utils/rules';
+import { getCategoryDetails } from '../utils/categories';
 import { accountNameOf, ruleSentence, type NameOf } from '../utils/rulesModel';
 import { IconButton } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { Switch } from './ui/Fields';
 import Icon from './ui/Icon';
 import { Menu, MenuAction } from './ui/Menu';
-import { MerchantLogo } from './EntityIcon';
+import { EntityGlyph, MerchantLogo } from './EntityIcon';
 
 /** A rule in plain words, marking its values. */
 export const RuleSentence: React.FC<{ rule: TransactionRule; nameOf?: NameOf; className?: string }> = ({ rule, nameOf, className }) => {
@@ -69,6 +71,9 @@ const RuleRow: React.FC<RuleRowProps> = ({
   const alwaysFile = isAlwaysFile(rule);
   const categoryAction = rule.actions.find(a => a.field === 'category')?.value;
   const descriptionAction = rule.actions.find(a => a.field === 'description')?.value;
+  const { expenseCategories, incomeCategories } = useCategoryContext();
+  const allCategories = React.useMemo(() => [...expenseCategories, ...incomeCategories], [expenseCategories, incomeCategories]);
+  const cat = React.useMemo(() => categoryAction ? getCategoryDetails(categoryAction, allCategories) : undefined, [categoryAction, allCategories]);
 
   return (
     <li
@@ -118,8 +123,10 @@ const RuleRow: React.FC<RuleRowProps> = ({
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="type-body-strong truncate text-ink">{rule.name}</span>
           {categoryAction && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-inset px-2 py-0.5 text-xs font-semibold text-primary">
-              → {categoryAction}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-inset py-0.5 pl-1.5 pr-2 text-xs font-semibold text-primary">
+              <span className="text-muted">→</span>
+              <EntityGlyph icon={cat?.icon} label={categoryAction} color={cat?.color} size={14} />
+              <span>{categoryAction}</span>
             </span>
           )}
           {!rule.isActive && <Badge tone="neutral">Off</Badge>}

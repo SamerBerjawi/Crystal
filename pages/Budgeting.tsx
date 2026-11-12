@@ -8,6 +8,7 @@ import BudgetModal from '../components/BudgetModal';
 import BudgetRow from '../components/BudgetRow';
 import QuickBudgetPreviewModal from '../components/QuickBudgetPreviewModal';
 import PageHeader, { type PageStat } from '../components/PageHeader';
+import { EntityGlyph } from '../components/EntityIcon';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Badge, ProgressRing } from '../components/ui/Display';
 import { Switch } from '../components/ui/Fields';
@@ -442,17 +443,23 @@ const Budgeting: React.FC<BudgetingProps> = ({
               <section aria-label="Where the budget goes" className="surface-card rounded-[var(--radius-xl)] p-6 max-md:p-5">
                 <h2 className="type-card-title text-ink">Where the budget goes</h2>
                 <ul className="mt-3 space-y-3">
-                  {shares.map(share => (
-                    <li key={share.name}>
-                      <p className="type-body flex justify-between gap-3 text-ink">
-                        <span className="truncate">{share.name}</span>
-                        <span className="type-figure-row shrink-0"><Amount value={share.value} currency={getMainCurrency()} /></span>
-                      </p>
-                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-inset">
-                        <div className="h-full rounded-full bg-[var(--chart-1)]" style={{ width: `${share.pct}%` }} />
-                      </div>
-                    </li>
-                  ))}
+                  {shares.map(share => {
+                    const cat = categoryOf(share.name);
+                    return (
+                      <li key={share.name}>
+                        <p className="type-body flex justify-between gap-3 text-ink">
+                          <span className="flex min-w-0 items-center gap-2 truncate">
+                            <EntityGlyph icon={cat?.icon} label={share.name} color={cat?.color} size={16} />
+                            <span className="truncate">{share.name}</span>
+                          </span>
+                          <span className="type-figure-row shrink-0"><Amount value={share.value} currency={getMainCurrency()} /></span>
+                        </p>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-inset">
+                          <div className="h-full rounded-full bg-[var(--chart-1)]" style={{ width: `${share.pct}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             )}
@@ -465,11 +472,14 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     const matchedCat = categoryOf(suggestion.categoryName);
                     return (
                       <li key={suggestion.categoryName} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
-                        <div className="min-w-0">
-                          <p className="type-body-strong truncate text-ink">{suggestion.categoryName}</p>
-                          <p className="type-caption text-muted">
-                            Avg <Amount value={suggestion.average} currency={getMainCurrency()} />/mo · suggest <Amount value={suggestion.suggested} currency={getMainCurrency()} />
-                          </p>
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <EntityGlyph icon={matchedCat?.icon} label={suggestion.categoryName} color={matchedCat?.color} size={18} />
+                          <div className="min-w-0">
+                            <p className="type-body-strong truncate text-ink">{suggestion.categoryName}</p>
+                            <p className="type-caption text-muted">
+                              Avg <Amount value={suggestion.average} currency={getMainCurrency()} />/mo · suggest <Amount value={suggestion.suggested} currency={getMainCurrency()} />
+                            </p>
+                          </div>
                         </div>
                         <Button
                           variant="secondary"

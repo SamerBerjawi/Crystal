@@ -5,7 +5,9 @@ import { buildEffectiveMerchantLogoOverrides, getMerchantLogoUrl } from '../util
 import { cadenceLabel, monthlyEquivalent } from '../utils/scheduleModel';
 import type { ServiceStatus } from '../utils/subscriptionsModel';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { LogoTile } from './EntityIcon';
+import { useCategoryContext } from '../contexts/FinancialDataContext';
+import { getCategoryDetails } from '../utils/categories';
+import { EntityGlyph, LogoTile } from './EntityIcon';
 import { IconButton } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { Menu, type MenuAction } from './ui/Menu';
@@ -98,6 +100,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   quickAction,
 }) => {
   const name = service.merchant || service.description;
+  const { expenseCategories, incomeCategories } = useCategoryContext();
+  const allCategories = useMemo(() => [...expenseCategories, ...incomeCategories], [expenseCategories, incomeCategories]);
+  const cat = useMemo(() => service.category ? getCategoryDetails(service.category, allCategories) : undefined, [service.category, allCategories]);
   const rawAmount = Math.abs(service.amount);
   const isYearlyOrNonMonthly = service.frequency !== 'monthly';
   const monthlyCost = isYearlyOrNonMonthly ? round2(monthlyEquivalent(service)) : rawAmount;
@@ -144,8 +149,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 {name}
               </button>
             </h3>
-            <p className="type-caption truncate text-muted mt-0.5">
-              {service.category || cadenceLabel(service)}
+            <p className="type-caption flex items-center gap-1.5 truncate text-muted mt-0.5">
+              {service.category ? (
+                <>
+                  <EntityGlyph icon={cat?.icon} label={service.category} color={cat?.color} size={12} />
+                  <span className="truncate">{service.category}</span>
+                </>
+              ) : (
+                <span className="truncate">{cadenceLabel(service)}</span>
+              )}
             </p>
           </div>
           <span className="relative z-10 -mr-2 -mt-2">

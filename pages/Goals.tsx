@@ -17,8 +17,11 @@ import { Select, type PickerOption } from '../components/ui/Pickers';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 import { useInsightsView } from '../contexts/InsightsViewContext';
-import { useAccountsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesContext } from '../contexts/DomainProviders';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
+import { AccountLogo, accountIcon } from '../components/AccountCard';
+import { LogoTile } from '../components/EntityIcon';
+import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { goalViews } from '../utils/budgetModel';
 import { RingChart, Ring, RingCenter } from '../src/components/charts';
 import { goalCategoryOf } from '../utils/forecastModel';
@@ -46,6 +49,7 @@ const Sortable: React.FC<{ id: string; children: (handle: React.ReactNode) => Re
 const Goals: React.FC = () => {
   const { financialGoals, goalOrder, setGoalOrder, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
   const { accounts } = useAccountsContext();
+  const { preferences } = usePreferencesContext();
   const { activeGoalIds, setActiveGoalIds } = useInsightsView();
 
   const [isFormOpen, setFormOpen] = useState(false);
@@ -107,14 +111,20 @@ const Goals: React.FC = () => {
   const accountOptions = useMemo<PickerOption[]>(() => {
     const used = new Set(financialGoals.map(goal => goal.paymentAccountId).filter(Boolean));
     return [
-      { id: ALL, label: 'All accounts' },
-      ...sortAccountsByType(accounts.filter(account => used.has(account.id))).map(account => ({
-        id: account.id,
-        label: account.name,
-        group: account.status === 'closed' ? 'Closed' : account.type,
-      })),
+      { id: ALL, label: 'All accounts', visual: <LogoTile label="All" size={24} fallbackIcon="account_balance" /> },
+      ...sortAccountsByType(accounts.filter(account => used.has(account.id))).map(account => {
+        const logoUrl = account.imageUrl
+          || getAccountBrandfetchUrl(account, preferences?.brandfetchClientId, preferences?.logoOverrides)
+          || (account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, preferences?.brandfetchClientId, preferences?.logoOverrides) : null);
+        return {
+          id: account.id,
+          label: account.name,
+          group: account.status === 'closed' ? 'Closed' : account.type,
+          visual: <LogoTile url={logoUrl} label={account.name} size={24} fallbackIcon={accountIcon(account)} />,
+        };
+      }),
     ];
-  }, [accounts, financialGoals]);
+  }, [accounts, financialGoals, preferences?.brandfetchClientId, preferences?.logoOverrides]);
 
   const isIncluded = (goal: FinancialGoal) => !goal.disabled && activeGoalIds.includes(goal.id);
   const allIncluded = visibleGoals.length > 0 && visibleGoals.every(goal => activeGoalIds.includes(goal.id));
@@ -329,18 +339,24 @@ const Goals: React.FC = () => {
 
                 {/* Original Clean 2-Column Schedule Breakdown */}
                 <div className="mt-4 md:columns-2 md:gap-x-8">
-                  {targets.map((group, index) => (
-                    <section key={group.key} aria-label={group.label} className="mb-6 min-w-0 break-inside-avoid">
-                      <h3 className="type-body-strong flex items-center gap-2 text-ink">
-                        {schedule === 'account' && (
-                          <span
-                            aria-hidden="true"
-                            className="size-2 shrink-0 rounded-full"
-                            style={{ backgroundColor: DOTS[index % DOTS.length] }}
-                          />
-                        )}
-                        <span className="truncate">{group.label}</span>
-                      </h3>
+                  {targets.map((group, index) => {
+                    const acc = accounts.find(a => a.name === group.label || a.id === group.key);
+                    return (
+                      <section key={group.key} aria-label={group.label} className="mb-6 min-w-0 break-inside-avoid">
+                        <h3 className="type-body-strong flex items-center gap-2 text-ink">
+                          {schedule === 'account' && acc ? (
+                            <AccountLogo account={acc} size={20} />
+                          ) : (
+                            schedule === 'account' && (
+                              <span
+                                aria-hidden="true"
+                                className="size-2 shrink-0 rounded-full"
+                                style={{ backgroundColor: DOTS[index % DOTS.length] }}
+                              />
+                            )
+                          )}
+                          <span className="truncate">{group.label}</span>
+                        </h3>
                       <ul className="mt-1 divide-y divide-line border-l-2 border-line pl-3">
                         {group.items.map(item => (
                           <li
@@ -378,8 +394,9 @@ const Goals: React.FC = () => {
                         ))}
                       </ul>
                     </section>
-                  ))}
-                </div>
+                  );
+                })}
+              </div>
               </div>
             ) : (
               <p className="type-body mt-3 text-muted">Nothing is due in the next twelve months.</p>

@@ -5,6 +5,7 @@ import { goalCategoryOf } from '../utils/forecastModel';
 import { goalCardView, isGoalDone } from '../utils/goalsModel';
 import { cn } from '../lib/utils';
 import { GOAL_STATUS } from './GoalCard';
+import { AccountLogo } from './AccountCard';
 import { IconButton } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { Checkbox } from './ui/Fields';
@@ -105,7 +106,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, o
               {group.name && <tr className="border-t border-line"><th scope="rowgroup" colSpan={8} className="type-label px-3 py-2 text-left text-muted">{group.name}</th></tr>}
               {group.rows.map(({ goal, view }) => {
                 const status = GOAL_STATUS[view.status];
-                const account = accounts.find(item => item.id === goal.paymentAccountId)?.name;
+                const account = accounts.find(item => item.id === goal.paymentAccountId);
                 return (
                   <tr key={goal.id} className="border-b border-line last:border-0">
                     <td className="px-3 py-2">
@@ -113,7 +114,18 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, today, onEdit, o
                         <Checkbox isSelected={isGoalDone(goal)} onChange={() => onToggleComplete(goal)}><span className="sr-only">{goal.name} reached</span></Checkbox>
                         <button type="button" onClick={() => onEdit(goal)} className="min-w-0 cursor-pointer text-left">
                           <span className="type-body-strong block truncate text-ink">{goal.name}</span>
-                          <span className="type-caption block truncate text-muted">{CATEGORY_LABEL[goalCategoryOf(goal)]}{account ? `, ${account}` : ''}</span>
+                          <span className="type-caption flex items-center gap-1.5 truncate text-muted">
+                            <span>{CATEGORY_LABEL[goalCategoryOf(goal)]}</span>
+                            {account && (
+                              <>
+                                <span>·</span>
+                                <span className="inline-flex items-center gap-1">
+                                  <AccountLogo account={account} size={14} />
+                                  <span>{account.name}</span>
+                                </span>
+                              </>
+                            )}
+                          </span>
                         </button>
                       </div>
                     </td>

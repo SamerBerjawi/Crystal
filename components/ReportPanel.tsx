@@ -3,10 +3,12 @@ import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, T
 import type { Page, Transaction } from '../types';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
+import { getCategoryDetails } from '../utils/categories';
 import { reportInsights, type GroupBy, type Report, type ReportId } from '../utils/reportsModel';
 import { PieCenter, PieChart, PieSlice } from '../src/components/charts';
 import { LINE_MOTION } from '../src/components/charts/animation';
 import CashflowSankey from './CashflowSankey';
+import { EntityGlyph, MerchantLogo } from './EntityIcon';
 import { Button } from './ui/Actions';
 import { Badge, ShowMore } from './ui/Display';
 import Icon from './ui/Icon';
@@ -22,6 +24,15 @@ const COMPARE = [{ id: 'now', label: 'This period' }, { id: 'compare', label: 'V
 
 const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 const share = (part: number, whole: number) => (whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : '0.0%');
+
+const useCategoryDetailsLookup = () => {
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const allCategories = useMemo(
+    () => [...expenseCategories, ...incomeCategories],
+    [expenseCategories, incomeCategories]
+  );
+  return (name: string) => getCategoryDetails(name, allCategories);
+};
 
 const Row: React.FC<{ title: React.ReactNode; detail?: React.ReactNode; value: React.ReactNode; note?: React.ReactNode }> = ({ title, detail, value, note }) => (
   <li className="flex min-h-14 items-center justify-between gap-3 py-1.5">
@@ -72,6 +83,7 @@ const SpendingChart: React.FC<{ report: Report }> = ({ report }) => {
 };
 
 const CategoryReport: React.FC<{ report: Report }> = ({ report }) => {
+  const getCat = useCategoryDetailsLookup();
   const [shown, setShown] = useState(STEP);
   const [compare, setCompare] = useState(false);
   const before = useMemo(() => new Map(report.previousCategories.map(row => [row.category, row.totalEur])), [report.previousCategories]);
@@ -97,14 +109,22 @@ const CategoryReport: React.FC<{ report: Report }> = ({ report }) => {
       <div className="min-w-0">
         <div className="mb-1 flex justify-end"><SegmentedControl items={COMPARE} activeId={compare ? 'compare' : 'now'} onChange={id => setCompare(id === 'compare')} /></div>
         <Rows>
-          {report.categories.slice(0, shown).map((row, index) => (
-            <Row
-              key={row.category}
-              title={<span className="flex items-center gap-2"><span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: SLICE_COLORS[index] ?? 'var(--muted)' }} /><span className="truncate">{row.category}</span></span>}
-              value={<Amount value={row.totalEur} currency={getMainCurrency()} />}
-              note={compare ? <Change current={row.totalEur} previous={before.get(row.category) ?? 0} /> : share(row.totalEur, report.totalSpend)}
-            />
-          ))}
+          {report.categories.slice(0, shown).map((row, index) => {
+            const cat = getCat(row.category);
+            return (
+              <Row
+                key={row.category}
+                title={
+                  <span className="flex items-center gap-2 min-w-0">
+                    <EntityGlyph icon={cat?.icon} label={row.category} color={cat?.color} size={16} />
+                    <span className="truncate">{row.category}</span>
+                  </span>
+                }
+                value={<Amount value={row.totalEur} currency={getMainCurrency()} />}
+                note={compare ? <Change current={row.totalEur} previous={before.get(row.category) ?? 0} /> : share(row.totalEur, report.totalSpend)}
+              />
+            );
+          })}
         </Rows>
         <ShowMore remaining={report.categories.length - shown} onPress={() => setShown(count => count + STEP)} />
       </div>
@@ -125,6 +145,7 @@ const monthLabel = (key: string) => new Date(Number(key.slice(0, 4)), Number(key
 
 /** Every category against every month. The darker the cell, the more went out; the biggest cell is the darkest. */
 const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
+  const getCat = useCategoryDetailsLookup();
   const isPrivate = useContext(PrivacyContext);
   const compactMoney = (value: number) => isPrivate ? '•••' : formatCurrency(value, getMainCurrency(), { compact: true });
   const [shown, setShown] = useState(STEP);
@@ -142,27 +163,35 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
             </tr>
           </thead>
           <tbody>
-            {table.slice(0, shown).map(row => (
-              <tr key={row.category}>
-                <th scope="row" className="type-body max-w-[160px] truncate py-1 pr-3 text-left font-normal text-ink">{row.category}</th>
-                {months.map(key => {
-                  const value = row.cells[key] ?? 0;
-                  const strength = max > 0 ? Math.round((value / max) * 70) : 0;
-                  return (
-                    <td key={key} className="px-0.5 py-0">
-                      <span
-                        title={`${row.category}, ${monthLabel(key)}: ${isPrivate ? '•••' : formatCurrency(value, getMainCurrency())}`}
-                        className="type-caption privacy-blur block rounded-md px-2 py-1.5 text-right tabular-nums text-ink transition-transform hover:scale-105 hover:ring-1 hover:ring-primary/40 cursor-default"
-                        style={{ background: value > 0 ? `color-mix(in srgb, var(--chart-1) ${Math.max(8, strength)}%, transparent)` : 'transparent' }}
-                      >
-                        {value > 0 ? compactMoney(value) : '–'}
-                      </span>
-                    </td>
-                  );
-                })}
-                <td className="type-figure-row py-1 pl-3 text-right text-ink"><Amount value={row.totalEur} currency={getMainCurrency()} /></td>
-              </tr>
-            ))}
+            {table.slice(0, shown).map(row => {
+              const cat = getCat(row.category);
+              return (
+                <tr key={row.category}>
+                  <th scope="row" className="type-body max-w-[180px] py-1 pr-3 text-left font-normal text-ink">
+                    <span className="flex items-center gap-2 min-w-0">
+                      <EntityGlyph icon={cat?.icon} label={row.category} color={cat?.color} size={16} />
+                      <span className="truncate">{row.category}</span>
+                    </span>
+                  </th>
+                  {months.map(key => {
+                    const value = row.cells[key] ?? 0;
+                    const strength = max > 0 ? Math.round((value / max) * 70) : 0;
+                    return (
+                      <td key={key} className="px-0.5 py-0">
+                        <span
+                          title={`${row.category}, ${monthLabel(key)}: ${isPrivate ? '•••' : formatCurrency(value, getMainCurrency())}`}
+                          className="type-caption privacy-blur block rounded-md px-2 py-1.5 text-right tabular-nums text-ink transition-transform hover:scale-105 hover:ring-1 hover:ring-primary/40 cursor-default"
+                          style={{ background: value > 0 ? `color-mix(in srgb, var(--chart-1) ${Math.max(8, strength)}%, transparent)` : 'transparent' }}
+                        >
+                          {value > 0 ? compactMoney(value) : '–'}
+                        </span>
+                      </td>
+                    );
+                  })}
+                  <td className="type-figure-row py-1 pl-3 text-right text-ink"><Amount value={row.totalEur} currency={getMainCurrency()} /></td>
+                </tr>
+              );
+            })}
             <tr className="border-t border-line">
               <th scope="row" className="type-body-strong pt-2.5 pr-3 text-left text-ink">All spending</th>
               {monthTotals.map((value, index) => <td key={months[index]} className="type-caption privacy-blur px-2 pt-2.5 text-right tabular-nums text-ink">{value > 0 ? compactMoney(value) : '–'}</td>)}
@@ -178,6 +207,7 @@ const CategoryMonthsReport: React.FC<{ report: Report }> = ({ report }) => {
 
 /** Money in: the sources, and how it came month by month. */
 const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
+  const getCat = useCategoryDetailsLookup();
   const isPrivate = useContext(PrivacyContext);
   const { total, sources, months } = report.incomeReport;
   if (total <= 0) return <Empty>No money came in during this period.</Empty>;
@@ -202,7 +232,22 @@ const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
       )}
       <div className="mt-4 border-t border-line pt-2">
         <Rows>
-          {sources.map(row => <Row key={row.category} title={row.category} value={<Amount value={row.totalEur} currency={getMainCurrency()} />} note={share(row.totalEur, total)} />)}
+          {sources.map(row => {
+            const cat = getCat(row.category);
+            return (
+              <Row
+                key={row.category}
+                title={
+                  <span className="flex items-center gap-2 min-w-0">
+                    <EntityGlyph icon={cat?.icon} label={row.category} color={cat?.color} size={16} />
+                    <span className="truncate">{row.category}</span>
+                  </span>
+                }
+                value={<Amount value={row.totalEur} currency={getMainCurrency()} />}
+                note={share(row.totalEur, total)}
+              />
+            );
+          })}
         </Rows>
       </div>
     </>
@@ -210,6 +255,7 @@ const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
 };
 
 const BreakdownReport: React.FC<{ report: Report; groupBy: GroupBy; onGroupBy: (group: GroupBy) => void; setCurrentPage?: (page: Page) => void }> = ({ report, groupBy, onGroupBy, setCurrentPage }) => {
+  const getCat = useCategoryDetailsLookup();
   const [shown, setShown] = useState(STEP);
   return (
     <>
@@ -218,9 +264,31 @@ const BreakdownReport: React.FC<{ report: Report; groupBy: GroupBy; onGroupBy: (
         <>
           <div className="mt-3">
             <Rows>
-              {report.groups.slice(0, shown).map(row => (
-                <Row key={row.label} title={row.label} detail={`${row.count} ${row.count === 1 ? 'payment' : 'payments'}`} value={<Amount value={row.totalEur} currency={getMainCurrency()} />} note={share(row.totalEur, report.totalSpend)} />
-              ))}
+              {report.groups.slice(0, shown).map(row => {
+                const isMerchant = groupBy === 'merchant';
+                const cat = !isMerchant ? getCat(row.label) : undefined;
+                return (
+                  <Row
+                    key={row.label}
+                    title={
+                      isMerchant ? (
+                        <span className="flex items-center gap-2.5 min-w-0">
+                          <MerchantLogo merchant={row.label} size={28} />
+                          <span className="truncate">{row.label}</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2 min-w-0">
+                          <EntityGlyph icon={cat?.icon} label={row.label} color={cat?.color} size={16} />
+                          <span className="truncate">{row.label}</span>
+                        </span>
+                      )
+                    }
+                    detail={`${row.count} ${row.count === 1 ? 'payment' : 'payments'}`}
+                    value={<Amount value={row.totalEur} currency={getMainCurrency()} />}
+                    note={share(row.totalEur, report.totalSpend)}
+                  />
+                );
+              })}
             </Rows>
             <ShowMore remaining={report.groups.length - shown} onPress={() => setShown(count => count + STEP)} />
           </div>
@@ -230,7 +298,20 @@ const BreakdownReport: React.FC<{ report: Report; groupBy: GroupBy; onGroupBy: (
               {setCurrentPage && <Button variant="secondary" size="sm" onPress={() => setCurrentPage('Merchants')}>Open Merchants</Button>}
             </div>
             <Rows>
-              {report.loyalty.map(row => <Row key={row.label} title={row.label} detail={`${row.count} visits`} value={<Amount value={row.avgPerVisit} currency={getMainCurrency()} />} note="a visit" />)}
+              {report.loyalty.map(row => (
+                <Row
+                  key={row.label}
+                  title={
+                    <span className="flex items-center gap-2.5 min-w-0">
+                      <MerchantLogo merchant={row.label} size={28} />
+                      <span className="truncate">{row.label}</span>
+                    </span>
+                  }
+                  detail={`${row.count} visits`}
+                  value={<Amount value={row.avgPerVisit} currency={getMainCurrency()} />}
+                  note="a visit"
+                />
+              ))}
             </Rows>
           </section>
         </>
@@ -241,6 +322,7 @@ const BreakdownReport: React.FC<{ report: Report; groupBy: GroupBy; onGroupBy: (
 
 /** On phones a Sankey can't fit its labels, so the money in and out reads as a structured waterfall (`D-034`). */
 const PhoneCashflow: React.FC<{ report: Report }> = ({ report }) => {
+  const getCat = useCategoryDetailsLookup();
   const net = report.income - report.totalSpend;
   const isSurplus = net >= 0;
 
@@ -272,21 +354,27 @@ const PhoneCashflow: React.FC<{ report: Report }> = ({ report }) => {
         </div>
 
         <ul className="divide-y divide-line/60">
-          {report.categories.slice(0, 6).map(row => (
-            <li key={row.category} className="flex items-center justify-between py-1.5 text-xs">
-              <span className="mr-2 truncate text-muted">{row.category}</span>
-              <div className="flex shrink-0 items-center gap-2 text-right">
-                <span className="tabular-nums font-medium text-ink">
-                  <Amount value={row.totalEur} currency={getMainCurrency()} />
+          {report.categories.slice(0, 6).map(row => {
+            const cat = getCat(row.category);
+            return (
+              <li key={row.category} className="flex items-center justify-between py-1.5 text-xs">
+                <span className="mr-2 flex min-w-0 items-center gap-2 truncate text-muted">
+                  <EntityGlyph icon={cat?.icon} label={row.category} color={cat?.color} size={14} />
+                  <span className="truncate text-ink">{row.category}</span>
                 </span>
-                {report.income > 0 && (
-                  <span className="w-12 text-right text-[11px] text-muted">
-                    {share(row.totalEur, report.income)}
+                <div className="flex shrink-0 items-center gap-2 text-right">
+                  <span className="tabular-nums font-medium text-ink">
+                    <Amount value={row.totalEur} currency={getMainCurrency()} />
                   </span>
-                )}
-              </div>
-            </li>
-          ))}
+                  {report.income > 0 && (
+                    <span className="w-12 text-right text-[11px] text-muted">
+                      {share(row.totalEur, report.income)}
+                    </span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
           {report.categories.length > 6 && (
             <li className="flex items-center justify-between py-1.5 text-xs text-muted">
               <span>{report.categories.length - 6} other categories</span>
@@ -320,6 +408,7 @@ const PhoneCashflow: React.FC<{ report: Report }> = ({ report }) => {
 };
 
 const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) => void }> = ({ report, setCurrentPage }) => {
+  const getCat = useCategoryDetailsLookup();
   const isPrivate = useContext(PrivacyContext);
   const insights = reportInsights(report);
 
@@ -574,10 +663,15 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
                 <ul className="min-w-0 space-y-1.5">
                   {donutSlices.map((slice) => {
                     const pct = report.totalSpend > 0 ? (slice.value / report.totalSpend) * 100 : 0;
+                    const cat = slice.label !== 'Other' ? getCat(slice.label) : undefined;
                     return (
                       <li key={slice.label} className="flex items-center justify-between gap-2 text-xs">
                         <span className="flex min-w-0 items-center gap-2 truncate">
-                          <span className="size-2 shrink-0 rounded-full" style={{ background: slice.color }} />
+                          {slice.label !== 'Other' ? (
+                            <EntityGlyph icon={cat?.icon} label={slice.label} color={cat?.color} size={14} />
+                          ) : (
+                            <span className="size-2 shrink-0 rounded-full" style={{ background: slice.color }} />
+                          )}
                           <span className="truncate text-ink">{slice.label}</span>
                         </span>
                         <div className="flex shrink-0 items-center gap-2 text-right">
@@ -596,7 +690,20 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
             )}
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-line/60 pt-2 text-xs text-muted">
-            <span>Leading: <span className="font-semibold text-ink">{topCategories[0]?.category ?? 'None'}</span></span>
+            <span className="inline-flex items-center gap-1.5">
+              <span>Leading:</span>
+              <span className="inline-flex items-center gap-1 font-semibold text-ink">
+                {topCategories[0] && (
+                  <EntityGlyph
+                    icon={getCat(topCategories[0].category)?.icon}
+                    label={topCategories[0].category}
+                    color={getCat(topCategories[0].category)?.color}
+                    size={14}
+                  />
+                )}
+                <span>{topCategories[0]?.category ?? 'None'}</span>
+              </span>
+            </span>
             {topCategories[0] && (
               <span>{((topCategories[0].totalEur / Math.max(1, report.totalSpend)) * 100).toFixed(0)}% of total</span>
             )}
@@ -719,6 +826,7 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-inset text-[10px] font-bold text-muted">
                       {idx + 1}
                     </span>
+                    <MerchantLogo merchant={m.name} size={28} />
                     <div className="min-w-0">
                       <div className="truncate font-medium text-ink">{m.name}</div>
                       <div className="text-[11px] text-muted">{m.count} {m.count === 1 ? 'payment' : 'payments'}</div>
@@ -838,6 +946,7 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
 };
 
 const UsualReport: React.FC<{ report: Report }> = ({ report }) => {
+  const getCat = useCategoryDetailsLookup();
   if (report.usual.length === 0) return <Empty>There's no earlier spending to compare with.</Empty>;
 
   const overCount = report.usual.filter(r => r.difference > 0.01).length;
@@ -857,6 +966,7 @@ const UsualReport: React.FC<{ report: Report }> = ({ report }) => {
 
       <div className="divide-y divide-line">
         {report.usual.map(row => {
+          const cat = getCat(row.category);
           const maxVal = Math.max(row.spent, row.usual, 1);
           const spentPct = Math.min(100, (row.spent / maxVal) * 100);
           const usualPct = Math.min(100, (row.usual / maxVal) * 100);
@@ -867,12 +977,15 @@ const UsualReport: React.FC<{ report: Report }> = ({ report }) => {
           return (
             <div key={row.category} className="space-y-2 py-3">
               <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="type-body-strong truncate text-ink">{row.category}</div>
-                  <div className="type-caption flex items-center gap-2 text-muted">
-                    <span>Usually <Amount value={row.usual} currency={getMainCurrency()} /></span>
-                    <span>·</span>
-                    <span>Spent <Amount value={row.spent} currency={getMainCurrency()} /></span>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <EntityGlyph icon={cat?.icon} label={row.category} color={cat?.color} size={18} />
+                  <div className="min-w-0">
+                    <div className="type-body-strong truncate text-ink">{row.category}</div>
+                    <div className="type-caption flex items-center gap-2 text-muted">
+                      <span>Usually <Amount value={row.usual} currency={getMainCurrency()} /></span>
+                      <span>·</span>
+                      <span>Spent <Amount value={row.spent} currency={getMainCurrency()} /></span>
+                    </div>
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
@@ -919,6 +1032,7 @@ const UsualReport: React.FC<{ report: Report }> = ({ report }) => {
 };
 
 const BudgetReport: React.FC<{ report: Report }> = ({ report }) => {
+  const getCat = useCategoryDetailsLookup();
   const [sortMode, setSortMode] = useState<'overspend' | 'budget' | 'remaining'>('overspend');
 
   if (report.budget.length === 0) return <Empty>You have no budgets yet.</Empty>;
@@ -978,6 +1092,7 @@ const BudgetReport: React.FC<{ report: Report }> = ({ report }) => {
       {/* Rows */}
       <div className="divide-y divide-line">
         {sortedRows.map(row => {
+          const cat = getCat(row.categoryName);
           const ratio = row.budgetEur > 0 ? (row.actualEur / row.budgetEur) : 0;
           const pct = Math.round(ratio * 100);
           const isOver = row.varianceEur < 0;
@@ -987,10 +1102,13 @@ const BudgetReport: React.FC<{ report: Report }> = ({ report }) => {
           return (
             <div key={row.categoryName} className="space-y-2 py-3">
               <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="type-body-strong truncate text-ink">{row.categoryName}</div>
-                  <div className="type-caption text-muted">
-                    Limit: <Amount value={row.budgetEur} currency={getMainCurrency()} />
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <EntityGlyph icon={cat?.icon} label={row.categoryName} color={cat?.color} size={18} />
+                  <div className="min-w-0">
+                    <div className="type-body-strong truncate text-ink">{row.categoryName}</div>
+                    <div className="type-caption text-muted">
+                      Limit: <Amount value={row.budgetEur} currency={getMainCurrency()} />
+                    </div>
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
@@ -1089,7 +1207,12 @@ const RecurringReport: React.FC<{ report: Report }> = ({ report }) => {
               {items.map(row => (
                 <Row
                   key={row.merchant}
-                  title={row.merchant}
+                  title={
+                    <span className="flex items-center gap-2.5 min-w-0">
+                      <MerchantLogo merchant={row.merchant} size={28} />
+                      <span className="truncate">{row.merchant}</span>
+                    </span>
+                  }
                   detail={`${row.occurrences} payments detected · Avg <Amount value={row.averageEur} />/charge`}
                   value={<Amount value={row.estimatedMonthlyEur} currency={getMainCurrency()} />}
                   note="a month"
@@ -1104,6 +1227,7 @@ const RecurringReport: React.FC<{ report: Report }> = ({ report }) => {
 };
 
 const UnusualReport: React.FC<{ report: Report }> = ({ report }) => {
+  const getCat = useCategoryDetailsLookup();
   if (report.unusual.length === 0) return <Empty>Nothing stands out.</Empty>;
 
   return (
@@ -1116,17 +1240,22 @@ const UnusualReport: React.FC<{ report: Report }> = ({ report }) => {
       <ul className="divide-y divide-line">
         {report.unusual.map(row => {
           const ratio = report.average > 0 ? (row.amountEur / report.average).toFixed(1) : null;
+          const cat = getCat(row.category);
           return (
             <li key={row.id} className="flex min-h-14 items-center justify-between gap-3 py-2.5">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="type-body-strong truncate text-ink">{row.merchant}</span>
-                  <Badge tone="attention" className="px-1.5 py-0.5 text-[11px] font-medium">
-                    {ratio ? `${ratio}× normal` : `+${row.zScore.toFixed(1)}σ`}
-                  </Badge>
-                </div>
-                <div className="type-caption mt-0.5 text-muted">
-                  {row.category} · {shortDate(row.date)}
+              <div className="flex min-w-0 items-center gap-3">
+                <MerchantLogo merchant={row.merchant} size={32} />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="type-body-strong truncate text-ink">{row.merchant}</span>
+                    <Badge tone="attention" className="px-1.5 py-0.5 text-[11px] font-medium">
+                      {ratio ? `${ratio}× normal` : `+${row.zScore.toFixed(1)}σ`}
+                    </Badge>
+                  </div>
+                  <div className="type-caption mt-0.5 flex items-center gap-1.5 text-muted">
+                    <EntityGlyph icon={cat?.icon} label={row.category} color={cat?.color} size={13} />
+                    <span>{row.category} · {shortDate(row.date)}</span>
+                  </div>
                 </div>
               </div>
               <div className="shrink-0 text-right">

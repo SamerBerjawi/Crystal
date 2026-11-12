@@ -20,6 +20,7 @@ import { ConfirmDialog } from '../components/ui/Overlays';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 import { MerchantLogo } from '../components/EntityIcon';
+import { AccountLogo } from '../components/AccountCard';
 import { cn } from '../lib/utils';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import { useAccountsContext, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
@@ -525,6 +526,7 @@ const SchedulePage: React.FC = () => {
                     const isPaused = !!row.series.pausedAt;
                     const isEnded = !!row.ended;
                     const name = row.series.merchant || row.series.description;
+                    const linkedAccount = accounts.find(a => a.id === row.series.accountId);
 
                     return (
                       <li key={row.series.id} className="group -mx-2 flex min-h-16 flex-wrap items-center gap-3 rounded-[var(--radius-md)] px-2 py-2.5 transition-colors hover:bg-inset/30">
@@ -539,8 +541,13 @@ const SchedulePage: React.FC = () => {
                           </div>
                           <p className="type-caption mt-0.5 flex flex-wrap items-center gap-1.5 text-muted">
                             {row.next && <span>Next due {shortDay(row.next)}</span>}
-                            {row.next && accountName(row.series.accountId) && <span>·</span>}
-                            {accountName(row.series.accountId) && <span>{accountName(row.series.accountId)}</span>}
+                            {row.next && linkedAccount && <span>·</span>}
+                            {linkedAccount && (
+                              <span className="inline-flex items-center gap-1">
+                                <AccountLogo account={linkedAccount} size={14} />
+                                <span>{linkedAccount.name}</span>
+                              </span>
+                            )}
                             {row.series.paymentUrl && (
                               <>
                                 <span>·</span>
@@ -646,10 +653,23 @@ const SchedulePage: React.FC = () => {
                       <p className="type-body-strong truncate text-ink">{bill.description}</p>
                       <Badge tone="neutral">Archived</Badge>
                     </div>
-                    <p className="type-caption mt-0.5 text-muted">
-                      Due {shortDay(bill.dueDate)}
-                      {accountName(bill.accountId) && ` · ${accountName(bill.accountId)}`}
-                    </p>
+                    {(() => {
+                      const billAccount = accounts.find(a => a.id === bill.accountId);
+                      return (
+                        <p className="type-caption mt-0.5 flex flex-wrap items-center gap-1.5 text-muted">
+                          <span>Due {shortDay(bill.dueDate)}</span>
+                          {billAccount && (
+                            <>
+                              <span>·</span>
+                              <span className="inline-flex items-center gap-1">
+                                <AccountLogo account={billAccount} size={14} />
+                                <span>{billAccount.name}</span>
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <span className="type-figure-row shrink-0 text-ink">
                     <Amount value={bill.amount} currency={bill.currency} />

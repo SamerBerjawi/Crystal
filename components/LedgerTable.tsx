@@ -3,7 +3,7 @@ import { Button as AriaButton } from 'react-aria-components';
 import type { Account, Category, DisplayTransaction, Tag } from '../types';
 import { convertToMain, getMainCurrency } from '../utils';
 import { getCategoryDetails } from '../utils/categories';
-import { adaptColorForTheme } from './EntityIcon';
+import { adaptColorForTheme, EntityGlyph } from './EntityIcon';
 import { accountIcon } from './AccountCard';
 import { useIsDark } from '../hooks/useIsDark';
 import SwipeableRow from './SwipeableRow';
@@ -312,10 +312,15 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           : <Logo tx={tx} url={logoOf(tx)} icon={details(tx).icon} account={accountOf(tx).account} />}
                         <span className="min-w-0 flex-1">
                           <span className="type-body-strong block truncate text-ink">{tx.merchant || tx.description}</span>
-                          <span className="type-caption flex items-center gap-1.5 truncate text-muted">
-                            <CategoryDot color={details(tx).color} />
-                            <span className="truncate">{tx.isTransfer && tx.transferLabel ? tx.transferLabel : tx.category || 'Uncategorised'}</span>
-                          </span>
+                          {(() => {
+                            const catLabel = tx.isTransfer && tx.transferLabel ? tx.transferLabel : tx.category || 'Uncategorised';
+                            return (
+                              <span className="type-caption flex items-center gap-1.5 truncate text-muted">
+                                <EntityGlyph icon={details(tx).icon} label={catLabel} color={details(tx).color} size={14} />
+                                <span className="truncate">{catLabel}</span>
+                              </span>
+                            );
+                          })()}
                         </span>
                         <span className="type-figure-row shrink-0 text-ink">{money(tx)}</span>
                       </button>

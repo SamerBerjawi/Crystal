@@ -20,7 +20,9 @@ import { Dialog, SidePanel } from '../components/ui/Overlays';
 import { Combobox, Select, type PickerOption } from '../components/ui/Pickers';
 import CategoryPicker from '../components/CategoryPicker';
 import { MerchantPicker } from '../components/MerchantPicker';
-import { LogoTile } from '../components/EntityIcon';
+import { AccountLogo } from '../components/AccountCard';
+import { EntityGlyph, LogoTile, MerchantLogo } from '../components/EntityIcon';
+import { getCategoryDetails } from '../utils/categories';
 import { getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { AreaSparkline, useSparklineHover } from '../src/components/charts';
 import { cn } from '../lib/utils';
@@ -560,6 +562,48 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
                   </span>
                 </div>
               </div>
+
+              {(filters.category !== 'all' || filters.merchant.trim() || filters.accountId !== 'all') && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="type-caption text-xs text-muted">Filtered by:</span>
+                  {filters.accountId !== 'all' && (() => {
+                    const acc = accounts.find(a => a.id === filters.accountId);
+                    return (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface py-0.5 pl-1.5 pr-2 text-xs font-medium text-ink shadow-2xs">
+                        {acc ? <AccountLogo account={acc} size={16} /> : <Icon name="bank" size={14} className="text-muted" />}
+                        <span className="max-w-[120px] truncate">{acc?.name || 'Account'}</span>
+                        <button type="button" onClick={() => update({ accountId: 'all' })} className="cursor-pointer text-muted hover:text-ink" aria-label="Remove account filter">
+                          <Icon name="x" size={12} />
+                        </button>
+                      </span>
+                    );
+                  })()}
+                  {filters.category !== 'all' && (() => {
+                    const cat = getCategoryDetails(filters.category, allCategories);
+                    return (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface py-0.5 pl-1.5 pr-2 text-xs font-medium text-ink shadow-2xs">
+                        <EntityGlyph icon={cat?.icon} label={filters.category} color={cat?.color} size={14} />
+                        <span className="max-w-[120px] truncate">{filters.category}</span>
+                        <button type="button" onClick={() => update({ category: 'all' })} className="cursor-pointer text-muted hover:text-ink" aria-label="Remove category filter">
+                          <Icon name="x" size={12} />
+                        </button>
+                      </span>
+                    );
+                  })()}
+                  {filters.merchant.trim() && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface py-0.5 pl-1.5 pr-2 text-xs font-medium text-ink shadow-2xs">
+                      <MerchantLogo merchant={filters.merchant} size={16} />
+                      <span className="max-w-[120px] truncate">{filters.merchant}</span>
+                      <button type="button" onClick={() => update({ merchant: '' })} className="cursor-pointer text-muted hover:text-ink" aria-label="Remove merchant filter">
+                        <Icon name="x" size={12} />
+                      </button>
+                    </span>
+                  )}
+                  <button type="button" onClick={() => update({ accountId: 'all', category: 'all', merchant: '' })} className="type-caption ml-1 cursor-pointer text-xs text-muted hover:text-ink hover:underline">
+                    Reset
+                  </button>
+                </div>
+              )}
             </div>
 
             <ReportPanel

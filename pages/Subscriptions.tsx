@@ -17,6 +17,8 @@ import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
 import Icon from '../components/ui/Icon';
 import { controlStyles } from '../components/ui/Fields';
+import { EntityGlyph } from '../components/EntityIcon';
+import { getCategoryDetails } from '../utils/categories';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -61,6 +63,7 @@ const Subscriptions: React.FC = () => {
   const { accounts } = useAccountsContext();
   const { recurringTransactions, saveRecurringTransaction, deleteRecurringTransaction, memberships, saveMembership, deleteMembership } = useScheduleContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
+  const allCategories = useMemo(() => [...expenseCategories, ...incomeCategories], [expenseCategories, incomeCategories]);
   const isPhone = useIsMobile();
 
   const today = useMemo(() => new Date(), []);
@@ -336,24 +339,28 @@ const Subscriptions: React.FC = () => {
                 <span>All</span>
                 <span className="opacity-80">({categoryBreakdown.totalMonthly ? `${getMainCurrency()} ${categoryBreakdown.totalMonthly}/mo` : ''} · {active.length})</span>
               </button>
-              {categoryBreakdown.categories.map(cat => (
-                <button
-                  key={cat.category}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat.category === selectedCategory ? 'all' : cat.category)}
-                  className={cn(
-                    'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors border',
-                    selectedCategory === cat.category
-                      ? 'bg-ink text-solid border-ink font-semibold'
-                      : 'bg-surface text-muted border-line hover:text-ink hover:bg-inset'
-                  )}
-                >
-                  <span>{cat.category}</span>
-                  <span className="opacity-75 font-mono text-[11px]">
-                    (<Amount value={cat.monthly} currency={getMainCurrency()} />/mo · {cat.count})
-                  </span>
-                </button>
-              ))}
+              {categoryBreakdown.categories.map(cat => {
+                const catDetails = getCategoryDetails(cat.category, allCategories);
+                return (
+                  <button
+                    key={cat.category}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.category === selectedCategory ? 'all' : cat.category)}
+                    className={cn(
+                      'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors border',
+                      selectedCategory === cat.category
+                        ? 'bg-ink text-solid border-ink font-semibold'
+                        : 'bg-surface text-muted border-line hover:text-ink hover:bg-inset'
+                    )}
+                  >
+                    <EntityGlyph icon={catDetails?.icon} label={cat.category} color={catDetails?.color} size={13} />
+                    <span>{cat.category}</span>
+                    <span className="opacity-75 font-mono text-[11px]">
+                      (<Amount value={cat.monthly} currency={getMainCurrency()} />/mo · {cat.count})
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -562,12 +569,15 @@ const Subscriptions: React.FC = () => {
           {memberships.length > 0 ? (
             cardGroups.length > 0 ? (
               <div className="space-y-6">
-                {cardGroups.map(([category, cards]) => (
-                  <section key={category} aria-label={category}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <h2 className="type-card-title text-ink font-semibold">{category}</h2>
-                      <span className="type-caption text-muted">({cards.length})</span>
-                    </div>
+                {cardGroups.map(([category, cards]) => {
+                  const catDetails = getCategoryDetails(category, allCategories);
+                  return (
+                    <section key={category} aria-label={category}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <EntityGlyph icon={catDetails?.icon} label={category} color={catDetails?.color} size={18} />
+                        <h2 className="type-card-title text-ink font-semibold">{category}</h2>
+                        <span className="type-caption text-muted">({cards.length})</span>
+                      </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                       {cards.map(card => (
                         <LoyaltyCard
@@ -582,8 +592,9 @@ const Subscriptions: React.FC = () => {
                       ))}
                     </div>
                   </section>
-                ))}
-              </div>
+                );
+              })}
+            </div>
             ) : (
               <EmptyState
                 icon="search-01"
