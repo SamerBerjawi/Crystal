@@ -721,3 +721,56 @@ html[data-selection-bar] { --toast-bottom: 148px; --toast-phone-bottom: calc(164
 .text-on-pine .amount-fraction {
   color: rgba(251, 248, 242, 0.8) !important;
 }
+/* Accent presets. They change only the action colour and the glow; money, status and chart colours stay put. Forest is the default and lives in the :root and .dark blocks above. Every pair is checked for 4.5:1 or better in tests/unit/accent.test.ts. */
+:root[data-accent='ocean'] {
+  --primary: #285A8C;
+  --primary-hover: #1F4A74;
+  --primary-soft: #DCE7F2;
+  --pine: #285A8C;
+  --mesh-b: rgba(190,212,236,.5);
+}
+:root[data-accent='ocean'].dark {
+  --primary: #7DB3EA;
+  --primary-hover: #6AA3DC;
+  --primary-soft: #1F2D3D;
+  --mesh-b: rgba(40,90,140,.18);
+}
+:root[data-accent='plum'] {
+  --primary: #6B4678;
+  --primary-hover: #593863;
+  --primary-soft: #E9DFEE;
+  --pine: #6B4678;
+  --mesh-b: rgba(222,205,232,.5);
+}
+:root[data-accent='plum'].dark {
+  --primary: #C6A2D8;
+  --primary-hover: #B88FCC;
+  --primary-soft: #2E2536;
+  --mesh-b: rgba(107,70,120,.2);
+}
+:root[data-accent='copper'] {
+  --primary: #8F5226;
+  --primary-hover: #78431D;
+  --primary-soft: #F0E0D2;
+  --pine: #8F5226;
+  --mesh-b: rgba(236,208,184,.5);
+}
+:root[data-accent='copper'].dark {
+  --primary: #E6AC7C;
+  --primary-hover: #D99B69;
+  --primary-soft: #3A281A;
+  --mesh-b: rgba(143,82,38,.2);
+}
+:root[data-accent='graphite'] {
+  --primary: #3E4650;
+  --primary-hover: #2F363E;
+  --primary-soft: #E2E5E8;
+  --pine: #3E4650;
+  --mesh-b: rgba(206,210,215,.5);
+}
+:root[data-accent='graphite'].dark {
+  --primary: #B9C0C8;
+  --primary-hover: #A6AEB7;
+  --primary-soft: #2B2E32;
+  --mesh-b: rgba(110,120,132,.18);
+}
