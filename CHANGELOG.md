@@ -5,11 +5,26 @@ All notable changes to Crystal are documented here. Versions before 3.0.0 were t
 ## [Unreleased]
 
 ### Added
+- **Accent colours.** Five presets (Forest, Ocean, Plum, Copper, Graphite) in Preferences.
+- **Life events** on the net-worth chart and in Wrapped, and a **Net worth bridge** widget (Wealth tab) showing what moved your net worth over the period.
+- **FIRE** rebuilt around the odds your money lasts, with saved settings and planned costs.
+- **Investment performance** (XIRR, money put in against growth, concentration) and **Against an index** (your trades replayed into index funds, via Twelve Data).
+- **Debt payoff** planner (Planning): minimums, snowball and avalanche.
+- **Weekly recap** (Reports) and an optional Monday alert.
+- **Scoped API tokens** and a read-only **MCP server** at `/api/mcp`.
+- **Tidy-ups** in the Queue: suggested merchant and category clean-ups you approve first, including ones Ask Crystal suggests. Ask Crystal also gets a server-side agent loop and read-only outside MCP servers.
+- **Trips**, found from the country on your transactions, with a map.
+- **Tax pack** (Reports): year summary, per-country checklist (country from your city in Settings), encrypted documents on the server's disk, and a zip download.
+- **Help and README** now include a step-by-step setup guide (Twelve Data, Brandfetch, Enable Banking, alerts, API tokens and MCP, Ask Crystal, tax documents).
 - **Ask Crystal.** Ask about your money in plain words ("What did I spend eating out last month?", "Can I afford 2,000 in March?"). Open it with Ctrl or ⌘ and `/`, or from search. The numbers are looked up in your browser with the same calculations the rest of Crystal uses, so they match what you see; the model only chooses what to look up and words the answer. "How I found this" lists every lookup, and any figure in an answer that no lookup contained is flagged.
 - **Choose how it thinks** (Settings, Connections, Ask Crystal). Download a model to the built-in engine from inside the app, with live progress, or connect a model server you already run (Ollama, LM Studio, llama.cpp, vLLM, or a hosted service). The key is stored encrypted on the server and never sent back to the browser.
 - **Built-in engine** (optional). `docker compose --profile ai up -d` starts an Ollama container next to Crystal. It is off unless asked for.
 
+### Fixed
+- Bank links are kept when a bank connection is renewed.
+
 ### Configuration
+- `TAX_DOCS_DIR`, `TAX_DOC_MAX_MB` (default 10) and `TAX_DOC_USER_MAX_MB` (default 500). New table `tax_documents`. Back up the documents folder with the database.
 - `OLLAMA_URL` (default `http://ollama:11434`) is where the backend finds the built-in engine.
 - `ASSISTANT_ALLOW_PRIVATE_URLS` (default `false`) lets Ask Crystal use a model server on your own network when other people share your server. When you are the only user it is always allowed.
 - A new table `assistant_settings` is created on startup. nginx gets a streaming-friendly `/api/assistant/` location.
