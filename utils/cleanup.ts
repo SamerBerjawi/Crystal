@@ -9,7 +9,7 @@ import { normalizeMerchantKey } from './brandfetch';
 const MIN_OUTLIER_SAMPLE = 6;
 const DOMINANT_SHARE = 0.8;
 
-const eligible = (tx: Transaction) => !tx.transferId && !tx.isSplitParent && !tx.isCombinedParent && !tx.isBalanceAdjustment && !tx.isMarketAdjustment;
+export const isTidyable = (tx: Transaction) => !tx.transferId && !tx.isSplitParent && !tx.isCombinedParent && !tx.isBalanceAdjustment && !tx.isMarketAdjustment;
 
 /** "NETFLIX.COM", "Netflix Inc" and "netflix" are one merchant. */
 export const spellingKey = (name: string) =>
@@ -30,7 +30,7 @@ const top = <K>(tally: Map<K, number>, tieBreak: (a: K, b: K) => number): K | un
 /** One merchant written several ways. The spelling used most often wins. */
 export const findMerchantSpellings = (transactions: Transaction[]): CleanupProposal[] => {
   const groups = new Map<string, Transaction[]>();
-  transactions.filter(eligible).forEach(tx => {
+  transactions.filter(isTidyable).forEach(tx => {
     const merchant = tx.merchant?.trim();
     if (!merchant) return;
     const key = spellingKey(merchant);
@@ -64,7 +64,7 @@ export const findMerchantSpellings = (transactions: Transaction[]): CleanupPropo
 /** A merchant that is almost always one category, with a few filed elsewhere. */
 export const findCategoryOutliers = (transactions: Transaction[]): CleanupProposal[] => {
   const byMerchant = new Map<string, Transaction[]>();
-  transactions.filter(eligible).forEach(tx => {
+  transactions.filter(isTidyable).forEach(tx => {
     const key = normalizeMerchantKey(tx.merchant);
     if (!key || !tx.category) return;
     byMerchant.set(key, [...(byMerchant.get(key) ?? []), tx]);
