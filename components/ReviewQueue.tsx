@@ -15,6 +15,7 @@ import BulkCategorizeModal from './BulkCategorizeModal';
 import CategoryPicker from './CategoryPicker';
 import { MatcherConfigPanel } from './MatcherConfigPanel';
 import PageHeader from './PageHeader';
+import TidyUps from './TidyUps';
 import { MerchantLogo } from './EntityIcon';
 import { accountIcon } from './AccountCard';
 import TransactionDetailModal from './TransactionDetailModal';
@@ -790,6 +791,8 @@ const ReviewQueue: React.FC = () => {
           </>
         }
       />
+
+      <TidyUps />
 
       {allItems.length === 0 ? (
         <EmptyState

@@ -1054,6 +1054,7 @@ export const initialFinancialData: FinancialData = {
     userStats: { currentStreak: 5, longestStreak: 14, lastLogDate: '2024-06-28', predictionWins: 3, predictionTotal: 4 },
     predictions: [],
     lifeEvents: [],
+    cleanupProposals: [],
     enableBankingConnections: demoEnableBankingConnections,
     preferences: defaultPreferences,
 };
