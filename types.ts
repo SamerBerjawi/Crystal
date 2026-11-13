@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // Financial data and page definitions
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Debt Payoff' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Weekly Recap' | 'FIRE' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Debt Payoff' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Weekly Recap' | 'Trips' | 'FIRE' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
   type: AccountType;
@@ -692,6 +692,13 @@ export interface InvestmentPriceConfig {
   lastFetchedAt?: string;
 }
 
+export interface TripSettings {
+  homeCountry?: string;
+  /** default: the app's own basemap. custom: tiles from `tileUrl`. off: no map tiles, and nothing is fetched. */
+  map?: 'default' | 'custom' | 'off';
+  tileUrl?: string;
+}
+
 export interface AppPreferences {
   savedReportViews?: import('./utils/reportsModel').SavedReportView[];
   // Choices that follow you across devices (S-002).
@@ -700,6 +707,8 @@ export interface AppPreferences {
   ignoredTransferMatches?: string[];
   /** Financial independence plan (utils/fireCone.ts). Missing values use your own figures or the defaults. */
   fire?: import('./utils/fireCone').FireSettings;
+  /** Trip mode (utils/trips.ts): the home country, if detecting it is wrong, and which map tiles to use. */
+  trips?: TripSettings;
   dismissedBillNotifications?: string[];
   /** Insight card ids you dismissed on the Overview (utils/insightsModel.ts). */
   dismissedInsights?: string[];
