@@ -39,6 +39,10 @@ Under **Settings, Connections, Ask Crystal, Connected tools** you can add up to 
 - **Calculate dates.** Periods are named (`last_month`, `last_12_months`, ...) or given as `YYYY-MM`, and resolved in code.
 - **Change anything.** Every tool is read-only.
 
+## Suggestions
+
+Ask Crystal can suggest two tidy-ups: filing a merchant under another category, and renaming a merchant (for example to merge two spellings). A suggestion never changes anything. The exact edits wait in the **Tidy-ups** section of the Queue tab (Transactions), marked "Ask Crystal", and happen only when you approve. Approving skips any transaction you have changed since, and Undo puts the old values back. The assistant names a merchant and the new value; Crystal works out which transactions are affected, so none can be invented or missed.
+
 ## Choosing a model
 
 Open **Settings, Connections, Ask Crystal**.
