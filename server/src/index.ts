@@ -12,6 +12,7 @@ import alertsRouter, { startAlertScheduler } from './alerts';
 import tokensRouter from './apiTokens';
 import publicApiRouter from './publicApi';
 import mcpRouter from './mcp';
+import taxDocsRouter, { MAX_FILE_BYTES } from './taxDocs';
 import assistantRouter from './assistant';
 import { initializeDatabase, db, purgeStaleSessions } from './database';
 import { authenticateToken } from './middleware';
@@ -141,10 +142,12 @@ const startServer = async () => {
         // A chat turn carries the conversation and the figures looked up so far, so it gets a middle-sized limit.
         const chatJson = express.json({ limit: process.env.API_CHAT_BODY_LIMIT || '2mb' });
         app.use((req, res, next) => {
-            if (req.path.startsWith('/api/data')) return next();
+            if (req.path.startsWith('/api/data') || req.path.startsWith('/api/tax-docs')) return next();
             return (req.path === '/api/assistant/chat' ? chatJson : smallJson)(req, res, next);
         });
         app.use('/api/data', authenticateToken, bigJson);
+        // A document travels as base64 in JSON: up to the file cap plus a third, and only once signed in.
+        app.use('/api/tax-docs', authenticateToken, express.json({ limit: `${Math.ceil(MAX_FILE_BYTES / 1024 / 1024 * 1.4) + 1}mb` }));
 
         app.get('/api', (req, res) => {
             res.send('Crystal API is running.');
@@ -175,6 +178,7 @@ const startServer = async () => {
         app.use('/api/tokens', tokensRouter);
         app.use('/api/v1', publicApiRouter);
         app.use('/api/mcp', mcpRouter);
+        app.use('/api/tax-docs', taxDocsRouter);
         app.use('/api/assistant', assistantRouter);
 
         // Last line of defence: anything that escapes a route becomes a JSON 500, never a crash or an HTML page.

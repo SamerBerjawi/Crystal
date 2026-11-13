@@ -46,3 +46,20 @@ try {
 }
 
 console.log('--- All Crypto Unit Tests Executed Successfully ---');
+
+// File encryption: round trip, and a file does not decrypt under another owner or name.
+try {
+    const { encryptBuffer, decryptBuffer } = require('./crypto');
+    const data = Buffer.from('%PDF-1.4 a tax certificate');
+    const blob = encryptBuffer(data, '7:doc-1');
+    assert(!blob.includes(data), 'the file is not stored in the clear');
+    assert(decryptBuffer(blob, '7:doc-1')?.equals(data) === true, 'a file decrypts under its own owner and id');
+    assert(decryptBuffer(blob, '8:doc-1') === null, 'another owner cannot decrypt it');
+    assert(decryptBuffer(blob, '7:doc-2') === null, 'another name cannot decrypt it');
+    const tampered = Buffer.from(blob); tampered[tampered.length - 1] ^= 1;
+    assert(decryptBuffer(tampered, '7:doc-1') === null, 'a changed file is refused');
+    console.log('✓ file encryption bound to owner and id');
+} catch (err: any) {
+    console.error('✕ file encryption', err.message);
+    process.exit(1);
+}

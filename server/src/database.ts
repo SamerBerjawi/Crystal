@@ -174,6 +174,23 @@ export const initializeDatabase = async () => {
             )
         `);
         await db.query(`CREATE INDEX IF NOT EXISTS idx_api_tokens_user_id ON api_tokens(user_id)`);
+        // Tax documents: the metadata. The files themselves are encrypted on disk (taxDocs.ts).
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS tax_documents (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                tax_year INTEGER NOT NULL,
+                label TEXT NOT NULL,
+                filename TEXT NOT NULL,
+                mime TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                checklist_key TEXT,
+                transaction_id TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_tax_documents_user_year ON tax_documents(user_id, tax_year)`);
         // PIN lock: the hash sits on the user, and locks and failed tries on each session.
         await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_hash TEXT`);
         await db.query(`ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ`);
