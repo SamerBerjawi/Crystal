@@ -1,7 +1,7 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { Readable } from 'stream';
 import * as urlGuardNs from './server/src/urlGuard';
@@ -131,6 +131,7 @@ async function startServer() {
     return null;
   }
 
+  let mockTaxDocs: { id: string; year: number; label: string; filename: string; mime: string; size: number; checklistKey: string | null; transactionId: null; createdAt: string; data: Buffer }[] = [];
   let mockTokens: { id: string; name: string; prefix: string; scopes: string[]; createdAt: string; lastUsedAt: string | null; expiresAt: string | null; revokedAt: string | null }[] = [];
   let mockAlerts: { enabled: boolean; channel: { kind: string; url: string; topic?: string; token?: string } | null; rules: Record<string, number | boolean> } = {
     enabled: false,
@@ -329,6 +330,32 @@ async function startServer() {
         mockTokens = mockTokens.map(t => (t.id === revokeId ? { ...t, revokedAt: new Date().toISOString() } : t));
         return res.json({ message: 'Revoked' });
       }
+    }
+
+    if (subpath.startsWith('/tax-docs')) {
+      if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
+      const usage = () => ({ usedBytes: mockTaxDocs.reduce((n, d) => n + d.size, 0), documents: mockTaxDocs.length, maxBytes: 500 * 1024 * 1024, maxFileBytes: 10 * 1024 * 1024 });
+      const rest = subpath.slice('/tax-docs'.length);
+      if (rest === '' && req.method === 'GET') {
+        const year = Number(req.query.year);
+        return res.json({ documents: mockTaxDocs.filter(d => !Number.isInteger(year) || d.year === year).map(({ data, ...d }) => d), usage: usage() });
+      }
+      if (rest === '' && req.method === 'POST') {
+        const { year, label, filename, content, checklistKey } = req.body ?? {};
+        if (!Number.isInteger(year) || !label || !filename || typeof content !== 'string') return res.status(400).json({ message: 'The upload is not valid.' });
+        const data = Buffer.from(content, 'base64');
+        const row = { id: randomUUID(), year, label, filename, mime: 'application/octet-stream', size: data.length, checklistKey: checklistKey ?? null, transactionId: null, createdAt: new Date().toISOString(), data };
+        mockTaxDocs = [row, ...mockTaxDocs];
+        const { data: _omit, ...view } = row;
+        return res.status(201).json(view);
+      }
+      if (rest === '/export' && req.method === 'POST') return res.status(501).json({ message: 'The zip pack is built by the real server. The dev mock cannot make it.' });
+      const id = rest.match(/^\/([^/]+)(\/file)?$/);
+      const doc = id && mockTaxDocs.find(d => d.id === id[1]);
+      if (!doc) return res.status(404).json({ message: 'Document not found.' });
+      if (id![2] && req.method === 'GET') return res.type(doc.mime).send(doc.data);
+      if (req.method === 'DELETE') { mockTaxDocs = mockTaxDocs.filter(d => d.id !== doc.id); return res.status(204).end(); }
+      if (req.method === 'PATCH') { Object.assign(doc, req.body ?? {}); const { data, ...view } = doc; return res.json(view); }
     }
 
     if (subpath.startsWith('/assistant')) {

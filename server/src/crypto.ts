@@ -64,3 +64,27 @@ export const sanitizeConnection = (connection: any): any => {
     }
     return sanitized;
 };
+
+/**
+ * Files at rest (tax documents). Layout: 12-byte IV, 16-byte auth tag, then the ciphertext. `context` is bound in as
+ * additional data, so a file copied to another owner or name on disk will not decrypt.
+ */
+export const encryptBuffer = (data: Buffer, context: string): Buffer => {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv(ALGORITHM, getEncryptionKey(), iv);
+    cipher.setAAD(Buffer.from(context, 'utf8'));
+    const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+    return Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
+};
+
+export const decryptBuffer = (blob: Buffer, context: string): Buffer | null => {
+    if (blob.length < IV_LENGTH + 16) return null;
+    try {
+        const decipher = crypto.createDecipheriv(ALGORITHM, getEncryptionKey(), blob.subarray(0, IV_LENGTH));
+        decipher.setAAD(Buffer.from(context, 'utf8'));
+        decipher.setAuthTag(blob.subarray(IV_LENGTH, IV_LENGTH + 16));
+        return Buffer.concat([decipher.update(blob.subarray(IV_LENGTH + 16)), decipher.final()]);
+    } catch {
+        return null;
+    }
+};

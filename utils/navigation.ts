@@ -95,6 +95,7 @@ export const HUBS: Hub[] = [
       { label: 'Challenges', page: 'Challenges', icon: 'award-01' },
       { label: 'Wrapped', page: 'Wrapped', icon: 'gift' },
       { label: 'FIRE', page: 'FIRE', icon: 'fire' },
+      { label: 'Tax pack', page: 'Tax Pack', icon: 'invoice-02' },
     ],
   },
   {

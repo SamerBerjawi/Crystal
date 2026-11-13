@@ -14,6 +14,7 @@ export const pageRegistry = {
   Goals: { path: '/goals', loader: () => import('../pages/Goals') },
   Challenges: { path: '/challenges', loader: () => import('../pages/Challenges') },
   Wrapped: { path: '/wrapped', loader: () => import('../pages/Wrapped') },
+  'Tax Pack': { path: '/tax-pack', loader: () => import('../pages/TaxPack') },
   'Weekly Recap': { path: '/weekly', loader: () => import('../pages/WeeklyRecap') },
   FIRE: { path: '/fire', loader: () => import('../pages/Fire') },
   'Schedule & Bills': { path: '/schedule', loader: () => import('../pages/Schedule') },
