@@ -41,6 +41,7 @@ import FinancialRunwayWidget from '../FinancialRunwayWidget';
 import MerchantParetoWidget from '../MerchantParetoWidget';
 import WealthVelocityWidget from '../WealthVelocityWidget';
 import InsightsWidget from '../InsightsWidget';
+import NetWorthBridgeWidget from '../NetWorthBridgeWidget';
 import UnifiedPendingMatcherCard from '../UnifiedPendingMatcherCard';
 import MultiAccountFilter from '../MultiAccountFilter';
 import DurationFilter from '../DurationFilter';
@@ -510,6 +511,16 @@ export const buildDashboardWidgets = (p: BuildDashboardWidgetsParams): Widget[] 
       currency: p.preferredCurrency,
       toDisplay: p.eurToDisplay,
     },
+  },
+  {
+    id: 'netWorthBridge',
+    name: 'Net worth bridge',
+    icon: 'git-branch',
+    description: 'What moved your net worth over the period',
+    defaultW: 12,
+    defaultH: 3,
+    component: NetWorthBridgeWidget,
+    props: { duration: p.duration, accountIds: p.selectedAccountIds },
   },
   {
     id: 'insights',

@@ -53,6 +53,7 @@ export const OVERVIEW_WIDGETS: Record<string, OverviewWidgetMeta> = {
   goalsRings: { title: 'Goals', tab: 'wealth', purpose: 'Progress towards each goal you are saving for', icon: 'target', span: 3, rows: 4 },
   merchantPareto: { title: 'Top merchants', tab: 'spending', purpose: 'The merchants that take most of your spending', icon: 'shopping_bag', span: 3, rows: 4 },
   wealthVelocity: { title: 'Wealth velocity', tab: 'wealth', purpose: 'What you saved each month against its average', icon: 'zap', span: 3, rows: 4 },
+  netWorthBridge: { title: 'Net worth bridge', tab: 'wealth', purpose: 'What moved your net worth over the period: income, spending, market gains and debt', icon: 'git_branch', span: 6, rows: 5, phoneHeight: 460 },
   insights: { title: 'Insights', tab: 'upcoming', purpose: 'Low balances ahead, idle cash and unusual spending', icon: 'lightbulb', span: 3, rows: 4 },
 };
 
