@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // Financial data and page definitions
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Debt Payoff' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Weekly Recap' | 'FIRE' | 'Tax Pack' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Goals' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Debt Payoff' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Wrapped' | 'Weekly Recap' | 'Trips' | 'FIRE' | 'Tax Pack' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
   type: AccountType;
@@ -692,6 +692,13 @@ export interface InvestmentPriceConfig {
   lastFetchedAt?: string;
 }
 
+export interface TripSettings {
+  homeCountry?: string;
+  /** default: the app's own basemap. custom: tiles from `tileUrl`. off: no map tiles, and nothing is fetched. */
+  map?: 'default' | 'custom' | 'off';
+  tileUrl?: string;
+}
+
 export interface AppPreferences {
   savedReportViews?: import('./utils/reportsModel').SavedReportView[];
   // Choices that follow you across devices (S-002).
@@ -700,6 +707,8 @@ export interface AppPreferences {
   ignoredTransferMatches?: string[];
   /** Financial independence plan (utils/fireCone.ts). Missing values use your own figures or the defaults. */
   fire?: import('./utils/fireCone').FireSettings;
+  /** Trip mode (utils/trips.ts): the home country, if detecting it is wrong, and which map tiles to use. */
+  trips?: TripSettings;
   dismissedBillNotifications?: string[];
   /** Insight card ids you dismissed on the Overview (utils/insightsModel.ts). */
   dismissedInsights?: string[];
@@ -890,6 +899,27 @@ export interface Prediction {
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
+/** One edit a tidy-up proposes: a field on a transaction, from what it is now to what it should be. */
+export interface CleanupChange {
+  transactionId: string;
+  field: 'merchant' | 'category';
+  from: string;
+  to: string;
+}
+
+/** A tidy-up waiting for your approval. Nothing changes until you approve it, and an applied one can be undone. */
+export interface CleanupProposal {
+  id: string;
+  kind: 'merchant-spelling' | 'category-outlier' | 'assistant';
+  title: string;
+  detail: string;
+  source: 'crystal' | 'assistant';
+  status: 'pending' | 'applied' | 'dismissed';
+  createdAt: string;
+  resolvedAt?: string;
+  changes: CleanupChange[];
+}
+
 export interface FinancialData {
   accounts: Account[];
   transactions: Transaction[];
@@ -917,6 +947,7 @@ export interface FinancialData {
   userStats?: UserStats;
   predictions?: Prediction[];
   lifeEvents?: LifeEvent[];
+  cleanupProposals?: CleanupProposal[];
   enableBankingConnections?: EnableBankingConnection[];
   lastUpdatedAt?: string;
   userProfile?: User;

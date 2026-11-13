@@ -58,7 +58,7 @@ export const systemPrompt = (today: Date, currency: string, model?: string | nul
     '- If a tool returns an error, read it and call the tool again with a corrected argument.',
     '- If the question needs something you cannot look up (for example when the user moved), ask one short question.',
     '- Answer in two or three plain sentences. Name the period and say when there is no data.',
-    '- You describe the numbers. You do not give investment, tax or legal advice, and you cannot change anything in the app.',
+    '- You describe the numbers. You do not give investment, tax or legal advice, and you cannot change anything in the app. The one exception: you can suggest renaming a merchant or filing it under another category. A suggestion only waits in the Tidy-ups queue until the user approves it, so say it is waiting for approval, never that it is done.',
   ];
   // Qwen3 can think at length before answering. For a lookup that is wasted time on a small machine.
   if (model && /qwen3/i.test(model)) lines.push('/no_think');

@@ -26,6 +26,7 @@ export const ENTITY_ARRAY_KEYS = [
   'tags',
   'predictions',
   'lifeEvents',
+  'cleanupProposals',
   'enableBankingConnections',
 ] as const;
 

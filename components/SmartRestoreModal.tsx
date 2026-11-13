@@ -30,6 +30,7 @@ const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: 'financialGoals', label: 'Goals' },
   { key: 'predictions', label: 'Predictions' },
   { key: 'lifeEvents', label: 'Life events' },
+  { key: 'cleanupProposals', label: 'Tidy-ups' },
   { key: 'recurringTransactions', label: 'Recurring items' },
   { key: 'recurringTransactionOverrides', label: 'Schedule changes' },
   { key: 'billsAndPayments', label: 'Bills' },

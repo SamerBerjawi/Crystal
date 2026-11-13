@@ -1,14 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { calculateAccountTotals, getMainCurrency, parseLocalDate } from '../utils';
+import { calculateAccountTotals, getDateRange, getMainCurrency } from '../utils';
+import type { Duration } from '../types';
 import { bridgeBars, bridgeHeadline, buildNetWorthBridge, type BridgeStep } from '../utils/netWorthBridge';
 import { useAccountSelector, useTransactionSelector } from '../contexts/DomainProviders';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { Amount } from './ui/Money';
 
-const CARD = 'surface-card min-w-0 rounded-[var(--radius-xl)] p-5 border border-line';
-
-/** What moved your net worth over the report's dates: where it started, what came in and went out, where it ended. */
-const NetWorthBridgeSection: React.FC<{ startDate: string; endDate: string; accountId: string }> = ({ startDate, endDate, accountId }) => {
+/** What moved your net worth over the dashboard's period: where it started, what came in and went out, where it ended. */
+const NetWorthBridgeWidget: React.FC<{ duration: Duration; accountIds: string[] }> = ({ duration, accountIds }) => {
   const accounts = useAccountSelector(a => a);
   const transactions = useTransactionSelector(t => t);
   const { loanPaymentOverrides } = useScheduleContext();
@@ -16,10 +15,11 @@ const NetWorthBridgeSection: React.FC<{ startDate: string; endDate: string; acco
   const today = useMemo(() => new Date(), []);
   const [open, setOpen] = useState<string | null>(null);
 
-  const scoped = useMemo(
-    () => accountId === 'all' ? accounts.filter(a => a.includeInAnalytics ?? true) : accounts.filter(a => a.id === accountId),
-    [accounts, accountId],
-  );
+  const scoped = useMemo(() => {
+    const chosen = new Set(accountIds);
+    return accounts.filter(a => chosen.has(a.id) && (a.includeInAnalytics ?? true));
+  }, [accounts, accountIds]);
+  const range = useMemo(() => getDateRange(duration, transactions), [duration, transactions]);
   const scopedTransactions = useMemo(() => {
     const ids = new Set(scoped.map(a => a.id));
     return transactions.filter(tx => !tx.isSplitParent && !tx.isCombinedParent && ids.has(tx.accountId));
@@ -28,8 +28,8 @@ const NetWorthBridgeSection: React.FC<{ startDate: string; endDate: string; acco
   const names = useMemo(() => new Map(accounts.map(a => [a.id, a.name])), [accounts]);
 
   const bridge = useMemo(() => buildNetWorthBridge({
-    transactions: scopedTransactions, selectedAccountIds: scoped.map(a => a.id), netWorth, start: parseLocalDate(startDate), end: parseLocalDate(endDate), today, accountNames: names,
-  }), [scopedTransactions, scoped, netWorth, startDate, endDate, today, names]);
+    transactions: scopedTransactions, selectedAccountIds: scoped.map(a => a.id), netWorth, start: range.start, end: range.end, today, accountNames: names,
+  }), [scopedTransactions, scoped, netWorth, range, today, names]);
   const { bars, min, max, truncated } = useMemo(() => bridgeBars(bridge), [bridge]);
   const headline = bridgeHeadline(bridge);
   const span = max - min || 1;
@@ -42,10 +42,9 @@ const NetWorthBridgeSection: React.FC<{ startDate: string; endDate: string; acco
   ];
 
   return (
-    <section className={CARD} aria-labelledby="net-worth-bridge-title">
-      <h2 id="net-worth-bridge-title" className="type-card-title text-ink">Net worth bridge</h2>
+    <div className="h-full overflow-y-auto">
       {!bridge.hasActivity ? (
-        <p className="type-body mt-2 text-muted">Nothing happened in these dates. Pick a longer range to see what moved your net worth.</p>
+        <p className="type-body text-muted">Nothing happened in this period. Pick a longer one to see what moved your net worth.</p>
       ) : (
         <>
           <p className="type-body mt-2 text-ink">
@@ -93,12 +92,12 @@ const NetWorthBridgeSection: React.FC<{ startDate: string; endDate: string; acco
           </ul>
           <p className="type-caption mt-3 text-muted">
             {truncated && <>The bars start at <Amount value={min} currency={currency} className="type-caption" />, not at zero, so the changes stay readable. </>}
-            Follows the dates and account above. Uses today's exchange rates. Market gains are the ones you recorded as market adjustments.
+            Follows the period and accounts chosen above. Uses today's exchange rates. Market gains are the ones you recorded as market adjustments.
           </p>
         </>
       )}
-    </section>
+    </div>
   );
 };
 
-export default NetWorthBridgeSection;
+export default NetWorthBridgeWidget;

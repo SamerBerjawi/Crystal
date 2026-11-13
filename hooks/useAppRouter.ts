@@ -16,6 +16,7 @@ export const pageRegistry = {
   Wrapped: { path: '/wrapped', loader: () => import('../pages/Wrapped') },
   'Tax Pack': { path: '/tax-pack', loader: () => import('../pages/TaxPack') },
   'Weekly Recap': { path: '/weekly', loader: () => import('../pages/WeeklyRecap') },
+  Trips: { path: '/trips', loader: () => import('../pages/Trips') },
   FIRE: { path: '/fire', loader: () => import('../pages/Fire') },
   'Schedule & Bills': { path: '/schedule', loader: () => import('../pages/Schedule') },
   Tasks: { path: '/tasks', loader: () => import('../pages/Tasks') },

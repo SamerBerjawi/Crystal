@@ -4,6 +4,7 @@ import { AssistantError, runAssistantTurn, systemPrompt, type ChatMessage, type 
 import { fetchAssistantSettings, runServerAgent, serverChat, type AssistantSettings } from '../utils/assistantApi';
 import { explainUnavailable, type Unavailable } from '../utils/apiError';
 import { buildAssistantTools, type AssistantData } from '../utils/assistantTools';
+import { addProposal, buildProposalTools } from '../utils/assistantProposals';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { Button, IconButton } from './ui/Actions';
@@ -35,7 +36,7 @@ const HISTORY_LIMIT = 8;
 const TOOL_LABEL: Record<string, string> = {
   get_overview: 'Overview', list_accounts: 'Accounts', list_categories: 'Categories', spending: 'Spending', income: 'Income', search_transactions: 'Transactions',
   budget_status: 'Budgets', safe_to_spend: 'Safe to spend', forecast: 'Forecast', can_afford: 'Can I afford it', subscriptions: 'Subscriptions', net_worth_history: 'Net worth',
-  get_investments: 'Investments', get_planning: 'Planning', search_merchants: 'Merchants',
+  get_investments: 'Investments', get_planning: 'Planning', search_merchants: 'Merchants', propose_recategorise: 'Suggestion', propose_rename_merchant: 'Suggestion',
 };
 
 /** **bold** is the only formatting kept. The model's text is never treated as markup. */
@@ -53,7 +54,7 @@ interface AskCrystalPanelProps {
 /** Plain-language questions about your own money. The answers are worked out in your browser from your data. */
 const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOpenSettings }) => {
   const isPrivate = useContext(PrivacyContext);
-  const { transactions } = useTransactionsContext();
+  const { transactions, setCleanupProposals } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { preferences } = usePreferencesContext();
   const { warrants } = useWarrantsContext();
@@ -128,7 +129,11 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
       const turn = {
         question,
         history: history.current.slice(-HISTORY_LIMIT),
-        tools: buildAssistantTools({ ...dataRef.current, today }),
+        tools: [
+          ...buildAssistantTools({ ...dataRef.current, today }),
+          // Suggestions only: they wait in the Tidy-ups queue until you approve them.
+          ...buildProposalTools({ ...dataRef.current, now: () => new Date().toISOString() }, item => setCleanupProposals(list => addProposal(list, item))),
+        ],
         signal: abort.signal,
         onRoundStart: () => patch(answerId, { text: '' }),
         onText: (visible: string) => patch(answerId, { text: visible }),

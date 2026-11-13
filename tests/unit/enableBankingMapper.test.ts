@@ -9,6 +9,7 @@ import {
   mapMccToCategory,
   matchExistingProviderAccount,
   matchKnownBrand,
+  normalizeSessionAccounts,
   parseEuropeanBankRemittance,
   resolveEnableBankingBalance,
   stripPaymentWallet,
@@ -327,4 +328,36 @@ test('bank sync deduplication: matches transactions across connection IDs by acc
   const matched = existingTxMapSureId.get(accountSureKey(txFromConnB.accountId, txFromConnB.sureId!));
   assert.ok(matched, 'Existing transaction from previous connection found by accountId + sureId');
   assert.equal(matched?.id, txFromConnA.id);
+});
+
+test('renewed session listing bare uids keeps links through accounts_data and details', () => {
+  const existing: EnableBankingAccount[] = [
+    { id: 'old-uid', identificationHash: 'hash-1', name: 'Current', bankName: 'B', currency: 'EUR', balance: 0, linkedAccountId: 'crystal-1' },
+  ];
+  const [normalized] = normalizeSessionAccounts({ accounts: ['new-uid'], accounts_data: [{ uid: 'new-uid', identification_hash: 'hash-1' }] });
+  const ids = extractProviderAccountIdentifiers(normalized);
+  assert.equal(ids.uid, 'new-uid');
+  assert.equal(matchExistingProviderAccount(existing, ids)?.linkedAccountId, 'crystal-1');
+
+  // A bare uid still picks up the IBAN from the account details.
+  const fromDetails = extractProviderAccountIdentifiers('new-uid', { account_id: { iban: 'BE68 5390 0754 7034' } });
+  assert.equal(fromDetails.accountNumber, 'BE68539007547034');
+});
+
+test('links saved without identifiers survive renewal via the linked account IBAN or a unique name', () => {
+  const existing: EnableBankingAccount[] = [
+    { id: 'old-1', name: 'Compte courant', bankName: 'B', currency: 'EUR', balance: 0, linkedAccountId: 'crystal-1' },
+    { id: 'old-2', name: 'Epargne', bankName: 'B', currency: 'EUR', balance: 0, linkedAccountId: 'crystal-2' },
+  ];
+  const crystalAccountNumbers = new Map([['crystal-2', 'BE00 1111 2222 3333']]);
+  assert.equal(matchExistingProviderAccount(existing, { uid: 'n2', accountNumber: 'BE00111122223333' }, { crystalAccountNumbers })?.id, 'old-2');
+  assert.equal(matchExistingProviderAccount(existing, { uid: 'n1', accountNumber: 'BE99' }, { name: ' compte  courant ', currency: 'EUR' })?.id, 'old-1');
+  // Different currency, an already-claimed account, or two accounts with the same name: no guess.
+  assert.equal(matchExistingProviderAccount(existing, { uid: 'n1' }, { name: 'Compte courant', currency: 'USD' }), undefined);
+  assert.equal(matchExistingProviderAccount(existing, { uid: 'n1' }, { name: 'Compte courant', exclude: new Set(['old-1']) }), undefined);
+  const twins = [...existing, { ...existing[0], id: 'old-3', linkedAccountId: 'crystal-3' }];
+  assert.equal(matchExistingProviderAccount(twins, { uid: 'n1' }, { name: 'Compte courant' }), undefined);
+  // A saved IBAN that differs rules out a name match.
+  const withIban = [{ ...existing[0], accountNumber: 'BE11' }];
+  assert.equal(matchExistingProviderAccount(withIban, { uid: 'n1', accountNumber: 'BE22' }, { name: 'Compte courant' }), undefined);
 });
