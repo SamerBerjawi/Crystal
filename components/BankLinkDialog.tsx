@@ -5,7 +5,8 @@ import { Button } from './ui/Actions';
 import { DateInput, TextInput } from './ui/Fields';
 import { suggestAccountType } from '../utils/enableBankingMapper';
 import { Dialog } from './ui/Overlays';
-import { Select } from './ui/Pickers';
+import { Combobox, Select } from './ui/Pickers';
+import { useAccountPickerOptions } from '../hooks/useAccountPickerOptions';
 import { SmoothTab, type SwipeTabItem } from './ui/smooth-tab';
 
 const BANK_LINK_MODES: SwipeTabItem[] = [
@@ -52,11 +53,13 @@ const BankLinkDialog: React.FC<BankLinkDialogProps> = ({ account, accounts, take
     setStartDate(account.syncStartDate && account.syncStartDate >= minDate ? account.syncStartDate : fallbackStart);
   }, [account, minDate]);
 
+  const buildAccountOptions = useAccountPickerOptions(accounts);
   const accountOptions = useMemo(
-    () => accounts
-      .filter(item => !takenAccountIds.has(item.id) || item.id === account?.linkedAccountId)
-      .map(item => ({ id: item.id, label: item.name, description: item.currency })),
-    [account?.linkedAccountId, accounts, takenAccountIds],
+    () => buildAccountOptions({
+      exclude: item => takenAccountIds.has(item.id) && item.id !== account?.linkedAccountId,
+      selected: account?.linkedAccountId,
+    }),
+    [account?.linkedAccountId, buildAccountOptions, takenAccountIds],
   );
 
   const pickDate = (value: string) => setStartDate(value < minDate ? minDate : value > maxDate ? maxDate : value);
@@ -95,7 +98,7 @@ const BankLinkDialog: React.FC<BankLinkDialogProps> = ({ account, accounts, take
           label="Bank account link mode"
         />
         {mode === 'existing' ? (
-          <Select label="Crystal account" options={accountOptions} value={accountId || null} onChange={setAccountId} />
+          <Combobox label="Crystal account" options={accountOptions} value={accountId || null} onChange={id => setAccountId(id ?? '')} placeholder="Search accounts" />
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             <TextInput label="Account name" value={name} onChange={setName} />

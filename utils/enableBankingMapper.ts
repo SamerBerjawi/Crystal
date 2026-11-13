@@ -330,9 +330,8 @@ export function extractProviderAccountIdentifiers(account: any, details?: any): 
   identificationHash: string | undefined;
   accountNumber: string | undefined;
 } {
-  if (typeof account === 'string') {
-    return { uid: account, identificationHash: undefined, accountNumber: undefined };
-  }
+  // GET /sessions/{id} lists accounts as bare uids; the IBAN and hash then come from `details` (or accounts_data).
+  if (typeof account === 'string') account = { uid: account };
   if (!account) {
     return { uid: undefined, identificationHash: undefined, accountNumber: undefined };
   }
@@ -369,26 +368,75 @@ export function extractProviderAccountIdentifiers(account: any, details?: any): 
 }
 
 /**
+ * Session accounts as objects. `GET /sessions/{id}` returns `accounts` as bare uid strings and the
+ * persistent `identification_hash` separately in `accounts_data`; merge them so renewals can be matched.
+ */
+export function normalizeSessionAccounts(session: any): any[] {
+  const accounts: any[] = Array.isArray(session?.accounts) ? session.accounts : [];
+  const dataByUid = new Map<string, any>();
+  for (const entry of Array.isArray(session?.accounts_data) ? session.accounts_data : []) {
+    if (entry && typeof entry.uid === 'string') dataByUid.set(entry.uid, entry);
+  }
+  return accounts.map(account => {
+    if (typeof account === 'string') return { ...(dataByUid.get(account) || {}), uid: account };
+    const uid = account && typeof account.uid === 'string' ? account.uid : undefined;
+    const data = uid ? dataByUid.get(uid) : undefined;
+    return data ? { ...data, ...account } : account;
+  });
+}
+
+const normalizeIban = (value?: string) => (value || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+const normalizeName = (value?: string) => (value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+export interface ProviderAccountMatchOptions {
+  /** Existing accounts already claimed by another account in this sync. */
+  exclude?: Set<string>;
+  /** Account name and currency as the bank reports them now: a last resort for links saved without any identifier. */
+  name?: string;
+  currency?: string;
+  /** IBAN of each Crystal account, by id: matches a saved link through the account it points to. */
+  crystalAccountNumbers?: Map<string, string>;
+}
+
+/**
  * Finds an existing `EnableBankingAccount` across session renewals even when the bank/Enable Banking
- * assigns a brand-new `uid` to the account. Matches by `id` (`uid`), `identificationHash`, or `accountNumber` (IBAN).
+ * assigns a brand-new `uid` to the account. Matches by `id` (`uid`), `identificationHash`, or `accountNumber` (IBAN),
+ * then (with options) by the linked Crystal account's IBAN, then by a unique name and currency.
  */
 export function matchExistingProviderAccount(
   existingAccounts: EnableBankingAccount[] | undefined,
   identifiers: { uid?: string; identificationHash?: string; accountNumber?: string },
+  options: ProviderAccountMatchOptions = {},
 ): EnableBankingAccount | undefined {
   if (!existingAccounts || existingAccounts.length === 0) return undefined;
+  const candidates = options.exclude ? existingAccounts.filter(a => !options.exclude!.has(a.id)) : existingAccounts;
   if (identifiers.uid) {
-    const byId = existingAccounts.find(a => a.id === identifiers.uid);
+    const byId = candidates.find(a => a.id === identifiers.uid);
     if (byId) return byId;
   }
   if (identifiers.identificationHash) {
-    const byHash = existingAccounts.find(a => a.identificationHash && a.identificationHash === identifiers.identificationHash);
+    const byHash = candidates.find(a => a.identificationHash && a.identificationHash === identifiers.identificationHash);
     if (byHash) return byHash;
   }
-  if (identifiers.accountNumber) {
-    const normIban = identifiers.accountNumber.replace(/\s+/g, '').toUpperCase();
-    const byIban = existingAccounts.find(a => a.accountNumber && a.accountNumber.replace(/\s+/g, '').toUpperCase() === normIban);
+  const iban = normalizeIban(identifiers.accountNumber);
+  if (iban) {
+    const byIban = candidates.find(a => a.accountNumber && normalizeIban(a.accountNumber) === iban);
     if (byIban) return byIban;
+    if (options.crystalAccountNumbers) {
+      const byLinkedIban = candidates.find(a => a.linkedAccountId && normalizeIban(options.crystalAccountNumbers!.get(a.linkedAccountId)) === iban);
+      if (byLinkedIban) return byLinkedIban;
+    }
+  }
+  const name = normalizeName(options.name);
+  if (name) {
+    // Only accounts whose saved identifiers can't contradict this one, and only when exactly one fits.
+    const byName = candidates.filter(a =>
+      normalizeName(a.name) === name
+      && (!options.currency || !a.currency || a.currency === options.currency)
+      && !(identifiers.identificationHash && a.identificationHash)
+      && !(iban && a.accountNumber),
+    );
+    if (byName.length === 1) return byName[0];
   }
   return undefined;
 }

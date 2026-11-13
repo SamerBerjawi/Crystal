@@ -25,6 +25,7 @@ import {
   mapEnableBankingTransaction,
   getLegacyEnableBankingTransactionId,
   matchExistingProviderAccount,
+  normalizeSessionAccounts,
   matchKnownBrand,
   resolveEnableBankingBalance,
 } from '../utils/enableBankingMapper';
@@ -231,7 +232,7 @@ export function useEnableBankingSync({
     try {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, lastError: undefined } : conn));
       const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, requiredPsuHeaders: connection.requiredPsuHeaders }), }).then(res => res.json());
-      const accountsFromSession: any[] = session?.accounts || [];
+      const accountsFromSession: any[] = normalizeSessionAccounts(session);
       const updatedAccounts: EnableBankingAccount[] = [];
       const importedTransactions: Transaction[] = [];
       const shouldSyncTransactions = (syncOptions?.transactionMode || 'full') !== 'none';
@@ -268,6 +269,9 @@ export function useEnableBankingSync({
       ].filter((v): v is string => Boolean(v));
 
       const existingTxById = new Map<string, Transaction>(currentTransactions.map(tx => [tx.id, tx]));
+      // A renewed consent gives every account a new uid; these keep each one on the account it was linked to.
+      const crystalAccountNumbers = new Map<string, string>(accounts.filter(a => a.accountNumber).map(a => [a.id, a.accountNumber as string]));
+      const claimedProviderAccountIds = new Set<string>();
 
       const prefetchedAccounts = await mapWithConcurrency(
         accountsFromSession, 2,
@@ -292,11 +296,18 @@ export function useEnableBankingSync({
 
       for (const prefetched of prefetchedAccounts) {
         if (!prefetched) continue;
-        const { account, providerAccountId, preMatchedAccount, details, balances } = prefetched;
+        const { account, providerAccountId, details, balances } = prefetched;
         const identifiers = extractProviderAccountIdentifiers(account, details);
-        const existingLinkedAccount = matchExistingProviderAccount(connection.accounts || [], identifiers) || preMatchedAccount;
         const resolvedBalance = resolveEnableBankingBalance(balances);
-        const currency = (account?.currency || details?.currency || resolvedBalance.currency || existingLinkedAccount?.currency || 'EUR') as Currency;
+        const reportedCurrency = account?.currency || details?.currency || resolvedBalance.currency;
+        const existingLinkedAccount = matchExistingProviderAccount(connection.accounts || [], identifiers, {
+          exclude: claimedProviderAccountIds,
+          name: details?.name || details?.product || account?.name || account?.product,
+          currency: reportedCurrency,
+          crystalAccountNumbers,
+        });
+        if (existingLinkedAccount) claimedProviderAccountIds.add(existingLinkedAccount.id);
+        const currency = (reportedCurrency || existingLinkedAccount?.currency || 'EUR') as Currency;
         const linkedAccountId = existingLinkedAccount?.linkedAccountId;
         const accountName = details?.name || details?.product || account?.name || account?.product || existingLinkedAccount?.name || 'Bank account';
 
