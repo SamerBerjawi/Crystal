@@ -21,7 +21,7 @@ Documents (PDF, PNG, JPG, WebP, text) are stored **encrypted on the server's dis
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `TAX_DOCS_DIR` | `config/tax-docs` | Where the encrypted files are written. Must be on a persistent volume. |
+| `TAX_DOCS_DIR` | `config/tax-docs` | Where the encrypted files are written. The default is inside the backend's `/app/config` volume, which the bundled `docker-compose.yml` already keeps. Any other folder must be on a persistent volume. |
 | `TAX_DOC_MAX_MB` | `10` | Largest single file. |
 | `TAX_DOC_USER_MAX_MB` | `500` | Total per user. |
 
