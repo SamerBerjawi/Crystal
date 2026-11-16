@@ -73,6 +73,10 @@ test('headline names the biggest mover, bars chain', () => {
   const b = buildNetWorthBridge({ ...base, transactions: rows, start: new Date(2026, 10, 1), end: TODAY });
   assert.deepEqual(bridgeHeadline(b).direction, 'up');
   assert.equal(bridgeHeadline(b).driver?.kind, 'income');
+  assert.equal(b.operatingSaved, 2600);
+  assert.ok(Math.abs((b.savingsRate ?? 0) - 2600 / 3000) < 0.0001);
+  assert.equal(b.steps[0].details[0].kind, 'category');
+  assert.equal(b.steps[0].details[0].count, 1);
   const { bars } = bridgeBars(b);
   assert.equal(bars[0].from, b.startValue);
   assert.equal(bars[bars.length - 1].to, b.endValue);

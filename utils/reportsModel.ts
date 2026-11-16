@@ -18,7 +18,7 @@ export interface SavedReportView extends ReportFilters {
   groupBy: GroupBy;
 }
 
-export type ReportId = 'summary' | 'spending' | 'categories' | 'usual' | 'needs' | 'breakdown' | 'cashflow' | 'budget' | 'recurring' | 'unusual' | 'forecast' | 'categoryMonths' | 'income';
+export type ReportId = 'summary' | 'spending' | 'categories' | 'usual' | 'needs' | 'breakdown' | 'cashflow' | 'budget' | 'recurring' | 'unusual' | 'forecast' | 'categoryMonths' | 'income' | 'bridge';
 
 export const NO_FILTERS = { merchant: '', category: 'all', accountId: 'all' };
 export const MAX_SAVED_VIEWS = 15;
@@ -447,6 +447,10 @@ export const reportTiles = (report: Report): Record<ReportId, { value: string; s
     forecast: {
       value: eur(report.forecast.projectedMonthEnd),
       says: `You've spent ${eur(report.forecast.mtdSpendEur)} this month at about ${eur(report.forecast.dailyAverage)} a day, with ${report.forecast.remainingDays} days left.`,
+    },
+    bridge: {
+      value: `${report.income - report.totalSpend >= 0 ? '+' : '−'}${eur(Math.abs(report.income - report.totalSpend))}`,
+      says: `Net cash flow of ${eur(report.income - report.totalSpend)} plus market and balance adjustments moved your net worth over this period.`,
     },
   };
 };

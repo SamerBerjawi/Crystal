@@ -2,12 +2,14 @@ import React, { useContext, useMemo, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Page, Transaction } from '../types';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
+import { useAccountSelector } from '../contexts/DomainProviders';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { getCategoryDetails } from '../utils/categories';
-import { reportInsights, type GroupBy, type Report, type ReportId } from '../utils/reportsModel';
-import { PieCenter, PieChart, PieSlice } from '../src/components/charts';
+import { reportInsights, type GroupBy, type Report, type ReportFilters, type ReportId } from '../utils/reportsModel';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, PieCenter, PieChart, PieTicks, TrendLine, YAxis as BklitYAxis } from '../src/components/charts';
 import { LINE_MOTION } from '../src/components/charts/animation';
 import CashflowSankey from './CashflowSankey';
+import NetWorthBridgeWidget from './NetWorthBridgeWidget';
 import { EntityGlyph, MerchantLogo } from './EntityIcon';
 import { Button } from './ui/Actions';
 import { Badge, ShowMore } from './ui/Display';
@@ -22,7 +24,10 @@ const PART_COLORS: Record<string, string> = { Needs: 'var(--chart-1)', Wants: 'v
 const STEP = 12;
 const COMPARE = [{ id: 'now', label: 'This period' }, { id: 'compare', label: 'Vs period before' }];
 
-const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const shortDate = (date: string, withYear = false) =>
+  parseLocalDate(date).toLocaleDateString(undefined, withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' });
+const velocitySpansYears = (velocity: Report['velocity']) =>
+  velocity.length > 1 && velocity[0].date.slice(0, 4) !== velocity[velocity.length - 1].date.slice(0, 4);
 const share = (part: number, whole: number) => (whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : '0.0%');
 
 const useCategoryDetailsLookup = () => {
@@ -60,6 +65,7 @@ const Figure: React.FC<{ label: string; children: React.ReactNode }> = ({ label,
 
 const SpendingChart: React.FC<{ report: Report }> = ({ report }) => {
   const isPrivate = useContext(PrivacyContext);
+  const withYear = velocitySpansYears(report.velocity);
   return (
     <>
       <ul className="mb-2 flex gap-4" aria-label="Legend">
@@ -68,7 +74,7 @@ const SpendingChart: React.FC<{ report: Report }> = ({ report }) => {
       </ul>
       <div className="h-[260px] md:h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={report.velocity.map(point => ({ ...point, label: shortDate(point.date) }))}>
+          <LineChart data={report.velocity.map(point => ({ ...point, label: shortDate(point.date, withYear) }))}>
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={48} />
             <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={48} />
@@ -93,17 +99,10 @@ const CategoryReport: React.FC<{ report: Report }> = ({ report }) => {
   if (slices.length === 0) return <Empty>There is no spending in this period.</Empty>;
   return (
     <div className="grid grid-cols-1 gap-5 min-[900px]:grid-cols-[220px_minmax(0,1fr)]">
-      <div className="mx-auto w-[220px] max-w-full">
-        <PieChart data={slices} innerRadius={70} padAngle={0.03}>
-          {slices.map((_, index) => <PieSlice key={index} index={index} />)}
-          <PieCenter defaultLabel="Spent">
-            {({ value, label, isHovered }) => (
-              <span className="flex flex-col items-center">
-                <span className="type-caption text-muted">{label}</span>
-                <span className="type-figure-row text-ink"><Amount value={isHovered ? value : report.totalSpend} currency={getMainCurrency()} /></span>
-              </span>
-            )}
-          </PieCenter>
+      <div className="mx-auto w-[200px] max-w-full">
+        <PieChart data={slices} innerRadius={70} size={200}>
+          <PieTicks hoverEffect="tick" />
+          <PieCenter defaultLabel="Share" valueDisplay="percent" />
         </PieChart>
       </div>
       <div className="min-w-0">
@@ -211,7 +210,6 @@ const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
   const isPrivate = useContext(PrivacyContext);
   const { total, sources, months } = report.incomeReport;
   if (total <= 0) return <Empty>No money came in during this period.</Empty>;
-  const top = Math.max(...months.map(month => month.totalEur), 1);
   const kept = report.income - report.totalSpend;
   return (
     <>
@@ -221,13 +219,20 @@ const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
         <Figure label="Kept"><Amount value={kept} currency={getMainCurrency()} tone="flow" /></Figure>
       </dl>
       {months.length > 1 && (
-        <div className="mt-5 flex h-32 items-end gap-2" role="img" aria-label="Money in by month">
-          {months.map(month => (
-            <div key={month.key} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" title={`${monthLabel(month.key)}: ${isPrivate ? '•••' : formatCurrency(month.totalEur, getMainCurrency())}`}>
-              <div className="w-full rounded-t-md bg-chart-1" style={{ height: `${Math.max(2, (month.totalEur / top) * 100)}%` }} />
-              <span className="type-caption text-muted">{monthLabel(month.key)}</span>
-            </div>
-          ))}
+        <div className="mt-5 h-56" role="img" aria-label="Money in by month">
+          <BarChart
+            data={months.map(month => ({ month: monthLabel(month.key), 'Money in': month.totalEur }))}
+            xDataKey="month"
+            aspectRatio="auto"
+            margin={{ top: 8, right: 8, bottom: 40, left: 56 }}
+          >
+            <Grid horizontal />
+            <Bar dataKey="Money in" lineCap="round" />
+            <BklitYAxis yAxisId="left" tickFormatter={v => (isPrivate ? '•••' : formatCurrency(v, getMainCurrency(), { compact: true }))} />
+            <TrendLine dataKey="Money in" stroke="var(--chart-1)" />
+            <BarXAxis />
+            <ChartTooltip valueFormatter={(value: number) => (isPrivate ? '•••' : formatCurrency(value, getMainCurrency()))} />
+          </BarChart>
         </div>
       )}
       <div className="mt-4 border-t border-line pt-2">
@@ -414,6 +419,7 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
 
   // Cumulative spending velocity trajectory
   const cumulativeVelocity = useMemo(() => {
+    const withYear = velocitySpansYears(report.velocity);
     let cumCurrent = 0;
     let cumPrevious = 0;
     return report.velocity.map(pt => {
@@ -421,7 +427,7 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
       cumPrevious += pt.previous;
       return {
         date: pt.date,
-        label: shortDate(pt.date),
+        label: shortDate(pt.date, withYear),
         current: Number(cumCurrent.toFixed(2)),
         previous: Number(cumPrevious.toFixed(2)),
       };
@@ -600,7 +606,7 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
                       ]}
                     />
                     <Line
-                      type="monotone"
+                      type="natural"
                       dataKey="previous"
                       stroke="var(--muted)"
                       strokeWidth={1.5}
@@ -608,7 +614,7 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
                       dot={false}
                     />
                     <Area
-                      type="monotone"
+                      type="natural"
                       dataKey="current"
                       stroke="var(--chart-1)"
                       strokeWidth={2.5}
@@ -643,20 +649,11 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
                 No categorical spending recorded
               </div>
             ) : (
-              <div className="grid grid-cols-1 items-center gap-4 pt-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                <div className="mx-auto size-[140px]">
-                  <PieChart data={donutSlices} innerRadius={46} padAngle={0.03}>
-                    {donutSlices.map((_, index) => <PieSlice key={index} index={index} />)}
-                    <PieCenter defaultLabel="Spent">
-                      {({ value, label, isHovered }) => (
-                        <span className="flex flex-col items-center">
-                          <span className="text-[10px] font-semibold uppercase text-muted">{label}</span>
-                          <span className="text-xs font-bold text-ink">
-                            <Amount value={isHovered ? value : report.totalSpend} currency={getMainCurrency()} />
-                          </span>
-                        </span>
-                      )}
-                    </PieCenter>
+              <div className="grid grid-cols-1 items-center gap-4 pt-3 sm:grid-cols-[200px_minmax(0,1fr)]">
+                <div className="mx-auto size-[200px]">
+                  <PieChart data={donutSlices} innerRadius={70} size={200}>
+                    <PieTicks hoverEffect="tick" />
+                    <PieCenter defaultLabel="Share" valueDisplay="percent" />
                   </PieChart>
                 </div>
 
@@ -1152,8 +1149,6 @@ const BudgetReport: React.FC<{ report: Report }> = ({ report }) => {
 };
 
 const RecurringReport: React.FC<{ report: Report }> = ({ report }) => {
-  if (report.recurring.length === 0) return <Empty>Nothing here repeats on a steady schedule.</Empty>;
-
   const frequencies = ['Monthly', 'Every two weeks', 'Weekly'];
   const grouped = useMemo(() => {
     const map = new Map<string, typeof report.recurring>();
@@ -1164,6 +1159,8 @@ const RecurringReport: React.FC<{ report: Report }> = ({ report }) => {
     });
     return map;
   }, [report.recurring]);
+
+  if (report.recurring.length === 0) return <Empty>Nothing here repeats on a steady schedule.</Empty>;
 
   return (
     <div className="space-y-6">
@@ -1354,6 +1351,7 @@ interface ReportPanelProps {
   id: ReportId;
   report: Report;
   cashflowTransactions: Transaction[];
+  filters?: ReportFilters;
   groupBy: GroupBy;
   onGroupBy: (group: GroupBy) => void;
   isPhone: boolean;
@@ -1361,8 +1359,17 @@ interface ReportPanelProps {
 }
 
 /** The body of one report, below its "What it says" sentence (D-027). */
-const ReportPanel: React.FC<ReportPanelProps> = ({ id, report, cashflowTransactions, groupBy, onGroupBy, isPhone, setCurrentPage }) => {
+const ReportPanel: React.FC<ReportPanelProps> = ({ id, report, cashflowTransactions, filters, groupBy, onGroupBy, isPhone, setCurrentPage }) => {
   const { incomeCategories, expenseCategories } = useCategoryContext();
+  const accounts = useAccountSelector(acc => acc);
+  const bridgeAccountIds = useMemo(() => {
+    if (filters?.accountId && filters.accountId !== 'all') return [filters.accountId];
+    return accounts.filter(acc => acc.includeInAnalytics ?? true).map(acc => acc.id);
+  }, [accounts, filters?.accountId]);
+  const bridgeRange = useMemo(
+    () => (filters ? { start: parseLocalDate(filters.startDate), end: parseLocalDate(filters.endDate) } : undefined),
+    [filters?.startDate, filters?.endDate],
+  );
 
   switch (id) {
     case 'summary':
@@ -1410,6 +1417,8 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ id, report, cashflowTransacti
       return <IncomeReport report={report} />;
     case 'forecast':
       return <ForecastReport report={report} />;
+    case 'bridge':
+      return <NetWorthBridgeWidget duration="ALL" accountIds={bridgeAccountIds} customRange={bridgeRange} />;
   }
 };
 

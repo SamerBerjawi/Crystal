@@ -69,7 +69,7 @@ const TAB_DEFAULTS: Record<OverviewTab, TabDefault[]> = {
   summary: [['safeToSpend', 2, 4], ['netWorthOverTime', 4, 4], ['accountsSummary', 2, 4], ['recentActivity', 4, 4], ['cardsStack', 6, 3]],
   upcoming: [['forecastHorizon', 3, 3], ['todayWidget', 3, 6], ['financialRunway', 3, 3], ['insights', 6, 2], 'creditCardStatements'],
   spending: [['moneyFlow', 6, 5], ['financialOverview', 3, 4], ['merchantPareto', 3, 4], 'spendingCalendar', ['outflowsByCategory', 6, 4], 'cashflowSankey'],
-  wealth: [['overviewKpis', 6, 3], ['assetAllocation', 6, 6], ['goalsRings', 3, 4], ['wealthVelocity', 3, 4]],
+  wealth: [['overviewKpis', 6, 3], ['netWorthBridge', 6, 5], ['assetAllocation', 6, 6], ['goalsRings', 3, 4], ['wealthVelocity', 3, 4]],
 };
 
 const fromDefaults = (entries: TabDefault[]) => entries.map((entry, index) => {

@@ -24,7 +24,7 @@ import { AccountLogo } from '../components/AccountCard';
 import { EntityGlyph, LogoTile, MerchantLogo } from '../components/EntityIcon';
 import { getCategoryDetails } from '../utils/categories';
 import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
-import { AreaSparkline, useSparklineHover } from '../src/components/charts';
+import { LineSparkline, useSparklineHover } from '../src/components/charts';
 import { cn } from '../lib/utils';
 
 const LEGACY_VIEWS_KEY = 'reports.savedViews.v1';
@@ -41,6 +41,7 @@ export const REPORT_GROUPS: ReportGroup[] = [
       { id: 'summary', label: 'Summary', icon: 'analytics-01' },
       { id: 'spending', label: 'Spending pace', icon: 'chart-line-data-01' },
       { id: 'cashflow', label: 'Cash flow', icon: 'arrow-data-transfer-horizontal' },
+      { id: 'bridge', label: 'Net worth bridge', icon: 'git-branch' },
       { id: 'forecast', label: 'Month-end forecast', icon: 'clock-01' },
     ],
   },
@@ -190,11 +191,13 @@ export function KpiCard({
           {shown && shown.value != null ? formatter.format(shown.value) : '—'}
         </span>
       </button>
-      <div className="mt-2 h-10 w-full cursor-pointer" onClick={onOpen}>
-        <AreaSparkline
+      <div className="mt-2 h-12 w-full cursor-pointer" onClick={onOpen}>
+        <LineSparkline
+          curve="natural"
           data={cardData}
           dataKey="value"
-          height={40}
+          height={48}
+          springConfig={{ stiffness: 600, damping: 45 }}
           {...hover.sparklineProps}
         />
       </div>
@@ -601,6 +604,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
               id={activeId}
               report={report}
               cashflowTransactions={cashflowTransactions}
+              filters={filters}
               groupBy={groupBy}
               onGroupBy={setGroupBy}
               isPhone={isPhone}

@@ -13,7 +13,12 @@ import { convertToMain, parseLocalDate, round2, safeAdd, safeSubtract, toLocalIS
 
 export type BridgeKind = 'income' | 'spending' | 'market' | 'corrections' | 'transfers';
 
-export interface BridgeDetail { label: string; amount: number }
+export interface BridgeDetail {
+  label: string;
+  amount: number;
+  count?: number;
+  kind?: 'category' | 'account';
+}
 
 export interface BridgeStep {
   kind: BridgeKind;
@@ -33,6 +38,10 @@ export interface NetWorthBridge {
   change: number;
   /** Change as a share of the starting value. Undefined when it started at or below zero. */
   changePct?: number;
+  /** Income minus spending in the period. */
+  operatingSaved: number;
+  /** Share of income kept (income - spending) / income, when income > 0. */
+  savingsRate?: number;
   steps: BridgeStep[];
   /** True when any transaction fell in the period. */
   hasActivity: boolean;
@@ -65,12 +74,16 @@ const MAX_DETAILS = 4;
 const dayOf = (date: Date) => toLocalISOString(date);
 
 /** Splits a total into its biggest parts, keeping the rest as one line so the parts still add up. */
-const topParts = (parts: Map<string, number>): BridgeDetail[] => {
-  const sorted = [...parts.entries()].map(([label, amount]) => ({ label, amount: round2(amount) })).sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+const topParts = (parts: Map<string, { amount: number; count: number }>, detailKind: 'category' | 'account'): BridgeDetail[] => {
+  const sorted = [...parts.entries()]
+    .map(([label, entry]) => ({ label, amount: round2(entry.amount), count: entry.count, kind: detailKind }))
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
   if (sorted.length <= MAX_DETAILS + 1) return sorted;
   const head = sorted.slice(0, MAX_DETAILS);
-  const rest = sorted.slice(MAX_DETAILS).reduce((sum, part) => safeAdd(sum, part.amount), 0);
-  return [...head, { label: 'Everything else', amount: round2(rest) }];
+  const tail = sorted.slice(MAX_DETAILS);
+  const rest = tail.reduce((sum, part) => safeAdd(sum, part.amount), 0);
+  const restCount = tail.reduce((sum, part) => sum + (part.count ?? 0), 0);
+  return [...head, { label: 'Everything else', amount: round2(rest), count: restCount }];
 };
 
 export const buildNetWorthBridge = (input: BridgeInput): NetWorthBridge => {
@@ -102,17 +115,18 @@ export const buildNetWorthBridge = (input: BridgeInput): NetWorthBridge => {
   const kindOf = (tx: Transaction): BridgeKind =>
     tx.transferId ? 'transfers' : tx.isMarketAdjustment ? 'market' : tx.isBalanceAdjustment ? 'corrections' : tx.type === 'income' ? 'income' : 'spending';
 
-  const totals = new Map<BridgeKind, { amount: number; count: number; parts: Map<string, number> }>();
+  const totals = new Map<BridgeKind, { amount: number; count: number; parts: Map<string, { amount: number; count: number }> }>();
   inPeriod.forEach(tx => {
     const kind = kindOf(tx);
-    const entry = totals.get(kind) ?? { amount: 0, count: 0, parts: new Map<string, number>() };
+    const entry = totals.get(kind) ?? { amount: 0, count: 0, parts: new Map<string, { amount: number; count: number }>() };
     const value = signed(tx);
     entry.amount = safeAdd(entry.amount, value);
     entry.count += 1;
     const label = kind === 'income' || kind === 'spending'
       ? (tx.category || 'Uncategorized')
       : (accountNames?.get(tx.accountId) ?? 'Account');
-    entry.parts.set(label, safeAdd(entry.parts.get(label) ?? 0, value));
+    const prevPart = entry.parts.get(label) ?? { amount: 0, count: 0 };
+    entry.parts.set(label, { amount: safeAdd(prevPart.amount, value), count: prevPart.count + 1 });
     totals.set(kind, entry);
   });
 
@@ -121,11 +135,15 @@ export const buildNetWorthBridge = (input: BridgeInput): NetWorthBridge => {
     .filter(kind => kind === 'income' || kind === 'spending' || (totals.get(kind)?.count ?? 0) > 0)
     .map(kind => {
       const entry = totals.get(kind);
-      return { kind, label: LABELS[kind], amount: round2(entry?.amount ?? 0), count: entry?.count ?? 0, details: entry ? topParts(entry.parts) : [] };
+      const detailKind = kind === 'income' || kind === 'spending' ? 'category' : 'account';
+      return { kind, label: LABELS[kind], amount: round2(entry?.amount ?? 0), count: entry?.count ?? 0, details: entry ? topParts(entry.parts, detailKind) : [] };
     });
 
   const change = round2(steps.reduce((sum, step) => safeAdd(sum, step.amount), 0));
   const startValue = round2(safeSubtract(endValue, change));
+  const incomeAmt = totals.get('income')?.amount ?? 0;
+  const spendingAmt = totals.get('spending')?.amount ?? 0;
+  const operatingSaved = round2(safeAdd(incomeAmt, spendingAmt));
 
   return {
     start: startKey,
@@ -134,6 +152,8 @@ export const buildNetWorthBridge = (input: BridgeInput): NetWorthBridge => {
     endValue,
     change,
     changePct: startValue > 0 ? change / startValue : undefined,
+    operatingSaved,
+    savingsRate: incomeAmt > 0 ? operatingSaved / incomeAmt : undefined,
     steps,
     hasActivity: inPeriod.length > 0,
   };
