@@ -4,30 +4,66 @@ All notable changes to Crystal are documented here. Versions before 3.0.0 were t
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-11-16
+
+Ask Crystal, a Tax pack, FIRE and debt planning, a review drawer for synced transactions, and a hardening and performance pass over the whole app.
+
 ### Added
-- **Accent colours.** Five presets (Forest, Ocean, Plum, Copper, Graphite) in Preferences.
-- **Life events** on the net-worth chart and in Wrapped, and a **Net worth bridge** widget (Wealth tab) showing what moved your net worth over the period.
-- **FIRE** rebuilt around the odds your money lasts, with saved settings and planned costs.
-- **Investment performance** (XIRR, money put in against growth, concentration) and **Against an index** (your trades replayed into index funds, via Twelve Data).
-- **Debt payoff** planner (Planning): minimums, snowball and avalanche.
-- **Weekly recap** (Reports) and an optional Monday alert.
-- **Scoped API tokens** and a read-only **MCP server** at `/api/mcp`.
-- **Tidy-ups** in the Queue: suggested merchant and category clean-ups you approve first, including ones Ask Crystal suggests. Ask Crystal also gets a server-side agent loop and read-only outside MCP servers.
-- **Trips**, found from the country on your transactions, with a map.
-- **Tax pack** (Reports): year summary, per-country checklist (country from your city in Settings), encrypted documents on the server's disk, and a zip download.
-- **Help and README** now include a step-by-step setup guide (Twelve Data, Brandfetch, Enable Banking, alerts, API tokens and MCP, Ask Crystal, tax documents).
-- **Ask Crystal.** Ask about your money in plain words ("What did I spend eating out last month?", "Can I afford 2,000 in March?"). Open it with Ctrl or ⌘ and `/`, or from search. The numbers are looked up in your browser with the same calculations the rest of Crystal uses, so they match what you see; the model only chooses what to look up and words the answer. "How I found this" lists every lookup, and any figure in an answer that no lookup contained is flagged.
-- **Choose how it thinks** (Settings, Connections, Ask Crystal). Download a model to the built-in engine from inside the app, with live progress, or connect a model server you already run (Ollama, LM Studio, llama.cpp, vLLM, or a hosted service). The key is stored encrypted on the server and never sent back to the browser.
+
+#### Ask Crystal and connections
+- **Ask Crystal.** Ask about your money in plain words ("What did I spend eating out last month?", "Can I afford 2,000 in March?"). Open it with Ctrl or ⌘ and `/`, or from search. The numbers are looked up in your browser with the same calculations the rest of Crystal uses, so they match what you see; the model only chooses what to look up and words the answer. "How I found this" lists every lookup, and any figure in an answer that no lookup contained is flagged. It can also suggest tidy-ups, which you approve before anything changes.
+- **Choose how it thinks** (Settings, Connections, Ask Crystal). Download a model to the built-in engine from inside the app, with live progress, or connect a model server you already run (Ollama, LM Studio, llama.cpp, vLLM, or a hosted service). The key is stored encrypted on the server and never sent back to the browser. Ask Crystal also gets a server-side agent loop and read-only outside MCP servers, and more tools to look things up with.
 - **Built-in engine** (optional). `docker compose --profile ai up -d` starts an Ollama container next to Crystal. It is off unless asked for.
+- **Scoped API tokens** and a read-only **MCP server** at `/api/mcp`, so other tools and assistants can read your data without a full login.
+- **Alert rules** and the API token screen were reworked in Settings, Connections.
+- **Newly synced transactions** open in a review drawer, with an unread marker on the notification centre, so a bank sync never lands unseen.
+
+#### Planning and wealth
+- **FIRE** rebuilt around the odds your money lasts, with saved settings and planned costs, Coast, Lean and Fat FIRE milestones, a pension offset and natural curves.
+- **Debt payoff** planner (Planning): minimums, snowball and avalanche, a lump-sum windfall, leaving a debt out, and a trajectory chart to the horizon.
+- **Life events** on the net-worth chart and in Wrapped, and a **Net worth bridge** widget (Wealth tab) showing what moved your net worth over the period, with valuation changes shown apart from market moves, the top movers and a comparison with the period before.
+- **Investment performance** (XIRR, money put in against growth, concentration) and **Against an index** (your trades replayed into index funds, via Twelve Data).
+- **Accounts**: a mortgage amortization chart, a pension growth simulator and spare-change milestones.
+- **Trips**, found from the country on your transactions or from where you paid, with budgets, a category breakdown and an interactive route map.
+
+#### Reports and look
+- **Tax pack** (Reports): a year summary with amounts converted to your main currency, a per-country checklist and deductible rules (country from your city in Settings), encrypted documents on the server's disk, and a zip download.
+- **Weekly recap** (Reports) with drill-downs, an optional Monday alert, and a year-over-year story in **Wrapped**.
+- **Accent colours.** Five presets (Forest, Ocean, Plum, Copper, Graphite) in Preferences.
+- **Charts** share one look across bars, heatmaps, gauges, pies, rings and sparklines, with new trend lines and ring grids, and tooltips that show the year when a chart spans several.
+- **Help and README** now include a step-by-step setup guide (Twelve Data, Brandfetch, Enable Banking, alerts, API tokens and MCP, Ask Crystal, tax documents).
+
+### Changed
+- **Reports** are organised into groups with date presets. Summary is now an executive view with trajectory charts, a category donut and a 50/30/20 balance; the other reports show variance and pacing. Account, category and merchant filters match the Add Transaction dialog.
+- **Logos and icons** appear on categories, merchants, tags and accounts across reports and screens, with a monogram when there is no logo.
+- **Challenges and Wrapped** are more playful and use a compact layout.
+- **Planning**: Tasks are an interactive kanban, Goals are easier to act on, and the forecast and calendar views were rebuilt.
+- **Budgeting** shows a quick diff before you apply a change, flags unbudgeted spending and has a month picker.
+- **Subscriptions** have a tighter layout, one place for alerts and better matching. **Rules**, the **Review queue**, the wallet's loyalty cards, the Add Bill dialog and the investments tables were polished.
+- **Invoices** ask for confirmation when paid and link straight to the ledger entry.
 
 ### Fixed
 - Bank links are kept when a bank connection is renewed.
+- **Forecast**: overdue items look back seven days and the starting balance is anchored to today's actual balance. Overdue items can be marked expired.
+- **Currency conversions** and the digest cache were corrected.
+- **Bank sync and CSV import** are more resilient with several banks, and editing a CSV cell is safer.
+- Saves no longer fire after load for no reason, and stale timers are cleaned up.
+- A chunk that fails to load is retried instead of leaving a blank page; the collapsed sidebar menu handles Escape and screen readers.
+- The server image builds on arm64 without hanging.
+
+### Performance
+- A 50,000-transaction ledger sorts, filters and matches without stalling (date-windowed matching, indexing and delta sync). Heavy dashboard tabs compute only when opened.
+
+### Security
+- Production CORS handling was hardened, the server stops at start-up if the database is unreachable rather than running on a stand-in, and payloads are validated.
 
 ### Configuration
-- `TAX_DOCS_DIR`, `TAX_DOC_MAX_MB` (default 10) and `TAX_DOC_USER_MAX_MB` (default 500). New table `tax_documents`. Back up the documents folder with the database.
+- `TAX_DOCS_DIR`, `TAX_DOC_MAX_MB` (default 10) and `TAX_DOC_USER_MAX_MB` (default 500). Tax documents default to a folder inside `/app/config`, so that folder must be a volume you back up with the database. The backend image now creates it for the `node` user.
 - `OLLAMA_URL` (default `http://ollama:11434`) is where the backend finds the built-in engine.
 - `ASSISTANT_ALLOW_PRIVATE_URLS` (default `false`) lets Ask Crystal use a model server on your own network when other people share your server. When you are the only user it is always allowed.
-- A new table `assistant_settings` is created on startup. nginx gets a streaming-friendly `/api/assistant/` location.
+- `ENCRYPTION_SECRET` is now passed through by `docker-compose.yml`. It encrypts bank keys, alert tokens, model keys and tax documents; empty falls back to `JWT_SECRET`. Set it once and never change it.
+- New tables `api_tokens`, `assistant_settings`, `assistant_mcp_servers` and `tax_documents` are created on startup. nginx gets a streaming-friendly `/api/assistant/` location and forwards the original `Host`.
+- Umbrel: the package now mounts a `backend-config` folder for tax documents.
 
 ## [3.1.0] - 2026-11-08
 
