@@ -27,6 +27,10 @@ export interface ConeInput {
   planYears: number;
   today: Date;
   events?: PlanEvent[];
+  /** Optional post-retirement monthly income (state pension / annuity) in today's money. */
+  pensionMonthly?: number;
+  /** Years from today when post-retirement monthly income begins. */
+  pensionStartYears?: number;
   /** The share of futures that must work out for a date to count as "on course". */
   targetOdds?: number;
   /** The year, counted from now, to draw the range of outcomes for. Left out, the earliest on-course year (or the last one). */
@@ -48,9 +52,28 @@ export interface Cone {
   targetOdds: number;
 }
 
+export interface FireMilestones {
+  /** 25x annual net retirement spend (after annual pension). */
+  fiTarget: number;
+  /** Current portfolio share of fiTarget, clamped 0..1. */
+  fiProgress: number;
+  /** Odds that stopping new monthly savings today still works at the chosen stopping year. */
+  coastFireOdds: number;
+  coastFireReached: boolean;
+}
+
 /** What is kept between visits. Anything left out falls back to your own figures or the defaults. */
 export interface FireSettings {
-  stopIn?: number; spending?: number; saving?: number; expectedReturn?: number; volatility?: number; planYears?: number; events?: PlanEvent[];
+  stopIn?: number;
+  spending?: number;
+  saving?: number;
+  expectedReturn?: number;
+  volatility?: number;
+  planYears?: number;
+  pensionMonthly?: number;
+  pensionStartYears?: number;
+  accountIds?: string[];
+  events?: PlanEvent[];
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -61,7 +84,12 @@ export const normalizeFireSettings = (raw: unknown): FireSettings => {
   const i = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const events = (Array.isArray(i.events) ? i.events : []).flatMap((e: any): PlanEvent[] =>
     e && typeof e.label === 'string' && typeof e.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && num(e.amount) && e.amount !== 0
-      ? [{ id: typeof e.id === 'string' ? e.id : undefined, label: e.label.slice(0, 60), date: e.date, amount: round2(clamp(e.amount, -1e9, 1e9)) }] : []).slice(0, 20);
+      ? [{ id: typeof e.id === 'string' ? e.id : undefined, label: e.label.slice(0, 60), date: e.date, amount: round2(clamp(e.amount, -1e9, 1e9)) }]
+      : [],
+  ).slice(0, 20);
+  const accountIds = Array.isArray(i.accountIds)
+    ? i.accountIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+    : undefined;
   return {
     stopIn: num(i.stopIn) ? Math.round(clamp(i.stopIn, 0, 35)) : undefined,
     spending: num(i.spending) ? round2(clamp(i.spending, 0, 1e8)) : undefined,
@@ -69,6 +97,9 @@ export const normalizeFireSettings = (raw: unknown): FireSettings => {
     expectedReturn: num(i.expectedReturn) ? clamp(i.expectedReturn, 0, 0.15) : undefined,
     volatility: num(i.volatility) ? clamp(i.volatility, 0, 0.5) : undefined,
     planYears: num(i.planYears) ? Math.round(clamp(i.planYears, 5, 70)) : undefined,
+    pensionMonthly: num(i.pensionMonthly) ? round2(clamp(i.pensionMonthly, 0, 1e6)) : undefined,
+    pensionStartYears: num(i.pensionStartYears) ? Math.round(clamp(i.pensionStartYears, 0, 50)) : undefined,
+    ...(accountIds ? { accountIds } : {}),
     events,
   };
 };
@@ -109,8 +140,16 @@ export const monthOffset = (today: Date, date: string): number => {
 };
 
 interface Run {
-  start: number; saving: number; spend: number; mean: number; vol: number;
-  retireMonth: number; totalMonths: number; eventAt: Map<number, number>;
+  start: number;
+  saving: number;
+  spend: number;
+  mean: number;
+  vol: number;
+  retireMonth: number;
+  totalMonths: number;
+  pensionMonthly: number;
+  pensionStartMonth: number;
+  eventAt: Map<number, number>;
 }
 
 /** Walks every path. Returns how many lasted, and (when asked) every path's value at each year end. */
@@ -130,6 +169,9 @@ const walk = (shocks: Float32Array, paths: number, stride: number, run: Run, kee
     for (let month = 1; month <= run.totalMonths; month++) {
       value *= Math.exp(drift + sigma * shocks[row + month - 1]);
       value += month <= run.retireMonth ? run.saving : -run.spend / 12;
+      if (run.pensionMonthly > 0 && month > run.retireMonth && month > run.pensionStartMonth) {
+        value += run.pensionMonthly;
+      }
       const event = run.eventAt.get(month);
       if (event) value += event;
       if (value <= 0) {
@@ -145,7 +187,19 @@ const walk = (shocks: Float32Array, paths: number, stride: number, run: Run, kee
   return { lasted, yearEnds, years, ends };
 };
 
-const percentile = (sorted: ArrayLike<number>, share: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(share * (sorted.length - 1) + 0.5)))];
+const percentile = (sorted: ArrayLike<number>, share: number) =>
+  sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(share * (sorted.length - 1) + 0.5)))];
+
+const buildEventMap = (today: Date, events?: PlanEvent[]) => {
+  const eventAt = new Map<number, number>();
+  (events ?? []).forEach(event => {
+    const month = monthOffset(today, event.date);
+    if (month >= 0 && Number.isFinite(event.amount)) {
+      eventAt.set(Math.max(1, month), (eventAt.get(Math.max(1, month)) ?? 0) + event.amount);
+    }
+  });
+  return eventAt;
+};
 
 export const buildCone = (input: ConeInput): Cone => {
   const targetOdds = input.targetOdds ?? DEFAULTS.targetOdds;
@@ -155,15 +209,21 @@ export const buildCone = (input: ConeInput): Cone => {
   const planYears = Math.max(1, Math.round(input.planYears));
   const totalMonths = (maxWait + planYears) * 12;
   const shocks = makeShocks(paths, totalMonths, seed);
+  const pensionMonthly = Math.max(0, input.pensionMonthly ?? 0);
+  const pensionStartMonth = Math.max(0, Math.round(input.pensionStartYears ?? 0)) * 12;
 
-  const eventAt = new Map<number, number>();
-  (input.events ?? []).forEach(event => {
-    const month = monthOffset(input.today, event.date);
-    if (month >= 0 && Number.isFinite(event.amount)) eventAt.set(Math.max(1, month), (eventAt.get(Math.max(1, month)) ?? 0) + event.amount);
-  });
+  const eventAt = buildEventMap(input.today, input.events);
   const runFor = (retireYears: number): Run => ({
-    start: input.start, saving: input.monthlySaving, spend: input.annualSpending, mean: input.expectedReturn, vol: Math.max(0, input.volatility),
-    retireMonth: retireYears * 12, totalMonths: (retireYears + planYears) * 12, eventAt,
+    start: input.start,
+    saving: input.monthlySaving,
+    spend: input.annualSpending,
+    mean: input.expectedReturn,
+    vol: Math.max(0, input.volatility),
+    retireMonth: retireYears * 12,
+    totalMonths: (retireYears + planYears) * 12,
+    pensionMonthly,
+    pensionStartMonth,
+    eventAt,
   });
 
   const curve: Cone['curve'] = [];
@@ -179,11 +239,65 @@ export const buildCone = (input: ConeInput): Cone => {
     const column = new Float64Array(paths);
     for (let p = 0; p < paths; p++) column[p] = yearEnds![p * (years + 1) + y];
     column.sort();
-    fan.push({ year: y, p10: round2(percentile(column, 0.1)), p25: round2(percentile(column, 0.25)), p50: round2(percentile(column, 0.5)), p75: round2(percentile(column, 0.75)), p90: round2(percentile(column, 0.9)) });
+    fan.push({
+      year: y,
+      p10: round2(percentile(column, 0.1)),
+      p25: round2(percentile(column, 0.25)),
+      p50: round2(percentile(column, 0.5)),
+      p75: round2(percentile(column, 0.75)),
+      p90: round2(percentile(column, 0.9)),
+    });
   }
   const sortedEnds = Float64Array.from(ends).sort();
   return {
-    curve, earliest, targetOdds,
-    chosen: { years: wanted, odds: curve[wanted].odds, fan, endMedian: round2(percentile(sortedEnds, 0.5)), endP10: round2(percentile(sortedEnds, 0.1)) },
+    curve,
+    earliest,
+    targetOdds,
+    chosen: {
+      years: wanted,
+      odds: curve[wanted].odds,
+      fan,
+      endMedian: round2(percentile(sortedEnds, 0.5)),
+      endP10: round2(percentile(sortedEnds, 0.1)),
+    },
+  };
+};
+
+/** Computes traditional 4%-rule FI target, current progress, and Coast FIRE odds for the chosen horizon. */
+export const computeFireMilestones = (input: ConeInput, cone: Cone): FireMilestones => {
+  const pensionAnnual = Math.max(0, input.pensionMonthly ?? 0) * 12;
+  const fiTarget = round2(Math.max(0, input.annualSpending - pensionAnnual) * 25);
+  const fiProgress = fiTarget > 0 ? Math.min(1, Math.max(0, input.start / fiTarget)) : 1;
+
+  const coastPaths = Math.min(400, input.paths ?? DEFAULTS.paths);
+  const planYears = Math.max(1, Math.round(input.planYears));
+  const retireYears = cone.chosen.years;
+  const totalMonths = (retireYears + planYears) * 12;
+  const shocks = makeShocks(coastPaths, totalMonths, input.seed ?? DEFAULTS.seed);
+  const eventAt = buildEventMap(input.today, input.events);
+  const { lasted } = walk(
+    shocks,
+    coastPaths,
+    totalMonths,
+    {
+      start: input.start,
+      saving: 0,
+      spend: input.annualSpending,
+      mean: input.expectedReturn,
+      vol: Math.max(0, input.volatility),
+      retireMonth: retireYears * 12,
+      totalMonths,
+      pensionMonthly: Math.max(0, input.pensionMonthly ?? 0),
+      pensionStartMonth: Math.max(0, Math.round(input.pensionStartYears ?? 0)) * 12,
+      eventAt,
+    },
+    false,
+  );
+  const coastFireOdds = lasted / coastPaths;
+  return {
+    fiTarget,
+    fiProgress,
+    coastFireOdds,
+    coastFireReached: coastFireOdds >= cone.targetOdds,
   };
 };

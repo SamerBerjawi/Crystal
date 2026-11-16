@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildCone, makeShocks, monthOffset, normalizeFireSettings, type ConeInput } from '../../utils/fireCone';
+import { buildCone, computeFireMilestones, makeShocks, monthOffset, normalizeFireSettings, type ConeInput } from '../../utils/fireCone';
 
 const TODAY = new Date(2026, 10, 12);
 const base: ConeInput = { start: 1_000_000, monthlySaving: 0, annualSpending: 40_000, expectedReturn: 0, volatility: 0, planYears: 20, today: TODAY, maxWaitYears: 5, paths: 200 };
@@ -75,4 +75,14 @@ test('settings are held to a sensible range and bad events are dropped', () => {
   assert.equal(s.planYears, 5);
   assert.deepEqual(s.events?.map(e => e.label), ['ok']);
   assert.deepEqual(normalizeFireSettings(undefined).events, []);
+});
+
+test('pension income raises survival odds and milestones compute FI target and Coast FIRE', () => {
+  const withoutPension = buildCone({ ...base, start: 500_000, annualSpending: 40_000, planYears: 30, expectedReturn: 0.04, volatility: 0.1, paths: 400 });
+  const withPension = buildCone({ ...base, start: 500_000, annualSpending: 40_000, planYears: 30, expectedReturn: 0.04, volatility: 0.1, pensionMonthly: 1500, pensionStartYears: 5, paths: 400 });
+  assert.ok(withPension.curve[0].odds > withoutPension.curve[0].odds);
+
+  const milestones = computeFireMilestones({ ...base, start: 500_000, annualSpending: 40_000, pensionMonthly: 1000 }, withPension);
+  assert.equal(milestones.fiTarget, (40_000 - 12_000) * 25);
+  assert.ok(Math.abs(milestones.fiProgress - 500_000 / 700_000) < 0.001);
 });
