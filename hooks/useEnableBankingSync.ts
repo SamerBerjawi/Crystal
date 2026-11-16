@@ -55,6 +55,7 @@ interface UseEnableBankingSyncParams {
     options?: { autoSpareChange?: boolean; skipRules?: boolean; applyRules?: boolean; isNew?: boolean; fromSync?: boolean; resyncable?: boolean }
   ) => void;
   setCurrentPage: (page: Page, tab?: string | null) => void;
+  onOpenSyncedReview?: () => void;
 }
 
 export function useEnableBankingSync({
@@ -75,6 +76,7 @@ export function useEnableBankingSync({
   handleSaveAccount,
   handleSaveTransaction,
   setCurrentPage,
+  onOpenSyncedReview,
 }: UseEnableBankingSyncParams) {
   const [isSyncingBanks, setIsSyncingBanks] = useState(false);
   const syncingConnectionIdsRef = useRef<Set<string>>(new Set());
@@ -220,14 +222,15 @@ export function useEnableBankingSync({
     }
   }, [enableBankingConnections, fetchWithAuth, isDataLoaded, isDemoMode, savePartialDataWithRetry, isAuthenticated, setEnableBankingConnections]);
 
-  const handleSyncEnableBankingConnection = useCallback(async (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => {
-    if (!isAuthenticated) return;
+  const runSyncConnection = useCallback(async (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions): Promise<number> => {
+    if (!isAuthenticated) return 0;
     const connection = connectionOverride || enableBankingConnectionsRef.current.find(c => c.id === connectionId);
-    if (!connection?.sessionId) return;
-    if (syncingConnectionIdsRef.current.has(connectionId)) return;
+    if (!connection?.sessionId) return 0;
+    if (syncingConnectionIdsRef.current.has(connectionId)) return 0;
     syncingConnectionIdsRef.current.add(connectionId);
     let newTransactionCount = 0;
     let updatedTransactionCount = 0;
+    const syncTimestamp = new Date().toISOString();
     const truncatedAccountNames: string[] = [];
     try {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, lastError: undefined } : conn));
@@ -458,18 +461,19 @@ export function useEnableBankingSync({
           } else if (tx.sureId && deletedByAccount.get(tx.accountId)?.has(tx.sureId)) {
             continue;
           } else {
-            deduped.push(tx);
-            existingTxMapCountId.set(tx.id, tx);
-            if (tx.sureId) {
-              existingTxMapSureId.set(accountSureKey(tx.accountId, tx.sureId), tx);
-              if (!existingTxMapSureId.has(tx.sureId)) {
-                existingTxMapSureId.set(tx.sureId, tx);
+            const stampedTx: Transaction = { ...tx, needsReview: true, syncedAt: syncTimestamp };
+            deduped.push(stampedTx);
+            existingTxMapCountId.set(stampedTx.id, stampedTx);
+            if (stampedTx.sureId) {
+              existingTxMapSureId.set(accountSureKey(stampedTx.accountId, stampedTx.sureId), stampedTx);
+              if (!existingTxMapSureId.has(stampedTx.sureId)) {
+                existingTxMapSureId.set(stampedTx.sureId, stampedTx);
               }
             }
             if (!hasBankIdentifier) {
-              const key = fingerprintOf(tx);
+              const key = fingerprintOf(stampedTx);
               const list = existingByFingerprint.get(key);
-              if (list) list.push(tx); else existingByFingerprint.set(key, [tx]);
+              if (list) list.push(stampedTx); else existingByFingerprint.set(key, [stampedTx]);
             }
           }
         }
@@ -539,8 +543,10 @@ export function useEnableBankingSync({
       } else if (!syncOptions?.silent) {
         toast.success(`${bankName} synced`, {
           description: `${newTransactionCount} new transaction${newTransactionCount === 1 ? '' : 's'}${updatedTransactionCount ? `, ${updatedTransactionCount} updated` : ''}.`,
+          ...(newTransactionCount > 0 && onOpenSyncedReview ? { action: { label: 'Review new', onClick: onOpenSyncedReview } } : {}),
         });
       }
+      return newTransactionCount;
     } catch (error: any) {
       const parsedError = parseApiError(error, 'Sync failed');
       const cleanMessage = parsedError.message;
@@ -555,10 +561,15 @@ export function useEnableBankingSync({
         lastError: cleanMessage,
       } : conn));
       toast.error(`${connection.selectedBank || 'Bank'} sync failed`, { description: cleanMessage.length > 160 ? cleanMessage.slice(0, 157) + '…' : cleanMessage });
+      return 0;
     } finally {
       syncingConnectionIdsRef.current.delete(connectionId);
     }
-  }, [accounts, enableBankingConnections, fetchWithAuth, handleSaveTransaction, isAuthenticated, preferences.merchantRules, setAccounts, setEnableBankingConnections, setPreferences, transactionsRef, user, demoUser]);
+  }, [accounts, enableBankingConnections, fetchWithAuth, handleSaveTransaction, isAuthenticated, onOpenSyncedReview, preferences.merchantRules, setAccounts, setEnableBankingConnections, setPreferences, transactionsRef, user, demoUser]);
+
+  const handleSyncEnableBankingConnection = useCallback(async (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => {
+    await runSyncConnection(connectionId, connectionOverride, syncOptions);
+  }, [runSyncConnection]);
 
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const now = Date.now();
@@ -575,16 +586,20 @@ export function useEnableBankingSync({
     }
 
     setIsSyncingBanks(true);
+    let totalNew = 0;
     try {
       for (const connection of activeConnections) {
         const freshConnection = enableBankingConnectionsRef.current.find(c => c.id === connection.id) || connection;
-        await handleSyncEnableBankingConnection(freshConnection.id, freshConnection, { transactionMode: 'incremental', silent: true });
+        totalNew += await runSyncConnection(freshConnection.id, freshConnection, { transactionMode: 'incremental', silent: true });
       }
-      toast.success(`Synced ${activeConnections.length} bank connection${activeConnections.length === 1 ? '' : 's'}`);
+      toast.success(`Synced ${activeConnections.length} bank connection${activeConnections.length === 1 ? '' : 's'}`, {
+        description: totalNew > 0 ? `${totalNew} new transaction${totalNew === 1 ? '' : 's'} ready to review.` : undefined,
+        ...(totalNew > 0 && onOpenSyncedReview ? { action: { label: 'Review new', onClick: onOpenSyncedReview } } : {}),
+      });
     } finally {
       setIsSyncingBanks(false);
     }
-  }, [handleSyncEnableBankingConnection]);
+  }, [onOpenSyncedReview, runSyncConnection]);
 
   const handleResetDeletedBankTransactions = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => clearDeleted(prev, connectionId));

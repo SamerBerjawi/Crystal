@@ -7,8 +7,19 @@ import { Badge } from './ui/Display';
 import { EmptyState } from './ui/States';
 import { SidePanel } from './ui/Overlays';
 
+export interface SmartAlertItem {
+  id: string;
+  title: string;
+  message: string;
+  severity: 'high' | 'default';
+  page?: Page;
+}
+
 interface NotificationCenterProps {
   notifications: BillNotificationItem[];
+  smartAlerts?: SmartAlertItem[];
+  newlySyncedCount?: number;
+  onOpenSyncedReview?: () => void;
   notificationCount: number;
   onDismiss: (id: string) => void;
   onClearAll: () => void;
@@ -18,6 +29,9 @@ interface NotificationCenterProps {
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   notifications,
+  smartAlerts = [],
+  newlySyncedCount = 0,
+  onOpenSyncedReview,
   notificationCount,
   onDismiss,
   onClearAll,
@@ -41,12 +55,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   return (
     <>
-      <IconButton icon="notification-01" label="Bill alerts" iconSize={22} badge={notificationCount} tooltipPlacement="bottom" className="flex items-center justify-center" onPress={() => setIsOpen(true)} />
+      <IconButton icon="notification-01" label="Alerts" iconSize={22} badge={notificationCount} tooltipPlacement="bottom" className="flex items-center justify-center" onPress={() => setIsOpen(true)} />
       <SidePanel
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        title="Bill alerts"
-        description="Due in 3 days or less"
+        title="Alerts"
+        description="Upcoming bills and financial notices"
         footer={setCurrentPage && (
           <div className="flex items-center justify-between gap-2">
             <Button variant="ghost" onPress={() => { setCurrentPage('Schedule & Bills'); setIsOpen(false); }}>Open Calendar</Button>
@@ -54,10 +68,63 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </div>
         )}
       >
-        {notifications.length === 0 ? (
-          <EmptyState icon="checkmark-circle-02" title="No bill alerts" description="Recurring bills for the next 3 days are settled." />
+        {notifications.length === 0 && smartAlerts.length === 0 && newlySyncedCount === 0 ? (
+          <EmptyState icon="checkmark-circle-02" title="No alerts" description="Recurring bills and monitored accounts look good." />
         ) : (
           <div className="space-y-5">
+            {newlySyncedCount > 0 && onOpenSyncedReview && (
+              <section className="space-y-2">
+                <h3 className="type-label text-muted">Bank sync</h3>
+                <article className="rounded-[var(--radius-lg)] border border-line bg-blue-soft p-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Badge tone="blue" icon="bank">{newlySyncedCount} new</Badge>
+                      <h4 className="type-body-strong mt-1.5 text-ink">Newly synced transactions</h4>
+                      <p className="type-caption mt-0.5 text-muted">
+                        Review and categorize {newlySyncedCount} incoming {newlySyncedCount === 1 ? 'transaction' : 'transactions'} grouped by account.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon="arrow-right-01"
+                      onPress={() => {
+                        setIsOpen(false);
+                        onOpenSyncedReview();
+                      }}
+                    >
+                      Review now
+                    </Button>
+                  </div>
+                </article>
+              </section>
+            )}
+            {smartAlerts.length > 0 && (
+              <section className="space-y-2">
+                <h3 className="type-label text-muted">Financial alerts ({smartAlerts.length})</h3>
+                {smartAlerts.map((alert) => (
+                  <article key={alert.id} className="rounded-[var(--radius-lg)] border border-line p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <Badge tone={alert.severity === 'high' ? 'negative' : 'attention'}>
+                          {alert.severity === 'high' ? 'Urgent' : 'Notice'}
+                        </Badge>
+                        <h4 className="type-body-strong mt-1 text-ink">{alert.title}</h4>
+                      </div>
+                      <IconButton icon="cancel-01" label={`Dismiss ${alert.title}`} onPress={() => onDismiss(alert.id)} />
+                    </div>
+                    <p className="type-caption mt-1.5 text-muted">{alert.message}</p>
+                    {alert.page && setCurrentPage && (
+                      <div className="mt-2.5 flex justify-end border-t border-line pt-2">
+                        <Button size="sm" variant="soft" onPress={() => { setCurrentPage(alert.page!); setIsOpen(false); }}>View</Button>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </section>
+            )}
             {group('Needs action', overdueOrToday)}
             {group('Due in 1 to 3 days', dueSoon)}
           </div>

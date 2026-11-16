@@ -34,6 +34,7 @@ import { cn } from '../lib/utils';
 
 type QueueItem =
   | { kind: 'categorise'; id: string; tx: Transaction }
+  | { kind: 'synced'; id: string; tx: Transaction }
   | { kind: 'transfer'; id: string; match: Suggestion }
   | { kind: 'bill'; id: string; match: SyncedBillMatchSuggestion };
 
@@ -58,13 +59,13 @@ export const confidence = (score: number) => (
 );
 
 const itemTitle = (item: QueueItem) => {
-  if (item.kind === 'categorise') return item.tx.merchant || item.tx.description || 'Transaction';
+  if (item.kind === 'categorise' || item.kind === 'synced') return item.tx.merchant || item.tx.description || 'Transaction';
   if (item.kind === 'transfer') return `${item.match.expenseTx.description || item.match.expenseTx.merchant || 'Transfer out'} → ${item.match.incomeTx.description || item.match.incomeTx.merchant || 'Transfer in'}`;
   return item.match.matchedName || item.match.transaction.merchant || item.match.transaction.description;
 };
 
 const itemTx = (item: QueueItem): Transaction => (
-  item.kind === 'categorise' ? item.tx :
+  item.kind === 'categorise' || item.kind === 'synced' ? item.tx :
   item.kind === 'transfer' ? item.match.expenseTx :
   item.match.transaction
 );
@@ -108,7 +109,7 @@ const QueueRowItem = React.memo<{
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
       >
         {/* Visual Icon / Logo */}
-        {item.kind === 'categorise' ? (
+        {item.kind === 'categorise' || item.kind === 'synced' ? (
           <MerchantLogo
             merchant={tx.merchant}
             description={tx.description}
@@ -129,6 +130,7 @@ const QueueRowItem = React.memo<{
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="type-body-strong truncate text-ink">{itemTitle(item)}</span>
+            {tx.needsReview && <Badge tone="blue">New</Badge>}
             {isSkipped && <Badge tone="neutral">Skipped</Badge>}
           </div>
           <div className="mt-0.5 flex items-center gap-2 truncate text-muted type-caption">
@@ -197,15 +199,20 @@ const ReviewQueue: React.FC = () => {
 
   const allCategories = useMemo(() => [...expenseCategories, ...incomeCategories], [expenseCategories, incomeCategories]);
 
+  const toCategoriseIds = useMemo(() => new Set(review.toCategorise.map(tx => tx.id)), [review.toCategorise]);
+  const extraSynced = useMemo(() => review.newlySynced.filter(tx => !toCategoriseIds.has(tx.id)), [review.newlySynced, toCategoriseIds]);
+
   const allItems = useMemo<QueueItem[]>(() => [
     ...review.toCategorise.map(tx => ({ kind: 'categorise' as const, id: tx.id, tx })),
+    ...extraSynced.map(tx => ({ kind: 'synced' as const, id: tx.id, tx })),
     ...review.transfers.map(match => ({ kind: 'transfer' as const, id: match.id, match })),
     ...review.billMatches.map(match => ({ kind: 'bill' as const, id: match.id, match })),
-  ], [review.toCategorise, review.transfers, review.billMatches]);
+  ], [review.toCategorise, extraSynced, review.transfers, review.billMatches]);
 
   const counts = {
     total: allItems.length,
     categorise: review.toCategorise.length,
+    synced: review.newlySynced.length,
     transfer: review.transfers.length,
     bill: review.billMatches.length,
     skipped: skipped.filter(id => allItems.some(i => i.id === id)).length,
@@ -213,8 +220,10 @@ const ReviewQueue: React.FC = () => {
 
   const items = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const filtered = allItems
-      .filter(item => filter === 'all' || item.kind === filter)
+    const baseList: QueueItem[] = filter === 'synced'
+      ? review.newlySynced.map(tx => ({ kind: 'synced' as const, id: tx.id, tx }))
+      : allItems.filter(item => filter === 'all' || item.kind === filter);
+    const filtered = baseList
       .filter(item => {
         if (!query) return true;
         const title = itemTitle(item).toLowerCase();
@@ -247,7 +256,7 @@ const ReviewQueue: React.FC = () => {
           return 0;
       }
     });
-  }, [allItems, filter, search, skipped, sortBy, accountMap]);
+  }, [allItems, filter, review.newlySynced, search, skipped, sortBy, accountMap]);
 
   // Resolve active item
   const active = items.find(item => item.id === activeId) ?? items[0] ?? null;
@@ -255,7 +264,7 @@ const ReviewQueue: React.FC = () => {
 
   // Compute suggestions ONLY for the single active transaction (super fast!)
   const activeSuggestions = useMemo(() => {
-    if (active?.kind !== 'categorise') return [];
+    if (active?.kind !== 'categorise' && active?.kind !== 'synced') return [];
     const filing = filingFor(active.tx.merchant, preferences.transactionRules);
     return suggestCategories(active.tx, transactions, filing?.actions.find(action => action.field === 'category')?.value);
   }, [active, preferences.transactionRules, transactions]);
@@ -266,14 +275,16 @@ const ReviewQueue: React.FC = () => {
       const filing = filingFor(active.tx.merchant, preferences.transactionRules);
       const suggestions = suggestCategories(active.tx, transactions, filing?.actions.find(action => action.field === 'category')?.value);
       setPicked(suggestions[0] ?? null);
+    } else if (active?.kind === 'synced') {
+      setPicked(active.tx.category && active.tx.category !== 'Uncategorized' ? active.tx.category : null);
     } else {
       setPicked(null);
     }
     setAlwaysFile(false);
-  }, [active?.id, preferences.transactionRules, transactions]);
+  }, [active?.id, active?.kind, preferences.transactionRules, transactions]);
 
   const categories = useMemo(() => {
-    if (active?.kind === 'categorise' && active.tx.type === 'income') {
+    if ((active?.kind === 'categorise' || active?.kind === 'synced') && active.tx.type === 'income') {
       return [...incomeCategories, ...expenseCategories];
     }
     return [...expenseCategories, ...incomeCategories];
@@ -291,7 +302,7 @@ const ReviewQueue: React.FC = () => {
     const matched = findCat(allCategories);
     const nextType = matched?.classification || tx.type;
     const nextAmount = nextType === 'income' ? Math.abs(tx.amount) : -Math.abs(tx.amount);
-    return { ...tx, category: categoryName, type: nextType, amount: nextAmount };
+    return { ...tx, category: categoryName, type: nextType, amount: nextAmount, needsReview: false };
   };
 
   /** Smooth next selection without skipping items when one is removed from the queue */
@@ -337,7 +348,7 @@ const ReviewQueue: React.FC = () => {
 
   const fileCategory = (categoryToApply?: string) => {
     const chosen = categoryToApply ?? picked ?? activeSuggestions[0];
-    if (active?.kind !== 'categorise' || !chosen) return;
+    if ((active?.kind !== 'categorise' && active?.kind !== 'synced') || !chosen) return;
 
     const originalTx = { ...active.tx };
     const originalRules = preferences.transactionRules ?? [];
@@ -404,7 +415,8 @@ const ReviewQueue: React.FC = () => {
   const selectedItems = allItems.filter(item => selected.has(item.id));
   const selectedTransfers = selectedItems.flatMap(item => (item.kind === 'transfer' ? [item.match] : []));
   const selectedBills = selectedItems.flatMap(item => (item.kind === 'bill' ? [item.match] : []));
-  const selectedTxs = selectedItems.flatMap(item => (item.kind === 'categorise' ? [item.tx] : []));
+  const selectedTxs = selectedItems.flatMap(item => (item.kind === 'categorise' || item.kind === 'synced' ? [item.tx] : []));
+  const selectedSyncedIds = selectedTxs.filter(tx => tx.needsReview).map(tx => tx.id);
 
   const toggleSelect = useCallback((id: string, isOn: boolean) => {
     setSelected(prev => {
@@ -475,7 +487,7 @@ const ReviewQueue: React.FC = () => {
             title="Item options"
             trigger={<IconButton icon="more-horizontal" label="More actions" tooltipPlacement="left" />}
             items={[
-              ...(active.kind === 'categorise' ? [{
+              ...(active.kind === 'categorise' || active.kind === 'synced' ? [{
                 id: 'details',
                 label: 'Inspect full transaction',
                 icon: 'view',
@@ -492,8 +504,8 @@ const ReviewQueue: React.FC = () => {
         </div>
       </header>
 
-      {/* Categorise Card View */}
-      {active.kind === 'categorise' && (
+      {/* Categorise or Newly Synced Card View */}
+      {(active.kind === 'categorise' || active.kind === 'synced') && (
         <div className="space-y-5">
           {/* Hero Header */}
           <div className="flex items-start gap-4">
@@ -509,7 +521,8 @@ const ReviewQueue: React.FC = () => {
                 <h2 className="type-section-title truncate text-ink">
                   {active.tx.merchant || active.tx.description || 'Transaction'}
                 </h2>
-                <Badge tone="attention">Needs category</Badge>
+                {active.tx.needsReview && <Badge tone="blue">Newly synced</Badge>}
+                {active.kind === 'categorise' && <Badge tone="attention">Needs category</Badge>}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-muted type-caption">
                 <span>{day(active.tx.date)}</span>
@@ -557,17 +570,41 @@ const ReviewQueue: React.FC = () => {
             <Button variant="ghost" onPress={skipCurrent}>
               Skip for now
             </Button>
-            <Button
-              isDisabled={!picked && activeSuggestions.length === 0}
-              onPress={() => fileCategory(picked || activeSuggestions[0])}
-              icon="tick-02"
-            >
-              {picked
-                ? `File as ${picked}`
-                : activeSuggestions[0]
-                ? `File as ${activeSuggestions[0]}`
-                : 'File it'}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {active.tx.needsReview && (
+                <Button
+                  variant={active.kind === 'synced' ? 'primary' : 'secondary'}
+                  icon="tick-02"
+                  onPress={() => {
+                    const prev = { ...active.tx };
+                    selectNextAfterRemoval(active.id);
+                    review.markReviewed([active.tx.id]);
+                    toast.success('Transaction marked as reviewed', {
+                      action: {
+                        label: 'Undo',
+                        onClick: () => saveTransaction([prev], [], { skipRules: true }),
+                      },
+                    });
+                  }}
+                >
+                  Mark as reviewed
+                </Button>
+              )}
+              {(active.kind === 'categorise' || (picked && picked !== active.tx.category)) && (
+                <Button
+                  variant={active.kind === 'categorise' ? 'primary' : 'secondary'}
+                  isDisabled={!picked && activeSuggestions.length === 0}
+                  onPress={() => fileCategory(picked || activeSuggestions[0])}
+                  icon="tick-02"
+                >
+                  {picked
+                    ? `File as ${picked}`
+                    : activeSuggestions[0]
+                    ? `File as ${activeSuggestions[0]}`
+                    : 'File it'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -766,12 +803,17 @@ const ReviewQueue: React.FC = () => {
         subtitle={allItems.length === 0 ? 'All transactions reviewed.' : `${allItems.length} items waiting for your review`}
         stats={[
           { label: 'To review', icon: 'tick-02', value: allItems.length, iconTone: allItems.length > 0 ? 'attention' : 'positive' },
+          { label: 'Newly synced', icon: 'bank', value: counts.synced, iconTone: counts.synced > 0 ? 'blue' : 'neutral' },
           { label: 'Uncategorised', icon: 'tag', value: counts.categorise, iconTone: counts.categorise > 0 ? 'tomato' : 'neutral' },
-          { label: 'Transfers', icon: 'arrow-data-transfer-horizontal', value: counts.transfer, iconTone: 'teal' },
-          { label: 'Bills', icon: 'calendar-03', value: counts.bill, iconTone: 'blue' },
+          { label: 'Transfers & bills', icon: 'arrow-data-transfer-horizontal', value: counts.transfer + counts.bill, iconTone: 'teal' },
         ]}
         actions={
           <>
+            {counts.synced > 0 && (
+              <Button variant="secondary" icon="bank" onPress={() => review.setSyncReviewOpen(true)}>
+                Sync drawer ({counts.synced})
+              </Button>
+            )}
             {review.likelyCount > 0 && (
               <Button variant="primary" icon="magic-wand-01" onPress={review.confirmLikely}>
                 Approve {review.likelyCount} likely
@@ -810,6 +852,7 @@ const ReviewQueue: React.FC = () => {
               scrollable
               items={[
                 { id: 'all', label: 'All', badge: allItems.length },
+                { id: 'synced', label: 'Newly synced', badge: counts.synced },
                 { id: 'categorise', label: 'To categorise', badge: counts.categorise },
                 { id: 'transfer', label: 'Transfers', badge: counts.transfer },
                 { id: 'bill', label: 'Bills', badge: counts.bill },
@@ -867,6 +910,19 @@ const ReviewQueue: React.FC = () => {
       {/* Bulk Selection Bar */}
       {selected.size > 0 && (
         <SelectionBar count={selected.size} onClear={() => setSelected(new Set())}>
+          {selectedSyncedIds.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onPress={() => {
+                review.markReviewed(selectedSyncedIds);
+                setSelected(new Set());
+                toast.success(`Marked ${selectedSyncedIds.length} synced items reviewed`);
+              }}
+            >
+              Mark reviewed ({selectedSyncedIds.length})
+            </Button>
+          )}
           {selectedTxs.length > 0 && (
             <Button size="sm" variant="ghost" onPress={() => setBulkOpen(true)}>
               Categorise {selectedTxs.length}

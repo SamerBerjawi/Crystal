@@ -10,13 +10,14 @@ import SplitTransactionModal from '../components/SplitTransactionModal';
 import CombineTransactionsModal from '../components/CombineTransactionsModal';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
+import { useReview } from '../contexts/ReviewContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl, isCashAccount, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 import { Button as AriaButton } from 'react-aria-components';
 import Icon from '../components/ui/Icon';
 import { Button, HoldButton, IconButton, SelectionBar } from '../components/ui/Actions';
-import { CountPill, ShowMore } from '../components/ui/Display';
+import { Badge, CountPill, ShowMore } from '../components/ui/Display';
 import { controlStyles } from '../components/ui/Fields';
 import { Menu, type MenuAction } from '../components/ui/Menu';
 import { Amount } from '../components/ui/Money';
@@ -107,6 +108,7 @@ function ledgerSortTokenToDescriptor(token: string): SortDescriptor {
 }
 
 const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters }) => {
+  const review = useReview();
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -871,7 +873,25 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
         </>
       )}
 
-      <div className="w-full min-w-0">
+      <div className="w-full min-w-0 space-y-3">
+        {review.newlySynced.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-line bg-blue-soft px-4 py-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <Badge tone="blue" icon="bank">{review.newlySynced.length} new</Badge>
+              <p className="type-body text-ink">
+                <span className="font-semibold">{review.newlySynced.length}</span> newly synced {review.newlySynced.length === 1 ? 'transaction' : 'transactions'} waiting for review
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="ghost" onPress={review.markAllReviewed}>
+                Mark all reviewed
+              </Button>
+              <Button size="sm" variant="secondary" icon="arrow-right-01" onPress={() => review.setSyncReviewOpen(true)}>
+                Review newly synced
+              </Button>
+            </div>
+          </div>
+        )}
         {tableRenderItems.length > 0 ? (
           <LedgerTable
             items={tableRenderItems}

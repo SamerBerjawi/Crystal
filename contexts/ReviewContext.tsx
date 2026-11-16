@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { liveSeries } from '../utils/scheduleModel';
 import type { Transaction } from '../types';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from './DomainProviders';
@@ -7,6 +7,7 @@ import { useMatcherConfig, type MatcherConfig } from '../hooks/useMatcherConfig'
 import { useTransactionMatcher, type Suggestion } from '../hooks/useTransactionMatcher';
 import { useSyncedBillMatcher, type SyncedBillMatchSuggestion } from '../hooks/useSyncedBillMatcher';
 import { isUncategorised } from '../utils/overviewSummary';
+import { isUnreviewedSync, markTransactionsReviewedPatch } from '../utils/syncedReviewModel';
 
 const HIGH_CONFIDENCE = 80;
 
@@ -14,6 +15,12 @@ interface ReviewContextValue {
   transfers: Suggestion[];
   billMatches: SyncedBillMatchSuggestion[];
   toCategorise: Transaction[];
+  newlySynced: Transaction[];
+  isSyncReviewOpen: boolean;
+  setSyncReviewOpen: (open: boolean) => void;
+  markReviewed: (ids: string[]) => void;
+  markAccountReviewed: (accountId: string) => void;
+  markAllReviewed: () => void;
   likelyCount: number;
   confirmTransfer: (suggestion: Suggestion) => void;
   dismissTransfer: (suggestion: Suggestion) => void;
@@ -34,9 +41,19 @@ const ReviewContext = createContext<ReviewContextValue | null>(null);
  * One source for what's waiting (D-008), shared by Overview and the Review queue. It sits above the pages because
  * dismissed transfer matches live in memory, and would come back each time a page opened its own copy.
  */
-export const ReviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ReviewProvider: React.FC<{
+  children: React.ReactNode;
+  isSyncReviewOpen?: boolean;
+  onSyncReviewOpenChange?: (open: boolean) => void;
+}> = ({ children, isSyncReviewOpen: controlledOpen, onSyncReviewOpenChange }) => {
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction } = useTransactionsContext();
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isSyncReviewOpen = controlledOpen ?? uncontrolledOpen;
+  const setSyncReviewOpen = useCallback((open: boolean) => {
+    if (onSyncReviewOpenChange) onSyncReviewOpenChange(open);
+    else setUncontrolledOpen(open);
+  }, [onSyncReviewOpenChange]);
   const { recurringTransactions: everySeries, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const recurringTransactions = useMemo(() => liveSeries(everySeries), [everySeries]);
   const { config, updateConfig, resetConfig } = useMatcherConfig();
@@ -78,6 +95,26 @@ export const ReviewProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     [transactions]
   );
 
+  const newlySynced = useMemo(
+    () => transactions.filter(isUnreviewedSync).sort((a, b) => b.date.localeCompare(a.date)),
+    [transactions]
+  );
+
+  const markReviewed = useCallback((ids: string[]) => {
+    const patches = markTransactionsReviewedPatch(transactions, ids);
+    if (patches.length > 0) saveTransaction(patches, [], { skipRules: true });
+  }, [saveTransaction, transactions]);
+
+  const markAccountReviewed = useCallback((accountId: string) => {
+    const ids = newlySynced.filter(tx => tx.accountId === accountId).map(tx => tx.id);
+    if (ids.length > 0) markReviewed(ids);
+  }, [markReviewed, newlySynced]);
+
+  const markAllReviewed = useCallback(() => {
+    const ids = newlySynced.map(tx => tx.id);
+    if (ids.length > 0) markReviewed(ids);
+  }, [markReviewed, newlySynced]);
+
   const confirmMatches = useCallback((selectedTransfers: Suggestion[], bills: SyncedBillMatchSuggestion[]) => {
     if (selectedTransfers.length) confirmSelectedMatches(selectedTransfers);
     if (bills.length) confirmSelectedBillMatches(bills);
@@ -95,6 +132,12 @@ export const ReviewProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       transfers,
       billMatches,
       toCategorise,
+      newlySynced,
+      isSyncReviewOpen,
+      setSyncReviewOpen,
+      markReviewed,
+      markAccountReviewed,
+      markAllReviewed,
       likelyCount: likelyTransfers.length + likelyBills.length,
       confirmTransfer: confirmMatch,
       dismissTransfer: dismissSuggestion,
@@ -108,7 +151,7 @@ export const ReviewProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       updateConfig,
       resetConfig,
     };
-  }, [transfers, billMatches, toCategorise, confirmMatch, dismissSuggestion, confirmBillMatch, dismissBillMatch, confirmMatches, dismissMatches, dismissAllSuggestions, dismissAllBillMatches, config, updateConfig, resetConfig]);
+  }, [transfers, billMatches, toCategorise, newlySynced, isSyncReviewOpen, setSyncReviewOpen, markReviewed, markAccountReviewed, markAllReviewed, confirmMatch, dismissSuggestion, confirmBillMatch, dismissBillMatch, confirmMatches, dismissMatches, dismissAllSuggestions, dismissAllBillMatches, config, updateConfig, resetConfig]);
 
   return <ReviewContext.Provider value={value}>{children}</ReviewContext.Provider>;
 };

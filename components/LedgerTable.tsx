@@ -234,6 +234,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
     const isUncategorized = !tx.isTransfer && (!tx.category || tx.category === 'Uncategorised');
     return (
       <span className="inline-flex shrink-0 items-center gap-1.5">
+        {tx.needsReview && <Badge tone="blue">New</Badge>}
         {tx.isSplitParent && <Badge tone="attention">Split, {tx.subItemCount || 0}</Badge>}
         {tx.isCombinedParent && <Badge tone="teal">Combined, {tx.subItemCount || 0}</Badge>}
         {isUncategorized && (
@@ -311,7 +312,10 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           )
                           : <Logo tx={tx} url={logoOf(tx)} icon={details(tx).icon} account={accountOf(tx).account} />}
                         <span className="min-w-0 flex-1">
-                          <span className="type-body-strong block truncate text-ink">{tx.merchant || tx.description}</span>
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="type-body-strong truncate text-ink">{tx.merchant || tx.description}</span>
+                            {tx.needsReview && <Badge tone="blue">New</Badge>}
+                          </span>
                           {(() => {
                             const catLabel = tx.isTransfer && tx.transferLabel ? tx.transferLabel : tx.category || 'Uncategorised';
                             return (

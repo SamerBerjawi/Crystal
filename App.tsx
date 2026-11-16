@@ -3,6 +3,8 @@ import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import CommandCenter from './components/CommandCenter';
 import AskCrystalPanel from './components/AskCrystalPanel';
+import SyncedTransactionsDrawer from './components/SyncedTransactionsDrawer';
+import { isUnreviewedSync } from './utils/syncedReviewModel';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import PageSkeleton from './components/PageSkeleton';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -56,7 +58,7 @@ import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES } from './constants';
 import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import { linkBudgetsToCategories } from './utils/budgetModel';
-import { missingRates, setMainCurrency, convertToMain, updateConversionRates, parseLocalDate, toLocalISOString, getMainCurrency } from './utils';
+import { missingRates, setMainCurrency, convertToMain, convertCurrency, formatCurrency, updateConversionRates, parseLocalDate, toLocalISOString, getMainCurrency } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { normalizeLoanAssetLinks } from './utils/accountLinks';
 import { useAuth } from './hooks/useAuth';
@@ -69,7 +71,7 @@ import { Banner, Spinner } from './components/ui/States';
 import { useIdleLock } from './hooks/useIdleLock';
 import { DEFAULT_AUTO_LOCK_MINUTES } from './utils/lockModel';
 import { migrateRules } from './utils/rulesMigration';
-import NotificationCenter from './components/NotificationCenter';
+import NotificationCenter, { type SmartAlertItem } from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
 const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
@@ -272,6 +274,7 @@ const App: React.FC = () => {
   const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>([]);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isSyncReviewOpen, setIsSyncReviewOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isQuickAddTxModalOpen, setIsQuickAddTxModalOpen] = useState(false);
 
@@ -1063,6 +1066,7 @@ const App: React.FC = () => {
     handleSaveAccount,
     handleSaveTransaction,
     setCurrentPage,
+    onOpenSyncedReview: () => setIsSyncReviewOpen(true),
   });
 
   const handleResetAccount = async () => {
@@ -1117,6 +1121,96 @@ const App: React.FC = () => {
     dismissedIds: dismissedBillNotifications,
     onDismiss: ids => setPreferences(prev => ({ ...prev, dismissedBillNotifications: [...(prev.dismissedBillNotifications ?? []), ...ids] })),
   });
+
+  const smartAlerts = useMemo<SmartAlertItem[]>(() => {
+    const out: SmartAlertItem[] = [];
+    const nowMs = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    enableBankingConnections.forEach(conn => {
+      if (conn.status === 'disconnected' || !conn.sessionExpiresAt) return;
+      const ends = new Date(conn.sessionExpiresAt).getTime();
+      if (!Number.isFinite(ends)) return;
+      const daysLeft = Math.ceil((ends - nowMs) / dayMs);
+      const stage = daysLeft <= 0 ? 'expired' : daysLeft <= 1 ? 'last-day' : daysLeft <= 7 ? 'week' : daysLeft <= 14 ? 'fortnight' : null;
+      if (!stage) return;
+      const bank = conn.selectedBank || 'Your bank';
+      const id = `smart-consent-${conn.id}-${stage}`;
+      if (dismissedBillNotifications.includes(id)) return;
+      out.push({
+        id,
+        title: 'Bank connection',
+        message: stage === 'expired'
+          ? `${bank} access has ended. Reconnect to keep syncing.`
+          : stage === 'last-day'
+            ? `${bank} access ends within a day. Renew it now.`
+            : `${bank} access ends in ${daysLeft} days. Renew it to keep syncing.`,
+        severity: stage === 'expired' || stage === 'last-day' ? 'high' : 'default',
+        page: 'Integrations',
+      });
+    });
+
+    const nowDate = new Date();
+    const monthPrefix = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`;
+    const analyticsAccountIds = new Set(accounts.filter(a => a.includeInAnalytics ?? true).map(a => a.id));
+    const monthExpenses = transactions.filter(tx =>
+      tx.type === 'expense' &&
+      !tx.transferId &&
+      !tx.isSplitParent &&
+      !tx.isCombinedParent &&
+      !tx.isBalanceAdjustment &&
+      !tx.isMarketAdjustment &&
+      tx.date.startsWith(monthPrefix) &&
+      (analyticsAccountIds.size === 0 || analyticsAccountIds.has(tx.accountId)),
+    );
+
+    const descendantsOf = (catName: string): Set<string> => {
+      const names = new Set<string>([catName]);
+      const collect = (nodes: Category[], active: boolean) => {
+        nodes.forEach(node => {
+          const hit = active || node.name === catName;
+          if (hit) names.add(node.name);
+          if (node.subCategories?.length) collect(node.subCategories, hit);
+        });
+      };
+      collect(expenseCategories, false);
+      return names;
+    };
+
+    budgets.forEach(budget => {
+      if (budget.period !== 'monthly' || budget.amount <= 0) return;
+      const names = descendantsOf(budget.categoryName);
+      const spent = monthExpenses
+        .filter(tx => names.has(tx.category))
+        .reduce((sum, tx) => sum + convertCurrency(Math.abs(tx.amount), tx.currency, budget.currency), 0);
+      const ratio = spent / budget.amount;
+      if (ratio < 0.8) return;
+      const tier = ratio >= 1 ? '100' : '80';
+      const id = `smart-budget-${budget.id}-${monthPrefix}-${tier}`;
+      if (dismissedBillNotifications.includes(id)) return;
+      out.push({
+        id,
+        title: ratio >= 1 ? 'Budget used up' : 'Budget almost used',
+        message: ratio >= 1
+          ? `${budget.categoryName}: ${formatCurrency(spent, budget.currency)} spent of ${formatCurrency(budget.amount, budget.currency)} this month.`
+          : `${budget.categoryName}: ${Math.round(ratio * 100)}% used, ${formatCurrency(budget.amount - spent, budget.currency)} left this month.`,
+        severity: ratio >= 1 ? 'high' : 'default',
+        page: 'Budget',
+      });
+    });
+
+    return out;
+  }, [accounts, budgets, dismissedBillNotifications, enableBankingConnections, expenseCategories, transactions]);
+
+  const handleClearAllNotifications = useCallback(() => {
+    clearAllNotifications();
+    if (smartAlerts.length > 0) {
+      setPreferences(prev => ({
+        ...prev,
+        dismissedBillNotifications: [...new Set([...(prev.dismissedBillNotifications ?? []), ...smartAlerts.map(a => a.id)])],
+      }));
+    }
+  }, [clearAllNotifications, setPreferences, smartAlerts]);
 
   const handleNotificationProcessItem = useCallback((item: RecurringTransaction | BillPayment | Task) => {
     if ('title' in item) {
@@ -1259,6 +1353,10 @@ const App: React.FC = () => {
     deleteLifeEvent: handleDeleteLifeEvent,
   }), [financialGoals, goalOrder, lifeEvents, handleSaveLifeEvent, handleDeleteLifeEvent, handleDeleteFinancialGoal, handleSaveFinancialGoal, handleSetGoalOrder]);
   const scheduleContextValue = useMemo(() => ({ recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, memberships, saveRecurringTransaction: handleSaveRecurringTransaction, deleteRecurringTransaction: handleDeleteRecurringTransaction, saveRecurringOverride: handleSaveRecurringOverride, deleteRecurringOverride: handleDeleteRecurringOverride, saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides, saveBillPayment: handleSaveBillPayment, deleteBillPayment: handleDeleteBillPayment, markBillAsPaid: handleMarkBillAsPaid, saveMembership: handleSaveMembership, deleteMembership: handleDeleteMembership, }), [billsAndPayments, memberships, handleDeleteBillPayment, handleDeleteRecurringOverride, handleDeleteRecurringTransaction, handleMarkBillAsPaid, handleSaveBillPayment, handleSaveLoanPaymentOverrides, handleSaveRecurringOverride, handleSaveRecurringTransaction, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions,]);
+  const newlySyncedCount = useMemo(
+    () => transactions.filter(isUnreviewedSync).length,
+    [transactions],
+  );
 
   if (isLocked && user) {
     return (
@@ -1329,9 +1427,12 @@ const App: React.FC = () => {
     notifications: (
       <NotificationCenter
         notifications={upcomingBillNotifications}
-        notificationCount={notificationCount}
+        smartAlerts={smartAlerts}
+        newlySyncedCount={newlySyncedCount}
+        onOpenSyncedReview={() => setIsSyncReviewOpen(true)}
+        notificationCount={notificationCount + smartAlerts.length + newlySyncedCount}
         onDismiss={dismissNotification}
-        onClearAll={clearAllNotifications}
+        onClearAll={handleClearAllNotifications}
         onProcessItem={handleNotificationProcessItem}
         setCurrentPage={setCurrentPage}
       />
@@ -1342,7 +1443,7 @@ const App: React.FC = () => {
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
       <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod} preferences={preferences} setPreferences={setPreferences}>
         <PrivacyContext.Provider value={isPrivacyMode}>
-        <ReviewProvider>
+        <ReviewProvider isSyncReviewOpen={isSyncReviewOpen} onSyncReviewOpenChange={setIsSyncReviewOpen}>
         <Toaster
           position="bottom-center"
           duration={5000}
@@ -1415,11 +1516,17 @@ const App: React.FC = () => {
             isOpen={isAssistantOpen}
             onClose={() => setIsAssistantOpen(false)}
             onOpenSettings={() => setCurrentPage('Integrations')}
+            currentPage={currentPage}
+            onOpenTidyUps={() => {
+              setIsAssistantOpen(false);
+              setCurrentPage('Transactions', 'review');
+            }}
           />
           <KeyboardShortcutsModal
             isOpen={isShortcutsModalOpen}
             onClose={() => setIsShortcutsModalOpen(false)}
           />
+          <SyncedTransactionsDrawer setCurrentPage={setCurrentPage} />
           {isQuickAddTxModalOpen && (
             <Suspense fallback={null}>
               <AddTransactionModal
