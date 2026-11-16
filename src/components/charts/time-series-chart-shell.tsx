@@ -27,7 +27,11 @@ import {
 } from "./chart-child-passthrough";
 import { ChartProvider, type LineConfig, type Margin } from "./chart-context";
 import { isGradientDefComponent, isPatternDefComponent } from "./chart-defs";
-import { shortDateFmt } from "./chart-formatters";
+import {
+  shortDateFmt,
+  shortDateWithYearFmt,
+  spansMultipleYears,
+} from "./chart-formatters";
 import {
   type ChartPhase,
   type ChartStatus,
@@ -440,10 +444,12 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
     scaleLinear({ range: [innerHeight, 0], domain: [0, 100], nice: true })
   );
 
-  const dateLabels = useMemo(
-    () => visiblePlotData.map((d) => shortDateFmt.format(xAccessor(d))),
-    [visiblePlotData, xAccessor]
-  );
+  const dateLabels = useMemo(() => {
+    const fmt = spansMultipleYears(visiblePlotData, xAccessor)
+      ? shortDateWithYearFmt
+      : shortDateFmt;
+    return visiblePlotData.map((d) => fmt.format(xAccessor(d)));
+  }, [visiblePlotData, xAccessor]);
 
   const canInteract = isLoaded && isChartInteractionPhase(chartPhase);
 

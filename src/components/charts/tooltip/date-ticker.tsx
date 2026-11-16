@@ -37,7 +37,7 @@ const DateTickerInner = memo(function DateTickerInner({
     return labels.map((label, index) => {
       const parts = label.split(" ");
       const month = parts[0] || "";
-      const day = parts[1] || "";
+      const day = parts.slice(1).join(" ") || "";
       return { month, day, full: label, key: `${label}::${index}` };
     });
   }, [labels]);

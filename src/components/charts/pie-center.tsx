@@ -41,6 +41,8 @@ export interface PieCenterProps {
   prefix?: string;
   /** Suffix to show after the number (e.g., "%") */
   suffix?: string;
+  /** Whether to show the raw value or percentage of total. Default: `"value"` */
+  valueDisplay?: "value" | "percent";
 }
 
 /**
@@ -62,6 +64,7 @@ export function PieCenter({
   labelClassName = chartCenterLabelClassName,
   prefix,
   suffix,
+  valueDisplay = "value",
 }: PieCenterProps) {
   const { data, totalValue, innerRadius, geometryScrubbing } = usePieStable();
   const { hoveredIndex } = usePieHover();
@@ -69,7 +72,14 @@ export function PieCenter({
   const effectiveHoveredIndex = geometryScrubbing ? null : hoveredIndex;
   const hoveredData =
     effectiveHoveredIndex === null ? null : data[effectiveHoveredIndex];
-  const displayValue = hoveredData ? hoveredData.value : totalValue;
+  const rawValue = hoveredData ? hoveredData.value : totalValue;
+  const displayValue =
+    valueDisplay === "percent"
+      ? totalValue > 0
+        ? Math.round((rawValue / totalValue) * 100)
+        : 0
+      : rawValue;
+  const resolvedSuffix = valueDisplay === "percent" ? (suffix ?? "%") : suffix;
   const displayLabel = hoveredData ? hoveredData.label : defaultLabel;
 
   // Calculate center area size based on inner radius
@@ -118,7 +128,7 @@ export function PieCenter({
         label={displayLabel}
         labelClassName={labelClassName}
         prefix={prefix}
-        suffix={suffix}
+        suffix={resolvedSuffix}
         value={displayValue}
         valueClassName={valueClassName}
       />

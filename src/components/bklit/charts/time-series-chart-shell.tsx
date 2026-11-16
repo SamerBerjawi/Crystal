@@ -41,7 +41,12 @@ import {
   type Margin,
 } from "./chart-context";
 import { isGradientDefComponent, isPatternDefComponent } from "./chart-defs";
-import { lazyLabels, shortDateFmt } from "./chart-formatters";
+import {
+  lazyLabels,
+  shortDateFmt,
+  shortDateWithYearFmt,
+  spansMultipleYears,
+} from "./chart-formatters";
 import {
   type ChartPhase,
   type ChartStatus,
@@ -469,15 +474,16 @@ export const TimeSeriesChartInner = memo(function TimeSeriesChartCore({
   );
   const yScale = getPrimaryYScale(yScales, fallbackYScale);
 
-  const dateLabels = useMemo(
-    () =>
-      lazyLabels(visiblePlotData.length, (index) =>
-        shortDateFmt.format(
-          xAccessor(visiblePlotData[index] as Record<string, unknown>)
-        )
-      ),
-    [visiblePlotData, xAccessor]
-  );
+  const dateLabels = useMemo(() => {
+    const fmt = spansMultipleYears(visiblePlotData, xAccessor)
+      ? shortDateWithYearFmt
+      : shortDateFmt;
+    return lazyLabels(visiblePlotData.length, (index) =>
+      fmt.format(
+        xAccessor(visiblePlotData[index] as Record<string, unknown>)
+      )
+    );
+  }, [visiblePlotData, xAccessor]);
 
   const canInteract = isLoaded && isChartInteractionPhase(chartPhase);
 

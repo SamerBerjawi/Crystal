@@ -23,7 +23,11 @@ import {
   isUnderlayComponent,
 } from "./chart-child-passthrough";
 import { ChartProvider, type LineConfig, type Margin } from "./chart-context";
-import { shortDateFmt } from "./chart-formatters";
+import {
+  shortDateFmt,
+  shortDateWithYearFmt,
+  spansMultipleYears,
+} from "./chart-formatters";
 import { DEFAULT_CHART_LIFECYCLE } from "./chart-phase";
 import {
   decimateOhlcData,
@@ -193,10 +197,12 @@ const ChartCore = memo(function ChartCore({
     [data, innerWidth]
   );
 
-  const dateLabels = useMemo(
-    () => data.map((d) => shortDateFmt.format(xAccessor(d))),
-    [data, xAccessor]
-  );
+  const dateLabels = useMemo(() => {
+    const fmt = spansMultipleYears(data, xAccessor)
+      ? shortDateWithYearFmt
+      : shortDateFmt;
+    return data.map((d) => fmt.format(xAccessor(d)));
+  }, [data, xAccessor]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: revealSignature
   useEffect(() => {

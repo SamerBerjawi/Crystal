@@ -1,6 +1,6 @@
 "use client";
 
-import { type CurveFactory, curveMonotoneX } from "d3-shape";
+import { type CurveFactory, curveNatural } from "d3-shape";
 
 import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { AreaGradientDefs } from "./area-gradient-defs";
@@ -38,7 +38,7 @@ export interface AreaProps {
   stroke?: string;
   /** Stroke width. Default: 2 */
   strokeWidth?: number;
-  /** Curve function. Default: curveMonotoneX */
+  /** Curve function. Default: curveNatural */
   curve?: CurveFactory;
   /** Whether to animate the area. Default: true */
   animate?: boolean;
@@ -148,7 +148,7 @@ export function Area({
   fillOpacity = 0.4,
   stroke,
   strokeWidth = 2,
-  curve = curveMonotoneX,
+  curve = curveNatural,
   animate = true,
   showLine = true,
   showHighlight = true,

@@ -207,7 +207,7 @@ const DateTickerInner = memo(function DateTickerInner({
   const parsedLabels = useMemo(() => {
     return labels.map((label) => {
       const parts = label.split(" ");
-      return { month: parts[0] || "", day: parts[1] || "" };
+      return { month: parts[0] || "", day: parts.slice(1).join(" ") || "" };
     });
   }, [labels]);
 

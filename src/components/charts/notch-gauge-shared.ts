@@ -7,8 +7,8 @@ import {
 } from "react";
 
 export const DEFAULT_ACTIVE_GRADIENT: readonly [string, string] = [
-  "#bef264",
-  "#10b981",
+  "var(--primary)",
+  "var(--chart-3)",
 ];
 
 export const DEFAULT_ACTIVE_FILL_OPACITY = 1;
@@ -79,6 +79,10 @@ export function interpolateGaugeHex(
   color2: string,
   factor: number
 ): string {
+  if (!color1.startsWith("#") || !color2.startsWith("#")) {
+    const pct = Math.round(Math.max(0, Math.min(1, factor)) * 100);
+    return `color-mix(in srgb, ${color2} ${pct}%, ${color1})`;
+  }
   const hex = (c: string) => Number.parseInt(c, 16);
   const r1 = hex(color1.slice(1, 3));
   const g1 = hex(color1.slice(3, 5));

@@ -3,11 +3,43 @@ export const shortDateFmt = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
 });
 
+export const shortDateWithYearFmt = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
 export const weekdayDateFmt = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
   month: "short",
   day: "numeric",
 });
+
+export const weekdayDateWithYearFmt = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+export function spansMultipleYears<T>(
+  data: readonly T[],
+  xAccessor: (d: T) => Date
+): boolean {
+  if (data.length < 2) return false;
+  let minYear = Number.POSITIVE_INFINITY;
+  let maxYear = Number.NEGATIVE_INFINITY;
+  for (const item of data) {
+    const d = xAccessor(item);
+    if (!(d instanceof Date)) continue;
+    const y = d.getFullYear();
+    if (!Number.isFinite(y)) continue;
+    if (y < minYear) minYear = y;
+    if (y > maxYear) maxYear = y;
+    if (maxYear > minYear) return true;
+  }
+  return false;
+}
 
 export const hmsTimeFmt = new Intl.DateTimeFormat("en-US", {
   hour: "2-digit",

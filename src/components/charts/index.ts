@@ -21,15 +21,23 @@ export { CandlestickChart, type CandlestickChartProps, type OHLCDataPoint } from
 export { Candlestick, type CandlestickProps } from "./candlestick";
 export { PieChart, type PieChartProps } from "./pie-chart";
 export { PieSlice, type PieSliceProps } from "./pie-slice";
+export {
+  PieTicks,
+  type PieTicksProps,
+  type PieTicksHoverEffect,
+} from "./pie-ticks";
 export { PieCenter, type PieCenterProps } from "./pie-center";
 export { PieCenterShell, type PieCenterShellProps } from "./pie-center-shell";
 export { type PieData } from "./pie-context";
 export { BarChart, type BarChartProps } from "./bar-chart";
 export { Bar, type BarProps } from "./bar";
+export { TrendLine, type TrendLineProps } from "./trend-line";
 export { BarXAxis, type BarXAxisProps } from "./bar-x-axis";
 export { BarYAxis, type BarYAxisProps } from "./bar-y-axis";
 export { RingChart, type RingChartProps } from "./ring-chart";
 export { Ring, type RingProps, type RingLineCap } from "./ring";
+export { RingGrid, type RingGridProps } from "./ring-grid";
+export { RingLabels, type RingLabelsProps } from "./ring-labels";
 export { RingCenter, type RingCenterProps } from "./ring-center";
 export { type RingData } from "./ring-context";
 export { toProperCase } from "./chart-formatters";

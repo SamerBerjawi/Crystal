@@ -131,6 +131,11 @@
   --ring-background: var(--inset);
   --foreground: var(--ink);
   --muted-foreground: var(--muted);
+  --chart-scale-01: var(--inset);
+  --chart-scale-02: color-mix(in srgb, var(--chart-1) 24%, var(--inset));
+  --chart-scale-03: color-mix(in srgb, var(--chart-1) 48%, var(--inset));
+  --chart-scale-04: color-mix(in srgb, var(--chart-1) 74%, var(--inset));
+  --chart-scale-05: var(--chart-1);
 }
 
 html {

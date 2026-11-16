@@ -14,7 +14,12 @@ import {
   useChart,
   useChartStable,
 } from "../chart-context";
-import { toProperCase, weekdayDateFmt } from "../chart-formatters";
+import {
+  spansMultipleYears,
+  toProperCase,
+  weekdayDateFmt,
+  weekdayDateWithYearFmt,
+} from "../chart-formatters";
 import type { IndicatorFadeEdges } from "../indicator-fade";
 import { DateTicker } from "./date-ticker";
 import { TooltipBox } from "./tooltip-box";
@@ -126,6 +131,7 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
 }: ChartTooltipInnerProps) {
   const {
     tooltipData,
+    data,
     width,
     height,
     innerHeight,
@@ -248,6 +254,11 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
     return indicatorColorProp;
   }, [indicatorColorProp, tooltipData]);
 
+  const multiYear = useMemo(
+    () => (barXAccessor ? false : spansMultipleYears(data, xAccessor)),
+    [data, barXAccessor, xAccessor]
+  );
+
   // Title from date or category
   const title = useMemo(() => {
     if (!tooltipData) {
@@ -258,8 +269,10 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
       return barXAccessor(tooltipData.point);
     }
     // For line/area charts, use the date
-    return weekdayDateFmt.format(xAccessor(tooltipData.point));
-  }, [tooltipData, barXAccessor, xAccessor]);
+    return (multiYear ? weekdayDateWithYearFmt : weekdayDateFmt).format(
+      xAccessor(tooltipData.point)
+    );
+  }, [tooltipData, barXAccessor, xAccessor, multiYear]);
 
   const tooltipContent = (
     <>
