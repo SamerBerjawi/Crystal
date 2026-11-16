@@ -137,3 +137,72 @@ run('weekly recap: Monday to Wednesday, once, last full week', () => {
     const wed = evaluateAlerts(data, on, new Date(2026, 10, 11)).find(a => a.kind === 'weekly');
     assert(wed?.key === 'weekly:2026-11-02', 'same key on Wednesday, so it is not sent twice');
 });
+
+run('monthly occurrences clamp end-of-month dates to February 28/29 and restore 31 in March', () => {
+    const seq = occurrencesBetween(
+        { frequency: 'monthly', nextDueDate: '2026-01-31' },
+        new Date(2026, 0, 1),
+        new Date(2026, 3, 5),
+    ).map(d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    assert(seq.join(',') === '2026-01-31,2026-02-28,2026-03-31', `non-leap clamping: ${seq.join(',')}`);
+    const leap = occurrencesBetween(
+        { frequency: 'monthly', nextDueDate: '2028-01-31' },
+        new Date(2028, 0, 1),
+        new Date(2028, 2, 1),
+    ).map(d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    assert(leap.join(',') === '2028-01-31,2028-02-29', `leap clamping: ${leap.join(',')}`);
+});
+
+run('budgetAlerts convert foreign currency spending using saved conversion rates', () => {
+    const data = {
+        preferences: { conversionRates: { USD: 0.9 } },
+        budgets: [{ id: 'b1', categoryName: 'Food', amount: 100, currency: 'EUR' }],
+        expenseCategories: [{ id: 'f', name: 'Food', subCategories: [] }],
+        transactions: [
+            tx('fx1', '2026-11-02', -100, { category: 'Food', currency: 'USD' }), // = 90 EUR -> 90%
+            tx('fx2', '2026-11-03', -100, { category: 'Food', currency: 'JPY' }), // unconverted -> ignored
+        ],
+    };
+    const out = evaluateAlerts(data, DEFAULT_RULES, NOW);
+    assert(out.length === 1 && out[0].key === 'budget:b1:2026-11:80', 'USD 100 converted to EUR 90 triggers 80% alert');
+});
+
+run('lowBalanceAlerts respect recurringTransactionOverrides and unpaid billsAndPayments', () => {
+    const baseData = {
+        accounts: [{ id: 'a1', name: 'Main', type: 'Checking', balance: 200, currency: 'EUR' }],
+        recurringTransactions: [
+            { id: 'r1', accountId: 'a1', type: 'expense', amount: 250, currency: 'EUR', frequency: 'monthly', nextDueDate: '2026-11-09' },
+        ],
+        recurringTransactionOverrides: [
+            { recurringTransactionId: 'r1', originalDate: '2026-11-09', isSkipped: true },
+        ],
+        billsAndPayments: [
+            { id: 'bill1', accountId: 'a1', type: 'payment', amount: -300, currency: 'EUR', dueDate: '2026-11-11', status: 'unpaid' },
+            { id: 'bill2', accountId: 'a1', type: 'payment', amount: -500, currency: 'EUR', dueDate: '2026-11-08', status: 'paid' },
+        ],
+    };
+    const alerts = evaluateAlerts(baseData, DEFAULT_RULES, NOW);
+    assert(alerts.length === 1 && alerts[0].key === 'low:a1:2026-11-11', `skipped r1 and paid bill2 ignored; unpaid bill1 triggers low balance: ${alerts[0]?.key}`);
+
+    const shiftedData = {
+        accounts: [{ id: 'a1', name: 'Main', type: 'Checking', balance: 200, currency: 'EUR' }],
+        recurringTransactions: [
+            { id: 'r1', accountId: 'a1', type: 'expense', amount: 150, currency: 'EUR', frequency: 'monthly', nextDueDate: '2026-11-06' },
+        ],
+        recurringTransactionOverrides: [
+            { recurringTransactionId: 'r1', originalDate: '2026-11-06', date: '2026-11-12', amount: -260 },
+        ],
+    };
+    const shifted = evaluateAlerts(shiftedData, DEFAULT_RULES, NOW);
+    assert(shifted.length === 1 && shifted[0].key === 'low:a1:2026-11-12', 'rescheduled + larger override amount triggers alert');
+});
+
+run('webhook payload includes text and content for Slack/Discord compatibility', () => {
+    const hook = buildDelivery(
+        { kind: 'webhook', url: 'https://hooks.example/x' },
+        { title: 'Low balance ahead', message: 'Main drops below €0', priority: 'high', key: 'k', kind: 'lowBalance' },
+    );
+    const parsed = JSON.parse(hook.body);
+    assert(parsed.key === 'k' && typeof parsed.text === 'string' && parsed.text.includes('Low balance ahead'), 'webhook text');
+    assert(typeof parsed.content === 'string' && parsed.content.includes('Main drops below €0'), 'webhook content');
+});

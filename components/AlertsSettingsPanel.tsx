@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { Switch, TextInput } from './ui/Fields';
+import Icon from './ui/Icon';
 import { Select } from './ui/Pickers';
 import { Banner } from './ui/States';
 import { explainUnavailable, parseApiError, type Unavailable } from '../utils/apiError';
@@ -20,11 +21,20 @@ interface AlertRules {
   weekly: boolean;
 }
 
+interface ActiveAlertPreview {
+  key: string;
+  kind: string;
+  title: string;
+  message: string;
+  priority: 'default' | 'high';
+}
+
 interface AlertSettings {
   enabled: boolean;
   channel: { kind: ChannelKind; url: string; topic: string; hasToken: boolean } | null;
   rules: AlertRules;
   privateUrlsAllowed: boolean;
+  activeAlerts?: ActiveAlertPreview[];
 }
 
 const KINDS: { id: ChannelKind; label: string; description: string }[] = [
@@ -120,6 +130,17 @@ const AlertsSettingsPanel: React.FC = () => {
     || JSON.stringify(rules) !== JSON.stringify(saved.rules)
     || toNumber(percent, 80) / 100 !== saved.rules.budgetThreshold || toNumber(floor, 0) !== saved.rules.lowBalanceFloor || Math.round(toNumber(days, 7)) !== saved.rules.lowBalanceDays;
 
+  const buildPayload = () => ({
+    enabled,
+    channel: url.trim() ? { kind, url: url.trim(), topic: topic.trim(), ...(token ? { token } : {}) } : null,
+    rules: {
+      ...rules,
+      budgetThreshold: Math.min(99, Math.max(50, toNumber(percent, 80))) / 100,
+      lowBalanceFloor: toNumber(floor, 0),
+      lowBalanceDays: Math.min(30, Math.max(1, Math.round(toNumber(days, 7)))),
+    },
+  });
+
   const save = async () => {
     setBusy(true);
     setError(null);
@@ -127,16 +148,7 @@ const AlertsSettingsPanel: React.FC = () => {
     try {
       const response = await request('/api/alerts', {
         method: 'PUT',
-        body: JSON.stringify({
-          enabled,
-          channel: url.trim() ? { kind, url: url.trim(), topic: topic.trim(), ...(token ? { token } : {}) } : null,
-          rules: {
-            ...rules,
-            budgetThreshold: Math.min(99, Math.max(50, toNumber(percent, 80))) / 100,
-            lowBalanceFloor: toNumber(floor, 0),
-            lowBalanceDays: Math.min(30, Math.max(1, Math.round(toNumber(days, 7)))),
-          },
-        }),
+        body: JSON.stringify(buildPayload()),
       });
       apply(await response.json());
       setNotice('Alert settings saved.');
@@ -152,8 +164,15 @@ const AlertsSettingsPanel: React.FC = () => {
     setError(null);
     setNotice(null);
     try {
+      if (isDirty) {
+        const savedResp = await request('/api/alerts', {
+          method: 'PUT',
+          body: JSON.stringify(buildPayload()),
+        });
+        apply(await savedResp.json());
+      }
       await request('/api/alerts/test', { method: 'POST' });
-      setNotice('Test sent. Check that it arrived.');
+      setNotice(isDirty ? 'Settings saved and test alert sent.' : 'Test sent. Check that it arrived.');
     } catch (err) {
       setError(parseApiError(err, 'Could not send the test.').message);
     } finally {
@@ -162,41 +181,92 @@ const AlertsSettingsPanel: React.FC = () => {
   };
 
   const setRule = (key: typeof RULE_ROWS[number]['key'], value: boolean) => setRules({ ...rules, [key]: value });
+  const activeAlerts = saved.activeAlerts;
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 className="type-body-strong text-ink">Alerts from the server</h3>
-        <Badge tone={saved.enabled ? 'positive' : 'neutral'}>{saved.enabled ? 'On' : 'Off'}</Badge>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="type-body-strong text-ink">Alerts from the server</h3>
+            <Badge tone={saved.enabled ? 'positive' : 'neutral'}>{saved.enabled ? 'On' : 'Off'}</Badge>
+          </div>
+          <p className="type-body mt-1 text-muted">
+            Get a message on your phone when something needs attention, even with Crystal closed. The server checks your data every half hour and sends each alert once.
+          </p>
+        </div>
+        <Switch isSelected={enabled} onChange={setEnabled}>Send alerts</Switch>
       </div>
-      <p className="type-body text-muted">Get a message on your phone when something needs attention, even with Crystal closed. The server checks your data every half hour and sends each alert once.</p>
 
       {error && <Banner tone="error">{error}</Banner>}
       {notice && <Banner tone="info">{notice}</Banner>}
 
-      <Switch isSelected={enabled} onChange={setEnabled}>Send alerts</Switch>
+      <section className="space-y-4 rounded-[var(--radius-lg)] border border-line bg-inset p-4">
+        <h4 className="type-label text-muted">Delivery channel</h4>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Select label="Send with" value={kind} onChange={id => { setKind(id as ChannelKind); if (id === 'ntfy' && !url.trim()) setUrl('https://ntfy.sh'); }} options={KINDS.map(({ id, label, description }) => ({ id, label, description }))} />
+          <TextInput label={kind === 'webhook' ? 'Webhook address' : 'Server address'} autoComplete="off" value={url} onChange={setUrl} help={saved.privateUrlsAllowed ? 'Addresses on your own network are allowed.' : 'A public address. Addresses on your own network need ALERTS_ALLOW_PRIVATE_URLS=true on the server.'} />
+          {needsTopic && <TextInput label="Topic" autoComplete="off" value={topic} onChange={setTopic} help="Pick something hard to guess: anyone who knows a public ntfy topic can read it." />}
+          <TextInput label={tokenLabel} type="password" autoComplete="new-password" value={token} onChange={setToken} placeholder={saved.channel?.hasToken ? 'Saved. Type to replace it.' : ''} help="Stored encrypted on the server and never shown again." />
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Select label="Send with" value={kind} onChange={id => { setKind(id as ChannelKind); if (id === 'ntfy' && !url.trim()) setUrl('https://ntfy.sh'); }} options={KINDS.map(({ id, label, description }) => ({ id, label, description }))} />
-        <TextInput label={kind === 'webhook' ? 'Webhook address' : 'Server address'} autoComplete="off" value={url} onChange={setUrl} help={saved.privateUrlsAllowed ? 'Addresses on your own network are allowed.' : 'A public address. Addresses on your own network need ALERTS_ALLOW_PRIVATE_URLS=true on the server.'} />
-        {needsTopic && <TextInput label="Topic" autoComplete="off" value={topic} onChange={setTopic} help="Pick something hard to guess: anyone who knows a public ntfy topic can read it." />}
-        <TextInput label={tokenLabel} type="password" autoComplete="new-password" value={token} onChange={setToken} placeholder={saved.channel?.hasToken ? 'Saved. Type to replace it.' : ''} help="Stored encrypted on the server and never shown again." />
-      </div>
+      <section className="space-y-3">
+        <h4 className="type-label text-muted">Alert rules & thresholds</h4>
+        <div className="divide-y divide-line rounded-[var(--radius-lg)] border border-line bg-solid">
+          {RULE_ROWS.map(row => (
+            <div key={row.key} className="space-y-3 px-4 py-3">
+              <Switch isSelected={rules[row.key]} onChange={value => setRule(row.key, value)}>{row.label}</Switch>
+              {row.key === 'lowBalance' && rules.lowBalance && (
+                <div className="grid grid-cols-1 gap-3 pl-1 pt-1 md:grid-cols-2">
+                  <TextInput label="Low balance below" inputMode="decimal" value={floor} onChange={setFloor} help="In each checking account's own currency." />
+                  <TextInput label="Look ahead (days)" inputMode="numeric" value={days} onChange={setDays} help="Scheduled bills and recurring items within 1–30 days." />
+                </div>
+              )}
+              {row.key === 'budget' && rules.budget && (
+                <div className="max-w-xs pl-1 pt-1">
+                  <TextInput label="Budget warning at (%)" inputMode="numeric" value={percent} onChange={setPercent} help="Between 50 and 99. Also alerts again at 100%." />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <div className="space-y-2">
-        <h4 className="type-label text-muted">Tell me when</h4>
-        {RULE_ROWS.map(row => <Switch key={row.key} isSelected={rules[row.key]} onChange={value => setRule(row.key, value)}>{row.label}</Switch>)}
-      </div>
+      {Array.isArray(activeAlerts) && (
+        <section className="space-y-2.5 rounded-[var(--radius-lg)] border border-line bg-inset p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="type-label text-muted">Active alerts right now</h4>
+            <Badge tone={activeAlerts.length > 0 ? 'attention' : 'neutral'}>{activeAlerts.length}</Badge>
+          </div>
+          {activeAlerts.length === 0 ? (
+            <p className="flex items-center gap-2 type-caption text-muted">
+              <Icon name="checkmark-circle-02" size={16} className="text-money-in" />
+              <span>Nothing currently triggers these rules against your saved financial data.</span>
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {activeAlerts.map(alert => (
+                <li key={alert.key} className="rounded-[var(--radius-md)] border border-line bg-solid px-3 py-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone={alert.priority === 'high' ? 'negative' : 'attention'}>
+                      {alert.priority === 'high' ? 'Urgent' : 'Notice'}
+                    </Badge>
+                    <span className="type-body-strong text-ink">{alert.title}</span>
+                  </div>
+                  <p className="type-caption mt-1 text-muted">{alert.message}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <TextInput label="Budget warning at (%)" inputMode="numeric" value={percent} onChange={setPercent} help="Between 50 and 99. You also hear when a budget is used up." />
-        <TextInput label="Low balance below" inputMode="decimal" value={floor} onChange={setFloor} help="In the account's own currency." />
-        <TextInput label="Look ahead (days)" inputMode="numeric" value={days} onChange={setDays} help="Scheduled payments within this many days." />
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button onPress={save} isDisabled={isBusy || !isDirty}>Save</Button>
-        <Button variant="ghost" onPress={sendTest} isDisabled={isBusy || isDirty || !saved.channel}>Send a test</Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onPress={save} isDisabled={isBusy || !isDirty}>Save settings</Button>
+        <Button variant="secondary" onPress={sendTest} isDisabled={isBusy || !url.trim()}>
+          {isDirty ? 'Save & send test' : 'Send a test'}
+        </Button>
       </div>
     </div>
   );

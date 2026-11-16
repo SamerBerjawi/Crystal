@@ -298,6 +298,7 @@ async function startServer() {
         channel: mockAlerts.channel ? { kind: mockAlerts.channel.kind, url: mockAlerts.channel.url, topic: mockAlerts.channel.topic ?? '', hasToken: Boolean(mockAlerts.channel.token) } : null,
         rules: mockAlerts.rules,
         privateUrlsAllowed: false,
+        activeAlerts: [],
       });
       if (subpath === '/alerts' && req.method === 'GET') return res.json(view());
       if (subpath === '/alerts' && req.method === 'PUT') {

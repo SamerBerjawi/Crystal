@@ -220,7 +220,7 @@ test('the overview and account list are consistent with the accounts', () => {
 
 test('every tool is described for the model', () => {
   const specs = toolSpecs(buildAssistantTools(base()));
-  assert.equal(specs.length, 12);
+  assert.equal(specs.length, 15);
   for (const spec of specs) {
     assert.equal(spec.type, 'function');
     assert.match(spec.function.name, /^[a-z_]+$/);
@@ -228,4 +228,53 @@ test('every tool is described for the model', () => {
     assert.equal((spec.function.parameters as any).type, 'object');
   }
   assert.deepEqual((specs.find(s => s.function.name === 'can_afford')!.function.parameters as any).required, ['amount']);
+});
+
+test('list_accounts resolves loan principal instead of using raw balance', () => {
+  const loan = account({ id: 'loan1', name: 'Car Loan', type: 'Loan', balance: -10000, totalAmount: 10000, isPrimary: false });
+  const repayment = tx('2026-10-15', -1500, 'Loan', 'Lender', { accountId: 'loan1', type: 'income', amount: 1500 });
+  const res = run('list_accounts', {}, base({ accounts: [account({}), loan], transactions: [...ledger, repayment] }));
+  const row = res.accounts.find((a: any) => a.name === 'Car Loan');
+  assert.equal(row.balance, -8500);
+});
+
+test('net_worth_bridge explains cash flow and asset changes over a period', () => {
+  const res = run('net_worth_bridge', { period: 'last_month' });
+  assert.equal(res.currency, 'EUR');
+  assert.equal(res.start, '2026-10-01');
+  assert.equal(res.end, '2026-10-31');
+  // October in ledger: +2500 income, -(120+80+60+40+900)= -1200 spending -> operating_saved = 1300 (transfer ignored)
+  assert.equal(res.operating_saved, 1300);
+  assert.equal(res.change, 1300);
+  assert.ok(res.steps.some((s: any) => s.kind === 'income' && s.amount === 2500));
+  assert.ok(res.steps.some((s: any) => s.kind === 'spending' && s.amount === -1200));
+});
+
+test('debt_payoff_plan compares avalanche and snowball across active debts', () => {
+  const card = account({ id: 'cc1', name: 'Visa', type: 'Credit Card', balance: -2400, apr: 19.9, minimumPayment: 100, isPrimary: false });
+  const other = account({ id: 'oth1', name: 'Family Loan', type: 'Other Liabilities', balance: -1200, interestRate: 3, monthlyPayment: 100, isPrimary: false });
+  const res = run('debt_payoff_plan', { extra: 200 }, base({ accounts: [account({}), card, other] }));
+  assert.equal(res.count, 2);
+  assert.equal(res.extra, 200);
+  assert.equal(res.cheapest_strategy, 'avalanche');
+  assert.ok(res.avalanche.months! > 0);
+  assert.ok(res.avalanche.interest <= res.minimums.interest);
+  assert.match(res.summary, /active debts/);
+  assert.match(run('debt_payoff_plan', { extra: -50 }).error, /non-negative/);
+});
+
+test('trips_summary detects foreign trips with categories and custom names', () => {
+  const tripTxs: Transaction[] = [
+    ...Array.from({ length: 6 }, (_, i) => tx(`2026-08-0${i + 1}`, 25, 'Groceries', `HomeShop${i}`, { country: 'Netherlands', city: 'Amsterdam' })),
+    tx('2026-09-10', 45, 'Dining', 'Trattoria', { country: 'Italy', city: 'Rome' }),
+    tx('2026-09-11', 85, 'Hotels', 'Roma Hotel', { country: 'Italy', city: 'Rome' }),
+  ];
+  const res = run('trips_summary', {}, base({
+    transactions: tripTxs,
+    preferences: { showBalanceAdjustments: true, trips: { customNames: { 'trip:2026-09-10': 'Rome Weekend' } } } as any,
+  }));
+  assert.equal(res.home_country, 'Netherlands');
+  assert.equal(res.count, 1);
+  assert.equal(res.trips[0].name, 'Rome Weekend');
+  assert.equal(res.trips[0].spend, 130);
 });

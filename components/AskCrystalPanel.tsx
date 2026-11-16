@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import type { Page } from '../types';
 import { formatCurrency, getMainCurrency } from '../utils';
 import { AssistantError, runAssistantTurn, systemPrompt, type ChatMessage, type ToolStep } from '../utils/assistantAgent';
 import { fetchAssistantSettings, runServerAgent, serverChat, type AssistantSettings } from '../utils/assistantApi';
@@ -35,24 +36,74 @@ const HISTORY_LIMIT = 8;
 
 const TOOL_LABEL: Record<string, string> = {
   get_overview: 'Overview', list_accounts: 'Accounts', list_categories: 'Categories', spending: 'Spending', income: 'Income', search_transactions: 'Transactions',
-  budget_status: 'Budgets', safe_to_spend: 'Safe to spend', forecast: 'Forecast', can_afford: 'Can I afford it', subscriptions: 'Subscriptions', net_worth_history: 'Net worth',
+  budget_status: 'Budgets', safe_to_spend: 'Safe to spend', forecast: 'Forecast', can_afford: 'Can I afford it', subscriptions: 'Subscriptions',
+  net_worth_history: 'Net worth', net_worth_bridge: 'Net worth bridge', debt_payoff_plan: 'Debt payoff', trips_summary: 'Trips',
   get_investments: 'Investments', get_planning: 'Planning', search_merchants: 'Merchants', propose_recategorise: 'Suggestion', propose_rename_merchant: 'Suggestion',
 };
 
-/** **bold** is the only formatting kept. The model's text is never treated as markup. */
+/** **bold** is the only inline formatting kept. The model's text is never treated as markup. */
 const inline = (text: string) => text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => (part.startsWith('**') && part.endsWith('**') ? <strong key={index}>{part.slice(2, -2)}</strong> : <React.Fragment key={index}>{part}</React.Fragment>));
 
+/** Renders safe paragraphs and bullet lists (- / *) with **bold** inline spans. */
+const renderMessageText = (text: string, isPrivate: boolean) => {
+  const lines = text.split(/\r?\n/);
+  const blocks: React.ReactNode[] = [];
+  let bullets: string[] = [];
+
+  const flushBullets = (keyPrefix: string) => {
+    if (bullets.length === 0) return;
+    blocks.push(
+      <ul key={keyPrefix} className={cn('my-1.5 list-disc space-y-1 pl-4 type-body text-ink', isPrivate && 'privacy-blur')}>
+        {bullets.map((item, idx) => <li key={idx} className="break-words">{inline(item)}</li>)}
+      </ul>,
+    );
+    bullets = [];
+  };
+
+  lines.forEach((line, index) => {
+    const bulletMatch = /^\s*[-*•]\s+(.+)$/.exec(line);
+    if (bulletMatch) {
+      bullets.push(bulletMatch[1]);
+      return;
+    }
+    flushBullets(`ul-${index}`);
+    if (!line.trim()) {
+      if (blocks.length > 0) blocks.push(<div key={`gap-${index}`} className="h-2" />);
+      return;
+    }
+    blocks.push(
+      <p key={`p-${index}`} className={cn('type-body break-words text-ink', index > 0 && 'mt-1', isPrivate && 'privacy-blur')}>
+        {inline(line)}
+      </p>,
+    );
+  });
+  flushBullets('ul-end');
+  return blocks;
+};
+
 const argsText = (args: Record<string, unknown>) => Object.entries(args).map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`).join(', ');
+
+const hasQueuedProposal = (steps: ToolStep[]) =>
+  steps.some(
+    step =>
+      (step.name === 'propose_recategorise' || step.name === 'propose_rename_merchant') &&
+      step.status === 'done' &&
+      Boolean((step.result as Record<string, unknown> | undefined)?.proposed),
+  );
 
 interface AskCrystalPanelProps {
   isOpen: boolean;
   onClose: () => void;
   /** Opens Settings, Connections, where the model is chosen. */
   onOpenSettings: () => void;
+  /** Current page in Crystal so suggested prompts adapt to context. */
+  currentPage?: Page;
+  /** Navigates directly to the Tidy-ups queue tab when a proposal was queued. */
+  onOpenTidyUps?: () => void;
 }
 
 /** Plain-language questions about your own money. The answers are worked out in your browser from your data. */
-const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOpenSettings }) => {
+const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOpenSettings, currentPage, onOpenTidyUps }) => {
   const isPrivate = useContext(PrivacyContext);
   const { transactions, setCleanupProposals } = useTransactionsContext();
   const { accounts } = useAccountsContext();
@@ -102,13 +153,67 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [messages]);
 
   const currency = getMainCurrency();
-  const suggestions = useMemo(() => [
-    'What did I spend last month?',
-    'How are my budgets doing?',
-    `Can I afford ${formatCurrency(500, currency)} next week?`,
-    'What is safe to spend right now?',
-    'Which subscriptions cost the most?',
-  ], [currency]);
+  const suggestions = useMemo(() => {
+    const extraAmt = formatCurrency(200, currency);
+    switch (currentPage) {
+      case 'Debt Payoff':
+        return [
+          'Compare avalanche vs. snowball for my current debt',
+          `How much interest does ${extraAmt} extra a month save me?`,
+          'What is safe to spend right now?',
+        ];
+      case 'Trips':
+        return [
+          'Summarize my detected trips and spending',
+          'Which country cost the most per day?',
+          'What did I spend on travel and dining this year?',
+        ];
+      case 'FIRE':
+        return [
+          'What moved my net worth this year?',
+          'How has my net worth changed over the last 12 months?',
+          'How much did I save last month?',
+        ];
+      case 'Tax Pack':
+        return [
+          'What income did I earn this year?',
+          'Show my spending by category this year',
+          'List my accounts and current balances',
+        ];
+      case 'Investments':
+        return [
+          'How are my investments and portfolio doing?',
+          'What moved my net worth last month?',
+          'What is safe to spend right now?',
+        ];
+      case 'Subscriptions':
+        return [
+          'Which subscriptions cost the most?',
+          'Are any subscriptions worth reviewing?',
+          'What is safe to spend right now?',
+        ];
+      case 'Budget':
+        return [
+          'How are my budgets doing?',
+          'What did I spend last month?',
+          'Where did my food spending go this month?',
+        ];
+      case 'Reports':
+        return [
+          'What moved my net worth last month?',
+          'How has my net worth changed this year?',
+          'Break down my spending by category last month',
+        ];
+      default:
+        return [
+          'What did I spend last month?',
+          'How are my budgets doing?',
+          `Can I afford ${formatCurrency(500, currency)} next week?`,
+          'What is safe to spend right now?',
+          'What moved my net worth this month?',
+        ];
+    }
+  }, [currency, currentPage]);
 
   const patch = useCallback((id: string, change: Partial<UiMessage> | ((message: UiMessage) => Partial<UiMessage>)) => {
     setMessages(list => list.map(message => (message.id === id ? { ...message, ...(typeof change === 'function' ? change(message) : change) } : message)));
@@ -225,7 +330,13 @@ const AskCrystalPanel: React.FC<AskCrystalPanelProps> = ({ isOpen, onClose, onOp
               {message.pending && !message.text && (
                 <p className="type-caption text-muted">{message.steps.length ? `Looking up ${TOOL_LABEL[message.steps[message.steps.length - 1].name]?.toLowerCase() ?? 'your data'}...` : 'Thinking...'}</p>
               )}
-              {message.text && <p className={cn('type-body whitespace-pre-wrap break-words text-ink', isPrivate && 'privacy-blur')}>{inline(message.text)}</p>}
+              {message.text && <div>{renderMessageText(message.text, isPrivate)}</div>}
+              {!message.pending && onOpenTidyUps && hasQueuedProposal(message.steps) && (
+                <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[var(--radius-md)] border border-line bg-solid px-3 py-2">
+                  <span className="type-caption text-muted">Suggestion queued in Tidy-ups</span>
+                  <Button size="sm" variant="secondary" icon="arrow-right-01" onPress={onOpenTidyUps}>Review in Tidy-ups queue</Button>
+                </div>
+              )}
               {message.stopped && <p className="type-caption text-muted">Stopped.</p>}
               {message.error && (
                 <div className="space-y-2">

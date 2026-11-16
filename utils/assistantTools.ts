@@ -3,7 +3,7 @@ import type {
 } from '../types';
 import {
   calculateAccountTotals, convertCurrency, convertToMain, formatCurrency, generateSyntheticCreditCardPayments, generateSyntheticLoanPayments, generateSyntheticPropertyTransactions,
-  getMainCurrency, parseLocalDate, round2, safeAdd, toLocalISOString,
+  getMainCurrency, parseLocalDate, resolveAccountBalance, round2, safeAdd, toLocalISOString,
 } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
 import { netWorthHistory } from './challengesModel';
@@ -12,6 +12,10 @@ import { budgetAgainstActual, categoryMatches, expensesIn, groupedSpend, inScope
 import { computeSafeToSpend } from './safeToSpend';
 import { isDigitalOrService, serviceStatus, serviceTotals, services } from './subscriptionsModel';
 import { subscriptionAudit } from './subscriptionAudit';
+import { buildNetWorthBridge } from './netWorthBridge';
+import { comparePlans } from './debtPlan';
+import { debtsFromAccounts } from './debtPlanInputs';
+import { detectHomeCountry, detectTrips } from './trips';
 
 /*
  * What Ask Crystal can look up. Each tool runs the app's own functions on the data already loaded in the browser, so
@@ -239,15 +243,20 @@ export const buildAssistantTools = (data: AssistantData): AssistantTool[] => {
     },
     {
       name: 'list_accounts',
-      description: `Every open account with its balance, in its own currency and in ${currency}.`,
+      description: `Every open account with its current balance (including amortized loan schedules), in its own currency and in ${currency}.`,
       parameters: { type: 'object', properties: {} },
       run: () => {
-        const rows = accounts.filter(a => a.status !== 'closed').map(a => ({
-          name: a.name, type: a.type, currency: a.currency,
-          balance: round2(a.balance), balance_display: formatCurrency(round2(a.balance), a.currency),
-          balance_main: round2(convertToMain(a.balance, a.currency)), balance_main_display: money(convertToMain(a.balance, a.currency)),
-          counts_in_analytics: a.includeInAnalytics ?? true,
-        }));
+        const rows = accounts.filter(a => a.status !== 'closed').map(a => {
+          const ownTxs = transactions.filter(tx => tx.accountId === a.id);
+          const bal = resolveAccountBalance(a, ownTxs, data.loanPaymentOverrides, { referenceDate: today });
+          const mainBal = convertToMain(bal, a.currency);
+          return {
+            name: a.name, type: a.type, currency: a.currency,
+            balance: round2(bal), balance_display: formatCurrency(round2(bal), a.currency),
+            balance_main: round2(mainBal), balance_main_display: money(mainBal),
+            counts_in_analytics: a.includeInAnalytics ?? true,
+          };
+        });
         return { currency, count: rows.length, accounts: rows, summary: `${count(rows.length, 'open account')}.` };
       },
     },
@@ -512,6 +521,160 @@ export const buildAssistantTools = (data: AssistantData): AssistantTool[] => {
           currency, points, change: round2(change), change_display: money(change),
           change_percent: points[0].value > 0 ? round2((change / points[0].value) * 100) : null,
           summary: `Net worth went from ${points[0].display} (${points[0].month}) to ${points[points.length - 1].display} (${points[points.length - 1].month}), a change of ${money(change)}.`,
+        };
+      },
+    },
+    {
+      name: 'net_worth_bridge',
+      description: `Break down what changed net worth over a period: income, spending, market adjustments, balance corrections, and outside transfers. Amounts in ${currency}.`,
+      parameters: { type: 'object', properties: { ...periodSchema } },
+      run: args => {
+        const period = resolvePeriod(args, today, earliest);
+        if ('error' in period) return { error: period.error };
+        const totals = calculateAccountTotals(analyticsAccounts, scoped, data.loanPaymentOverrides);
+        const bridge = buildNetWorthBridge({
+          transactions: scoped,
+          selectedAccountIds: analyticsAccounts.map(a => a.id),
+          netWorth: totals.netWorth,
+          start: parseLocalDate(period.start),
+          end: parseLocalDate(period.end),
+          today,
+          accountNames: new Map(accounts.map(a => [a.id, a.name])),
+        });
+        return {
+          currency,
+          period: period.label,
+          start: bridge.start,
+          end: bridge.end,
+          start_value: bridge.startValue,
+          start_value_display: money(bridge.startValue),
+          end_value: bridge.endValue,
+          end_value_display: money(bridge.endValue),
+          change: bridge.change,
+          change_display: money(bridge.change),
+          change_percent: bridge.changePct !== undefined ? round2(bridge.changePct * 100) : null,
+          operating_saved: bridge.operatingSaved,
+          operating_saved_display: money(bridge.operatingSaved),
+          savings_rate: bridge.savingsRate !== undefined ? round2(bridge.savingsRate * 100) : null,
+          steps: bridge.steps.map(step => ({
+            kind: step.kind,
+            label: step.label,
+            amount: step.amount,
+            display: money(step.amount),
+            count: step.count,
+            top_details: step.details.slice(0, 5).map(d => ({ label: d.label, amount: d.amount, display: money(d.amount) })),
+          })),
+          summary: `Over ${period.label} (${bridge.start} to ${bridge.end}), net worth moved from ${money(bridge.startValue)} to ${money(bridge.endValue)} (${money(bridge.change)}). Operating cash flow was ${money(bridge.operatingSaved)}.`,
+        };
+      },
+    },
+    {
+      name: 'debt_payoff_plan',
+      description: `Compare debt payoff timelines and total interest across minimums, avalanche (highest rate first), and snowball (smallest balance first). Amounts in ${currency}.`,
+      parameters: {
+        type: 'object',
+        properties: {
+          extra: { type: 'number', description: `Extra monthly payment in ${currency} on top of minimums. Defaults to saved plan setting.` },
+          lump_sum: { type: 'number', description: `Optional one-off lump sum in ${currency} applied immediately. Defaults to saved plan setting.` },
+        },
+      },
+      run: args => {
+        const settings = data.preferences.debtPlan ?? {};
+        const extra = args.extra !== undefined ? Number(args.extra) : (settings.extra ?? 0);
+        const lumpSum = args.lump_sum !== undefined ? Number(args.lump_sum) : (settings.lumpSum ?? 0);
+        if (!Number.isFinite(extra) || extra < 0) return { error: 'extra must be a non-negative number.' };
+        if (!Number.isFinite(lumpSum) || lumpSum < 0) return { error: 'lump_sum must be a non-negative number.' };
+        const allDebts = debtsFromAccounts({
+          accounts,
+          transactions,
+          loanPaymentOverrides: data.loanPaymentOverrides,
+          settings,
+          conversionRates: data.preferences.conversionRates,
+        });
+        const active = allDebts.filter(d => !d.excluded);
+        if (active.length === 0) {
+          return { currency, count: 0, debts: [], summary: 'There are no active debts included in the payoff plan.' };
+        }
+        const comparison = comparePlans(active, extra, today, lumpSum);
+        const best = comparison[comparison.cheapest];
+        return {
+          currency,
+          count: active.length,
+          debts: active.map(d => ({
+            name: d.name,
+            type: d.type,
+            balance: round2(d.balance),
+            balance_display: money(d.balance),
+            rate: round2(d.rate),
+            minimum: round2(d.minimum),
+            minimum_display: money(d.minimum),
+            needs_details: d.needsDetails,
+          })),
+          extra: round2(extra),
+          extra_display: money(extra),
+          lump_sum: round2(lumpSum),
+          lump_sum_display: money(lumpSum),
+          cheapest_strategy: comparison.cheapest,
+          minimums: {
+            months: comparison.minimums.months,
+            payoff: comparison.minimums.payoff,
+            interest: comparison.minimums.interest,
+            interest_display: money(comparison.minimums.interest),
+          },
+          avalanche: {
+            months: comparison.avalanche.months,
+            payoff: comparison.avalanche.payoff,
+            interest: comparison.avalanche.interest,
+            interest_display: money(comparison.avalanche.interest),
+            saved_interest: comparison.saved.avalanche,
+            saved_interest_display: money(comparison.saved.avalanche),
+          },
+          snowball: {
+            months: comparison.snowball.months,
+            payoff: comparison.snowball.payoff,
+            interest: comparison.snowball.interest,
+            interest_display: money(comparison.snowball.interest),
+            saved_interest: comparison.saved.snowball,
+            saved_interest_display: money(comparison.saved.snowball),
+          },
+          summary: `${count(active.length, 'active debt')}: ${comparison.cheapest} pays them off ${best.months !== null ? `in ${count(best.months, 'month')} (${best.payoff})` : 'beyond the horizon'} with ${money(best.interest)} total interest, saving ${money(comparison.saved[comparison.cheapest])} vs. minimums.`,
+        };
+      },
+    },
+    {
+      name: 'trips_summary',
+      description: `Detected trips outside your home country with dates, total spend, daily average, and top categories. Amounts in ${currency}.`,
+      parameters: { type: 'object', properties: {} },
+      run: () => {
+        const home = data.preferences.trips?.homeCountry?.trim() || detectHomeCountry(scoped);
+        const trips = detectTrips(scoped, data.preferences.trips?.homeCountry, data.preferences.trips);
+        const rows = trips.slice(0, 15).map(trip => ({
+          name: trip.name,
+          start: trip.start,
+          end: trip.end,
+          days: trip.days,
+          countries: trip.countries,
+          spend: trip.spend,
+          spend_display: money(trip.spend),
+          per_day: trip.perDay,
+          per_day_display: money(trip.perDay),
+          top_categories: trip.topCategories.slice(0, 3).map(c => ({
+            category: c.category,
+            amount: c.amount,
+            display: money(c.amount),
+          })),
+        }));
+        const totalSpend = trips.reduce((acc, t) => safeAdd(acc, t.spend), 0);
+        return {
+          currency,
+          home_country: home,
+          count: trips.length,
+          total_spend: round2(totalSpend),
+          total_spend_display: money(totalSpend),
+          trips: rows,
+          summary: trips.length
+            ? `${count(trips.length, 'detected trip')} totaling ${money(totalSpend)}. Most recent: ${trips[0].name} (${trips[0].start} to ${trips[0].end}, ${money(trips[0].spend)}).`
+            : 'No trips outside your home country have been detected yet.',
         };
       },
     },

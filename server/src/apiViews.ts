@@ -37,7 +37,7 @@ const isSpend = (tx: Json) => tx.type === 'expense' && !tx.transferId && !tx.isS
 
 export const summaryView = (data: Json, now = new Date()) => {
     const { main, toMain, unconverted } = converter(data);
-    const accounts = list(data.accounts).filter(a => a.status !== 'closed');
+    const accounts = list(data.accounts).filter(a => a.status !== 'closed' && a.includeInAnalytics !== false);
     let assets = 0, debts = 0;
     const rows = accounts.map(a => {
         const balance = num(a.balance) ?? 0;

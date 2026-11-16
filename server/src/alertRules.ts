@@ -64,6 +64,13 @@ const money = (amount: number, currency: string) => {
 };
 const labelOf = (tx: Json) => String(tx.merchant || tx.description || 'a payment').trim();
 
+/** Rate of one unit in EUR. Saved preferences first, EUR is 1. Null when unknown. */
+const rateIn = (rates: Json, code: string): number | null => {
+    if (code === 'EUR') return 1;
+    const rate = num(rates[code]);
+    return rate && rate > 0 ? rate : null;
+};
+
 /** Real spending: not a transfer, a split or combined parent, or a balance adjustment. */
 const isSpend = (tx: Json) =>
     tx.type === 'expense' && !tx.transferId && !tx.isSplitParent && !tx.isCombinedParent && !tx.isBalanceAdjustment && !tx.isMarketAdjustment;
@@ -102,14 +109,25 @@ const budgetAlerts = (data: Json, now: Date, rules: AlertRules): AlertCandidate[
     const month = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
     const categories = list(data.expenseCategories);
     const transactions = list(data.transactions).filter(tx => isSpend(tx) && typeof tx.date === 'string' && tx.date.startsWith(month));
+    const preferences: Json = data.preferences && typeof data.preferences === 'object' ? data.preferences : {};
+    const rates: Json = { ...(preferences.conversionRates ?? {}), ...(preferences.manualRates ?? {}) };
     return list(data.budgets).flatMap(budget => {
         const limit = num(budget.amount);
         if (!limit || limit <= 0) return [];
         const currency = String(budget.currency || '');
+        const target = currency.toUpperCase();
         const names = descendantNames(categories, String(budget.categoryName));
         const spent = transactions
-            .filter(tx => names.has(String(tx.category)) && String(tx.currency || currency) === currency)
-            .reduce((sum, tx) => sum + Math.abs(num(tx.amount) ?? 0), 0);
+            .filter(tx => names.has(String(tx.category)))
+            .reduce((sum, tx) => {
+                const raw = Math.abs(num(tx.amount) ?? 0);
+                if (!raw) return sum;
+                const from = String(tx.currency || currency).toUpperCase();
+                if (from === target) return sum + raw;
+                const fromRate = rateIn(rates, from);
+                const targetRate = target ? rateIn(rates, target) : null;
+                return fromRate && targetRate ? sum + (raw * fromRate) / targetRate : sum;
+            }, 0);
         const used = spent / limit;
         const label = String(budget.categoryName);
         const out: AlertCandidate[] = [];
@@ -160,12 +178,17 @@ const priceHikeAlerts = (data: Json): AlertCandidate[] => {
     });
 };
 
+const clampedDay = (year: number, month: number, day: number) => {
+    const last = new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, Math.min(day, last));
+};
+
 const STEP: Record<string, (d: Date, n: number) => Date> = {
     daily: (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n),
     weekly: (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7 * n),
     biweekly: (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 14 * n),
-    monthly: (d, n) => new Date(d.getFullYear(), d.getMonth() + n, Math.min(d.getDate(), 28)),
-    yearly: (d, n) => new Date(d.getFullYear() + n, d.getMonth(), Math.min(d.getDate(), 28)),
+    monthly: (d, n) => clampedDay(d.getFullYear(), d.getMonth() + n, d.getDate()),
+    yearly: (d, n) => clampedDay(d.getFullYear() + n, d.getMonth(), d.getDate()),
 };
 
 /** Dates a series falls due in (from, to], starting at its next due date. */
@@ -188,7 +211,15 @@ export const occurrencesBetween = (series: Json, from: Date, to: Date): Date[] =
 const lowBalanceAlerts = (data: Json, now: Date, rules: AlertRules): AlertCandidate[] => {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + rules.lowBalanceDays);
+    const searchFrom = new Date(today.getTime() - 60 * DAY_MS);
     const series = list(data.recurringTransactions).filter(s => !s.pausedAt && !s.isSkipped && !s.isSynthetic);
+    const overrideMap = new Map<string, Json>();
+    list(data.recurringTransactionOverrides).forEach(ov => {
+        if (ov.recurringTransactionId && typeof ov.originalDate === 'string') {
+            overrideMap.set(`${String(ov.recurringTransactionId)}:${ov.originalDate.slice(0, 10)}`, ov);
+        }
+    });
+    const bills = list(data.billsAndPayments).filter(b => b.status === 'unpaid');
     return list(data.accounts).flatMap(account => {
         const balance = num(account.balance);
         if (account.type !== 'Checking' || account.status === 'closed' || balance === null) return [];
@@ -197,12 +228,27 @@ const lowBalanceAlerts = (data: Json, now: Date, rules: AlertRules): AlertCandid
         series.forEach(s => {
             const amount = num(s.amount);
             if (amount === null || String(s.currency || currency) !== currency) return;
-            const delta = s.type === 'income' && s.accountId === account.id ? amount
-                : s.type === 'expense' && s.accountId === account.id ? -amount
-                : s.type === 'transfer' && s.accountId === account.id ? -amount
-                : s.type === 'transfer' && s.toAccountId === account.id ? amount : 0;
-            if (delta === 0) return;
-            occurrencesBetween(s, today, horizon).forEach(day => moves.push({ day, delta }));
+            const sign = s.type === 'income' && s.accountId === account.id ? 1
+                : s.type === 'expense' && s.accountId === account.id ? -1
+                : s.type === 'transfer' && s.accountId === account.id ? -1
+                : s.type === 'transfer' && s.toAccountId === account.id ? 1 : 0;
+            if (sign === 0) return;
+            occurrencesBetween(s, searchFrom, horizon).forEach(origDay => {
+                const ov = s.id ? overrideMap.get(`${String(s.id)}:${isoOf(origDay)}`) : undefined;
+                if (ov?.isSkipped) return;
+                const effectiveDay = ov?.date ? dateOf(ov.date) : origDay;
+                if (!effectiveDay || effectiveDay <= today || effectiveDay > horizon) return;
+                const ovAmt = ov ? num(ov.amount) : null;
+                const mag = ovAmt !== null ? Math.abs(ovAmt) : amount;
+                moves.push({ day: effectiveDay, delta: sign * mag });
+            });
+        });
+        bills.forEach(b => {
+            if (b.accountId !== account.id || String(b.currency || currency) !== currency) return;
+            const due = dateOf(b.dueDate);
+            const mag = Math.abs(num(b.amount) ?? 0);
+            if (!due || due <= today || due > horizon || mag === 0) return;
+            moves.push({ day: due, delta: b.type === 'deposit' ? mag : -mag });
         });
         moves.sort((a, b) => a.day.getTime() - b.day.getTime());
         let running = balance;
@@ -220,13 +266,6 @@ const lowBalanceAlerts = (data: Json, now: Date, rules: AlertRules): AlertCandid
         }
         return [];
     });
-};
-
-/** Rate of one unit in EUR. Saved preferences first, EUR is 1. Null when unknown. */
-const rateIn = (rates: Json, code: string): number | null => {
-    if (code === 'EUR') return 1;
-    const rate = num(rates[code]);
-    return rate && rate > 0 ? rate : null;
 };
 
 const shortDay = (d: Date) => new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(d);

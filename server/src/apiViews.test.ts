@@ -101,3 +101,16 @@ run('merchant search matches, sums and caps', () => {
     assert(merchantsView(d, {}).merchants[0].merchant === 'Rent', 'biggest first');
     assert(merchantsView(d, { limit: 1 }).merchants.length === 1, 'limit');
 });
+
+run('summary excludes accounts with includeInAnalytics false', () => {
+    const withExcluded = {
+        ...data,
+        accounts: [
+            ...data.accounts,
+            { id: 'a6', name: 'Hidden', type: 'Savings', balance: 50000, currency: 'EUR', includeInAnalytics: false },
+        ],
+    };
+    const s = summaryView(withExcluded, NOW);
+    assert(s.assets === 1050 && s.netWorth === 850, `excluded account should not inflate totals (${s.assets}/${s.netWorth})`);
+    assert(!s.accounts.some(a => a.id === 'a6'), 'excluded account omitted from accounts list');
+});

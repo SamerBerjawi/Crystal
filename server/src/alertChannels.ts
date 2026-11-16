@@ -44,7 +44,15 @@ export const buildDelivery = (channel: ChannelConfig, alert: AlertMessage): Deli
     return {
         url: base,
         headers: { 'Content-Type': 'application/json', ...auth },
-        body: JSON.stringify({ title: alert.title, message: alert.message, priority: alert.priority, kind: alert.kind, key: alert.key }),
+        body: JSON.stringify({
+            title: alert.title,
+            message: alert.message,
+            priority: alert.priority,
+            kind: alert.kind,
+            key: alert.key,
+            text: `${alert.title}: ${alert.message}`,
+            content: `**${alert.title}** — ${alert.message}`,
+        }),
     };
 };
 

@@ -69,9 +69,20 @@ const publicView = (settings: AlertSettings) => ({
     privateUrlsAllowed: privateUrlsAllowed(),
 });
 
+const loadActiveAlerts = async (userId: number | string, rules: AlertRules) => {
+    try {
+        const row = (await db.query(`SELECT data FROM financial_data WHERE user_id = $1`, [userId])).rows?.[0];
+        return row?.data ? evaluateAlerts(row.data, rules, new Date()) : [];
+    } catch {
+        return [];
+    }
+};
+
 router.get('/', async (req: AuthRequest, res) => {
     try {
-        res.json(publicView(await loadAlertSettings(req.user!.id)));
+        const settings = await loadAlertSettings(req.user!.id);
+        const activeAlerts = await loadActiveAlerts(req.user!.id, settings.rules);
+        res.json({ ...publicView(settings), activeAlerts });
     } catch (error) {
         console.error('Failed to read alert settings', error);
         res.status(500).json({ message: 'Unable to read alert settings' });
@@ -105,7 +116,9 @@ router.put('/', async (req: AuthRequest, res) => {
                  encrypted_token = EXCLUDED.encrypted_token, rules = EXCLUDED.rules, updated_at = NOW()`,
             [req.user!.id, enabled, next?.kind ?? null, next?.url ?? null, next?.topic ?? null, next?.token ? encryptSecret(next.token) : null, JSON.stringify(merged)],
         );
-        res.json(publicView(await loadAlertSettings(req.user!.id)));
+        const saved = await loadAlertSettings(req.user!.id);
+        const activeAlerts = await loadActiveAlerts(req.user!.id, saved.rules);
+        res.json({ ...publicView(saved), activeAlerts });
     } catch (error) {
         console.error('Failed to save alert settings', error);
         res.status(500).json({ message: 'Unable to save alert settings' });
