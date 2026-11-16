@@ -61,3 +61,12 @@ test('debts with no payment or no balance are left out', () => {
   assert.equal(r.months, 0);
   assert.equal(r.balances[0], 0);
 });
+
+test('a one-time lump sum accelerates payoff and records per-debt interest', () => {
+  const base = comparePlans([card, loan], 0, today, 0);
+  const boosted = comparePlans([card, loan], 0, today, 1000);
+  assert.equal(boosted.avalanche.order[0].id, 'card');
+  assert.equal(boosted.avalanche.order[0].month, 0);
+  assert.ok(boosted.avalanche.months! < base.avalanche.months!);
+  assert.ok(boosted.saved.avalanche > base.saved.avalanche);
+});

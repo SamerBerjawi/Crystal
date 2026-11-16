@@ -35,3 +35,20 @@ test('closed accounts, lending, and debts with nothing owed are left out', () =>
   ];
   assert.deepEqual(debtsFromAccounts({ ...base, accounts: list }), []);
 });
+
+test('credit cards with owed balances are included and can be excluded via settings', () => {
+  const cards = [
+    acc({ id: 'c1', name: 'Visa', type: 'Credit Card', balance: -1200, apr: 19.9, minimumPayment: 40 }),
+    acc({ id: 'c2', name: 'Credit', type: 'Credit Card', balance: 150, apr: 18, minimumPayment: 25 }),
+  ];
+  const [visa] = debtsFromAccounts({ ...base, accounts: cards });
+  assert.equal(visa.id, 'c1');
+  assert.equal(visa.balance, 1200);
+  assert.equal(visa.rate, 19.9);
+  assert.equal(visa.minimum, 40);
+  assert.equal(visa.needsDetails, false);
+  assert.equal(visa.excluded, false);
+
+  const [excluded] = debtsFromAccounts({ ...base, accounts: cards, settings: { excludedIds: ['c1'] } });
+  assert.equal(excluded.excluded, true);
+});

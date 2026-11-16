@@ -25,6 +25,13 @@ export interface DebtInput {
 
 export type Strategy = 'avalanche' | 'snowball' | 'minimums';
 
+export interface PlanOrderStep {
+  id: string;
+  name: string;
+  month: number;
+  interestPaid?: number;
+}
+
 export interface PlanResult {
   strategy: Strategy;
   /** Months until everything is paid, or null when it never is within the horizon. */
@@ -34,7 +41,7 @@ export interface PlanResult {
   /** Interest paid over the plan (to the horizon when it never finishes). */
   interest: number;
   /** In the order they were cleared. Debts still open at the horizon are left out. */
-  order: { id: string; name: string; month: number }[];
+  order: PlanOrderStep[];
   /** Total owed at the end of each month, starting with today at index 0. */
   balances: number[];
   /** Debts whose payment does not even cover their interest, so they only grow under this plan. */
@@ -43,12 +50,13 @@ export interface PlanResult {
 
 export interface PlanComparison {
   extra: number;
+  lumpSum: number;
   minimums: PlanResult;
   avalanche: PlanResult;
   snowball: PlanResult;
   /** The strategy with the least interest; avalanche on a tie. */
   cheapest: 'avalanche' | 'snowball';
-  /** Interest the extra saves against paying minimums only, for each strategy. */
+  /** Interest the extra/rollover saves against paying minimums only, for each strategy. */
   saved: { avalanche: number; snowball: number };
 }
 
@@ -59,26 +67,62 @@ const monthKey = (today: Date, months: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
-export const simulatePlan = (debts: DebtInput[], extra: number, strategy: Strategy, today: Date): PlanResult => {
-  const live = debts.filter(d => d.balance > 0.005 && d.minimum > 0).map(d => ({ ...d, balance: round2(d.balance), monthly: d.rate / 100 / 12 }));
+export const simulatePlan = (debts: DebtInput[], extra: number, strategy: Strategy, today: Date, lumpSum = 0): PlanResult => {
+  const live = debts
+    .filter(d => d.balance > 0.005 && d.minimum > 0)
+    .map(d => ({ ...d, balance: round2(d.balance), monthly: d.rate / 100 / 12, interestPaid: 0 }));
   const extraPerMonth = strategy === 'minimums' ? 0 : Math.max(0, extra);
+  const initialLump = strategy === 'minimums' ? 0 : Math.max(0, lumpSum);
   const budget = live.reduce((sum, d) => sum + d.minimum, 0) + extraPerMonth;
   const stuck = live.filter(d => d.minimum <= round2(d.balance * d.monthly) + 1e-9 && extraPerMonth === 0).map(d => d.id);
   const balances = [round2(live.reduce((sum, d) => sum + d.balance, 0))];
-  const order: PlanResult['order'] = [];
+  const order: PlanOrderStep[] = [];
   let interest = 0;
   let month = 0;
   const priority = (a: typeof live[number], b: typeof live[number]) =>
     strategy === 'snowball' ? a.balance - b.balance || b.rate - a.rate : b.rate - a.rate || a.balance - b.balance;
 
+  if (initialLump > 0) {
+    let pool = initialLump;
+    for (const d of [...live].filter(x => x.balance > 0.005).sort(priority)) {
+      if (pool <= 0) break;
+      const pay = Math.min(pool, d.balance);
+      d.balance = round2(d.balance - pay);
+      pool = round2(pool - pay);
+      if (d.balance <= 0.005) d.balance = 0;
+      if (d.balance === 0 && !order.some(o => o.id === d.id)) {
+        order.push({ id: d.id, name: d.name, month: 0, interestPaid: 0 });
+      }
+    }
+    if (live.every(d => d.balance <= 0.005)) {
+      balances.push(0);
+      return { strategy, months: 0, payoff: monthKey(today, 0), interest: 0, order, balances, stuck };
+    }
+  }
+
   while (live.some(d => d.balance > 0.005) && month < HORIZON_MONTHS) {
     month++;
-    live.forEach(d => { if (d.balance > 0) { const charge = round2(d.balance * d.monthly); d.balance = round2(d.balance + charge); interest = round2(interest + charge); } });
+    live.forEach(d => {
+      if (d.balance > 0) {
+        const charge = round2(d.balance * d.monthly);
+        d.balance = round2(d.balance + charge);
+        d.interestPaid = round2(d.interestPaid + charge);
+        interest = round2(interest + charge);
+      }
+    });
     let pool = strategy === 'minimums' ? 0 : budget;
-    if (strategy === 'minimums') live.forEach(d => { const pay = Math.min(d.minimum, d.balance); d.balance = round2(d.balance - pay); });
-    else {
+    if (strategy === 'minimums') {
+      live.forEach(d => {
+        const pay = Math.min(d.minimum, d.balance);
+        d.balance = round2(d.balance - pay);
+      });
+    } else {
       // Everyone's minimum first, then whatever the budget has left goes down the priority list.
-      live.forEach(d => { const pay = Math.min(d.minimum, d.balance); d.balance = round2(d.balance - pay); pool = round2(pool - pay); });
+      live.forEach(d => {
+        const pay = Math.min(d.minimum, d.balance);
+        d.balance = round2(d.balance - pay);
+        pool = round2(pool - pay);
+      });
       for (const d of [...live].filter(x => x.balance > 0.005).sort(priority)) {
         if (pool <= 0) break;
         const pay = Math.min(pool, d.balance);
@@ -87,7 +131,11 @@ export const simulatePlan = (debts: DebtInput[], extra: number, strategy: Strate
       }
     }
     live.forEach(d => { if (d.balance <= 0.005 && d.balance !== 0) d.balance = 0; });
-    live.forEach(d => { if (d.balance === 0 && !order.some(o => o.id === d.id)) order.push({ id: d.id, name: d.name, month }); });
+    live.forEach(d => {
+      if (d.balance === 0 && !order.some(o => o.id === d.id)) {
+        order.push({ id: d.id, name: d.name, month, interestPaid: d.interestPaid });
+      }
+    });
     balances.push(round2(live.reduce((sum, d) => sum + d.balance, 0)));
   }
 
@@ -95,12 +143,16 @@ export const simulatePlan = (debts: DebtInput[], extra: number, strategy: Strate
   return { strategy, months: done ? month : null, payoff: done ? monthKey(today, month) : null, interest, order, balances, stuck };
 };
 
-export const comparePlans = (debts: DebtInput[], extra: number, today: Date): PlanComparison => {
-  const minimums = simulatePlan(debts, extra, 'minimums', today);
-  const avalanche = simulatePlan(debts, extra, 'avalanche', today);
-  const snowball = simulatePlan(debts, extra, 'snowball', today);
+export const comparePlans = (debts: DebtInput[], extra: number, today: Date, lumpSum = 0): PlanComparison => {
+  const minimums = simulatePlan(debts, extra, 'minimums', today, 0);
+  const avalanche = simulatePlan(debts, extra, 'avalanche', today, lumpSum);
+  const snowball = simulatePlan(debts, extra, 'snowball', today, lumpSum);
   return {
-    extra, minimums, avalanche, snowball,
+    extra,
+    lumpSum,
+    minimums,
+    avalanche,
+    snowball,
     cheapest: snowball.interest < avalanche.interest - 0.005 ? 'snowball' : 'avalanche',
     saved: { avalanche: round2(minimums.interest - avalanche.interest), snowball: round2(minimums.interest - snowball.interest) },
   };

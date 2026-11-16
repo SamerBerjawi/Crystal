@@ -9,7 +9,10 @@ const DebtPayoff: React.FC = () => {
   const { transactions } = useTransactionsContext();
   return (
     <div className="space-y-6">
-      <PageHeader title="Debt payoff" />
+      <PageHeader
+        title="Debt payoff"
+        subtitle="Compare Snowball and Avalanche timelines across your loans, cards, and liabilities."
+      />
       <DebtPayoffPlanner accounts={accounts} transactions={transactions} />
     </div>
   );
