@@ -452,3 +452,218 @@ export function moneyMap(accounts: Account[], transactions: Transaction[], since
   nodes.forEach((item, i) => { if (keep[i]) { remap.set(i, kept.length); kept.push(item); } });
   return { nodes: kept, links: links.map(item => ({ ...item, source: remap.get(item.source)!, target: remap.get(item.target)! })), total: safeRound(total, 2) };
 }
+
+export interface AmortizationPoint {
+  [key: string]: unknown;
+  date: Date;
+  iso: string;
+  year: string;
+  paymentNumber: number;
+  balance: number;
+  fasterBalance?: number;
+  cumulativePrincipal: number;
+  cumulativeInterest: number;
+  periodPrincipal: number;
+  periodInterest: number;
+  principalSharePct: number;
+  status: ScheduledPayment['status'];
+}
+
+export interface AmortizationMilestone {
+  id: 'tipping_point' | 'halfway' | 'ltv_80' | 'ltv_60' | 'payoff';
+  label: string;
+  date: string;
+  paymentNumber: number;
+  detail: string;
+  reached: boolean;
+}
+
+export interface AmortizationYearRow {
+  [key: string]: unknown;
+  year: string;
+  principal: number;
+  interest: number;
+  balance: number;
+  cumulativePrincipal: number;
+  cumulativeInterest: number;
+}
+
+export interface AmortizationTrajectory {
+  points: AmortizationPoint[];
+  years: AmortizationYearRow[];
+  milestones: AmortizationMilestone[];
+  todayIndex: number;
+  totalInterest: number;
+  totalPrincipal: number;
+  monthsSaved: number;
+}
+
+/**
+ * Builds the full repayment curve, annual P&I stacked breakdown, optional overpayment comparison,
+ * and key repayment/equity milestones from a loan's amortization schedule.
+ */
+export function computeAmortizationTrajectory(params: {
+  schedule: ScheduledPayment[];
+  principal: number;
+  rate: number;
+  monthlyPayment: number;
+  loanStartDate?: string;
+  extraMonthly?: number;
+  lumpSum?: number;
+  assetValue?: number;
+  today?: Date;
+}): AmortizationTrajectory {
+  const { schedule, principal, rate, monthlyPayment, loanStartDate, extraMonthly = 0, lumpSum = 0, assetValue, today = new Date() } = params;
+  if (schedule.length === 0) {
+    return { points: [], years: [], milestones: [], todayIndex: 0, totalInterest: 0, totalPrincipal: 0, monthsSaved: 0 };
+  }
+
+  const start = loanStartDate ? parseDay(loanStartDate) : parseDay(schedule[0].date);
+  const startIso = isoDay(start);
+  const points: AmortizationPoint[] = [
+    {
+      date: start,
+      iso: startIso,
+      year: startIso.slice(0, 4),
+      paymentNumber: 0,
+      balance: safeRound(principal, 2),
+      cumulativePrincipal: 0,
+      cumulativeInterest: 0,
+      periodPrincipal: 0,
+      periodInterest: 0,
+      principalSharePct: 0,
+      status: 'Paid',
+    },
+  ];
+
+  let cumPrincipal = 0;
+  let cumInterest = 0;
+  for (const item of schedule) {
+    cumPrincipal = safeRound(safeAdd(cumPrincipal, item.principal), 2);
+    cumInterest = safeRound(safeAdd(cumInterest, item.interest), 2);
+    const total = safeAdd(item.principal, item.interest);
+    points.push({
+      date: parseDay(item.date),
+      iso: item.date.slice(0, 10),
+      year: item.date.slice(0, 4),
+      paymentNumber: item.paymentNumber,
+      balance: safeRound(item.outstandingBalance, 2),
+      cumulativePrincipal: cumPrincipal,
+      cumulativeInterest: cumInterest,
+      periodPrincipal: safeRound(item.principal, 2),
+      periodInterest: safeRound(item.interest, 2),
+      principalSharePct: total > 0 ? safeRound((item.principal / total) * 100, 1) : 100,
+      status: item.status,
+    });
+  }
+
+  const todayIso = isoDay(today);
+  const nextFuture = points.findIndex(pt => pt.iso > todayIso);
+  const todayIndex = nextFuture === -1 ? Math.max(0, points.length - 1) : Math.max(0, nextFuture - 1);
+
+  let monthsSaved = 0;
+  const outstandingToday = points[todayIndex]?.balance ?? principal;
+  if ((extraMonthly > 0 || lumpSum > 0) && monthlyPayment > 0 && outstandingToday > 0) {
+    const base = payoffPath(outstandingToday, rate, monthlyPayment);
+    const faster = payoffPath(outstandingToday, rate, monthlyPayment, extraMonthly, lumpSum);
+    monthsSaved = Math.max(0, base.length - faster.length);
+    faster.forEach((value, idx) => {
+      const target = points[todayIndex + idx];
+      if (target) target.fasterBalance = value;
+    });
+  }
+
+  let runYearPrin = 0;
+  let runYearInt = 0;
+  const years: AmortizationYearRow[] = amortizationByYear(schedule).map(row => {
+    runYearPrin = safeRound(safeAdd(runYearPrin, row.principal), 2);
+    runYearInt = safeRound(safeAdd(runYearInt, row.interest), 2);
+    return {
+      ...row,
+      cumulativePrincipal: runYearPrin,
+      cumulativeInterest: runYearInt,
+    };
+  });
+
+  const isReached = (p: ScheduledPayment) => p.status === 'Paid' || p.date.slice(0, 10) <= todayIso;
+  const milestones: AmortizationMilestone[] = [];
+
+  const tipping = schedule.find(p => p.totalPayment > 0 && p.principal >= p.interest);
+  if (tipping) {
+    const share = tipping.totalPayment > 0 ? Math.round((tipping.principal / tipping.totalPayment) * 100) : 100;
+    milestones.push({
+      id: 'tipping_point',
+      label: 'Principal overtakes interest',
+      date: tipping.date,
+      paymentNumber: tipping.paymentNumber,
+      detail: `${share}% of payment #${tipping.paymentNumber} goes to principal`,
+      reached: isReached(tipping),
+    });
+  }
+
+  const halfway = schedule.find(p => p.outstandingBalance <= principal * 0.5);
+  if (halfway) {
+    milestones.push({
+      id: 'halfway',
+      label: '50% principal repaid',
+      date: halfway.date,
+      paymentNumber: halfway.paymentNumber,
+      detail: `Halfway cleared at payment #${halfway.paymentNumber}`,
+      reached: isReached(halfway),
+    });
+  }
+
+  if (assetValue && assetValue > 0) {
+    if (principal / assetValue > 0.8) {
+      const ltv80 = schedule.find(p => p.outstandingBalance / assetValue <= 0.8);
+      if (ltv80) {
+        milestones.push({
+          id: 'ltv_80',
+          label: '80% loan-to-value',
+          date: ltv80.date,
+          paymentNumber: ltv80.paymentNumber,
+          detail: 'Equity crosses 20% of current property value',
+          reached: isReached(ltv80),
+        });
+      }
+    }
+    if (principal / assetValue > 0.6) {
+      const ltv60 = schedule.find(p => p.outstandingBalance / assetValue <= 0.6);
+      if (ltv60) {
+        milestones.push({
+          id: 'ltv_60',
+          label: '60% loan-to-value',
+          date: ltv60.date,
+          paymentNumber: ltv60.paymentNumber,
+          detail: 'Equity crosses 40% of current property value',
+          reached: isReached(ltv60),
+        });
+      }
+    }
+  }
+
+  const activeItems = schedule.filter(p => p.totalPayment > 0);
+  const last = activeItems[activeItems.length - 1] ?? schedule[schedule.length - 1];
+  if (last) {
+    milestones.push({
+      id: 'payoff',
+      label: 'Debt-free date',
+      date: last.date,
+      paymentNumber: last.paymentNumber,
+      detail: monthsSaved > 0
+        ? `${monthsSaved} ${monthsSaved === 1 ? 'month' : 'months'} sooner with overpayment`
+        : `Final installment (#${last.paymentNumber})`,
+      reached: isReached(last) && last.outstandingBalance <= 0.005,
+    });
+  }
+
+  return {
+    points,
+    years,
+    milestones,
+    todayIndex,
+    totalInterest: cumInterest,
+    totalPrincipal: cumPrincipal,
+    monthsSaved,
+  };
+}

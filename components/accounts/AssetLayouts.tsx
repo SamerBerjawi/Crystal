@@ -6,6 +6,7 @@ import { loansForAsset } from '../../utils/accountLinks';
 import { isoDay, isoMonth, monthsBetween, rentRoll, splitByLabel, toggleVacantMonth, valueTrendPerYear, yearlyOwnershipCosts, type RentMonth } from '../../utils/accountPagesModel';
 import { CAR_MAKE_DOMAINS, LicensePlate } from '../LicensePlate';
 import VehicleMileageChart from '../VehicleMileageChart';
+import MortgageAmortizationChart from './MortgageAmortizationChart';
 import { Button, IconButton } from '../ui/Actions';
 import { Badge, Row } from '../ui/Display';
 import { Amount } from '../ui/Money';
@@ -227,6 +228,22 @@ export const PropertyLayout: React.FC<AccountPanelProps> = props => {
                   { label: 'Net', value: money(returnFigures.gains - returnFigures.costs, account, 'flow') },
                 ]} />
               </Section>
+              {loan && loanSchedule.length > 0 && (
+                <Section
+                  span="full"
+                  title={`Mortgage amortization · ${loan.name}`}
+                  subtitle="Principal vs. interest, remaining balance, and equity milestones"
+                >
+                  <MortgageAmortizationChart
+                    account={loan}
+                    schedule={loanSchedule}
+                    principal={loan.principalAmount || loan.totalAmount || metrics.outstandingLoanBalance}
+                    rate={loan.interestRate || 0}
+                    monthlyPayment={loan.monthlyPayment || loanSchedule[0]?.totalPayment || 0}
+                    assetValue={value}
+                  />
+                </Section>
+              )}
               {account.isRental && (
                 <Section
                   span="full"

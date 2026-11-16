@@ -4,12 +4,14 @@ import { Account, Category, Transaction } from '../../types';
 import { generateAmortizationSchedule } from '../../utils';
 import { accountForecast } from '../../utils/forecastModel';
 import {
+  buildSpareChangeGamification,
   computeCashAccountMetrics,
   computeCompoundingProjection,
   computeCreditCardAccountMetrics,
   computeLoanAccountMetrics,
   computeOperatingAccountMetrics,
   computePensionAccountMetrics,
+  computePensionScenarioProjection,
   computePropertyAccountMetrics,
   computePropertyHoldingCashflow,
   computeSavingsAccountMetrics,
@@ -560,4 +562,67 @@ test('credit card metrics estimate a month of interest from the APR and carry th
   // No APR, or nothing owed, means no interest.
   assert.equal(computeCreditCardAccountMetrics({ ...cc, apr: undefined }, []).estimatedMonthlyInterest, 0);
   assert.equal(computeCreditCardAccountMetrics({ ...cc, balance: 50 }, []).estimatedMonthlyInterest, 0);
+});
+
+test('computePensionScenarioProjection projects contributions, compounded growth, sensitivity bands, and crossover', () => {
+  const scenario = computePensionScenarioProjection({
+    currentBalance: 20000,
+    currentContributions: 18000,
+    historicalData: [
+      { date: '2025-12', balance: 15000, contributions: 14000 },
+      { date: '2026-10', balance: 20000, contributions: 18000 },
+    ],
+    monthlyContribution: 500,
+    annualReturnPct: 7,
+    retirementYear: 2046,
+    showBand: true,
+    bandSpreadPct: 2,
+    referenceDate: new Date(2026, 10, 1),
+  });
+
+  assert.equal(scenario.todayIndex, 1);
+  assert.ok(scenario.projectedAtRetirement > scenario.totalContributionsAtRetirement);
+  assert.ok(scenario.totalGrowthAtRetirement > 0);
+  assert.ok(scenario.growthSharePct > 30);
+  assert.ok(scenario.crossoverYear !== null && Number(scenario.crossoverYear) <= 2046);
+  const last = scenario.points[scenario.points.length - 1];
+  assert.ok(last.optimistic! > last.value && last.value > last.conservative!);
+  assertClose(scenario.sustainableMonthlyDrawdown, (scenario.projectedAtRetirement * 0.04) / 12, 0.05);
+  assert.ok(scenario.yearlyBars.length > 0 && scenario.yearlyBars.length <= 20);
+});
+
+test('buildSpareChangeGamification maps savings to relatable equivalents, custom items, streaks, and milestones', () => {
+  const g = buildSpareChangeGamification(
+    {
+      totalSaved: 135,
+      thisMonthSaved: 18,
+      totalRoundUps: 30,
+      monthlyData: [
+        { name: 'Jul', value: 0 },
+        { name: 'Aug', value: 20 },
+        { name: 'Sep', value: 25 },
+        { name: 'Oct', value: 22 },
+        { name: 'Nov', value: 18 },
+      ],
+    },
+    {
+      customPrices: { coffee: 5 },
+      customItem: { label: 'concert tickets', unitPrice: 60 },
+    }
+  );
+
+  assert.equal(g.equivalents[0].id, 'custom');
+  assert.equal(g.equivalents[0].count, 2); // floor(135 / 60) = 2
+  assertClose(g.equivalents[0].amountToNext, 45);
+  const coffee = g.equivalents.find(e => e.id === 'coffee')!;
+  assert.equal(coffee.count, 27); // 135 / 5 = 27
+  assert.equal(coffee.thisMonthCount, 3); // floor(18 / 5) = 3
+  assert.equal(g.activeMonthStreak, 4);
+  assert.ok(g.milestones.find(m => m.id === 'first_drop')?.unlocked);
+  assert.ok(g.milestones.find(m => m.id === 'habit_25')?.unlocked);
+  assert.ok(g.milestones.find(m => m.id === 'saved_100')?.unlocked);
+  assert.ok(g.milestones.find(m => m.id === 'streak_3')?.unlocked);
+  assert.equal(g.milestones.find(m => m.id === 'club_100')?.unlocked, false);
+  assert.equal(g.unlockedCount, 4);
+  assert.equal(g.nextMilestone?.id, 'club_100');
 });

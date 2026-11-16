@@ -1,17 +1,29 @@
-import React, { useMemo } from 'react';
-import type { Account } from '../../types';
-import { safeAdd, safeRound } from '../../utils';
-import { computePensionAccountMetrics, computeSpareChangeAccountMetrics, isSavingsInterestTransaction } from '../../utils/accountDetailModel';
+import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import type { Account, SpareChangeSettings } from '../../types';
+import { formatCurrency, safeAdd, safeRound } from '../../utils';
+import {
+  buildSpareChangeGamification,
+  computePensionAccountMetrics,
+  computePensionScenarioProjection,
+  computeSpareChangeAccountMetrics,
+  isSavingsInterestTransaction,
+  SPARE_CHANGE_DEFAULT_EQUIVALENTS,
+} from '../../utils/accountDetailModel';
 import { lastMonths, monthLabel, monthlyBalanceHistory } from '../../utils/accountPagesModel';
 import { transferPartners } from '../../utils/accountLinks';
 import { parseLocalDate } from '../../utils';
-import { useWarrantsContext } from '../../contexts/DomainProviders';
+import { usePreferencesContext, useWarrantsContext } from '../../contexts/DomainProviders';
 import { Button } from '../ui/Actions';
-import { Row } from '../ui/Display';
+import { Badge, Row } from '../ui/Display';
+import { Slider, Switch, TextInput } from '../ui/Fields';
+import Icon from '../ui/Icon';
 import { Amount } from '../ui/Money';
+import { Dialog } from '../ui/Overlays';
+import SegmentedControl from '../ui/SegmentedControl';
 import { EmptyState } from '../ui/States';
 import AccountShell from './AccountShell';
-import { Bars, Board, Figures, Section, TimeSeries } from './charts';
+import { Bars, Board, Figures, Section, ShareBar, TimeSeries } from './charts';
 import { useLiveBalance } from './ConnectionsStrip';
 import { addAction, bankDetails, commonActions, day, detailsTab, Grid2, money, pct, type AccountPanelProps } from './pageKit';
 import { monthPeriods } from '../../utils/activityModel';
@@ -192,7 +204,7 @@ export const WarrantLayout: React.FC<AccountPanelProps & { onOpenInvestments?: (
   );
 };
 
-/** Pensions: history and a projection to the retirement year, with contributions by year. */
+/** Pensions: history, interactive scenario projection with return bands, and annual contributions vs. growth. */
 export const PensionLayout: React.FC<AccountPanelProps> = props => {
   const { account } = props;
   const page = useAccountPage(account, props);
@@ -200,12 +212,42 @@ export const PensionLayout: React.FC<AccountPanelProps> = props => {
     () => computePensionAccountMetrics(account, props.accountTransactions.map(item => item.tx), { conversionRates: page.conversionRates, showBalanceAdjustments: props.showBalanceAdjustments }),
     [account, props.accountTransactions, page.conversionRates, props.showBalanceAdjustments]
   );
-  const todayKey = new Date().toISOString().slice(0, 7);
-  const chart = useMemo(() => {
-    const rows = metrics.chartData.map(item => ({ date: parseLocalDate(`${String(item.date).slice(0, 7)}-01`), value: item.balance, contributed: item.contributions }));
-    const todayIndex = Math.max(0, metrics.chartData.findIndex(item => String(item.date).slice(0, 7) > todayKey) - 1);
-    return { rows, todayIndex: todayIndex < 0 ? rows.length - 1 : todayIndex };
-  }, [metrics.chartData, todayKey]);
+
+  const currentYear = new Date().getFullYear();
+  const savedContrib = Math.round(metrics.monthlyContributionAvg);
+  const savedRate = metrics.expectedReturnPct ?? 6;
+  const savedRetireYear = metrics.retirementYear ?? currentYear + 20;
+
+  const [monthlyContrib, setMonthlyContrib] = useState(savedContrib);
+  const [returnRate, setReturnRate] = useState(savedRate);
+  const [targetYear, setTargetYear] = useState(savedRetireYear);
+  const [showBand, setShowBand] = useState(true);
+  const [viewMode, setViewMode] = useState<'trajectory' | 'yearly'>('trajectory');
+
+  useEffect(() => {
+    setMonthlyContrib(Math.round(metrics.monthlyContributionAvg));
+    setReturnRate(metrics.expectedReturnPct ?? 6);
+    setTargetYear(metrics.retirementYear ?? new Date().getFullYear() + 20);
+  }, [account.id, metrics.monthlyContributionAvg, metrics.expectedReturnPct, metrics.retirementYear]);
+
+  const historicalRows = useMemo(
+    () => metrics.chartData.filter(item => item.type === 'History').map(item => ({ date: item.date, balance: item.balance, contributions: item.contributions })),
+    [metrics.chartData]
+  );
+
+  const scenario = useMemo(
+    () => computePensionScenarioProjection({
+      currentBalance: metrics.realTodayBalance,
+      currentContributions: metrics.totalContributions,
+      historicalData: historicalRows,
+      monthlyContribution: monthlyContrib,
+      annualReturnPct: returnRate,
+      retirementYear: targetYear,
+      showBand,
+    }),
+    [metrics.realTodayBalance, metrics.totalContributions, historicalRows, monthlyContrib, returnRate, targetYear, showBand]
+  );
+
   const byYear = useMemo(() => {
     const years = new Map<string, number>();
     page.own.forEach(tx => {
@@ -216,15 +258,20 @@ export const PensionLayout: React.FC<AccountPanelProps> = props => {
     return Array.from(years.entries()).sort(([a], [b]) => a.localeCompare(b)).slice(-10).map(([year, value]) => ({ year, value }));
   }, [page.own, page.convert]);
 
+  const isScenarioModified = monthlyContrib !== savedContrib || returnRate !== savedRate || targetYear !== savedRetireYear;
+  const accountSettingsChanged = returnRate !== (account.apy ?? 0) || targetYear !== (account.expectedRetirementYear ?? 0);
+  const safeCurrency = account.currency === 'BTC' ? 'EUR' : account.currency;
+  const maxSliderContrib = Math.max(2500, Math.ceil(Math.max(500, savedContrib * 3) / 100) * 100);
+
   return (
     <AccountShell
       account={account}
       context={`Pension${metrics.retirementYear ? `, retiring ${metrics.retirementYear}` : ''}${account.financialInstitution ? `, ${account.financialInstitution}` : ''}`}
       value={metrics.realTodayBalance}
-      heroNote={metrics.projectedValueAtRetirement !== null ? <>About <Amount value={metrics.projectedValueAtRetirement} currency={account.currency} /> at retirement, at {metrics.expectedReturnPct}% a year</> : 'Set the retirement year and expected growth in Edit to see a projection'}
+      heroNote={metrics.projectedValueAtRetirement !== null ? <>About <Amount value={metrics.projectedValueAtRetirement} currency={account.currency} /> at retirement, at {metrics.expectedReturnPct}% a year</> : 'Use the growth explorer below or set a retirement year and return in Edit'}
       kpis={[
         { label: 'Paid in', value: money(metrics.totalContributions, account) },
-        { label: 'Growth', value: money(metrics.totalGrowth, account), context: metrics.annualizedReturnPct !== null ? `${metrics.annualizedReturnPct}% a year` : undefined },
+        { label: 'Growth', value: money(metrics.totalGrowth, account), context: metrics.annualizedReturnPct !== null ? `${metrics.annualizedReturnPct}% XIRR` : undefined },
         { label: 'A month', value: money(metrics.monthlyContributionAvg, account), context: 'Average of 12 months' },
         { label: 'Years left', value: metrics.yearsToRetirement ?? '—' },
       ]}
@@ -241,11 +288,136 @@ export const PensionLayout: React.FC<AccountPanelProps> = props => {
           label: 'Overview',
           content: (
             <Board>
-              <Section span="wide" title="History and projection" subtitle="Assumes steady growth and contributions">
-                <TimeSeries height="fill" data={chart.rows} series={[{ key: 'value', label: 'Value', color: 'var(--chart-1)', dashFromIndex: chart.todayIndex }, { key: 'contributed', label: 'Paid in', color: 'var(--chart-3)', dashed: true }]} currency={account.currency} />
+              <Section
+                span="wide"
+                rows={2}
+                title="Growth & retirement projection"
+                subtitle="Recorded history up to today; dashed lines illustrate your selected assumptions"
+                action={(
+                  <SegmentedControl
+                    items={[{ id: 'trajectory', label: 'Trajectory' }, { id: 'yearly', label: 'Contributions vs. growth' }]}
+                    activeId={viewMode}
+                    onChange={id => setViewMode(id as 'trajectory' | 'yearly')}
+                  />
+                )}
+              >
+                <div className="flex h-full flex-col gap-4">
+                  <Figures
+                    items={[
+                      {
+                        label: `Projected (${targetYear})`,
+                        value: money(scenario.projectedAtRetirement, account),
+                        note: `${returnRate}% return · ${formatCurrency(monthlyContrib, account.currency)}/mo`,
+                      },
+                      {
+                        label: 'Compounded growth',
+                        value: money(scenario.totalGrowthAtRetirement, account),
+                        note: `${pct(scenario.growthSharePct)} of final pot`,
+                      },
+                      {
+                        label: 'Est. 4% drawdown',
+                        value: <><Amount value={scenario.sustainableMonthlyDrawdown} currency={account.currency} /><span className="type-caption text-muted">/mo</span></>,
+                        note: scenario.crossoverYear ? `Growth exceeds paid-in by ${scenario.crossoverYear}` : undefined,
+                      },
+                    ]}
+                  />
+                  <div className="min-h-[240px] flex-1">
+                    {viewMode === 'trajectory' ? (
+                      <TimeSeries
+                        height="fill"
+                        data={scenario.points}
+                        currency={account.currency}
+                        markers={[{ date: new Date(), title: 'Today', color: 'var(--muted)' }]}
+                        series={[
+                          { key: 'value', label: 'Projected value', color: 'var(--chart-1)', dashFromIndex: scenario.todayIndex },
+                          { key: 'contributed', label: 'Paid in', color: 'var(--chart-3)', dashed: true },
+                          { key: 'growth', label: 'Investment growth', color: 'var(--money-in)', dashFromIndex: scenario.todayIndex },
+                          ...(showBand ? [
+                            { key: 'optimistic', label: `${returnRate + 2}% scenario`, color: 'var(--teal)', dashed: true, width: 1.5 },
+                            { key: 'conservative', label: `${Math.max(0, returnRate - 2)}% scenario`, color: 'var(--amber)', dashed: true, width: 1.5 },
+                          ] : []),
+                        ]}
+                      />
+                    ) : (
+                      <Bars
+                        data={scenario.yearlyBars}
+                        xKey="year"
+                        stacked
+                        bars={[
+                          { key: 'contributed', label: 'Contributions', color: 'var(--chart-3)' },
+                          { key: 'growth', label: 'Investment growth', color: 'var(--money-in)' },
+                        ]}
+                        currency={account.currency}
+                        height="fill"
+                      />
+                    )}
+                  </div>
+                </div>
               </Section>
-              <Section span="side" title="Contributions by year">
-                {byYear.length ? <Bars data={byYear} xKey="year" bars={[{ key: 'value', label: 'Paid in', color: 'var(--chart-1)' }]} currency={account.currency} /> : <p className="type-body text-muted">No contributions yet.</p>}
+
+              <Section span="side" title="Growth assumptions" subtitle="Illustrative planner — explore different paces and return rates">
+                <div className="space-y-4">
+                  <Slider
+                    label="Monthly contribution"
+                    value={monthlyContrib}
+                    minValue={0}
+                    maxValue={maxSliderContrib}
+                    step={25}
+                    onChange={val => setMonthlyContrib(Array.isArray(val) ? val[0] : val)}
+                    formatOptions={{ style: 'currency', currency: safeCurrency, maximumFractionDigits: 0 }}
+                  />
+                  <Slider
+                    label="Expected annual return (%)"
+                    value={returnRate}
+                    minValue={0}
+                    maxValue={14}
+                    step={0.5}
+                    onChange={val => setReturnRate(Array.isArray(val) ? val[0] : val)}
+                    formatOptions={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }}
+                  />
+                  <Slider
+                    label="Target retirement year"
+                    value={targetYear}
+                    minValue={currentYear + 1}
+                    maxValue={currentYear + 45}
+                    step={1}
+                    onChange={val => setTargetYear(Array.isArray(val) ? val[0] : val)}
+                    formatOptions={{ useGrouping: false }}
+                  />
+                  <Switch isSelected={showBand} onChange={setShowBand}>Show ±2% return sensitivity band</Switch>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {isScenarioModified && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onPress={() => {
+                          setMonthlyContrib(savedContrib);
+                          setReturnRate(savedRate);
+                          setTargetYear(savedRetireYear);
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    )}
+                    {props.onSaveAccount && accountSettingsChanged && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        icon="tick-02"
+                        onPress={() => {
+                          props.onSaveAccount!({ ...account, apy: returnRate, expectedRetirementYear: targetYear });
+                          toast.success('Pension return & retirement year saved');
+                        }}
+                      >
+                        Save to account
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Section>
+
+              <Section span="side" title="Recorded contributions by year">
+                {byYear.length ? <Bars data={byYear} xKey="year" bars={[{ key: 'value', label: 'Paid in', color: 'var(--chart-1)' }]} currency={account.currency} /> : <p className="type-body text-muted">No contributions recorded yet.</p>}
               </Section>
             </Board>
           ),
@@ -257,56 +429,268 @@ export const PensionLayout: React.FC<AccountPanelProps> = props => {
   );
 };
 
-/** Spare change: what round-ups saved, from which account, and where they go. */
+/** Spare change: relatable equivalents, streak & milestones, and round-up source details. */
 export const SpareChangeLayout: React.FC<AccountPanelProps> = props => {
   const { account } = props;
   const page = useAccountPage(account, props);
+  const { preferences, setPreferences } = usePreferencesContext();
   const metrics = useMemo(
     () => computeSpareChangeAccountMetrics(account, page.accounts, props.accountTransactions.map(item => item.tx), { conversionRates: page.conversionRates, showBalanceAdjustments: props.showBalanceAdjustments }),
     [account, page.accounts, props.accountTransactions, page.conversionRates, props.showBalanceAdjustments]
   );
+
+  const gamification = useMemo(
+    () => buildSpareChangeGamification(metrics, preferences.spareChange),
+    [metrics, preferences.spareChange]
+  );
+
+  const [isCustomOpen, setCustomOpen] = useState(false);
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [customLabel, setCustomLabel] = useState('');
+  const [customPrice, setCustomPrice] = useState('');
+
+  const openCustomDialog = () => {
+    const drafts: Record<string, string> = {};
+    SPARE_CHANGE_DEFAULT_EQUIVALENTS.forEach(item => {
+      drafts[item.id] = String(preferences.spareChange?.customPrices?.[item.id] ?? item.defaultPrice);
+    });
+    setPriceDrafts(drafts);
+    setCustomLabel(preferences.spareChange?.customItem?.label ?? '');
+    setCustomPrice(preferences.spareChange?.customItem?.unitPrice ? String(preferences.spareChange.customItem.unitPrice) : '');
+    setCustomOpen(true);
+  };
+
+  const saveCustomSettings = () => {
+    const customPrices: Record<string, number> = {};
+    SPARE_CHANGE_DEFAULT_EQUIVALENTS.forEach(item => {
+      const parsed = parseFloat((priceDrafts[item.id] ?? '').replace(',', '.'));
+      if (Number.isFinite(parsed) && parsed > 0 && Math.abs(parsed - item.defaultPrice) > 0.001) {
+        customPrices[item.id] = safeRound(parsed, 2);
+      }
+    });
+    const parsedCustom = parseFloat(customPrice.replace(',', '.'));
+    const nextSettings: SpareChangeSettings = {
+      customPrices: Object.keys(customPrices).length ? customPrices : undefined,
+      customItem: customLabel.trim() && Number.isFinite(parsedCustom) && parsedCustom > 0
+        ? { label: customLabel.trim(), unitPrice: safeRound(parsedCustom, 2), icon: 'sparkles' }
+        : undefined,
+    };
+    setPreferences(prev => ({ ...prev, spareChange: nextSettings }));
+    setCustomOpen(false);
+    toast.success('Equivalents personalized');
+  };
+
+  const leadEq = gamification.equivalents[0];
+  const heroEquivalentText = leadEq && leadEq.count > 0
+    ? `enough for ${leadEq.count} ${leadEq.pluralLabel}`
+    : `${gamification.unlockedCount}/${gamification.milestones.length} milestones unlocked`;
+
   return (
-    <AccountShell
-      account={account}
-      context={`Round-ups from ${metrics.sourceAccount?.name || 'an external account'}`}
-      value={metrics.realTodayBalance}
-      heroNote={`${metrics.totalRoundUps} round-ups so far, about ${metrics.coffeesSaved} coffees`}
-      kpis={[
-        { label: 'This month', value: money(metrics.thisMonthSaved, account) },
-        { label: 'Average round-up', value: money(metrics.avgRoundUp, account) },
-        { label: 'Biggest', value: money(metrics.biggestRoundUp, account) },
-        { label: 'Added by hand', value: money(metrics.manualDeposits, account) },
-      ]}
-      links={page.links}
-      siblings={page.siblings}
-      onOpenAccount={props.onOpenAccount}
-      onOpenGoals={props.onOpenGoals}
-      mainAction={addAction(props)}
-      actions={commonActions(props)}
-      onBack={props.onBack}
-      tabs={[
-        {
-          id: 'overview',
-          label: 'Overview',
-          content: (
-            <Board>
-              <Section span="wide" title="Saved by month">
-                <Bars data={metrics.monthlyData as unknown as Record<string, unknown>[]} bars={[{ key: 'value', label: 'Saved', color: 'var(--chart-1)' }]} currency={account.currency} />
-              </Section>
-              <Section span="side" title="Where round-ups come from">
-                {metrics.sourceAccount ? (
-                  <div className="space-y-3">
-                    <Figures items={[{ label: 'Source', value: metrics.sourceAccount.name }, { label: 'Saved in all', value: money(metrics.totalRoundUpSaved, account) }]} />
-                    <Button variant="secondary" size="sm" icon="arrow-right-01" onPress={() => props.onOpenAccount(metrics.sourceAccount!.id)}>Open {metrics.sourceAccount.name}</Button>
+    <>
+      <AccountShell
+        account={account}
+        context={`Round-ups from ${metrics.sourceAccount?.name || 'an external account'}`}
+        value={metrics.realTodayBalance}
+        heroNote={`${metrics.totalRoundUps} round-ups captured · ${heroEquivalentText}`}
+        kpis={[
+          { label: 'This month', value: money(metrics.thisMonthSaved, account) },
+          { label: 'Average round-up', value: money(metrics.avgRoundUp, account) },
+          { label: 'Biggest capture', value: money(metrics.biggestRoundUp, account) },
+          { label: 'Active streak', value: `${gamification.activeMonthStreak} ${gamification.activeMonthStreak === 1 ? 'month' : 'months'}`, context: <>~{money(gamification.projectedYearlySavings, account)}/yr pace</> },
+        ]}
+        links={page.links}
+        siblings={page.siblings}
+        onOpenAccount={props.onOpenAccount}
+        onOpenGoals={props.onOpenGoals}
+        mainAction={addAction(props)}
+        actions={commonActions(props)}
+        onBack={props.onBack}
+        tabs={[
+          {
+            id: 'overview',
+            label: 'Overview',
+            content: (
+              <Board>
+                <Section
+                  span="wide"
+                  title="What your spare change buys"
+                  subtitle="Relatable equivalents calculated from your real round-up savings"
+                  action={
+                    <Button size="sm" variant="secondary" icon="sliders-horizontal" onPress={openCustomDialog}>
+                      Customize
+                    </Button>
+                  }
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {gamification.equivalents.map(eq => (
+                      <div
+                        key={eq.id}
+                        className="flex flex-col justify-between gap-2.5 rounded-[var(--radius-lg)] border border-line bg-inset p-3.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-soft text-primary">
+                            <Icon name={eq.icon} size={18} />
+                          </span>
+                          {eq.thisMonthCount > 0 && (
+                            <Badge tone="positive">+{eq.thisMonthCount} this mo</Badge>
+                          )}
+                        </div>
+                        <div>
+                          <p className="type-figure-row text-ink tabular-nums">
+                            {eq.count} <span className="type-body text-muted">{eq.pluralLabel}</span>
+                          </p>
+                          <p className="type-caption text-muted">
+                            At <Amount value={eq.unitPrice} currency={account.currency} /> each
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <ShareBar value={eq.progressPct} label={`Progress to next ${eq.label}`} />
+                          <p className="type-caption text-muted">
+                            <Amount value={eq.amountToNext} currency={account.currency} /> to #{eq.count + 1}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : <p className="type-body text-muted">No source account linked. Set one in Edit.</p>}
-              </Section>
-            </Board>
-          ),
-        },
-        activityTab(props),
-        detailsTab([{ label: 'Rounds up from', value: metrics.sourceAccount?.name || 'External account' }, ...bankDetails(account)]),
-      ]}
-    />
+                </Section>
+
+                <Section
+                  span="side"
+                  title="Milestones & momentum"
+                  subtitle={`${gamification.unlockedCount} of ${gamification.milestones.length} unlocked`}
+                  action={
+                    <Badge tone={gamification.unlockedCount === gamification.milestones.length ? 'positive' : 'attention'} icon="award">
+                      {gamification.unlockedCount}/{gamification.milestones.length}
+                    </Badge>
+                  }
+                >
+                  <div className="space-y-3">
+                    {gamification.nextMilestone ? (
+                      <div className="rounded-[var(--radius-lg)] border border-line bg-inset p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="type-caption font-semibold text-ink">Next: {gamification.nextMilestone.title}</span>
+                          <Badge tone="attention">{gamification.nextMilestone.badgeText}</Badge>
+                        </div>
+                        <p className="type-caption mt-0.5 text-muted">{gamification.nextMilestone.description}</p>
+                        <div className="mt-2">
+                          <ShareBar value={gamification.nextMilestone.progressPct} label={gamification.nextMilestone.title} tone="warn" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-[var(--radius-lg)] bg-money-in-soft p-3 text-ink">
+                        <div className="flex items-center gap-2 font-semibold">
+                          <Icon name="sparkles" size={16} className="text-money-in" />
+                          <span className="type-body-strong">All round-up milestones unlocked!</span>
+                        </div>
+                        <p className="type-caption mt-0.5 text-muted">Every badge earned from steady micro-savings.</p>
+                      </div>
+                    )}
+
+                    <ul className="space-y-2">
+                      {gamification.milestones.map(m => (
+                        <li
+                          key={m.id}
+                          className="flex items-center gap-2.5 rounded-[var(--radius-md)] border border-line px-3 py-2"
+                        >
+                          <span
+                            className={`flex size-7 shrink-0 items-center justify-center rounded-full ${
+                              m.unlocked ? 'bg-money-in-soft text-money-in' : 'bg-inset text-muted'
+                            }`}
+                          >
+                            <Icon name={m.unlocked ? 'tick-02' : m.icon} size={14} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="type-caption font-semibold truncate text-ink">{m.title}</p>
+                            <p className="type-caption truncate text-muted">{m.description}</p>
+                          </div>
+                          <Badge tone={m.unlocked ? 'positive' : 'neutral'}>{m.badgeText}</Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Section>
+
+                <Section span="wide" title="Saved by month">
+                  <Bars data={metrics.monthlyData as unknown as Record<string, unknown>[]} bars={[{ key: 'value', label: 'Saved', color: 'var(--chart-1)' }]} currency={account.currency} />
+                </Section>
+
+                <Section span="side" title="Where round-ups come from">
+                  {metrics.sourceAccount ? (
+                    <div className="space-y-3">
+                      <Figures items={[{ label: 'Source', value: metrics.sourceAccount.name }, { label: 'Saved in all', value: money(metrics.totalRoundUpSaved, account) }, { label: 'Added by hand', value: money(metrics.manualDeposits, account) }]} />
+                      <Button variant="secondary" size="sm" icon="arrow-right-01" onPress={() => props.onOpenAccount(metrics.sourceAccount!.id)}>Open {metrics.sourceAccount.name}</Button>
+                    </div>
+                  ) : <p className="type-body text-muted">No source account linked. Set one in Edit.</p>}
+                </Section>
+              </Board>
+            ),
+          },
+          activityTab(props),
+          detailsTab([{ label: 'Rounds up from', value: metrics.sourceAccount?.name || 'External account' }, ...bankDetails(account)]),
+        ]}
+      />
+
+      <Dialog
+        isOpen={isCustomOpen}
+        onClose={() => setCustomOpen(false)}
+        title="Customize equivalents"
+        description={`Adjust prices in ${account.currency} or add a personal treat you're saving toward.`}
+        footer={(
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={() => {
+                setPreferences(prev => ({ ...prev, spareChange: undefined }));
+                setCustomOpen(false);
+                toast.success('Reset equivalents to defaults');
+              }}
+            >
+              Reset defaults
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onPress={() => setCustomOpen(false)}>Cancel</Button>
+              <Button onPress={saveCustomSettings}>Save</Button>
+            </div>
+          </div>
+        )}
+      >
+        <div className="space-y-5">
+          <div className="space-y-3 rounded-[var(--radius-lg)] border border-line bg-inset p-3.5">
+            <h4 className="type-label text-muted">Your custom treat or goal</h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <TextInput
+                label="Item label (plural)"
+                value={customLabel}
+                onChange={setCustomLabel}
+                placeholder="e.g. concert tickets"
+              />
+              <TextInput
+                label={`Price (${account.currency})`}
+                inputMode="decimal"
+                value={customPrice}
+                onChange={setCustomPrice}
+                placeholder="e.g. 65"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="type-label text-muted">Everyday items ({account.currency})</h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {SPARE_CHANGE_DEFAULT_EQUIVALENTS.map(item => (
+                <TextInput
+                  key={item.id}
+                  label={item.label}
+                  inputMode="decimal"
+                  value={priceDrafts[item.id] ?? String(item.defaultPrice)}
+                  onChange={val => setPriceDrafts(prev => ({ ...prev, [item.id]: val }))}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </Dialog>
+    </>
   );
 };

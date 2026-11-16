@@ -2,15 +2,16 @@ import React, { useMemo, useState } from 'react';
 import type { Account } from '../../types';
 import { convertCurrency, generateAmortizationSchedule, parseLocalDate, safeAdd, safeRound } from '../../utils';
 import { assetForLoan } from '../../utils/accountLinks';
-import { amortizationByYear, interestAlong, isoDay, monthlyBalanceHistory, monthlyFlows, payoffPath } from '../../utils/accountPagesModel';
+import { interestAlong, isoDay, monthlyBalanceHistory, monthlyFlows, payoffPath } from '../../utils/accountPagesModel';
 import PaymentPlanTable from '../PaymentPlanTable';
+import MortgageAmortizationChart from './MortgageAmortizationChart';
 import { Button } from '../ui/Actions';
 import { Slider } from '../ui/Fields';
 import { Amount } from '../ui/Money';
 import { StatGauge } from '../ui/StatGauge';
 import { EmptyState } from '../ui/States';
 import AccountShell from './AccountShell';
-import { Bars, Board, Donut, Figures, Section, ShareBar, TimeSeries } from './charts';
+import { Board, Donut, Figures, Section, ShareBar, TimeSeries } from './charts';
 import { useLiveBalance } from './ConnectionsStrip';
 import { addAction, commonActions, day, detailsTab, Grid2, money, pct, shortDay, type AccountPanelProps } from './pageKit';
 import { monthPeriods } from '../../utils/activityModel';
@@ -87,25 +88,6 @@ export const LoanLayout: React.FC<AccountPanelProps> = props => {
     };
   }, [outstanding, rate, payment, extra, lump]);
 
-  const termChart = useMemo(() => {
-    if (!hasSchedule) return null;
-    const today = isoDay(new Date());
-    const start = account.loanStartDate ? parseLocalDate(account.loanStartDate) : parseLocalDate(plan.schedule[0].date);
-    const rows: Record<string, unknown>[] = [{ date: start, plan: safeRound(plan.principal, 2) }];
-    plan.schedule.forEach(item => rows.push({ date: parseLocalDate(item.date), plan: item.outstandingBalance }));
-    const todayIndex = rows.findIndex(row => isoDay(row.date as Date) > today);
-    if ((extra > 0 || lump > 0) && whatIf.faster.length > 1) {
-      const from = Math.max(0, todayIndex - 1);
-      whatIf.faster.forEach((value, index) => {
-        const row = rows[from + index];
-        if (row) row.faster = value;
-      });
-    }
-    return { rows, todayIndex: Math.max(0, todayIndex - 1) };
-  }, [hasSchedule, plan, account.loanStartDate, extra, lump, whatIf.faster]);
-
-  const years = useMemo(() => amortizationByYear(plan.schedule), [plan.schedule]);
-
   return (
     <AccountShell
       account={account}
@@ -132,20 +114,23 @@ export const LoanLayout: React.FC<AccountPanelProps> = props => {
           label: 'Overview',
           content: hasSchedule ? (
             <Board>
-              {termChart && (
-                <Section span="wide" title="Balance over the term" subtitle={extra || lump ? 'The plan, and with your overpayment' : 'What is left after each payment, today marked by the dashes'}>
-                  <TimeSeries
-                    data={termChart.rows}
-                    series={[
-                      { key: 'plan', label: 'Plan', color: 'var(--chart-1)', dashFromIndex: termChart.todayIndex },
-                      ...(extra || lump ? [{ key: 'faster', label: 'With overpayment', color: 'var(--money-in)' }] : []),
-                    ]}
-                    currency={account.currency}
-                    markers={[{ date: new Date(), title: 'Today', color: 'var(--muted)' }]}
-                    height="fill"
-                  />
-                </Section>
-              )}
+              <Section
+                span="wide"
+                rows={2}
+                title="Amortization & milestones"
+                subtitle={extra || lump ? 'Remaining balance, cumulative P&I, and your overpayment curve' : 'Principal vs. interest, remaining balance, and repayment milestones'}
+              >
+                <MortgageAmortizationChart
+                  account={account}
+                  schedule={plan.schedule}
+                  principal={plan.principal}
+                  rate={rate}
+                  monthlyPayment={payment}
+                  extra={extra}
+                  lump={lump}
+                  assetValue={assetValue || undefined}
+                />
+              </Section>
               {!isLending && payment > 0 && outstanding > 0 ? (
                   <Section span="side" title="Overpayment planner" subtitle="An estimate from today's balance and rate. It changes nothing until you record a payment">
                     <div className="space-y-4">
@@ -179,9 +164,6 @@ export const LoanLayout: React.FC<AccountPanelProps> = props => {
                     ]}
                   />
                 </Section>
-              <Section span="wide" title="Principal and interest by year">
-                <Bars data={years} xKey="year" stacked bars={[{ key: 'principal', label: 'Principal', color: 'var(--chart-1)' }, { key: 'interest', label: 'Interest', color: 'var(--chart-4)' }]} height="fill" currency={account.currency} />
-              </Section>
                 {!isLending && (
                   <Section span="half" title="Secured by" subtitle={asset ? undefined : 'Link a property or vehicle in Edit to see its equity'}>
                     {asset ? (

@@ -9,6 +9,7 @@ import {
   RecurringTransaction,
   RecurringTransactionOverride,
   ScheduledPayment,
+  SpareChangeSettings,
   Transaction,
 } from '../types';
 import {
@@ -2005,5 +2006,336 @@ export function computeExtraPaymentSavings(balance: number, annualRatePercent: n
     monthsSaved: current.months - faster.months,
     interestSaved: safeRound(current.interest - faster.interest, 2),
     monthsLeft: faster.months,
+  };
+}
+
+export interface PensionScenarioPoint {
+  [key: string]: unknown;
+  date: Date;
+  monthKey: string;
+  year: string;
+  value: number;
+  contributed: number;
+  growth: number;
+  conservative?: number;
+  optimistic?: number;
+  isProjection: boolean;
+}
+
+export interface PensionYearlyBar {
+  [key: string]: unknown;
+  year: string;
+  contributed: number;
+  growth: number;
+  balance: number;
+}
+
+export interface PensionScenarioResult {
+  points: PensionScenarioPoint[];
+  todayIndex: number;
+  yearlyBars: PensionYearlyBar[];
+  projectedAtRetirement: number;
+  totalContributionsAtRetirement: number;
+  totalGrowthAtRetirement: number;
+  growthSharePct: number;
+  crossoverYear: string | null;
+  sustainableMonthlyDrawdown: number;
+}
+
+/**
+ * Interactive Pension Growth & Projection model:
+ * stitches historical monthly balance/contribution points to a configurable forward projection
+ * (custom monthly contribution, expected annual return, retirement year, and optional ±return bands).
+ */
+export function computePensionScenarioProjection(params: {
+  currentBalance: number;
+  currentContributions: number;
+  historicalData: Array<{ date: string; balance: number; contributions: number }>;
+  monthlyContribution: number;
+  annualReturnPct: number;
+  retirementYear: number;
+  showBand?: boolean;
+  bandSpreadPct?: number;
+  referenceDate?: Date;
+}): PensionScenarioResult {
+  const ref = params.referenceDate ?? new Date();
+  const today = new Date(ref.getFullYear(), ref.getMonth(), 1);
+  const currentYear = today.getFullYear();
+  const targetYear = Math.max(currentYear + 1, Math.min(currentYear + 50, Math.round(params.retirementYear || currentYear + 20)));
+  const monthlyContrib = Math.max(0, params.monthlyContribution || 0);
+  const annualPct = Math.max(0, Math.min(25, params.annualReturnPct ?? 0));
+  const spread = Math.max(0.5, params.bandSpreadPct ?? 2);
+  const showBand = params.showBand ?? true;
+
+  // Sample historical data at year-end + most recent point so chart point count stays responsive across decades.
+  const sortedHist = [...params.historicalData].sort((a, b) => a.date.localeCompare(b.date));
+  const sampledHist = sortedHist.filter((item, index) => item.date.endsWith('-12') || index === sortedHist.length - 1 || sortedHist.length <= 24);
+
+  const points: PensionScenarioPoint[] = sampledHist.map(item => {
+    const mk = item.date.slice(0, 7);
+    const val = safeRound(Math.max(0, item.balance), 2);
+    const contrib = safeRound(Math.max(0, item.contributions), 2);
+    return {
+      date: parseLocalDate(`${mk}-01`),
+      monthKey: mk,
+      year: mk.slice(0, 4),
+      value: val,
+      contributed: contrib,
+      growth: safeRound(Math.max(0, val - contrib), 2),
+      isProjection: false,
+    };
+  });
+
+  const baseContrib = Math.max(0, params.currentContributions || (sampledHist.at(-1)?.contributions ?? params.currentBalance));
+  const startBal = Math.max(0, params.currentBalance);
+  if (points.length === 0) {
+    const mk = toLocalISOYearMonth(today);
+    points.push({
+      date: today,
+      monthKey: mk,
+      year: mk.slice(0, 4),
+      value: safeRound(startBal, 2),
+      contributed: safeRound(baseContrib, 2),
+      growth: safeRound(Math.max(0, startBal - baseContrib), 2),
+      isProjection: false,
+    });
+  }
+
+  const todayIndex = points.length - 1;
+  if (showBand) {
+    points[todayIndex].conservative = points[todayIndex].value;
+    points[todayIndex].optimistic = points[todayIndex].value;
+  }
+
+  const midRate = monthlyRateFromApy(annualPct);
+  const lowRate = monthlyRateFromApy(Math.max(0, annualPct - spread));
+  const highRate = monthlyRateFromApy(annualPct + spread);
+
+  let bal = startBal;
+  let balLow = startBal;
+  let balHigh = startBal;
+  let contrib = baseContrib;
+  const cursor = new Date(today.getFullYear(), today.getMonth(), 1);
+  const totalMonths = Math.max(1, (targetYear - currentYear) * 12 + (11 - today.getMonth()));
+
+  for (let m = 1; m <= totalMonths && m <= 600; m += 1) {
+    bal = (bal + monthlyContrib) * (1 + midRate);
+    balLow = (balLow + monthlyContrib) * (1 + lowRate);
+    balHigh = (balHigh + monthlyContrib) * (1 + highRate);
+    contrib = safeAdd(contrib, monthlyContrib);
+    cursor.setMonth(cursor.getMonth() + 1);
+
+    const isDec = cursor.getMonth() === 11;
+    const isEnd = m === totalMonths;
+    if (isDec || isEnd) {
+      const mk = toLocalISOYearMonth(cursor);
+      const valRounded = safeRound(bal, 2);
+      const contribRounded = safeRound(contrib, 2);
+      points.push({
+        date: new Date(cursor.getFullYear(), cursor.getMonth(), 1),
+        monthKey: mk,
+        year: mk.slice(0, 4),
+        value: valRounded,
+        contributed: contribRounded,
+        growth: safeRound(Math.max(0, valRounded - contribRounded), 2),
+        ...(showBand ? { conservative: safeRound(balLow, 2), optimistic: safeRound(balHigh, 2) } : {}),
+        isProjection: true,
+      });
+    }
+  }
+
+  const yearMap = new Map<string, PensionYearlyBar>();
+  for (const pt of points) {
+    yearMap.set(pt.year, {
+      year: pt.year,
+      contributed: pt.contributed,
+      growth: pt.growth,
+      balance: pt.value,
+    });
+  }
+  const allYears = Array.from(yearMap.values()).sort((a, b) => a.year.localeCompare(b.year));
+  const barStep = allYears.length > 20 ? Math.ceil(allYears.length / 20) : 1;
+  const yearlyBars = allYears.filter((_, idx) => idx % barStep === 0 || idx === allYears.length - 1);
+
+  const last = points[points.length - 1];
+  const projectedAtRetirement = last?.value ?? safeRound(startBal, 2);
+  const totalContributionsAtRetirement = last?.contributed ?? safeRound(baseContrib, 2);
+  const totalGrowthAtRetirement = safeRound(Math.max(0, projectedAtRetirement - totalContributionsAtRetirement), 2);
+  const growthSharePct = projectedAtRetirement > 0 ? safeRound((totalGrowthAtRetirement / projectedAtRetirement) * 100, 1) : 0;
+  const crossover = points.find(pt => pt.contributed > 0 && pt.growth >= pt.contributed);
+
+  return {
+    points,
+    todayIndex,
+    yearlyBars,
+    projectedAtRetirement,
+    totalContributionsAtRetirement,
+    totalGrowthAtRetirement,
+    growthSharePct,
+    crossoverYear: crossover ? crossover.year : null,
+    sustainableMonthlyDrawdown: safeRound((projectedAtRetirement * 0.04) / 12, 2),
+  };
+}
+
+export interface SpareChangeEquivalent {
+  id: string;
+  label: string;
+  pluralLabel: string;
+  icon: string;
+  unitPrice: number;
+  count: number;
+  thisMonthCount: number;
+  progressPct: number;
+  amountToNext: number;
+  isCustom?: boolean;
+}
+
+export interface SpareChangeMilestone {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  progressPct: number;
+  badgeText: string;
+}
+
+export interface SpareChangeGamification {
+  equivalents: SpareChangeEquivalent[];
+  milestones: SpareChangeMilestone[];
+  unlockedCount: number;
+  nextMilestone: SpareChangeMilestone | null;
+  activeMonthStreak: number;
+  projectedYearlySavings: number;
+}
+
+export const SPARE_CHANGE_DEFAULT_EQUIVALENTS: Array<{
+  id: string;
+  label: string;
+  pluralLabel: string;
+  icon: string;
+  defaultPrice: number;
+}> = [
+  { id: 'coffee', label: 'Coffee', pluralLabel: 'coffees', icon: 'coffee', defaultPrice: 4.5 },
+  { id: 'streaming', label: 'Streaming month', pluralLabel: 'streaming months', icon: 'tv', defaultPrice: 12 },
+  { id: 'cinema', label: 'Cinema ticket', pluralLabel: 'cinema tickets', icon: 'videocam', defaultPrice: 14 },
+  { id: 'book', label: 'Paperback book', pluralLabel: 'books', icon: 'menu_book', defaultPrice: 15 },
+  { id: 'dinner', label: 'Dinner out', pluralLabel: 'dinners out', icon: 'restaurant', defaultPrice: 45 },
+  { id: 'weekend', label: 'Weekend getaway', pluralLabel: 'weekend trips', icon: 'flight', defaultPrice: 250 },
+];
+
+/**
+ * Translates spare-change savings into relatable real-world equivalents, savings streak momentum,
+ * and unlockable milestones using the user's personalized unit prices when set.
+ */
+export function buildSpareChangeGamification(
+  metrics: {
+    totalSaved: number;
+    thisMonthSaved: number;
+    totalRoundUps: number;
+    monthlyData: Array<{ name: string; value: number }>;
+  },
+  settings?: SpareChangeSettings
+): SpareChangeGamification {
+  const totalSaved = Math.max(0, metrics.totalSaved || 0);
+  const thisMonthSaved = Math.max(0, metrics.thisMonthSaved || 0);
+  const totalRoundUps = Math.max(0, metrics.totalRoundUps || 0);
+
+  const catalog: Array<{ id: string; label: string; pluralLabel: string; icon: string; unitPrice: number; isCustom?: boolean }> =
+    SPARE_CHANGE_DEFAULT_EQUIVALENTS.map(item => ({
+      id: item.id,
+      label: item.label,
+      pluralLabel: item.pluralLabel,
+      icon: item.icon,
+      unitPrice: Math.max(0.5, settings?.customPrices?.[item.id] ?? item.defaultPrice),
+    }));
+
+  if (settings?.customItem?.label?.trim() && (settings.customItem.unitPrice ?? 0) > 0) {
+    const label = settings.customItem.label.trim();
+    catalog.unshift({
+      id: 'custom',
+      label,
+      pluralLabel: label,
+      icon: settings.customItem.icon || 'sparkles',
+      unitPrice: Math.max(0.5, settings.customItem.unitPrice),
+      isCustom: true,
+    });
+  }
+
+  const equivalents: SpareChangeEquivalent[] = catalog.map(item => {
+    const count = Math.floor(totalSaved / item.unitPrice);
+    const thisMonthCount = Math.floor(thisMonthSaved / item.unitPrice);
+    const remainder = Math.max(0, totalSaved - count * item.unitPrice);
+    const progressPct = safeRound(Math.min(100, (remainder / item.unitPrice) * 100), 1);
+    const amountToNext = safeRound(Math.max(0, item.unitPrice - remainder), 2);
+    return {
+      id: item.id,
+      label: item.label,
+      pluralLabel: item.pluralLabel,
+      icon: item.icon,
+      unitPrice: item.unitPrice,
+      count,
+      thisMonthCount,
+      progressPct,
+      amountToNext,
+      isCustom: item.isCustom,
+    };
+  });
+
+  // Count consecutive active months ending with this month (or the prior month if this month is still empty).
+  let activeMonthStreak = 0;
+  const monthly = metrics.monthlyData || [];
+  let startIdx = monthly.length - 1;
+  if (startIdx > 0 && monthly[startIdx].value <= 0 && monthly[startIdx - 1].value > 0) {
+    startIdx -= 1;
+  }
+  for (let i = startIdx; i >= 0; i -= 1) {
+    if (monthly[i].value > 0) activeMonthStreak += 1;
+    else break;
+  }
+
+  const monthAvg = monthly.length > 0 ? monthly.reduce((sum, m) => safeAdd(sum, Math.max(0, m.value)), 0) / monthly.length : 0;
+  const projectedYearlySavings = safeRound(monthAvg * 12, 2);
+
+  const milestoneDefs: Array<{
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    current: number;
+    target: number;
+  }> = [
+    { id: 'first_drop', title: 'First Drop', description: 'Capture your first automatic round-up', icon: 'sparkles', current: totalRoundUps, target: 1 },
+    { id: 'habit_25', title: 'Daily Habit', description: 'Reach 25 spare-change captures', icon: 'piggy', current: totalRoundUps, target: 25 },
+    { id: 'club_100', title: 'Century Club', description: 'Complete 100 automatic round-ups', icon: 'award', current: totalRoundUps, target: 100 },
+    { id: 'saved_100', title: 'Triple Digits', description: 'Accumulate 100 from spare change', icon: 'coins_stacked', current: totalSaved, target: 100 },
+    { id: 'saved_500', title: 'Five Hundred', description: 'Build up 500 in micro-savings', icon: 'award', current: totalSaved, target: 500 },
+    { id: 'streak_3', title: '3-Month Streak', description: 'Save from round-ups 3 months in a row', icon: 'flame', current: activeMonthStreak, target: 3 },
+  ];
+
+  const milestones: SpareChangeMilestone[] = milestoneDefs.map(def => {
+    const unlocked = def.current >= def.target;
+    const progressPct = safeRound(Math.min(100, Math.max(0, (def.current / def.target) * 100)), 0);
+    return {
+      id: def.id,
+      title: def.title,
+      description: def.description,
+      icon: def.icon,
+      unlocked,
+      progressPct,
+      badgeText: unlocked ? 'Unlocked' : `${progressPct}%`,
+    };
+  });
+
+  const unlockedCount = milestones.filter(m => m.unlocked).length;
+  const nextMilestone = milestones.find(m => !m.unlocked) ?? null;
+
+  return {
+    equivalents,
+    milestones,
+    unlockedCount,
+    nextMilestone,
+    activeMonthStreak,
+    projectedYearlySavings,
   };
 }

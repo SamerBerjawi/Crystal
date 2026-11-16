@@ -71,8 +71,8 @@ test('value trend is the yearly slope of the valuations', () => {
   assert.ok(Math.abs(slope + 2000) < 5);
 });
 
-import { hubGroupOf, moneyMap, netWorthHistory, valuedAssetAt } from '../../utils/accountPagesModel';
-import type { Account, Transaction } from '../../types';
+import { computeAmortizationTrajectory, hubGroupOf, moneyMap, netWorthHistory, valuedAssetAt } from '../../utils/accountPagesModel';
+import type { Account, ScheduledPayment, Transaction } from '../../types';
 
 const a = (id: string, type: Account['type'], p: Partial<Account> = {}): Account => ({ id, name: id, type, balance: 0, currency: 'EUR', ...p });
 const t = (p: Partial<Transaction>): Transaction => ({ id: Math.random().toString(36), accountId: 'main', date: '2026-10-10', description: '', amount: 0, category: '', type: 'expense', currency: 'EUR', ...p });
@@ -116,4 +116,46 @@ test('the money map runs income to cash, cash to the rest, and everything to spe
   const named = map.links.map(l => [map.nodes[l.source].name, map.nodes[l.target].name, l.value]);
   assert.deepEqual(named, [['Income', 'main', 3000], ['main', 'save', 400], ['card', 'Spending', 80]]);
   assert.equal(map.total, 3000);
+});
+
+test('computeAmortizationTrajectory calculates cumulative P&I, overpayment savings, and equity milestones', () => {
+  // 12-month stylized mortgage schedule where payment #4 flips principal >= interest and LTV drops below 80%
+  const principal = 100000;
+  const assetValue = 110000; // Initial LTV 90.9% (> 80%)
+  const schedule: ScheduledPayment[] = [
+    { paymentNumber: 1, date: '2026-01-01', totalPayment: 1000, principal: 400, interest: 600, outstandingBalance: 99600, status: 'Paid' },
+    { paymentNumber: 2, date: '2026-02-01', totalPayment: 1000, principal: 450, interest: 550, outstandingBalance: 92000, status: 'Paid' },
+    { paymentNumber: 3, date: '2026-03-01', totalPayment: 1000, principal: 510, interest: 490, outstandingBalance: 87500, status: 'Upcoming' }, // <= 80% of 110k (88k)
+    { paymentNumber: 4, date: '2026-04-01', totalPayment: 1000, principal: 40000, interest: 300, outstandingBalance: 47500, status: 'Upcoming' }, // <= 50% principal
+    { paymentNumber: 5, date: '2026-05-01', totalPayment: 47600, principal: 47500, interest: 100, outstandingBalance: 0, status: 'Upcoming' },
+  ];
+
+  const traj = computeAmortizationTrajectory({
+    schedule,
+    principal,
+    rate: 5,
+    monthlyPayment: 1000,
+    loanStartDate: '2025-12-01',
+    extraMonthly: 500,
+    assetValue,
+    today: new Date(2026, 1, 15),
+  });
+
+  assert.equal(traj.points.length, 6);
+  assert.equal(traj.points[0].balance, 100000);
+  assert.equal(traj.points[2].cumulativePrincipal, 850);
+  assert.equal(traj.points[2].cumulativeInterest, 1150);
+  assert.equal(traj.todayIndex, 2);
+  assert.ok(traj.points[2].fasterBalance !== undefined);
+
+  const ids = traj.milestones.map(m => m.id);
+  assert.ok(ids.includes('tipping_point'));
+  assert.ok(ids.includes('ltv_80'));
+  assert.ok(ids.includes('halfway'));
+  assert.ok(ids.includes('payoff'));
+  assert.equal(traj.milestones.find(m => m.id === 'tipping_point')?.paymentNumber, 3);
+  assert.equal(traj.milestones.find(m => m.id === 'ltv_80')?.paymentNumber, 3);
+  assert.equal(traj.milestones.find(m => m.id === 'halfway')?.paymentNumber, 4);
+  assert.equal(traj.years.length, 1);
+  assert.equal(traj.years[0].cumulativePrincipal, traj.totalPrincipal);
 });
