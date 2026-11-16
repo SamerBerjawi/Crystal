@@ -74,3 +74,29 @@ test('CSV cells cannot run as formulas and quote what needs it', () => {
   const s = buildTaxSummary({ year: 2025, country: BE, toMain, investmentTransactions: [], transactions: [] });
   assert.match(summaryCsv(s, BE, 'EUR'), /Tax year,2025/);
 });
+
+test('FIFO cost basis, custom deductible overrides, and transaction drill-down items work cleanly', () => {
+  const s = buildTaxSummary({
+    year: 2025,
+    country: BE,
+    toMain,
+    costBasisMethod: 'fifo',
+    customDeductibleCategories: ['Home Office'],
+    excludedDeductibleCategories: ['Childcare'],
+    deductibleTagIds: ['tax-tag'],
+    transactions: [
+      tx('2025-02-01', 'Home Office', -150, 'expense'),
+      tx('2025-02-02', 'Childcare', -200, 'expense'),
+      tx('2025-02-03', 'Travel', -80, 'expense', { tagIds: ['tax-tag'] }),
+    ],
+    investmentTransactions: [
+      trade('2024-01-01', 'buy', 10, 100),
+      trade('2024-06-01', 'buy', 10, 200),
+      trade('2025-02-01', 'sell', 5, 300),
+    ],
+  });
+  assert.equal(s.deductibleTotal, 230);
+  assert.equal(s.deductible[0].items?.length, 1);
+  assert.equal(s.sales[0].costBasis, 500);
+  assert.equal(s.sales[0].gain, 1000);
+});

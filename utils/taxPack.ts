@@ -1,4 +1,4 @@
-import type { Currency, InvestmentTransaction, Transaction } from '../types';
+import type { Currency, InvestmentTransaction, Transaction, Warrant } from '../types';
 import { safeAdd, safeMultiply, round2 } from '../utils';
 import { taxYearRange, type ChecklistItem, type TaxCountry } from './taxCountries';
 
@@ -8,15 +8,32 @@ import { taxYearRange, type ChecklistItem, type TaxCountry } from './taxCountrie
  * own forms, not a tax return.
  */
 
-export interface TaxLine { category: string; total: number; count: number }
+export interface TaxLineItem {
+  id: string;
+  date: string;
+  description: string;
+  merchant?: string;
+  amount: number;
+  currency: string;
+}
+
+export interface TaxLine {
+  category: string;
+  total: number;
+  count: number;
+  items?: TaxLineItem[];
+}
 
 export interface TaxSale { date: string; symbol: string; name: string; quantity: number; proceeds: number; costBasis: number; gain: number }
+
+export type CostBasisMethod = 'average' | 'fifo';
 
 export interface TaxSummary {
   year: number;
   label: string;
   start: string;
   end: string;
+  costBasisMethod: CostBasisMethod;
   income: TaxLine[];
   incomeTotal: number;
   investmentIncome: TaxLine[];
@@ -34,29 +51,110 @@ export interface TaxSummaryInput {
   country: TaxCountry;
   transactions: Transaction[];
   investmentTransactions: InvestmentTransaction[];
+  warrants?: Warrant[];
+  costBasisMethod?: CostBasisMethod;
+  customDeductibleCategories?: string[];
+  excludedDeductibleCategories?: string[];
+  deductibleTagIds?: string[];
   /** Converts an amount to the main currency. */
   toMain: (amount: number, currency: Currency) => number;
 }
 
 const INVESTMENT_INCOME = /dividend|interest|coupon|capital gain|distribution/i;
 
-const addTo = (map: Map<string, TaxLine>, category: string, amount: number) => {
-  const line = map.get(category) ?? { category, total: 0, count: 0 };
+const addTo = (map: Map<string, TaxLine>, category: string, amount: number, tx: Transaction) => {
+  const line = map.get(category) ?? { category, total: 0, count: 0, items: [] };
   line.total = safeAdd(line.total, amount);
   line.count += 1;
+  line.items!.push({
+    id: tx.id,
+    date: tx.date.slice(0, 10),
+    description: tx.description,
+    merchant: tx.merchant,
+    amount: round2(amount),
+    currency: tx.currency,
+  });
   map.set(category, line);
 };
 
 const sorted = (map: Map<string, TaxLine>): TaxLine[] =>
-  [...map.values()].map(line => ({ ...line, total: round2(line.total) })).sort((a, b) => b.total - a.total || a.category.localeCompare(b.category));
+  [...map.values()]
+    .map(line => ({
+      ...line,
+      total: round2(line.total),
+      items: [...(line.items ?? [])].sort((a, b) => b.date.localeCompare(a.date)),
+    }))
+    .sort((a, b) => b.total - a.total || a.category.localeCompare(b.category));
 
 const sum = (lines: TaxLine[]) => round2(lines.reduce((total, line) => safeAdd(total, line.total), 0));
 
-/** Realised gains by average cost, per symbol, across all trades up to the year's end. Your country may require another method. */
-export const salesInRange = (trades: InvestmentTransaction[], start: string, end: string, toMain: TaxSummaryInput['toMain']): TaxSale[] => {
+/** Realised gains by average cost or FIFO per symbol across all trades up to the year's end. */
+export const salesInRange = (
+  trades: InvestmentTransaction[],
+  start: string,
+  end: string,
+  toMain: TaxSummaryInput['toMain'],
+  method: CostBasisMethod = 'average',
+  warrants: Warrant[] = [],
+): TaxSale[] => {
+  const events: InvestmentTransaction[] = [
+    ...warrants.map(w => ({
+      id: `warrant:${w.id}`,
+      symbol: w.isin,
+      name: w.name,
+      quantity: Number(w.quantity) || 0,
+      price: Number(w.grantPrice) || 0,
+      date: w.grantDate,
+      type: 'buy' as const,
+      currency: 'EUR' as Currency,
+    })),
+    ...trades,
+  ];
+
+  const ordered = [...events]
+    .filter(t => t.date <= end)
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.type === 'buy' ? -1 : 1));
+
+  if (method === 'fifo') {
+    const lotsBySymbol = new Map<string, { quantity: number; unitCost: number }[]>();
+    const sales: TaxSale[] = [];
+    for (const trade of ordered) {
+      const value = toMain(safeMultiply(trade.quantity, trade.price), trade.currency ?? 'EUR');
+      const lots = lotsBySymbol.get(trade.symbol) ?? [];
+      if (trade.type === 'buy') {
+        const unitCost = trade.quantity > 0 ? value / trade.quantity : 0;
+        lots.push({ quantity: trade.quantity, unitCost });
+      } else {
+        let remaining = trade.quantity;
+        let costBasis = 0;
+        while (remaining > 1e-9 && lots.length > 0) {
+          const head = lots[0];
+          const take = Math.min(remaining, head.quantity);
+          costBasis = safeAdd(costBasis, take * head.unitCost);
+          head.quantity -= take;
+          remaining -= take;
+          if (head.quantity <= 1e-9) lots.shift();
+        }
+        const roundedCost = round2(costBasis);
+        if (trade.date >= start) {
+          sales.push({
+            date: trade.date,
+            symbol: trade.symbol,
+            name: trade.name,
+            quantity: trade.quantity,
+            proceeds: round2(value),
+            costBasis: roundedCost,
+            gain: round2(value - roundedCost),
+          });
+        }
+      }
+      lotsBySymbol.set(trade.symbol, lots);
+    }
+    return sales;
+  }
+
   const book = new Map<string, { quantity: number; cost: number }>();
   const sales: TaxSale[] = [];
-  const ordered = [...trades].filter(t => t.date <= end).sort((a, b) => a.date.localeCompare(b.date) || (a.type === 'buy' ? -1 : 1));
   for (const trade of ordered) {
     const value = toMain(safeMultiply(trade.quantity, trade.price), trade.currency ?? 'EUR');
     const held = book.get(trade.symbol) ?? { quantity: 0, cost: 0 };
@@ -75,13 +173,27 @@ export const salesInRange = (trades: InvestmentTransaction[], start: string, end
   return sales;
 };
 
-export const buildTaxSummary = ({ year, country, transactions, investmentTransactions, toMain }: TaxSummaryInput): TaxSummary => {
+export const buildTaxSummary = ({
+  year,
+  country,
+  transactions,
+  investmentTransactions,
+  warrants = [],
+  costBasisMethod = 'average',
+  customDeductibleCategories = [],
+  excludedDeductibleCategories = [],
+  deductibleTagIds = [],
+  toMain,
+}: TaxSummaryInput): TaxSummary => {
   const { start, end, label } = taxYearRange(country, year);
   const income = new Map<string, TaxLine>();
   const investment = new Map<string, TaxLine>();
   const deductible = new Map<string, TaxLine>();
   let transactionCount = 0;
   const keywords = country.deductibleKeywords.map(word => word.toLowerCase());
+  const customSet = new Set(customDeductibleCategories.map(c => c.trim().toLowerCase()));
+  const excludedSet = new Set(excludedDeductibleCategories.map(c => c.trim().toLowerCase()));
+  const tagSet = new Set(deductibleTagIds);
 
   for (const tx of transactions) {
     const day = tx.date.slice(0, 10);
@@ -90,19 +202,25 @@ export const buildTaxSummary = ({ year, country, transactions, investmentTransac
     const amount = toMain(Math.abs(tx.amount), tx.currency);
     if (tx.type === 'income') {
       transactionCount += 1;
-      addTo(INVESTMENT_INCOME.test(`${tx.category} ${tx.description}`) ? investment : income, tx.category || 'Uncategorised', amount);
-    } else if (keywords.length && keywords.some(word => `${tx.category}`.toLowerCase().includes(word))) {
-      transactionCount += 1;
-      addTo(deductible, tx.category, amount);
+      addTo(INVESTMENT_INCOME.test(`${tx.category} ${tx.description}`) ? investment : income, tx.category || 'Uncategorised', amount, tx);
+    } else {
+      const catLower = `${tx.category || ''}`.trim().toLowerCase();
+      if (excludedSet.has(catLower)) continue;
+      const hasTag = (tx.tagIds ?? []).some(id => tagSet.has(id));
+      const matchesKeyword = keywords.length > 0 && keywords.some(word => catLower.includes(word));
+      if (customSet.has(catLower) || hasTag || matchesKeyword) {
+        transactionCount += 1;
+        addTo(deductible, tx.category || 'Uncategorised', amount, tx);
+      }
     }
   }
 
-  const sales = salesInRange(investmentTransactions, start, end, toMain);
+  const sales = salesInRange(investmentTransactions, start, end, toMain, costBasisMethod, warrants);
   const incomeLines = sorted(income);
   const investmentLines = sorted(investment);
   const deductibleLines = sorted(deductible);
   return {
-    year, label, start, end,
+    year, label, start, end, costBasisMethod,
     income: incomeLines, incomeTotal: sum(incomeLines),
     investmentIncome: investmentLines, investmentIncomeTotal: sum(investmentLines),
     deductible: deductibleLines, deductibleTotal: sum(deductibleLines),
@@ -144,12 +262,12 @@ export const summaryCsv = (summary: TaxSummary, country: TaxCountry, currency: s
   ...lines('Income', summary.income), ['Income total', '', summary.incomeTotal], [],
   ...lines('Investment income', summary.investmentIncome), ['Investment income total', '', summary.investmentIncomeTotal], [],
   ...lines('Spending in deductible categories', summary.deductible), ['Deductible categories total', '', summary.deductibleTotal], [],
-  ['Sales proceeds', '', summary.salesProceeds], ['Realised gain (average cost)', '', summary.salesGain], [],
+  ['Sales proceeds', '', summary.salesProceeds], [`Realised gain (${summary.costBasisMethod === 'fifo' ? 'FIFO' : 'average cost'})`, '', summary.salesGain], [],
   ['A summary from your own records, not a tax return. What counts depends on your country and situation.'],
 ]);
 
 export const salesCsv = (summary: TaxSummary): string => toCsv([
-  ['Date', 'Symbol', 'Name', 'Quantity', 'Proceeds', 'Cost (average cost)', 'Gain'],
+  ['Date', 'Symbol', 'Name', 'Quantity', 'Proceeds', summary.costBasisMethod === 'fifo' ? 'Cost (FIFO)' : 'Cost (average cost)', 'Gain'],
   ...summary.sales.map(s => [s.date, s.symbol, s.name, s.quantity, s.proceeds, s.costBasis, s.gain]),
 ]);
 
