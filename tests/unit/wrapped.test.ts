@@ -84,3 +84,16 @@ test('buildWrapped does not double-convert net worth when mainCurrency is USD', 
     setMainCurrency('EUR');
   }
 });
+
+test('prevYear deltas are computed when the prior year has data', () => {
+  const rows = [
+    tx('p1', '2024-05-01', 'income', 1000),
+    tx('p2', '2024-06-01', 'expense', 500),
+    tx('c1', '2025-05-01', 'income', 1500),
+    tx('c2', '2025-06-01', 'expense', 400),
+  ];
+  const w = buildWrapped(2025, rows, [], [], TODAY);
+  assert.equal(w.prevYear?.year, 2024);
+  assert.equal(w.prevYear?.incomeDeltaPct, 0.5);
+  assert.equal(w.prevYear?.expenseDeltaPct, -0.2);
+});

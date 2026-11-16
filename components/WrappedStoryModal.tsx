@@ -246,10 +246,53 @@ export const WrappedStoryModal: React.FC<WrappedStoryModalProps> = ({
 
     try {
       await navigator.clipboard.writeText(text);
-      toast.success('Story recap copied to clipboard! 📋');
+      toast.success('Story recap copied to clipboard!');
     } catch {
       toast.error('Could not copy recap');
     }
+  };
+
+  const downloadCertificateSvg = () => {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const money = (v: number) => (isPrivate ? '•••' : formatCurrency(v, currency));
+    const savingsPct = wrapped.savingsRate !== undefined ? `${Math.round(wrapped.savingsRate * 100)}%` : '—';
+    const topSpot = wrapped.topMerchants[0]?.label || 'None';
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" viewBox="0 0 720 440">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#141917"/>
+      <stop offset="100%" stop-color="#1F3D34"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="440" rx="28" fill="url(#bg)"/>
+  <rect x="24" y="24" width="672" height="392" rx="22" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/>
+  <text x="52" y="72" fill="#9FD8BD" font-family="system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="2">CRYSTAL WRAPPED · ${wrapped.year}</text>
+  <text x="52" y="114" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="30" font-weight="800">${esc(archetype.title)}</text>
+  <text x="52" y="140" fill="rgba(255,255,255,0.72)" font-family="system-ui, sans-serif" font-size="15">${esc(archetype.tagline)}</text>
+  <line x1="52" y1="168" x2="668" y2="168" stroke="rgba(255,255,255,0.14)"/>
+  <text x="52" y="206" fill="rgba(255,255,255,0.58)" font-family="system-ui, sans-serif" font-size="12">NET KEPT</text>
+  <text x="52" y="238" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="28" font-weight="800">${esc(money(wrapped.saved))}</text>
+  <text x="380" y="206" fill="rgba(255,255,255,0.58)" font-family="system-ui, sans-serif" font-size="12">SAVINGS RATE</text>
+  <text x="380" y="238" fill="#6CC59A" font-family="system-ui, sans-serif" font-size="28" font-weight="800">${esc(savingsPct)}</text>
+  <text x="52" y="294" fill="rgba(255,255,255,0.58)" font-family="system-ui, sans-serif" font-size="12">TOP SPOT</text>
+  <text x="52" y="322" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="20" font-weight="700">${esc(topSpot)}</text>
+  <text x="380" y="294" fill="rgba(255,255,255,0.58)" font-family="system-ui, sans-serif" font-size="12">LONGEST NO-SPEND STREAK</text>
+  <text x="380" y="322" fill="#F2C94C" font-family="system-ui, sans-serif" font-size="20" font-weight="700">${wrapped.longestNoSpendStreak.days} days</text>
+  <line x1="52" y1="358" x2="668" y2="358" stroke="rgba(255,255,255,0.14)"/>
+  <text x="52" y="390" fill="rgba(255,255,255,0.5)" font-family="system-ui, sans-serif" font-size="12">Crystal Personal Finance · 100% On-Device</text>
+  <text x="668" y="390" text-anchor="end" fill="rgba(255,255,255,0.5)" font-family="system-ui, sans-serif" font-size="12">${wrapped.transactionCount.toLocaleString()} transactions</text>
+</svg>`;
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `crystal-wrapped-${wrapped.year}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast.success('Certificate downloaded!');
   };
 
   if (!isOpen) return null;
@@ -803,14 +846,24 @@ export const WrappedStoryModal: React.FC<WrappedStoryModalProps> = ({
 
                   {/* Actions */}
                   <div className="flex w-full flex-col gap-2 pt-2">
-                    <Button
-                      variant="primary"
-                      className="w-full justify-center shadow-lg shadow-primary/30"
-                      icon="copy-01"
-                      onPress={copyShareText}
-                    >
-                      Copy Story Recap
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="primary"
+                        className="flex-1 justify-center shadow-lg shadow-primary/30"
+                        icon="copy-01"
+                        onPress={copyShareText}
+                      >
+                        Copy Recap
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="flex-1 justify-center"
+                        icon="download-04"
+                        onPress={downloadCertificateSvg}
+                      >
+                        Download Card
+                      </Button>
+                    </div>
                     <div className="flex gap-2">
                       <Button
                         variant="ghost"

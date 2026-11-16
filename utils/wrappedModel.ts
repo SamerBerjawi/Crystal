@@ -2,6 +2,7 @@ import type { Account, LifeEvent, Transaction } from '../types';
 import { lifeEventsInYear } from './lifeEvents';
 import { convertCurrency, convertToMain, getMainCurrency, parseLocalDate, safeAdd, safeSubtract, round2 } from '../utils';
 import { netWorthHistory } from './challengesModel';
+import { detectTrips } from './trips';
 
 export interface WrappedRank { label: string; total: number; count: number }
 export interface WrappedMonth { month: number; income: number; expense: number; saved: number }
@@ -29,6 +30,23 @@ export interface Wrapped {
   kilometres?: number;
   /** Life events marked in this year, oldest first. */
   lifeEvents: LifeEvent[];
+  /** Year-over-year summary from `year - 1`, when that year has activity. */
+  prevYear?: {
+    year: number;
+    income: number;
+    expense: number;
+    saved: number;
+    savingsRate?: number;
+    incomeDeltaPct?: number;
+    expenseDeltaPct?: number;
+  };
+  /** Travel detected for this year, when trips are found. */
+  trips?: {
+    count: number;
+    days: number;
+    countries: string[];
+    spend: number;
+  };
 }
 
 const amountOf = (tx: Transaction) => Math.abs(convertToMain(tx.amount, tx.currency));
@@ -148,6 +166,36 @@ export const buildWrapped = (
   const last = readings[readings.length - 1];
   const kilometres = first && last && last.reading > first.reading ? last.reading - first.reading : undefined;
 
+  const prevPrefix = `${year - 1}-`;
+  const prevRows = transactions.filter(tx => isCounted(tx) && tx.date.startsWith(prevPrefix));
+  let prevYear: Wrapped['prevYear'];
+  if (prevRows.length > 0) {
+    const prevIncome = round2(prevRows.filter(tx => tx.type === 'income').reduce((s, tx) => safeAdd(s, amountOf(tx)), 0));
+    const prevExpense = round2(prevRows.filter(tx => tx.type === 'expense').reduce((s, tx) => safeAdd(s, amountOf(tx)), 0));
+    const prevSaved = round2(safeSubtract(prevIncome, prevExpense));
+    prevYear = {
+      year: year - 1,
+      income: prevIncome,
+      expense: prevExpense,
+      saved: prevSaved,
+      savingsRate: prevIncome > 0 ? prevSaved / prevIncome : undefined,
+      incomeDeltaPct: prevIncome > 0 ? (income - prevIncome) / prevIncome : undefined,
+      expenseDeltaPct: prevExpense > 0 ? (expense - prevExpense) / prevExpense : undefined,
+    };
+  }
+
+  const yearTrips = detectTrips(transactions).filter(
+    t => t.start.startsWith(prefix) || t.end.startsWith(prefix),
+  );
+  const trips: Wrapped['trips'] = yearTrips.length > 0
+    ? {
+        count: yearTrips.length,
+        days: yearTrips.reduce((sum, t) => sum + t.days, 0),
+        countries: [...new Set(yearTrips.flatMap(t => t.countries))],
+        spend: round2(yearTrips.reduce((sum, t) => safeAdd(sum, t.spend), 0)),
+      }
+    : undefined;
+
   return {
     year,
     hasData: rows.length > 0,
@@ -168,6 +216,8 @@ export const buildWrapped = (
     netWorth,
     kilometres,
     lifeEvents: lifeEventsInYear(lifeEvents, year),
+    prevYear,
+    trips,
   };
 };
 

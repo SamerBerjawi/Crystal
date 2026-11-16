@@ -63,3 +63,26 @@ test('bills due in the seven days ahead are listed; older weeks look at nothing'
   assert.deepEqual(old.upcoming, []);
   assert.equal(old.upcomingWindow, undefined);
 });
+
+test('accounts excluded from analytics are omitted and skipped overrides are excluded from upcoming', () => {
+  const mixedAccounts = [
+    { id: 'chk', name: 'Chk', type: 'Checking', balance: 0, currency: 'EUR', includeInAnalytics: true },
+    { id: 'hid', name: 'Hidden', type: 'Checking', balance: 0, currency: 'EUR', includeInAnalytics: false },
+  ] as Account[];
+  const rent = { id: 'r', accountId: 'chk', description: 'Rent', amount: 800, type: 'expense', currency: 'EUR', frequency: 'monthly', startDate: '2026-01-14', nextDueDate: '2026-11-14', weekendAdjustment: 'on' } as RecurringTransaction;
+  const r = buildRecap({
+    ...base,
+    accounts: mixedAccounts,
+    transactions: [
+      tx('a', '2026-11-10', 100, 'expense', { accountId: 'chk' }),
+      tx('b', '2026-11-10', 999, 'expense', { accountId: 'hid' }),
+    ],
+    recurring: [rent],
+    overrides: [{ recurringTransactionId: 'r', originalDate: '2026-11-14', isSkipped: true }],
+    week: { start: '2026-11-09', end: '2026-11-15' },
+    today: new Date(2026, 10, 12),
+  });
+  assert.equal(r.spent, 100);
+  assert.equal(r.days.length, 7);
+  assert.equal(r.upcoming.length, 0);
+});

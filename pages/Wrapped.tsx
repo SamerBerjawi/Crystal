@@ -5,6 +5,7 @@ import { buildWrapped, wrappedDate, wrappedYears, type Wrapped as WrappedData } 
 import { useAccountSelector, useTransactionSelector } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext } from '../contexts/FinancialDataContext';
 import { lifeEventKind } from '../utils/lifeEvents';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, TrendLine, YAxis } from '../src/components/charts';
 import PageHeader from '../components/PageHeader';
 import { Button } from '../components/ui/Actions';
 import Icon from '../components/ui/Icon';
@@ -29,35 +30,48 @@ const Tile: React.FC<{ icon: string; label: string; children: React.ReactNode; n
   </section>
 );
 
+const rankTone = (index: number) =>
+  index === 0
+    ? 'bg-amber-soft text-attention-text'
+    : index === 1
+      ? 'bg-primary-soft text-primary'
+      : index === 2
+        ? 'bg-teal-soft text-teal'
+        : 'bg-inset text-muted';
+
+const deltaLabel = (frac: number | undefined, prevYear: number) => {
+  if (frac === undefined) return undefined;
+  const pctVal = Math.round(Math.abs(frac) * 100);
+  if (pctVal === 0) return `Same as ${prevYear}`;
+  return `${frac > 0 ? '+' : '−'}${pctVal}% vs ${prevYear}`;
+};
+
 const MerchantRankList: React.FC<{ rows: WrappedData['topMerchants'] }> = ({ rows }) => {
   const currency = getMainCurrency();
   const max = rows[0]?.total || 1;
   return (
     <ol className="space-y-3.5">
-      {rows.map((row, index) => {
-        const rankColor = index === 0 ? 'bg-amber-500/20 text-amber-500' : index === 1 ? 'bg-slate-400/20 text-slate-400' : index === 2 ? 'bg-amber-700/20 text-amber-700' : 'bg-inset text-muted';
-        return (
-          <li key={row.label} className="group">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rankColor}`}>
-                  {index + 1}
-                </span>
-                <MerchantLogo merchant={row.label} size={22} className="rounded" />
-                <span className="type-body-strong truncate text-ink group-hover:text-primary transition-colors">{row.label}</span>
-              </div>
-              <Amount value={row.total} currency={currency} className="type-body shrink-0 font-medium text-ink" />
+      {rows.map((row, index) => (
+        <li key={row.label} className="group">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rankTone(index)}`}>
+                {index + 1}
+              </span>
+              <MerchantLogo merchant={row.label} size={22} className="rounded" />
+              <span className="type-body-strong truncate text-ink transition-colors group-hover:text-primary">{row.label}</span>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-inset">
-              <div
-                className="h-full rounded-full bg-primary transition-[width] duration-500"
-                style={{ width: `${(row.total / max) * 100}%` }}
-              />
-            </div>
-            <p className="type-caption mt-1 text-muted">{row.count} {row.count === 1 ? 'payment' : 'payments'}</p>
-          </li>
-        );
-      })}
+            <Amount value={row.total} currency={currency} className="type-body shrink-0 font-medium text-ink" />
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-inset">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-500"
+              style={{ width: `${(row.total / max) * 100}%` }}
+            />
+          </div>
+          <p className="type-caption mt-1 text-muted">{row.count} {row.count === 1 ? 'payment' : 'payments'}</p>
+        </li>
+      ))}
     </ol>
   );
 };
@@ -72,16 +86,15 @@ const CategoryRankList: React.FC<{
     <ol className="space-y-3.5">
       {rows.map((row, index) => {
         const catInfo = categoryMap.get(row.label);
-        const rankColor = index === 0 ? 'bg-amber-500/20 text-amber-500' : index === 1 ? 'bg-slate-400/20 text-slate-400' : index === 2 ? 'bg-amber-700/20 text-amber-700' : 'bg-inset text-muted';
         return (
           <li key={row.label} className="group">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rankColor}`}>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rankTone(index)}`}>
                   {index + 1}
                 </span>
                 <EntityGlyph icon={catInfo?.icon} label={row.label} color={catInfo?.color} size={18} />
-                <span className="type-body-strong truncate text-ink group-hover:text-primary transition-colors">{row.label}</span>
+                <span className="type-body-strong truncate text-ink transition-colors group-hover:text-primary">{row.label}</span>
               </div>
               <Amount value={row.total} currency={currency} className="type-body shrink-0 font-medium text-ink" />
             </div>
@@ -99,48 +112,25 @@ const CategoryRankList: React.FC<{
   );
 };
 
-/** Income, spending and what was kept, month by month with interactive hover insights. */
+/** Income, spending and what was kept, month by month on Bklit BarChart. */
 const MonthBars: React.FC<{ months: WrappedData['months'] }> = ({ months }) => {
-  const [hoveredMonth, setHoveredMonth] = useState<WrappedData['months'][number] | null>(null);
   const currency = getMainCurrency();
-  const max = Math.max(...months.map(m => Math.max(m.income, m.expense)), 1);
+  const chartData = useMemo(
+    () => months.map(m => ({ month: MONTHS[m.month], Income: m.income, Spending: m.expense })),
+    [months],
+  );
 
   return (
-    <div className="space-y-3">
-      {hoveredMonth && (
-        <div className="flex items-center justify-between rounded-lg bg-inset/60 px-3 py-1.5 text-xs">
-          <span className="font-semibold text-ink">{monthName(hoveredMonth.month)}</span>
-          <div className="flex items-center gap-3">
-            <span className="text-money-in">Income: <Amount value={hoveredMonth.income} currency={currency} /></span>
-            <span className="text-chart-2">Spent: <Amount value={hoveredMonth.expense} currency={currency} /></span>
-            <span className="font-medium text-ink">Net: <Amount value={hoveredMonth.saved} currency={currency} /></span>
-          </div>
-        </div>
-      )}
-      <div className="grid grid-cols-12 items-end gap-1.5 sm:gap-2.5" role="img" aria-label="Income and spending for each month">
-        {months.map(m => (
-          <div
-            key={m.month}
-            className="flex flex-col items-center gap-1 cursor-pointer transition-transform hover:scale-105"
-            onMouseEnter={() => setHoveredMonth(m)}
-            onMouseLeave={() => setHoveredMonth(null)}
-          >
-            <div className="flex h-28 w-full items-end gap-0.5 sm:gap-1">
-              <div
-                className="w-1/2 rounded-t bg-money-in transition-[height] duration-500"
-                style={{ height: `${(m.income / max) * 100}%` }}
-                title={`${monthName(m.month)} income`}
-              />
-              <div
-                className="w-1/2 rounded-t bg-chart-2 transition-[height] duration-500"
-                style={{ height: `${(m.expense / max) * 100}%` }}
-                title={`${monthName(m.month)} spending`}
-              />
-            </div>
-            <span className="type-caption text-muted">{MONTHS[m.month].slice(0, 1)}</span>
-          </div>
-        ))}
-      </div>
+    <div className="h-60" role="img" aria-label="Income and spending for each month">
+      <BarChart data={chartData} xDataKey="month" aspectRatio="auto" margin={{ top: 8, right: 8, bottom: 40, left: 56 }}>
+        <Grid horizontal />
+        <Bar dataKey="Income" lineCap="round" />
+        <Bar dataKey="Spending" fill="var(--chart-3)" lineCap="round" />
+        <YAxis yAxisId="left" />
+        <TrendLine dataKey="Income" stroke="var(--chart-1)" />
+        <BarXAxis />
+        <ChartTooltip valueFormatter={(value: number) => formatCurrency(value, currency)} />
+      </BarChart>
     </div>
   );
 };
@@ -273,7 +263,7 @@ const Wrapped: React.FC = () => {
                   </span>
                   <span>Play {year} Story</span>
                 </button>
-                <span className="text-xs text-muted">Interactive story mode with music & flair</span>
+                <span className="text-xs text-muted">7-slide interactive story &amp; shareable certificate</span>
               </div>
             </div>
           </section>
@@ -281,7 +271,7 @@ const Wrapped: React.FC = () => {
           {/* Archetype Spotlight Card */}
           <section className="relative overflow-hidden rounded-[var(--radius-xl)] border border-line bg-inset/40 p-5 backdrop-blur-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface-card text-3xl shadow-sm">
+              <div className="surface-card flex size-14 shrink-0 items-center justify-center rounded-2xl border border-line text-3xl shadow-sm">
                 {archetype.badge}
               </div>
               <div className="min-w-0 flex-1">
@@ -297,11 +287,23 @@ const Wrapped: React.FC = () => {
 
           {/* Core Metrics Grid */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 min-[1100px]:grid-cols-3">
-            <Tile icon="wallet-02" label="Income"><Amount value={wrapped.income} currency={currency} /></Tile>
-            <Tile icon="credit-card" label="Spending"><Amount value={wrapped.expense} currency={currency} /></Tile>
+            <Tile
+              icon="wallet-02"
+              label="Income"
+              note={wrapped.prevYear ? deltaLabel(wrapped.prevYear.incomeDeltaPct, wrapped.prevYear.year) : undefined}
+            >
+              <Amount value={wrapped.income} currency={currency} />
+            </Tile>
+            <Tile
+              icon="credit-card"
+              label="Spending"
+              note={wrapped.prevYear ? deltaLabel(wrapped.prevYear.expenseDeltaPct, wrapped.prevYear.year) : undefined}
+            >
+              <Amount value={wrapped.expense} currency={currency} />
+            </Tile>
             {wrapped.netWorth && (
               <Tile icon="chart-increase" label="Net worth" note={<>From <Amount value={wrapped.netWorth.start} currency={currency} /> to <Amount value={wrapped.netWorth.end} currency={currency} /></>}>
-                <Amount value={wrapped.netWorth.change} currency={currency} tone="loss" />
+                <Amount value={wrapped.netWorth.change} currency={currency} tone="flow" />
                 {wrapped.netWorth.changePct !== undefined && <span className="type-body ml-2 text-muted">{wrapped.netWorth.change >= 0 ? '+' : ''}{percent(wrapped.netWorth.changePct)}</span>}
               </Tile>
             )}
@@ -319,6 +321,15 @@ const Wrapped: React.FC = () => {
             )}
             {wrapped.longestNoSpendStreak.days > 1 && wrapped.longestNoSpendStreak.start && wrapped.longestNoSpendStreak.end && (
               <Tile icon="target-01" label="Longest no-spend streak" note={`${wrappedDate(wrapped.longestNoSpendStreak.start)} to ${wrappedDate(wrapped.longestNoSpendStreak.end)}. ${wrapped.noSpendDays} no-spend days in all.`}>{wrapped.longestNoSpendStreak.days} days</Tile>
+            )}
+            {wrapped.trips && (
+              <Tile
+                icon="airplane-01"
+                label="Trips & travel"
+                note={<>{wrapped.trips.days} {wrapped.trips.days === 1 ? 'day' : 'days'} across {wrapped.trips.countries.slice(0, 3).join(', ')} · <Amount value={wrapped.trips.spend} currency={currency} /></>}
+              >
+                {wrapped.trips.count} {wrapped.trips.count === 1 ? 'trip' : 'trips'}
+              </Tile>
             )}
             {wrapped.kilometres !== undefined && (
               <Tile icon="car-01" label="On the road" note="From your mileage logs">{wrapped.kilometres.toLocaleString()} km</Tile>
