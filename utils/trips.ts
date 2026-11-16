@@ -1,10 +1,10 @@
-import type { Transaction } from '../types';
+import type { Transaction, TripSettings } from '../types';
 import { convertToMain, parseLocalDate, round2, safeAdd } from '../utils';
 
 /*
  * Trips, worked out from the country already saved on your transactions. A trip is a run of days with spending
- * outside your home country; days up to two apart still count as one trip. Nothing is stored: change a country on a
- * transaction and the trips change with it. A transaction with no country is never guessed at.
+ * outside your home country; days up to two apart still count as one trip. Users can also rename trips, exclude
+ * stray items, or pin pre-booked flights and hotels via TripSettings.
  */
 
 export const MIN_COUNTRY_SAMPLE = 5;
@@ -14,11 +14,26 @@ const MIN_BASELINE_DAYS = 30;
 const MIN_HOME_VISITS = 2;
 const MAX_PLACES = 60;
 
-export interface TripPlace { latitude: number; longitude: number; label: string; count: number }
+export interface TripPlace {
+  latitude: number;
+  longitude: number;
+  label: string;
+  count: number;
+  spend: number;
+  firstDate?: string;
+}
+
+export interface TripCurrencyBreakdown {
+  currency: string;
+  originalAmount: number;
+  mainAmount: number;
+  count: number;
+}
 
 export interface Trip {
   id: string;
   name: string;
+  defaultName: string;
   start: string;
   end: string;
   /** Calendar days from the first to the last day, both included. */
@@ -26,11 +41,13 @@ export interface Trip {
   countries: string[];
   cities: string[];
   currencies: string[];
+  currenciesBreakdown: TripCurrencyBreakdown[];
   transactionIds: string[];
-  /** Money spent there, in the main currency. */
+  /** Money spent there (plus any pinned trip expenses), in the main currency. */
   spend: number;
   perDay: number;
   topCategories: { category: string; amount: number }[];
+  topMerchants: { merchant: string; amount: number; count: number }[];
   places: TripPlace[];
   /** What a day at home costs you on average (main currency), or null when there is too little history. */
   homePerDay: number | null;
@@ -70,11 +87,16 @@ const mostly = <T,>(items: T[], size: number) => {
   return [...tally.entries()].sort((a, b) => b[1] - a[1]).slice(0, size).map(([item]) => item);
 };
 
-export const detectTrips = (transactions: Transaction[], homeCountry?: string | null): Trip[] => {
-  const home = clean(homeCountry ?? undefined) || detectHomeCountry(transactions);
+export const detectTrips = (transactions: Transaction[], homeCountry?: string | null, settings?: TripSettings): Trip[] => {
+  const home = clean(homeCountry ?? settings?.homeCountry ?? undefined) || detectHomeCountry(transactions);
   if (!home) return [];
   const homeKey = key(home);
-  const dated = transactions.filter(tx => isSpending(tx) && clean(tx.country) && /^\d{4}-\d{2}-\d{2}/.test(tx.date));
+  const excludedSet = new Set(settings?.excludedTransactionIds ?? []);
+  const txById = new Map(transactions.map(tx => [tx.id, tx]));
+
+  const dated = transactions.filter(
+    tx => isSpending(tx) && !excludedSet.has(tx.id) && clean(tx.country) && /^\d{4}-\d{2}-\d{2}/.test(tx.date),
+  );
   // A shop you also pay at home, or a recurring charge, is most likely online or a subscription, not a trip.
   const homeMerchants = new Map<string, number>();
   dated.filter(tx => key(tx.country!) === homeKey && tx.merchant).forEach(tx => homeMerchants.set(key(tx.merchant!), (homeMerchants.get(key(tx.merchant!)) ?? 0) + 1));
@@ -91,32 +113,84 @@ export const detectTrips = (transactions: Transaction[], homeCountry?: string | 
   const trips = groups.filter(group => group.length >= MIN_TRIP_TRANSACTIONS).map((group): Trip => {
     const start = group[0].date.slice(0, 10);
     const end = group[group.length - 1].date.slice(0, 10);
+    const id = `trip:${start}`;
     const days = dayNumber(end) - dayNumber(start) + 1;
     const countries = mostly(group.map(tx => clean(tx.country)), 10);
     const cities = mostly(group.map(tx => clean(tx.city)).filter(Boolean), 3);
-    const spend = round2(group.reduce((total, tx) => safeAdd(total, spentOf(tx)), 0));
+    const defaultName = nameOf(countries, cities);
+    const customName = clean(settings?.customNames?.[id]);
+
+    // Merge manually pinned transactions (e.g. flights/hotels booked before the trip).
+    const seenIds = new Set(group.map(tx => tx.id));
+    const pinned = (settings?.pinnedTransactionIds?.[id] ?? [])
+      .map(txId => txById.get(txId))
+      .filter((tx): tx is Transaction => !!tx && !seenIds.has(tx.id) && isSpending(tx));
+    const fullGroup = [...group, ...pinned];
+
+    const spend = round2(fullGroup.reduce((total, tx) => safeAdd(total, spentOf(tx)), 0));
 
     const byCategory = new Map<string, number>();
-    group.forEach(tx => { if (spentOf(tx) > 0) byCategory.set(tx.category, safeAdd(byCategory.get(tx.category) ?? 0, spentOf(tx))); });
+    const byMerchant = new Map<string, { amount: number; count: number }>();
+    const byCurrency = new Map<string, TripCurrencyBreakdown>();
+
+    fullGroup.forEach(tx => {
+      const amt = spentOf(tx);
+      if (amt > 0) {
+        byCategory.set(tx.category || 'Uncategorized', safeAdd(byCategory.get(tx.category || 'Uncategorized') ?? 0, amt));
+        const mLabel = clean(tx.merchant) || clean(tx.description) || 'Unknown';
+        const mEntry = byMerchant.get(mLabel) ?? { amount: 0, count: 0 };
+        mEntry.amount = safeAdd(mEntry.amount, amt);
+        mEntry.count += 1;
+        byMerchant.set(mLabel, mEntry);
+
+        const cur = tx.currency || 'EUR';
+        const cEntry = byCurrency.get(cur) ?? { currency: cur, originalAmount: 0, mainAmount: 0, count: 0 };
+        cEntry.originalAmount = safeAdd(cEntry.originalAmount, Math.abs(tx.amount));
+        cEntry.mainAmount = safeAdd(cEntry.mainAmount, amt);
+        cEntry.count += 1;
+        byCurrency.set(cur, cEntry);
+      }
+    });
 
     const spots = new Map<string, TripPlace>();
-    group.forEach(tx => {
+    fullGroup.forEach(tx => {
       if (!Number.isFinite(tx.latitude) || !Number.isFinite(tx.longitude)) return;
-      const id = `${tx.latitude!.toFixed(3)},${tx.longitude!.toFixed(3)}`;
-      const spot = spots.get(id) ?? { latitude: tx.latitude!, longitude: tx.longitude!, label: clean(tx.placeName) || clean(tx.merchant) || clean(tx.city) || 'Stop', count: 0 };
+      const spotKey = `${tx.latitude!.toFixed(3)},${tx.longitude!.toFixed(3)}`;
+      const txDate = tx.date.slice(0, 10);
+      const spot = spots.get(spotKey) ?? {
+        latitude: tx.latitude!,
+        longitude: tx.longitude!,
+        label: clean(tx.placeName) || clean(tx.merchant) || clean(tx.city) || 'Stop',
+        count: 0,
+        spend: 0,
+        firstDate: txDate,
+      };
       spot.count++;
-      spots.set(id, spot);
+      spot.spend = round2(safeAdd(spot.spend, spentOf(tx)));
+      if (!spot.firstDate || txDate < spot.firstDate) spot.firstDate = txDate;
+      spots.set(spotKey, spot);
     });
 
     return {
-      id: `trip:${start}`,
-      name: nameOf(countries, cities),
-      start, end, days, countries, cities,
-      currencies: mostly(group.map(tx => tx.currency), 5),
-      transactionIds: group.map(tx => tx.id),
+      id,
+      name: customName || defaultName,
+      defaultName,
+      start,
+      end,
+      days,
+      countries,
+      cities,
+      currencies: mostly(fullGroup.map(tx => tx.currency), 5),
+      currenciesBreakdown: [...byCurrency.values()].map(c => ({
+        ...c,
+        originalAmount: round2(c.originalAmount),
+        mainAmount: round2(c.mainAmount),
+      })).sort((a, b) => b.mainAmount - a.mainAmount),
+      transactionIds: fullGroup.map(tx => tx.id),
       spend,
       perDay: round2(spend / days),
-      topCategories: [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([category, amount]) => ({ category, amount: round2(amount) })),
+      topCategories: [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([category, amount]) => ({ category, amount: round2(amount) })),
+      topMerchants: [...byMerchant.entries()].sort((a, b) => b[1].amount - a[1].amount).slice(0, 5).map(([merchant, entry]) => ({ merchant, amount: round2(entry.amount), count: entry.count })),
       places: [...spots.values()].sort((a, b) => b.count - a.count).slice(0, MAX_PLACES),
       homePerDay: null,
     };

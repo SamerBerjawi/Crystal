@@ -76,3 +76,21 @@ test('recurring charges and shops you also use at home are not trips', () => {
   const real = [tx('2025-03-01', 'Spain', { merchant: 'Cafe Sol' }), tx('2025-03-02', 'Spain', { merchant: 'Hotel Sol' })];
   assert.equal(detectTrips([...home, ...real]).length, 1);
 });
+
+test('custom names, excluded transactions and pinned pre-booked items customize a trip', () => {
+  const flight = tx('2025-02-01', 'Belgium', { id: 'flt', merchant: 'Airline', amount: 300, category: 'Travel' });
+  const tripTxs = [
+    tx('2025-03-01', 'Spain', { id: 'sp1', merchant: 'Tapas', amount: 40 }),
+    tx('2025-03-02', 'Spain', { id: 'sp2', merchant: 'Museum', amount: 20 }),
+    tx('2025-03-03', 'Spain', { id: 'sp3', merchant: 'Online', amount: 50 }),
+  ];
+  const [trip] = detectTrips([...homeDays(1, 10), flight, ...tripTxs], 'Belgium', {
+    customNames: { 'trip:2025-03-01': 'Barcelona Escape' },
+    excludedTransactionIds: ['sp3'],
+    pinnedTransactionIds: { 'trip:2025-03-01': ['flt'] },
+  });
+  assert.equal(trip.name, 'Barcelona Escape');
+  assert.equal(trip.spend, 360);
+  assert.ok(trip.transactionIds.includes('flt'));
+  assert.ok(!trip.transactionIds.includes('sp3'));
+});
