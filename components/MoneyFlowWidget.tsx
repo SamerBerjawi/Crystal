@@ -1,14 +1,14 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { Account, Category, Currency, Transaction } from '../types';
-import { convertToMain, parseLocalDate, toLocalISOString } from '../utils';
+import { convertToMain, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import { budgetAccountIds, spendByCategory } from '../utils/budgetModel';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, TrendLine, YAxis } from '../src/components/charts';
+import { useChart } from '../src/components/charts/chart-context';
 import { Amount } from './ui/Money';
 import SegmentedControl from './ui/SegmentedControl';
 import { EntityGlyph } from './EntityIcon';
 import { EmptyState } from './ui/States';
 import { useWidgetBox } from './ui/WidgetGrid';
-import { curveNatural } from '@visx/curve';
-import { line as d3Line } from 'd3-shape';
 import { cn } from '../lib/utils';
 
 type Unit = 'weeks' | 'months' | 'quarters';
@@ -69,34 +69,22 @@ const periodsFor = (unit: Unit, today: Date): Period[] => {
   return periods;
 };
 
-const HEIGHT = 190;
+const ActivePeriod: React.FC<{ onActive: (index: number) => void }> = ({ onActive }) => {
+  const { tooltipData } = useChart();
+  const index = tooltipData?.index ?? null;
+  useEffect(() => { if (index !== null) onActive(index); }, [index, onActive]);
+  return null;
+};
+(ActivePeriod as unknown as { __isPostOverlay: boolean }).__isPostOverlay = true;
 
 /**
- * Money in and out, period by period: bars rise for what came in and fall for what went out, a line follows the total
- * balance, and picking a column shows where that period's money went and who it came from.
+ * Money in and out, period by period on Bklit BarChart: bars show what came in and went out, with a trend line,
+ * and picking a column shows where that period's money went and who it came from.
  */
 const MoneyFlowWidget: React.FC<MoneyFlowWidgetProps> = ({ accounts, transactions, selectedAccountIds, expenseCategories, currency, toDisplay, onCategoryClick }) => {
   const box = useWidgetBox();
   const [unit, setUnit] = useState<Unit>('months');
   const [picked, setPicked] = useState<number | null>(null);
-  const chartRef = useRef<HTMLDivElement>(null);
-  const [measuredH, setMeasuredH] = useState(0);
-
-  useLayoutEffect(() => {
-    const node = chartRef.current;
-    if (!node) return;
-    const measure = (h: number) => {
-      if (h > 0) {
-        setMeasuredH(prev => Math.abs(prev - h) < 2 ? prev : Math.round(h));
-      }
-    };
-    measure(node.clientHeight);
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry) measure(entry.contentRect.height);
-    });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
 
   const today = useMemo(() => new Date(), []);
   const periods = useMemo(() => periodsFor(unit, today), [unit, today]);
@@ -144,20 +132,18 @@ const MoneyFlowWidget: React.FC<MoneyFlowWidgetProps> = ({ accounts, transaction
     return { categories, topSource: top ? { name: top[0], value: top[1] } : null };
   }, [current, transactions, accounts, selected, expenseCategories, scoped, toDisplay]);
 
+  const hasDuplicateShort = useMemo(() => new Set(data.map(r => r.short)).size < data.length, [data]);
+  const chartData = useMemo(() => data.map(row => ({
+    month: hasDuplicateShort ? row.long : row.short,
+    'Money in': row.inValue,
+    'Money out': row.outValue,
+  })), [data, hasDuplicateShort]);
+
   if (data.every(row => row.inValue === 0 && row.outValue === 0)) {
     return <EmptyState icon="chart-column" title="No money moved" description="Nothing came in or went out in these accounts." className="h-full py-6" />;
   }
 
   const wide = box.width === 0 || box.width >= 700;
-  const chartH = measuredH > 0 ? measuredH : (box.height > 0 ? Math.max(120, box.height - (wide ? 92 : 300)) : HEIGHT);
-  const peak = Math.max(...data.map(row => Math.max(row.inValue, row.outValue)), 1);
-  const half = chartH / 2;
-  const balances = data.map(row => row.balance);
-  const lo = Math.min(...balances);
-  const hi = Math.max(...balances);
-  const yOf = (value: number) => 6 + (hi === lo ? (chartH - 12) / 2 : (1 - (value - lo) / (hi - lo)) * (chartH - 12));
-  const colW = 100 / data.length;
-  const line = d3Line<{ x: number; y: number }>().x(point => point.x).y(point => point.y).curve(curveNatural)(data.map((row, i) => ({ x: (i + 0.5) * colW, y: yOf(row.balance) }))) ?? '';
   const net = current.inValue - current.outValue;
 
   return (
@@ -169,35 +155,21 @@ const MoneyFlowWidget: React.FC<MoneyFlowWidgetProps> = ({ accounts, transaction
 
       <div className={cn('flex min-h-0 flex-1 gap-5', wide ? 'flex-row' : 'flex-col')}>
         <div className="flex min-w-0 flex-1 flex-col h-full min-h-0">
-          <div ref={chartRef} className="relative min-h-[120px] w-full flex-1">
-            <div className="absolute inset-x-0 top-1/2 border-t border-line" aria-hidden />
-            <div className="absolute inset-0 flex" role="group" aria-label="Money in and out by period">
-              {data.map((row, i) => (
-                <button
-                  key={row.start.getTime()}
-                  type="button"
-                  onClick={() => setPicked(i)}
-                  aria-pressed={i === index}
-                  aria-label={`${row.long}: in ${Math.round(row.inValue)}, out ${Math.round(row.outValue)}`}
-                  className={cn('relative h-full min-w-0 flex-1 cursor-pointer rounded-md transition-colors hover:bg-inset focus-visible:outline-2 focus-visible:outline-[var(--focus)]', i === index && 'bg-inset')}
-                >
-                  <span className="absolute left-1/2 w-[46%] max-w-6 -translate-x-1/2 rounded-t-[5px]" style={{ bottom: '50%', height: Math.max(row.inValue > 0 ? 2 : 0, (row.inValue / peak) * (half - 6)), background: 'var(--money-in)', opacity: i === index ? 1 : 0.55 }} />
-                  <span className="absolute left-1/2 w-[46%] max-w-6 -translate-x-1/2 rounded-b-[5px]" style={{ top: '50%', height: Math.max(row.outValue > 0 ? 2 : 0, (row.outValue / peak) * (half - 6)), background: 'var(--money-out)', opacity: i === index ? 1 : 0.55 }} />
-                </button>
-              ))}
-            </div>
-            <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox={`0 0 100 ${chartH}`} preserveAspectRatio="none" aria-hidden>
-              <path d={line} fill="none" stroke="var(--ink)" strokeOpacity=".55" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-            </svg>
-            <span aria-hidden className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-solid bg-ink" style={{ left: `${(index + 0.5) * colW}%`, top: yOf(current.balance), borderColor: 'var(--solid)' }} />
-          </div>
-          <div className="mt-1 flex shrink-0" aria-hidden>
-            {data.map((row, i) => <span key={row.start.getTime()} className={cn('type-caption min-w-0 flex-1 truncate text-center', i === index ? 'font-semibold text-ink' : 'text-muted')}>{box.width > 0 && box.width < 520 && unit === 'weeks' ? '' : row.short}</span>)}
+          <div className="min-h-[160px] w-full flex-1">
+            <BarChart data={chartData} xDataKey="month" aspectRatio="auto" className="h-full w-full" margin={{ top: 8, right: 8, bottom: 40, left: 56 }}>
+              <Grid horizontal />
+              <Bar dataKey="Money in" lineCap="round" onClick={(_d, i) => setPicked(i)} />
+              <Bar dataKey="Money out" fill="var(--chart-3)" lineCap="round" onClick={(_d, i) => setPicked(i)} />
+              <YAxis yAxisId="left" />
+              <TrendLine dataKey="Money in" stroke="var(--chart-1)" />
+              <BarXAxis />
+              <ChartTooltip valueFormatter={(value: number) => formatCurrency(value, currency)} />
+              <ActivePeriod onActive={setPicked} />
+            </BarChart>
           </div>
           <ul className="type-caption mt-2 flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-muted">
-            <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--money-in)' }} />Money in</li>
-            <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--money-out)' }} />Money out</li>
-            <li className="flex items-center gap-1.5"><span className="h-0.5 w-3.5 rounded-full bg-ink/55" />Total balance</li>
+            <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--chart-line-primary)' }} />Money in</li>
+            <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--chart-3)' }} />Money out</li>
           </ul>
         </div>
 

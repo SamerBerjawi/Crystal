@@ -1,7 +1,20 @@
 import React, { useMemo } from 'react';
 import type { Currency, Transaction } from '../types';
 import { convertToMain, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { heatColumns, heatStats, type DaySpend } from '../utils/activityModel';
 import { addDays } from '../utils/scheduleModel';
+import {
+  HeatmapCells,
+  HeatmapChart,
+  HeatmapInteractionBoundary,
+  HeatmapInteractionProvider,
+  HeatmapLegend,
+  HeatmapSeparator,
+  HeatmapTooltip,
+  HeatmapXAxis,
+  HeatmapYAxis,
+  useHeatmapInteraction,
+} from '../src/components/bklit';
 import { Amount } from './ui/Money';
 import { useWidgetBox } from './ui/WidgetGrid';
 
@@ -13,74 +26,50 @@ interface SpendingCalendarWidgetProps {
   onDayClick?: (date: string) => void;
 }
 
-const WEEKDAYS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
-const LEVELS = [0.2, 0.4, 0.65, 1];
-const GAP = 4;
+const PickLayer: React.FC<{ onPick?: (day: string) => void; children: React.ReactNode }> = ({ onPick, children }) => {
+  const { tooltipData } = useHeatmapInteraction();
+  return (
+    <div
+      className={onPick && tooltipData ? 'cursor-pointer' : undefined}
+      onClick={() => { if (onPick && tooltipData) onPick(toLocalISOString(tooltipData.date)); }}
+    >
+      {children}
+    </div>
+  );
+};
 
 /**
- * A dot for every day, in weeks, coloured by how much went out: the heatmap dot calendar. It shows as many weeks as the
- * widget is wide, ending today. Days with nothing spent are quiet outlines, so a run of them reads as a streak.
+ * A dot for every day over the last 52 weeks, grouped by quarter and coloured by how much went out.
+ * Days with nothing spent sit quietly at level 0 so streaks remain visible.
  */
 const SpendingCalendarWidget: React.FC<SpendingCalendarWidgetProps> = ({ transactions, currency, toDisplay, onDayClick }) => {
   const box = useWidgetBox();
-  const dot = box.width > 0 && box.width < 420 ? 12 : 14;
-  const labelRoom = box.width >= 300 || box.width === 0 ? 30 : 0;
-  const weekCount = box.width === 0 ? 26 : Math.max(8, Math.min(53, Math.floor((box.width - labelRoom + GAP) / (dot + GAP))));
   const showSummary = box.height === 0 || box.height >= 230;
   const showLegend = box.height === 0 || box.height >= 190;
 
-  const { weeks, spendByDay, stats, thresholds, months } = useMemo(() => {
-    const spendByDay = new Map<string, number>();
+  const { data, spend, stats } = useMemo(() => {
+    const spend = new Map<string, DaySpend>();
     for (const tx of transactions) {
       if (tx.type !== 'expense' || tx.transferId || tx.isSplitParent || tx.isCombinedParent || tx.isBalanceAdjustment) continue;
-      spendByDay.set(tx.date, (spendByDay.get(tx.date) || 0) + Math.abs(toDisplay(convertToMain(tx.amount, tx.currency))));
+      const prev = spend.get(tx.date) ?? { out: 0, count: 0 };
+      prev.count += 1;
+      prev.out += Math.abs(toDisplay(convertToMain(tx.amount, tx.currency)));
+      spend.set(tx.date, prev);
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayIso = toLocalISOString(today);
-    // The grid ends on the week that holds today, starting on a Monday.
-    const endMonday = addDays(today, -((today.getDay() + 6) % 7));
-    const firstMonday = addDays(endMonday, -(weekCount - 1) * 7);
-    const weeks: { date: string; future: boolean }[][] = [];
-    const months: { index: number; label: string }[] = [];
-    for (let w = 0; w < weekCount; w++) {
-      const week: { date: string; future: boolean }[] = [];
-      for (let d = 0; d < 7; d++) {
-        const day = addDays(firstMonday, w * 7 + d);
-        const date = toLocalISOString(day);
-        week.push({ date, future: date > todayIso });
-        if (day.getDate() <= 7 && d === 0 && (w === 0 || day.getMonth() !== addDays(day, -7).getMonth())) months.push({ index: w, label: day.toLocaleDateString(undefined, { month: 'short' }) });
-      }
-      weeks.push(week);
-    }
+    const start = addDays(today, -364);
+    const { columns } = heatColumns(spend, start, today);
+    const stats = heatStats(spend, start, today);
+    return { data: columns, spend, stats };
+  }, [transactions, toDisplay]);
 
-    const shown = weeks.flat().filter(day => !day.future);
-    const values = shown.map(day => spendByDay.get(day.date) || 0);
-    const positive = values.filter(value => value > 0).sort((a, b) => a - b);
-    const at = (share: number) => positive.length ? positive[Math.min(positive.length - 1, Math.floor(positive.length * share))] : 0;
-    let longestStreak = 0;
-    let run = 0;
-    values.forEach(value => { run = value === 0 ? run + 1 : 0; longestStreak = Math.max(longestStreak, run); });
-    const busiestIndex = values.reduce((best, value, index) => (value > values[best] ? index : best), 0);
-    const total = values.reduce((sum, value) => sum + value, 0);
-    return {
-      weeks,
-      spendByDay,
-      months,
-      thresholds: [at(0.25), at(0.5), at(0.75)],
-      stats: {
-        noSpend: values.filter(value => value === 0).length,
-        days: values.length,
-        longestStreak,
-        average: values.length ? total / values.length : 0,
-        busiest: values.length && values[busiestIndex] > 0 ? { date: shown[busiestIndex].date, value: values[busiestIndex] } : null,
-      },
-    };
-  }, [transactions, toDisplay, weekCount]);
-
-  const levelOf = (value: number) => (value <= thresholds[0] ? 0 : value <= thresholds[1] ? 1 : value <= thresholds[2] ? 2 : 3);
-  const dayText = (date: string, value: number) => `${parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}: ${value > 0 ? formatCurrency(value, currency) : 'nothing spent'}`;
+  const describe = (_level: number, date: Date) => {
+    const day = spend.get(toLocalISOString(date));
+    if (!day || day.out <= 0) return 'Nothing spent';
+    return `${formatCurrency(day.out, currency)} spent · ${day.count} ${day.count === 1 ? 'transaction' : 'transactions'}`;
+  };
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -88,7 +77,7 @@ const SpendingCalendarWidget: React.FC<SpendingCalendarWidgetProps> = ({ transac
         <dl className="grid grid-cols-3 gap-3">
           <div className="min-w-0">
             <dt className="type-caption text-muted">No-spend days</dt>
-            <dd className="type-figure-row text-ink">{stats.noSpend}<span className="type-caption ml-1 text-muted">of {stats.days}</span></dd>
+            <dd className="type-figure-row text-ink">{stats.quiet}<span className="type-caption ml-1 text-muted">of {stats.days}</span></dd>
           </div>
           <div className="min-w-0">
             <dt className="type-caption text-muted">Longest streak</dt>
@@ -101,51 +90,48 @@ const SpendingCalendarWidget: React.FC<SpendingCalendarWidgetProps> = ({ transac
         </dl>
       )}
 
-      <div className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="relative w-fit">
-          <div className="relative mb-1 h-4" style={{ marginLeft: labelRoom }}>
-            {months.map(month => <span key={`${month.index}-${month.label}`} aria-hidden="true" className="type-caption absolute text-muted" style={{ left: month.index * (dot + GAP) }}>{month.label}</span>)}
-          </div>
-          <div className="flex" style={{ gap: GAP }}>
-            {labelRoom > 0 && (
-              <div className="grid shrink-0 text-muted" style={{ width: labelRoom - GAP, gap: GAP }} aria-hidden="true">
-                {WEEKDAYS.map((label, index) => <span key={index} className="type-caption flex items-center" style={{ height: dot }}>{label}</span>)}
-              </div>
-            )}
-            {weeks.map(week => (
-              <div key={week[0].date} className="grid" style={{ gap: GAP }}>
-                {week.map(day => {
-                  if (day.future) return <span key={day.date} style={{ width: dot, height: dot }} />;
-                  const value = spendByDay.get(day.date) || 0;
-                  const label = dayText(day.date, value);
-                  const style: React.CSSProperties = { width: dot, height: dot };
-                  const dotEl = value > 0
-                    ? <span className="block size-full rounded-full" style={{ backgroundColor: 'var(--money-out)', opacity: LEVELS[levelOf(value)] }} />
-                    : <span className="block size-full rounded-full border border-line-strong" />;
-                  return onDayClick && value > 0 ? (
-                    <button key={day.date} type="button" title={label} aria-label={label} onClick={() => onDayClick(day.date)} style={style} className="cursor-pointer rounded-full transition-transform hover:scale-125 focus-visible:outline-2 focus-visible:outline-[var(--focus)]">{dotEl}</button>
-                  ) : (
-                    <span key={day.date} title={label} style={style}>{dotEl}</span>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="min-h-0 flex-1 pt-4">
+        <HeatmapInteractionProvider>
+          <HeatmapInteractionBoundary>
+            <div className="flex w-full flex-col items-stretch gap-3">
+              <PickLayer onPick={onDayClick}>
+                <HeatmapChart data={data} gap={3} layout="fluid">
+                  <HeatmapCells
+                    cornerRadius={999}
+                    inactiveOpacity={0.8}
+                    inactiveScale={0.94}
+                  />
+                  <HeatmapSeparator
+                    groupBy="quarter"
+                    showLabels
+                    labelClassName="text-[var(--chart-3)]"
+                    spacing={12}
+                    startOffset={14}
+                    strokeOpacity={0.6}
+                  />
+                  <HeatmapXAxis />
+                  <HeatmapYAxis tickFilter="all" labelFormat="initial" />
+                  <HeatmapTooltip formatLabel={describe} />
+                </HeatmapChart>
+              </PickLayer>
+              {showLegend && (
+                <HeatmapLegend
+                  align="center"
+                  cornerRadius={999}
+                  gap={3}
+                  inactiveOpacity={0.8}
+                  inactiveScale={0.94}
+                />
+              )}
+            </div>
+          </HeatmapInteractionBoundary>
+        </HeatmapInteractionProvider>
       </div>
 
       {showLegend && (
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <p className="type-caption min-w-0 truncate text-muted">
-            {stats.busiest ? <>Busiest day {parseLocalDate(stats.busiest.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}, <Amount value={stats.busiest.value} currency={currency} className="text-ink" /></> : 'Nothing spent in this stretch'}
-          </p>
-          <div className="type-caption flex items-center gap-1.5 text-muted" aria-hidden="true">
-            <span>Less</span>
-            <span className="size-3 rounded-full border border-line-strong" />
-            {LEVELS.map(level => <span key={level} className="size-3 rounded-full" style={{ backgroundColor: 'var(--money-out)', opacity: level }} />)}
-            <span>More</span>
-          </div>
-        </div>
+        <p className="type-caption min-w-0 truncate text-muted">
+          {stats.busiest ? <>Busiest day {parseLocalDate(stats.busiest.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}, <Amount value={stats.busiest.value} currency={currency} className="text-ink" /></> : 'Nothing spent in this stretch'}
+        </p>
       )}
     </div>
   );

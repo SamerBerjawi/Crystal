@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import type { Currency, FinancialGoal } from '../types';
-import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, Line, LineChart, XAxis, YAxis } from '../src/components/charts';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, Line, LineChart, TrendLine, XAxis, YAxis } from '../src/components/charts';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { IconButton } from './ui/Actions';
 import { cn } from '../lib/utils';
@@ -80,9 +80,13 @@ export const LinkedGoals: React.FC<{ goals: FinancialGoal[] }> = ({ goals }) => 
 
 export const MonthlyBars: React.FC<{ data: Record<string, unknown>[]; currency: Currency; bars: { key: string; color: string }[]; stacked?: boolean }> = ({ data, currency, bars, stacked }) => (
   <div className="h-[220px] md:h-[280px]">
-    <BarChart data={data} xDataKey="name" stacked={stacked} aspectRatio="auto" margin={{ top: 15, right: 15, left: 15, bottom: 25 }}>
-      <Grid horizontal vertical={false} strokeOpacity={0.06} />
-      {bars.map(bar => <Bar key={bar.key} dataKey={bar.key} fill={bar.color} lineCap="round" />)}
+    <BarChart data={data} xDataKey="name" stacked={stacked} aspectRatio="auto" margin={{ top: 8, right: 8, bottom: 40, left: 56 }}>
+      <Grid horizontal />
+      {bars.map((bar, idx) => (
+        <Bar key={bar.key} dataKey={bar.key} fill={bar.color || (idx === 0 ? undefined : 'var(--chart-3)')} lineCap="round" />
+      ))}
+      <YAxis yAxisId="left" />
+      {bars[0] && <TrendLine dataKey={bars[0].key} stroke="var(--chart-1)" />}
       <BarXAxis />
       <ChartTooltip valueFormatter={(value: number) => formatCurrency(value, currency)} />
     </BarChart>

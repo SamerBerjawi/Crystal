@@ -4,7 +4,7 @@ import { convertToMain, getDateRange, getMainCurrency, parseLocalDate, toLocalIS
 import { addDays } from '../utils/scheduleModel';
 import { budgetAccountIds, spendByCategory } from '../utils/budgetModel';
 import { monthsInPeriod } from '../utils/reportsModel';
-import { PieChart, PieCenter, PieSlice, type PieData } from '../src/components/charts';
+import { PieChart, PieCenter, PieTicks, type PieData } from '../src/components/charts';
 import { EntityGlyph } from './EntityIcon';
 import { Amount } from './ui/Money';
 import { EmptyState } from './ui/States';
@@ -129,7 +129,6 @@ const SpendingByCategoryWidget: React.FC<SpendingByCategoryWidgetProps> = ({ sel
 
   // The donut needs 220px of height and a list needs 300px beside it. Otherwise the list has the whole widget.
   const showDonut = box.height === 0 || (box.height >= 220 && box.width >= 520 && data.length > 0);
-  const donutSize = box.height > 0 ? Math.max(120, Math.min(box.height - 8, Math.round(box.width * 0.36), 300)) : 220;
   const rowHeight = 58;
   const fit = fitRows(box, rowHeight, 8);
   const count = box.height === 0 || fit >= rows.length - 1 ? rows.length : Math.max(1, fit - 1);
@@ -152,17 +151,10 @@ const SpendingByCategoryWidget: React.FC<SpendingByCategoryWidgetProps> = ({ sel
   return (
     <div className="flex h-full gap-5">
       {showDonut && slices.length > 0 && (
-        <div className="flex shrink-0 items-center justify-center" style={{ width: donutSize }}>
-          <PieChart data={slices} size={donutSize} innerRadius={Math.round(donutSize * 0.3)} cornerRadius={6} padAngle={slices.length > 1 ? 0.04 : 0}>
-            {slices.map((_, index) => <PieSlice key={index} index={index} />)}
-            <PieCenter defaultLabel="Spent">
-              {({ value, label }) => (
-                <div className="flex flex-col items-center text-center">
-                  <span className="type-caption text-muted">{label}</span>
-                  <span className="type-figure-row text-ink"><Amount value={value} currency={currency} /></span>
-                </div>
-              )}
-            </PieCenter>
+        <div className="flex shrink-0 items-center justify-center" style={{ width: 200 }}>
+          <PieChart data={slices} innerRadius={70} size={200}>
+            <PieTicks hoverEffect="tick" />
+            <PieCenter defaultLabel="Share" valueDisplay="percent" />
           </PieChart>
         </div>
       )}

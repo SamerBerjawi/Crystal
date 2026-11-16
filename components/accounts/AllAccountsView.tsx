@@ -7,7 +7,7 @@ import { HUB_GROUPS, hubGroupOf, isoDay, moneyMap, netWorthHistory, toDatedAmoun
 import { usePreferencesSelector } from '../../contexts/DomainProviders';
 import { useGoalsContext, useScheduleContext } from '../../contexts/FinancialDataContext';
 import { SankeyChart, SankeyLink, SankeyNode, SankeyTooltip } from '../../src/components/charts/sankey';
-import { AreaSparkline } from '../../src/components/charts';
+import { LineSparkline } from '../../src/components/charts';
 import { formatCurrency } from '../../utils';
 import { AccountLogo } from '../AccountCard';
 import { Badge } from '../ui/Display';
@@ -204,8 +204,18 @@ const AccountLine: React.FC<{ account: Account; balance: number; transactions: T
               ))}
             </span>
           </span>
-          <span className={cn('hidden w-24 shrink-0 @lg:block')}>
-            {spark.sparklineData.length > 1 && <AreaSparkline data={spark.sparklineData.map((point, index) => ({ index, value: point.value }))} dataKey="value" height={32} curve="natural" color={spark.isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'} animationDuration={900} />}
+          <span className={cn('hidden shrink-0 @lg:block')}>
+            {spark.sparklineData.length > 1 && (
+              <LineSparkline
+                color={spark.isPositiveTrend ? 'var(--chart-positive)' : 'var(--chart-negative)'}
+                curve="natural"
+                data={spark.sparklineData.map((point, i) => ({ day: `Day ${i + 1}`, value: point.value }))}
+                dataKey="value"
+                height={24}
+                strokeWidth={1.5}
+                width={120}
+              />
+            )}
           </span>
           <span className="type-figure-row shrink-0 text-right text-ink"><Amount value={balance} currency={account.currency} /></span>
         </button>

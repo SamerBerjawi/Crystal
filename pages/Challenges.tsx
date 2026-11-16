@@ -6,6 +6,7 @@ import { BADGE_GROUPS, budgetMastery, challengeBadges, challengeMetrics, debtsAn
 import { usePreferencesContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, TrendLine, YAxis } from '../src/components/charts';
 import PageHeader, { type PageStat } from '../components/PageHeader';
 import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
@@ -970,32 +971,21 @@ const Challenges: React.FC<ChallengesProps> = ({
                 <span className="type-caption text-muted text-xs">60-Month Historical Range</span>
               </div>
 
-              {/* Monthly mini sparkline bars */}
-              <div className="grid grid-cols-12 items-end gap-1.5 sm:gap-2 h-20 pt-2 pb-1 border-t border-line">
-                {netWorthPoints.slice(0, 12).reverse().map((point, index) => {
-                  const points12 = netWorthPoints.slice(0, 12);
-                  const maxPt = Math.max(...points12.map(p => p.value), 1);
-                  const minPt = Math.min(...points12.map(p => p.value), 0);
-                  const range = Math.max(1, maxPt - minPt);
-                  const heightPct = Math.max(15, ((point.value - minPt) / range) * 100);
-                  const isLatest = index === 11;
-
-                  return (
-                    <div
-                      key={point.date}
-                      className="flex flex-col items-center gap-1 group cursor-pointer"
-                      title={`${point.date}: ${point.value.toFixed(0)}`}
-                    >
-                      <div
-                        className={`w-full rounded-t transition-all duration-300 group-hover:opacity-100 ${isLatest ? 'bg-amber-500' : 'bg-primary/50 group-hover:bg-primary'}`}
-                        style={{ height: `${heightPct}%` }}
-                      />
-                      <span className="text-[9px] text-muted truncate max-w-[24px]">
-                        {point.date.slice(0, 3)}
-                      </span>
-                    </div>
-                  );
-                })}
+              {/* Monthly net worth trajectory */}
+              <div className="h-52 pt-2 border-t border-line">
+                <BarChart
+                  data={netWorthPoints.slice(0, 12).reverse().map(point => ({ month: point.date.slice(0, 7), 'Net worth': Math.max(0, Math.round(point.value)) }))}
+                  xDataKey="month"
+                  aspectRatio="auto"
+                  margin={{ top: 8, right: 8, bottom: 40, left: 56 }}
+                >
+                  <Grid horizontal />
+                  <Bar dataKey="Net worth" lineCap="round" />
+                  <YAxis yAxisId="left" />
+                  <TrendLine dataKey="Net worth" stroke="var(--chart-1)" />
+                  <BarXAxis />
+                  <ChartTooltip />
+                </BarChart>
               </div>
             </section>
           )}

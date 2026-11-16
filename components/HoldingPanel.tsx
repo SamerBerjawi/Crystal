@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { Account, HoldingSummary, InvestmentTransaction, PriceHistoryEntry, Warrant } from '../types';
 import { convertCurrency, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { CANDLE_MIN_POINTS, formatHoldingType } from '../utils/investments';
-import { curveMonotoneX } from '@visx/curve';
+import { curveNatural } from '@visx/curve';
 import { ChartMarkers, ChartTooltip, Grid, Line, LineChart, LineSeriesTerminalMarker, XAxis, YAxis, type ChartMarker } from '../src/components/charts';
 import { SpotlightIndicator } from '../src/components/charts/spotlight-indicator';
 import { priceRange } from '../utils/portfolioInsights';
@@ -167,11 +167,11 @@ const HoldingPanel: React.FC<HoldingPanelProps> = ({ holding, account, trades, g
             <LineChart data={chartData} xDataKey="date" revealSignature={`${priceRangeId}-${chartData.length}`} yDomainTween fitYDomain aspectRatio="" className="h-[240px] w-full" margin={{ top: 16, right: 12, bottom: 24, left: 48 }}>
               <Grid horizontal numTicksRows={4} stroke="var(--line)" />
               <SpotlightIndicator seriesKey="value" color={lineColor} />
-              <HorizonArea seriesKey="value" color={lineColor} curve={curveMonotoneX} />
+              <HorizonArea seriesKey="value" color={lineColor} curve={curveNatural} />
               <XAxis numTicks={4} tickMode="domain" tickFormatter={tick} />
               <YAxis numTicks={4} tickFormatter={fitTick} />
-              {'cost' in (chartData[0] ?? {}) && <Line dataKey="cost" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="5,5" fadeEdges={false} />}
-              <Line dataKey="value" stroke={lineColor} strokeWidth={2.25} curve={curveMonotoneX} fadeEdges={false} />
+              {'cost' in (chartData[0] ?? {}) && <Line dataKey="cost" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="5,5" curve={curveNatural} fadeEdges={false} />}
+              <Line dataKey="value" stroke={lineColor} strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
               <LineSeriesTerminalMarker dataKey="value" stroke={lineColor} fill={lineColor} />
               {markers.length > 0 && <ChartMarkers items={markers} size={20} />}
               <ChartTooltip

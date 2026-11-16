@@ -156,11 +156,12 @@ export const SafeToSpendWidget: React.FC<{
     onCushionChange(Math.round(inEur * 100) / 100);
   };
 
+  const box = useWidgetBox();
+
   if (!data.accounts.length) {
     return <EmptyState className="py-4" icon="wallet" title="No spending account yet" description="Add a checking account to see what you can spend." />;
   }
 
-  const box = useWidgetBox();
   // Side by side when there is width; stacked when there is not. The breakdown needs about 150px of height, the account line 190px.
   const sideBySide = box.width > 0 ? box.width >= 460 : size !== 's';
   const showBreakdown = box.height === 0 || box.height >= 150;

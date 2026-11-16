@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { curveNatural } from 'd3-shape';
 import type { Category, Currency } from '../../types';
 import { formatCurrency } from '../../utils';
 import { FLOW_UNITS, type FlowPeriod, type FlowUnit } from '../../utils/activityModel';
-import { parseDay } from '../../utils/accountPagesModel';
-import { ChartTooltip, ComposedChart, Grid, Line, SeriesBar, useChartHoverSelector, XAxis } from '../../src/components/bklit';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, TrendLine, YAxis } from '../../src/components/charts';
+import { useChart } from '../../src/components/charts/chart-context';
 import { EntityGlyph } from '../EntityIcon';
 import { Amount } from '../ui/Money';
 import SegmentedControl from '../ui/SegmentedControl';
@@ -43,29 +42,29 @@ const DEFAULT_LABELS = { in: 'Money in', out: 'Money out', balance: 'Balance' };
 
 /** Tells the card which period the pointer is over, so the panel beside the chart follows it. */
 const ActivePeriod: React.FC<{ onActive: (index: number) => void }> = ({ onActive }) => {
-  const index = useChartHoverSelector(state => state.tooltipData?.index ?? null);
+  const { tooltipData } = useChart();
+  const index = tooltipData?.index ?? null;
   useEffect(() => { if (index !== null) onActive(index); }, [index, onActive]);
   return null;
 };
 (ActivePeriod as unknown as { __isPostOverlay: boolean }).__isPostOverlay = true;
 
 /**
- * Money in and out, period by period, on the Bklit composed chart: a bar for what came in and one for what went out, a
- * line for the balance, and a panel beside it for the period under the pointer: where its money went and who paid in.
+ * Money in and out, period by period, on the Bklit bar chart: a bar for what came in and one for what went out, a
+ * trend line, and a panel beside it for the period under the pointer: where its money went and who paid in.
  */
 const MoneyFlowChart: React.FC<MoneyFlowChartProps> = ({ periods, currency, labels = DEFAULT_LABELS, units, hint = 'Hover a bar to see where it went', categoryStyle, showDetail = true, onCategory, height = 230 }) => {
   const [picked, setPicked] = useState<number | null>(null);
 
-  const hasBalance = periods.length > 0 && periods.every(period => period.balance !== undefined);
   const index = picked !== null && picked < periods.length ? picked : periods.length - 1;
   const current = periods[index];
 
+  const hasDuplicateShort = useMemo(() => new Set(periods.map(p => p.short)).size < periods.length, [periods]);
   const data = useMemo(() => periods.map(period => ({
-    date: parseDay(period.id.length === 7 ? `${period.id}-01` : period.id),
-    in: period.inValue,
-    out: period.outValue,
-    ...(hasBalance ? { balance: period.balance } : {}),
-  })), [periods, hasBalance]);
+    month: hasDuplicateShort ? period.long : period.short,
+    [labels.in]: period.inValue,
+    [labels.out]: period.outValue,
+  })), [periods, hasDuplicateShort, labels.in, labels.out]);
 
   if (!current || periods.every(period => period.inValue === 0 && period.outValue === 0)) {
     return (
@@ -78,8 +77,6 @@ const MoneyFlowChart: React.FC<MoneyFlowChartProps> = ({ periods, currency, labe
 
   const net = current.inValue - current.outValue;
   const showDetails = showDetail && (current.categories.length > 0 || !!current.topSource);
-  const xLabels = periods.map(period => period.short);
-  const longLabels = periods.map(period => period.long);
 
   return (
     <div className="@container flex h-full flex-col gap-3">
@@ -91,31 +88,20 @@ const MoneyFlowChart: React.FC<MoneyFlowChartProps> = ({ periods, currency, labe
       <div className="flex min-h-0 flex-1 flex-col gap-5 @[680px]:flex-row">
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex-1" style={{ minHeight: height }}>
-            <ComposedChart data={data} aspectRatio="auto" className="h-full" margin={{ top: 8, right: 8, bottom: 40, left: 8 }} barGap={0} maxBarSize={26}>
+            <BarChart data={data} xDataKey="month" aspectRatio="auto" className="h-full" margin={{ top: 8, right: 8, bottom: 40, left: 56 }}>
               <Grid horizontal />
-              <SeriesBar dataKey="in" fill="var(--money-in)" radius={4} />
-              <SeriesBar dataKey="out" fill="var(--money-out)" radius={4} />
-              {hasBalance && <Line dataKey="balance" yAxisId="balance" stroke="var(--chart-1)" strokeWidth={2} curve={curveNatural} />}
-              <ChartTooltip
-                showCrosshair={false}
-                dateLabels={longLabels}
-                rows={point => {
-                  const row = point as { in?: number; out?: number; balance?: number };
-                  return [
-                    { color: 'var(--money-in)', label: labels.in, value: formatCurrency(row.in ?? 0, currency) },
-                    { color: 'var(--money-out)', label: labels.out, value: formatCurrency(row.out ?? 0, currency) },
-                    ...(hasBalance ? [{ color: 'var(--chart-1)', label: labels.balance, value: formatCurrency(row.balance ?? 0, currency) }] : []),
-                  ];
-                }}
-              />
-              <XAxis numTicks={Math.min(periods.length, 8)} labels={xLabels} />
+              <Bar dataKey={labels.in} lineCap="round" onClick={(_d, i) => setPicked(i)} />
+              <Bar dataKey={labels.out} fill="var(--chart-3)" lineCap="round" onClick={(_d, i) => setPicked(i)} />
+              <YAxis yAxisId="left" />
+              <TrendLine dataKey={labels.in} stroke="var(--chart-1)" />
+              <BarXAxis />
+              <ChartTooltip valueFormatter={(value: number) => formatCurrency(value, currency)} />
               <ActivePeriod onActive={setPicked} />
-            </ComposedChart>
+            </BarChart>
           </div>
           <ul className="type-caption mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted">
-            <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--money-in)' }} />{labels.in}</li>
-            <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--money-out)' }} />{labels.out}</li>
-            {hasBalance && <li className="flex items-center gap-1.5"><span className="h-0.5 w-3.5 rounded-full" style={{ background: 'var(--chart-1)' }} />{labels.balance}</li>}
+            <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--chart-line-primary)' }} />{labels.in}</li>
+            <li className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: 'var(--chart-3)' }} />{labels.out}</li>
           </ul>
         </div>
 

@@ -17,17 +17,6 @@ import {
 } from '../../src/components/bklit';
 import { Amount } from '../ui/Money';
 
-/** Same scheme as before: empty days are quiet, spending runs from a light amber to a full one. */
-const LEVEL_COLORS = [
-  'var(--inset)',
-  'color-mix(in srgb, var(--chart-4) 22%, transparent)',
-  'color-mix(in srgb, var(--chart-4) 42%, transparent)',
-  'color-mix(in srgb, var(--chart-4) 68%, transparent)',
-  'var(--chart-4)',
-] as const;
-
-const SEPARATOR_FADE = { from: 'var(--line-strong)', via: 'var(--line-strong)', to: 'var(--line-strong)', fromOpacity: 0, viaOpacity: 1, toOpacity: 0 };
-
 /** Turns a click on the chart into the day under the pointer, which the heatmap itself only tracks for hover. */
 const PickLayer: React.FC<{ onPick: (day: string) => void; children: React.ReactNode }> = ({ onPick, children }) => {
   const { tooltipData } = useHeatmapInteraction();
@@ -47,14 +36,11 @@ const DayCalendar: React.FC<{ rows: ActivityRow<Transaction>[]; account: Account
   const earliest = useMemo(() => rows.reduce<string | undefined>((first, row) => (!first || row.date < first ? row.date : first), undefined), [rows]);
   const spend = useMemo(() => spendByDay(rows), [rows]);
 
-  const { columns, stats, start, end } = useMemo(() => {
+  const { columns: data, stats } = useMemo(() => {
     const end = parseDay(todayKey);
     const start = heatStart(range, earliest, end);
-    return { ...heatColumns(spend, start, end), stats: heatStats(spend, start, end), start, end };
+    return { ...heatColumns(spend, start, end), stats: heatStats(spend, start, end) };
   }, [spend, range, earliest, todayKey]);
-
-  // A short stretch has few columns, so its squares keep a fixed size instead of stretching across the card.
-  const binSize = columns.length < 30 ? 20 : 0;
 
   const describe = (_level: number, date: Date) => {
     const day = spend.get(isoDay(date));
@@ -75,15 +61,32 @@ const DayCalendar: React.FC<{ rows: ActivityRow<Transaction>[]; account: Account
           <HeatmapInteractionBoundary>
             <div className="flex w-full flex-col items-stretch gap-3">
               <PickLayer onPick={onPick}>
-                <HeatmapChart className="w-full" data={columns} xDomain={[start, end]} layout="fluid" weekStartDay={0} binSize={binSize} gap={3} levelColors={LEVEL_COLORS}>
-                  <HeatmapCells cornerRadius={3} />
+                <HeatmapChart data={data} gap={3} layout="fluid">
+                  <HeatmapCells
+                    cornerRadius={999}
+                    inactiveOpacity={0.8}
+                    inactiveScale={0.94}
+                  />
+                  <HeatmapSeparator
+                    groupBy="quarter"
+                    showLabels
+                    labelClassName="text-[var(--chart-3)]"
+                    spacing={12}
+                    startOffset={14}
+                    strokeOpacity={0.6}
+                  />
                   <HeatmapXAxis />
-                  <HeatmapYAxis labelFormat="full" />
-                  <HeatmapSeparator groupBy="quarter" gradient={SEPARATOR_FADE} labelClassName="text-[var(--chart-3)]" showLabels spacing={20} startOffset={-20} strokeStyle="solid" />
+                  <HeatmapYAxis tickFilter="all" labelFormat="initial" />
                   <HeatmapTooltip formatLabel={describe} />
                 </HeatmapChart>
               </PickLayer>
-              <HeatmapLegend lessLabel="Less spent" moreLabel="More spent" align={compact ? 'start' : 'end'} />
+              <HeatmapLegend
+                align="center"
+                cornerRadius={999}
+                gap={3}
+                inactiveOpacity={0.8}
+                inactiveScale={0.94}
+              />
             </div>
           </HeatmapInteractionBoundary>
         </HeatmapInteractionProvider>

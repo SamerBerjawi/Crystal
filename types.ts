@@ -356,6 +356,10 @@ export interface Transaction {
   linkedInvoiceId?: string;
   /** A one-off you do not want counted against budgets (a laptop, a deposit). Everything else still counts it. */
   excludeFromBudget?: boolean;
+  /** Newly synced from a bank connection and awaiting quick review. */
+  needsReview?: boolean;
+  /** ISO timestamp when this transaction arrived from a bank sync. */
+  syncedAt?: string;
   /** Fields you edited on a bank-synced transaction. Sync leaves them alone (utils/lockedFields.ts). */
   lockedFields?: ('merchant' | 'description')[];
 }
@@ -697,6 +701,25 @@ export interface TripSettings {
   /** default: the app's own basemap. custom: tiles from `tileUrl`. off: no map tiles, and nothing is fetched. */
   map?: 'default' | 'custom' | 'off';
   tileUrl?: string;
+  /** Custom display names keyed by trip id (e.g. `trip:2025-07-10`). */
+  customNames?: Record<string, string>;
+  /** Transactions manually pinned to a trip (such as pre-booked flights or hotels). */
+  pinnedTransactionIds?: Record<string, string[]>;
+  /** Auto-detected transactions excluded from trips by the user. */
+  excludedTransactionIds?: string[];
+}
+
+export interface SpareChangeCustomItem {
+  label: string;
+  unitPrice: number;
+  icon?: string;
+}
+
+export interface SpareChangeSettings {
+  /** User-configured unit prices keyed by equivalent id (coffee, streaming, cinema, book, dinner, weekend). */
+  customPrices?: Record<string, number>;
+  /** Optional custom goal item (e.g., "Concert ticket", 75). */
+  customItem?: SpareChangeCustomItem;
 }
 
 export interface AppPreferences {
@@ -741,8 +764,16 @@ export interface AppPreferences {
   merchantLogoOverrides?: Record<string, string>; // Deprecated in favor of merchantRules, kept for backward compat if needed
   merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name
   hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden
-  /** Tax pack: the country to read requirements for. Empty means the country of the city in Settings. */
-  taxPack?: { country?: string };
+  /** Tax pack: country override, cost-basis method, and custom deductible categories/tags. */
+  taxPack?: {
+    country?: string;
+    costBasisMethod?: 'average' | 'fifo';
+    customDeductibleCategories?: string[];
+    excludedDeductibleCategories?: string[];
+    deductibleTagIds?: string[];
+  };
+  /** Personalized prices and custom treat target for Spare Change equivalents. */
+  spareChange?: SpareChangeSettings;
   isPrivacyMode?: boolean;
   excludeTransfersFromAnalytics?: boolean;
   dashboardLayouts?: Record<string, WidgetConfig[]>;
@@ -1008,9 +1039,12 @@ export interface ScraperConfig {
   options: ScraperOptions;
 }
 
-/** What you set yourself in the debt payoff planner: the extra each month, and a rate and payment for debts that carry neither. */
+/** What you set yourself in the debt payoff planner: extra monthly payment, lump sum, active strategy, excluded debts, and rate/payment overrides. */
 export interface DebtPlanSettings {
   extra?: number;
+  lumpSum?: number;
+  strategy?: 'avalanche' | 'snowball' | 'minimums';
+  excludedIds?: string[];
   overrides?: Record<string, { rate?: number; payment?: number }>;
 }
 

@@ -26,7 +26,7 @@ export interface PageStat {
   label: string;
   icon: string;
   value: number;
-  format?: 'money' | 'number' | 'percent';
+  format?: 'money' | 'number' | 'percent' | 'year';
   currency?: Currency;
   /** Text after the figure, such as "of 12" or "3 late". */
   badge?: string;

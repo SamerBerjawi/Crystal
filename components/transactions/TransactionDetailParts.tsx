@@ -15,6 +15,7 @@ import {
 } from '../../utils/transactionDetailModel';
 import Icon from '../ui/Icon';
 import { FormattedAmount } from '../ui/Money';
+import { LinearGauge } from '../ui/StatGauge';
 import { cn } from '../../lib/utils';
 
 export const AccountLogoTile: React.FC<{
@@ -219,21 +220,12 @@ export const CategoryBudgetMicroGauge: React.FC<{
         {insight.pct}%)
       </span>
     </div>
-    <div className="flex items-center gap-[3px] w-full h-2">
-      {Array.from({ length: 40 }).map((_, i) => {
-        const activeCount = Math.round((insight.pct / 100) * 40);
-        const isActive = i < activeCount;
-        return (
-          <span
-            key={i}
-            className={cn(
-              'h-full flex-1 rounded-full transition-colors',
-              isActive ? 'bg-amber' : 'bg-primary/30'
-            )}
-          />
-        );
-      })}
-    </div>
+    <LinearGauge
+      fill={insight.pct}
+      tone={insight.pct > 90 ? 'loss' : insight.pct > 75 ? 'amber' : 'pine'}
+      label={`${category ?? 'Category'} monthly budget`}
+      height={12}
+    />
   </div>
 );
 

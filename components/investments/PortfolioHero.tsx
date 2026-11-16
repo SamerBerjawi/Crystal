@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { curveMonotoneX } from '@visx/curve';
+import { curveNatural } from '@visx/curve';
 import type { Currency } from '../../types';
 import { formatCurrency, parseLocalDate } from '../../utils';
 import { ChartTooltip, Grid, Line, LineChart, LineSeriesTerminalMarker, XAxis, YAxis } from '../../src/components/charts';
@@ -99,11 +99,11 @@ const PortfolioHero: React.FC<PortfolioHeroProps> = ({ points, currency, value, 
           <LineChart data={rows} xDataKey="date" revealSignature={`${range}-${rows.length}`} yDomainTween fitYDomain aspectRatio="" className="h-full min-h-[220px] w-full md:min-h-[280px]" margin={{ top: 12, right: 12, bottom: 24, left: 48 }}>
             <Grid horizontal numTicksRows={4} stroke="var(--line)" />
             <SpotlightIndicator seriesKey="value" color={lineColor} />
-            <HorizonArea seriesKey="value" color={lineColor} curve={curveMonotoneX} />
+            <HorizonArea seriesKey="value" color={lineColor} curve={curveNatural} />
             <XAxis numTicks={5} tickMode="domain" tickFormatter={tick} />
             <YAxis numTicks={4} tickFormatter={fitTick} />
-            {hasInvested && <Line dataKey="invested" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="5,5" curve={curveMonotoneX} fadeEdges={false} />}
-            <Line dataKey="value" stroke={lineColor} strokeWidth={2.25} curve={curveMonotoneX} fadeEdges={false} />
+            {hasInvested && <Line dataKey="invested" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="5,5" curve={curveNatural} fadeEdges={false} />}
+            <Line dataKey="value" stroke={lineColor} strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
             <LineSeriesTerminalMarker dataKey="value" stroke={lineColor} fill={lineColor} />
             <ScrubSync onChange={setScrub} />
             <ChartTooltip

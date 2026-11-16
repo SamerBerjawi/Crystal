@@ -138,13 +138,15 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
         <AccountLogo account={account} />
         <div className="min-w-0 flex-1">{name}</div>
         {hasTrend && (
-          <span className="block w-24 shrink-0 max-lg:hidden">
+          <span className="block shrink-0 max-lg:hidden">
             <LineSparkline
-              data={sparklineData.map((point, index) => ({ index, value: point.value }))}
-              dataKey="value"
-              height={28}
+              color={isPositiveTrend ? 'var(--chart-positive)' : 'var(--chart-negative)'}
               curve="natural"
-              color={isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'}
+              data={sparklineData.map((point, i) => ({ day: `Day ${i + 1}`, value: point.value }))}
+              dataKey="value"
+              height={24}
+              strokeWidth={1.5}
+              width={120}
             />
           </span>
         )}
@@ -171,13 +173,15 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
           {hasTrend && <Change value={convertToMain(trend, account.currency)} currency={getMainCurrency()} period="in 90 days" className="type-caption text-muted" />}
         </div>
         {hasTrend && (
-          <span className="block w-24 shrink-0">
+          <span className="block shrink-0">
             <LineSparkline
-              data={sparklineData.map((point, index) => ({ index, value: point.value }))}
-              dataKey="value"
-              height={32}
+              color={isPositiveTrend ? 'var(--chart-positive)' : 'var(--chart-negative)'}
               curve="natural"
-              color={isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'}
+              data={sparklineData.map((point, i) => ({ day: `Day ${i + 1}`, value: point.value }))}
+              dataKey="value"
+              height={24}
+              strokeWidth={1.5}
+              width={120}
             />
           </span>
         )}

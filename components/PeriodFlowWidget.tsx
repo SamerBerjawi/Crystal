@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Currency } from '../types';
 import { formatCurrency } from '../utils';
-import { BarChart, Bar, Grid, BarXAxis, ChartTooltip } from '../src/components/charts';
+import { BarChart, Bar, Grid, YAxis, TrendLine, BarXAxis, ChartTooltip } from '../src/components/charts';
 import { Badge } from './ui/Display';
 import { Amount } from './ui/Money';
 import { useWidgetBox } from './ui/WidgetGrid';
@@ -79,10 +79,12 @@ const PeriodFlowWidget: React.FC<PeriodFlowWidgetProps> = ({ income, expenses, i
 
       {showChart && (
         <div className="min-h-[80px] flex-1 overflow-hidden">
-          <BarChart data={buckets as unknown as Record<string, unknown>[]} xDataKey="name" aspectRatio="auto" barGap={0.3} margin={{ top: 8, right: 8, left: 8, bottom: 22 }} className="h-full w-full">
-            <Grid horizontal vertical={false} strokeOpacity={0.08} />
-            <Bar dataKey="Money in" fill="var(--money-in)" stroke="var(--money-in)" lineCap="round" />
-            <Bar dataKey="Money out" fill="var(--money-out)" stroke="var(--money-out)" lineCap="round" />
+          <BarChart data={buckets as unknown as Record<string, unknown>[]} xDataKey="name" aspectRatio="auto" barGap={0.3} margin={{ top: 8, right: 8, bottom: 40, left: 56 }} className="h-full w-full">
+            <Grid horizontal />
+            <Bar dataKey="Money in" lineCap="round" />
+            <Bar dataKey="Money out" fill="var(--chart-3)" lineCap="round" />
+            <YAxis yAxisId="left" />
+            <TrendLine dataKey="Money in" stroke="var(--chart-1)" />
             <BarXAxis />
             <ChartTooltip valueFormatter={(value: number) => formatCurrency(value, currency)} />
           </BarChart>

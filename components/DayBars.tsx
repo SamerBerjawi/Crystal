@@ -1,16 +1,35 @@
 import React, { useMemo, useState } from 'react';
-import { motion } from 'motion/react';
-import { formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
-import { heatKind, type DayCommitted, type HeatKind } from '../utils/scheduleModel';
+import { formatCurrency, parseLocalDate, toLocalISOString, getMainCurrency } from '../utils';
+import { heatLevelOf, type HeatColumn } from '../utils/activityModel';
+import { addDays, type DayCommitted } from '../utils/scheduleModel';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, TrendLine, YAxis } from '../src/components/charts';
+import {
+  HeatmapCells,
+  HeatmapChart,
+  HeatmapInteractionBoundary,
+  HeatmapInteractionProvider,
+  HeatmapLegend,
+  HeatmapSeparator,
+  HeatmapTooltip,
+  HeatmapXAxis,
+  HeatmapYAxis,
+  useHeatmapInteraction,
+} from '../src/components/bklit';
 import SegmentedControl from './ui/SegmentedControl';
 
 const VIEWS = [{ id: 'bars', label: 'Next 30 days' }, { id: 'heatmap', label: 'Year heatmap' }];
-const BAR_HEIGHT = 112;
-const HEAT_COLOURS: Record<HeatKind, string> = { none: 'var(--inset)', in: 'var(--money-in)', out: 'var(--tomato)', move: 'var(--blue)', mixed: 'var(--rose)' };
-const HEAT_LABELS: [HeatKind, string][] = [['in', 'Money in'], ['out', 'Money out'], ['move', 'Transfers'], ['mixed', 'Mixed']];
 
-const dateLabel = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-const describe = (day: DayCommitted) => `${dateLabel(day.date)}: ${[day.in > 0 && `in ${formatCurrency(day.in, getMainCurrency())}`, day.out > 0 && `out ${formatCurrency(day.out, getMainCurrency())}`, day.moves > 0 && `moves ${formatCurrency(day.moves, getMainCurrency())}`].filter(Boolean).join(', ') || 'nothing'}`;
+const PickLayer: React.FC<{ onPick: (day: string) => void; children: React.ReactNode }> = ({ onPick, children }) => {
+  const { tooltipData } = useHeatmapInteraction();
+  return (
+    <div
+      className={tooltipData ? 'cursor-pointer' : undefined}
+      onClick={() => { if (tooltipData) onPick(toLocalISOString(tooltipData.date)); }}
+    >
+      {children}
+    </div>
+  );
+};
 
 interface DayBarsProps {
   days: DayCommitted[];
@@ -18,15 +37,46 @@ interface DayBarsProps {
   onSelect: (date: string) => void;
 }
 
-/** When money moves: a bar for each of the next 30 days, with the year as a heatmap behind a toggle (D-033). */
+/** When money moves: a bar for each of the next 30 days, with the year as a Bklit heatmap behind a toggle (D-033). */
 const DayBars: React.FC<DayBarsProps> = ({ days, yearDays, onSelect }) => {
   const [view, setView] = useState('bars');
-  const largest = useMemo(() => Math.max(1, ...days.map(day => Math.max(day.in, day.out + day.moves))), [days]);
-  const weeks = useMemo(() => {
-    const rows: DayCommitted[][] = [];
-    for (let i = 0; i < yearDays.length; i += 7) rows.push(yearDays.slice(i, i + 7));
-    return rows;
+
+  const { heatmapData, byDate } = useMemo(() => {
+    const byDate = new Map<string, DayCommitted>();
+    yearDays.forEach(d => byDate.set(d.date, d));
+    if (yearDays.length === 0) return { heatmapData: [] as HeatColumn[], byDate };
+
+    const start = parseLocalDate(yearDays[0].date);
+    const end = parseLocalDate(yearDays[yearDays.length - 1].date);
+    const first = addDays(start, -start.getDay());
+    const weeks = Math.round((addDays(end, -end.getDay()).getTime() - first.getTime()) / (7 * 86_400_000)) + 1;
+    const levelOf = heatLevelOf(yearDays.map(d => d.in + d.out + d.moves));
+
+    const heatmapData: HeatColumn[] = Array.from({ length: weeks }, (_, week) => ({
+      bin: week,
+      bins: Array.from({ length: 7 }, (__, row) => {
+        const date = addDays(first, week * 7 + row);
+        const iso = toLocalISOString(date);
+        const inside = date >= start && date <= end;
+        const item = inside ? byDate.get(iso) : undefined;
+        const total = item ? item.in + item.out + item.moves : 0;
+        return { bin: row, date, count: inside ? levelOf(total) : 0 };
+      }),
+    }));
+    return { heatmapData, byDate };
   }, [yearDays]);
+
+  const describe = (_level: number, date: Date) => {
+    const day = byDate.get(toLocalISOString(date));
+    if (!day) return 'Nothing';
+    const currency = getMainCurrency();
+    const parts = [
+      day.in > 0 && `in ${formatCurrency(day.in, currency)}`,
+      day.out > 0 && `out ${formatCurrency(day.out, currency)}`,
+      day.moves > 0 && `moves ${formatCurrency(day.moves, currency)}`,
+    ].filter(Boolean);
+    return parts.join(', ') || 'Nothing';
+  };
 
   return (
     <section aria-label="When money moves" className="surface-card rounded-[var(--radius-xl)] p-5">
@@ -35,48 +85,64 @@ const DayBars: React.FC<DayBarsProps> = ({ days, yearDays, onSelect }) => {
         <SegmentedControl items={VIEWS} activeId={view} onChange={setView} />
       </div>
       {view === 'bars' ? (
-        <div className="no-scrollbar overflow-x-auto">
-          <ul className="flex min-w-[640px] items-end gap-1" aria-label="Next 30 days">
-            {days.map((day, index) => {
-              const date = parseLocalDate(day.date);
-              return (
-                <li key={day.date} className="min-w-0 flex-1">
-                  <button type="button" aria-label={describe(day)} title={describe(day)} onClick={() => onSelect(day.date)} className="block w-full cursor-pointer">
-                    <span className="flex flex-col justify-end gap-0.5 overflow-hidden border-b border-line" style={{ height: BAR_HEIGHT }}>
-                      {[{ value: day.in, colour: 'var(--money-in)' }, { value: day.moves, colour: 'var(--blue)' }, { value: day.out, colour: 'var(--tomato)' }].filter(bar => bar.value > 0).map(bar => (
-                        <motion.span
-                          key={bar.colour}
-                          className="block origin-bottom rounded-[4px]"
-                          style={{ height: Math.max(4, (bar.value / largest) * (BAR_HEIGHT - 4)), backgroundColor: bar.colour }}
-                          initial={{ scaleY: 0 }}
-                          animate={{ scaleY: 1 }}
-                          transition={{ duration: 0.9, delay: index * 0.035, ease: [0.165, 0.84, 0.44, 1] }}
-                        />
-                      ))}
-                    </span>
-                    <span className="type-caption mt-1 block text-center text-muted">{date.getDate()}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+        <div className="h-52">
+          <BarChart
+            data={days.map(day => ({
+              day: parseLocalDate(day.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
+              rawDate: day.date,
+              'Money in': day.in,
+              'Money out': day.out + day.moves,
+            }))}
+            xDataKey="day"
+            aspectRatio="auto"
+            margin={{ top: 8, right: 8, bottom: 40, left: 56 }}
+          >
+            <Grid horizontal />
+            <Bar dataKey="Money in" lineCap="round" onClick={d => onSelect(String(d.rawDate))} />
+            <Bar dataKey="Money out" fill="var(--chart-3)" lineCap="round" onClick={d => onSelect(String(d.rawDate))} />
+            <YAxis yAxisId="left" />
+            <TrendLine dataKey="Money in" stroke="var(--chart-1)" />
+            <BarXAxis />
+            <ChartTooltip valueFormatter={(value: number) => formatCurrency(value, getMainCurrency())} />
+          </BarChart>
         </div>
       ) : (
-        <div className="no-scrollbar overflow-x-auto">
-          <div role="img" aria-label="The next year by day. The list shows the same items." className="flex w-max gap-[3px]">
-            {weeks.map((week, index) => (
-              <div key={index} className="grid gap-[3px]">
-                {week.map(day => <button key={day.date} type="button" title={describe(day)} aria-label={describe(day)} onClick={() => onSelect(day.date)} className="size-3 cursor-pointer rounded-[3px]" style={{ backgroundColor: HEAT_COLOURS[heatKind(day)] }} />)}
+        <div className="pt-4">
+          <HeatmapInteractionProvider>
+            <HeatmapInteractionBoundary>
+              <div className="flex w-full flex-col items-stretch gap-3">
+                <PickLayer onPick={onSelect}>
+                  <HeatmapChart data={heatmapData} gap={3} layout="fluid">
+                    <HeatmapCells
+                      cornerRadius={999}
+                      inactiveOpacity={0.8}
+                      inactiveScale={0.94}
+                    />
+                    <HeatmapSeparator
+                      groupBy="quarter"
+                      showLabels
+                      labelClassName="text-[var(--chart-3)]"
+                      spacing={12}
+                      startOffset={14}
+                      strokeOpacity={0.6}
+                    />
+                    <HeatmapXAxis />
+                    <HeatmapYAxis tickFilter="all" labelFormat="initial" />
+                    <HeatmapTooltip formatLabel={describe} />
+                  </HeatmapChart>
+                </PickLayer>
+                <HeatmapLegend
+                  align="center"
+                  cornerRadius={999}
+                  gap={3}
+                  inactiveOpacity={0.8}
+                  inactiveScale={0.94}
+                />
               </div>
-            ))}
-          </div>
+            </HeatmapInteractionBoundary>
+          </HeatmapInteractionProvider>
         </div>
       )}
-      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-        {HEAT_LABELS.filter(([kind]) => view === 'heatmap' || kind !== 'mixed').map(([kind, label]) => (
-          <li key={kind} className="type-caption flex items-center gap-1.5 text-muted"><span aria-hidden="true" className="size-2.5 rounded-[3px]" style={{ backgroundColor: HEAT_COLOURS[kind] }} />{label}</li>
-        ))}
-      </ul>
     </section>
   );
 };

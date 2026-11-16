@@ -1,21 +1,30 @@
 import React, { useMemo } from 'react';
 import type { Task, TaskPriority } from '../types';
-import { parseLocalDate, toLocalISOString } from '../utils';
+import { toLocalISOString } from '../utils';
+import type { HeatColumn } from '../utils/activityModel';
 import { addDays } from '../utils/scheduleModel';
+import {
+  HeatmapCells,
+  HeatmapChart,
+  HeatmapInteractionBoundary,
+  HeatmapInteractionProvider,
+  HeatmapLegend,
+  HeatmapSeparator,
+  HeatmapTooltip,
+  HeatmapXAxis,
+  HeatmapYAxis,
+} from '../src/components/bklit';
 
 interface TasksHeatmapProps {
   tasks: Task[];
 }
 
-const PRIORITY_COLOURS: Record<TaskPriority, string> = { Low: 'var(--blue)', Medium: 'var(--amber)', High: 'var(--tomato)' };
 const PRIORITY_RANK: Record<TaskPriority, number> = { High: 3, Medium: 2, Low: 1 };
 const MONTHS = 12;
 
-interface HeatDay { date: string; count: number; priority?: TaskPriority }
-
-/** The next twelve months by day, coloured by the most urgent task due (TSK-02). */
+/** The next twelve months by day on the standard Bklit heatmap, coloured by due task urgency and volume. */
 const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
-  const { weeks, months } = useMemo(() => {
+  const { data, byDate } = useMemo(() => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(start.getFullYear(), start.getMonth() + MONTHS, 0);
@@ -28,47 +37,61 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
       });
     });
 
-    const gridStart = addDays(start, -((start.getDay() + 6) % 7));
-    const rows: HeatDay[][] = [];
-    const labels: { index: number; label: string }[] = [];
-    for (let day = gridStart, index = 0; day <= end; index++) {
-      const week: HeatDay[] = [];
-      for (let i = 0; i < 7; i++, day = addDays(day, 1)) {
-        const date = toLocalISOString(day);
-        week.push({ date, ...byDate.get(date), count: byDate.get(date)?.count ?? 0 });
-        if (day.getDate() === 1) labels.push({ index, label: day.toLocaleDateString(undefined, { month: 'short' }) });
-      }
-      rows.push(week);
-    }
-    return { weeks: rows, months: labels };
+    const first = addDays(start, -start.getDay());
+    const weeks = Math.round((addDays(end, -end.getDay()).getTime() - first.getTime()) / (7 * 86_400_000)) + 1;
+    const data: HeatColumn[] = Array.from({ length: weeks }, (_, week) => ({
+      bin: week,
+      bins: Array.from({ length: 7 }, (__, row) => {
+        const date = addDays(first, week * 7 + row);
+        const iso = toLocalISOString(date);
+        const inside = date >= start && date <= end;
+        const entry = inside ? byDate.get(iso) : undefined;
+        const count = entry ? Math.min(4, Math.max(entry.count, PRIORITY_RANK[entry.priority])) : 0;
+        return { bin: row, date, count };
+      }),
+    }));
+    return { data, byDate };
   }, [tasks]);
 
-  const describe = (day: HeatDay) => {
-    const date = parseLocalDate(day.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-    return day.count ? `${date}: ${day.count} ${day.count === 1 ? 'task' : 'tasks'}, highest ${day.priority}` : `${date}: nothing due`;
+  const describe = (_level: number, date: Date) => {
+    const entry = byDate.get(toLocalISOString(date));
+    if (!entry) return 'Nothing due';
+    return `${entry.count} ${entry.count === 1 ? 'task' : 'tasks'} · highest ${entry.priority}`;
   };
 
   return (
-    <div className="mt-3">
-      <div className="no-scrollbar overflow-x-auto">
-        <div role="img" aria-label="Tasks due over the next year. The list shows the same tasks." className="w-max">
-          <div className="relative mb-1 h-4">
-            {months.map(month => <span key={month.label} aria-hidden="true" className="type-caption absolute text-muted" style={{ left: month.index * 15 }}>{month.label}</span>)}
+    <div className="mt-3 pt-4" aria-label="Tasks due over the next year">
+      <HeatmapInteractionProvider>
+        <HeatmapInteractionBoundary>
+          <div className="flex w-full flex-col items-stretch gap-3">
+            <HeatmapChart data={data} gap={3} layout="fluid">
+              <HeatmapCells
+                cornerRadius={999}
+                inactiveOpacity={0.8}
+                inactiveScale={0.94}
+              />
+              <HeatmapSeparator
+                groupBy="quarter"
+                showLabels
+                labelClassName="text-[var(--chart-3)]"
+                spacing={12}
+                startOffset={14}
+                strokeOpacity={0.6}
+              />
+              <HeatmapXAxis />
+              <HeatmapYAxis tickFilter="all" labelFormat="initial" />
+              <HeatmapTooltip formatLabel={describe} />
+            </HeatmapChart>
+            <HeatmapLegend
+              align="center"
+              cornerRadius={999}
+              gap={3}
+              inactiveOpacity={0.8}
+              inactiveScale={0.94}
+            />
           </div>
-          <div className="flex gap-[3px]">
-            {weeks.map(week => (
-              <div key={week[0].date} className="grid gap-[3px]">
-                {week.map(day => <span key={day.date} title={describe(day)} className="size-3 rounded-[3px]" style={{ backgroundColor: day.priority ? PRIORITY_COLOURS[day.priority] : 'var(--inset)' }} />)}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-        {(Object.keys(PRIORITY_COLOURS) as TaskPriority[]).map(priority => (
-          <li key={priority} className="type-caption flex items-center gap-1.5 text-muted"><span aria-hidden="true" className="size-2.5 rounded-[3px]" style={{ backgroundColor: PRIORITY_COLOURS[priority] }} />{priority}</li>
-        ))}
-      </ul>
+        </HeatmapInteractionBoundary>
+      </HeatmapInteractionProvider>
     </div>
   );
 };

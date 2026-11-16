@@ -10,7 +10,7 @@ import { IconButton } from './ui/Actions';
 import { Row } from './ui/Display';
 import { Menu, PointerMenu, type MenuAction } from './ui/Menu';
 import { Amount } from './ui/Money';
-import { AreaSparkline, useSparklineHover } from '../src/components/charts';
+import { LineSparkline, useSparklineHover } from '../src/components/charts';
 import { cn } from '../lib/utils';
 
 export const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -52,7 +52,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
   const { loanPaymentOverrides } = useScheduleContext();
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const balance = useMemo(() => computeAccountDisplayBalance(account, transactions, loanPaymentOverrides), [account, transactions, loanPaymentOverrides]);
-  const { sparklineData, isPositiveTrend } = useMemo(
+  const { sparklineData } = useMemo(
     () => computeAccount90dSparkline(account, transactions, balance, { conversionRates }),
     [account, transactions, balance, conversionRates]
   );
@@ -121,16 +121,12 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
       </div>
       {sparklinePoints.length > 1 && (
         <div className="w-full">
-          <AreaSparkline
+          <LineSparkline
+            curve="natural"
             data={sparklinePoints}
             dataKey="value"
-            height={56}
-            curve="natural"
-            endDot
-            crosshair="gradient"
-            springConfig={{ damping: 60 }}
-            animationDuration={1500}
-            color={isPositiveTrend ? 'var(--money-in)' : 'var(--money-out)'}
+            height={48}
+            springConfig={{ stiffness: 600, damping: 45 }}
             {...hover.sparklineProps}
           />
         </div>

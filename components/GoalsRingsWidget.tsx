@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import type { Currency, FinancialGoal } from '../types';
 import { goalViews } from '../utils/budgetModel';
-import { RingChart, Ring, RingCenter } from '../src/components/charts';
-import { currencyCode, parseLocalDate } from '../utils';
+import { RingChart, Ring, RingCenter, RingGrid, RingLabels } from '../src/components/charts';
+import { parseLocalDate } from '../utils';
 import { Amount } from './ui/Money';
 import { EmptyState } from './ui/States';
 import { useWidgetBox } from './ui/WidgetGrid';
@@ -49,7 +49,6 @@ const GoalsRingsWidget: React.FC<GoalsRingsWidgetProps> = ({ goals, currency, to
   const ringFits = height >= (wide ? 170 : 330);
   const stacked = !wide && ringFits;
   const ringSize = !ringFits ? 0 : wide ? Math.max(120, Math.min(height - 8, Math.round(width * 0.4), 320)) : Math.max(120, Math.min(width - 8, Math.round(height * 0.42), 240));
-  const strokeWidth = Math.max(6, Math.round(ringSize / 20));
 
   // The rows get what the ring leaves, in one column or two.
   const listW = wide && ringSize ? width - ringSize - GAP : width;
@@ -65,9 +64,20 @@ const GoalsRingsWidget: React.FC<GoalsRingsWidgetProps> = ({ goals, currency, to
     <div className={cn('flex h-full min-h-0', stacked ? 'flex-col items-center' : 'items-center')} style={{ gap: GAP }}>
       {ringSize > 0 && (
         <div className="flex shrink-0 items-center justify-center" style={{ width: stacked ? undefined : ringSize }}>
-          <RingChart data={data} size={ringSize} strokeWidth={strokeWidth} ringGap={Math.max(3, Math.round(strokeWidth / 2))} baseInnerRadius={Math.round(ringSize * 0.22)} hoveredIndex={hovered} onHoverChange={setHovered}>
-            {data.map((_, index) => <Ring key={index} index={index} />)}
-            <RingCenter defaultLabel="Saved" formatOptions={{ style: 'currency', currency: currencyCode(currency), notation: 'compact', maximumFractionDigits: 1 }} />
+          <RingChart
+            data={data}
+            endAngle={Math.PI / 2}
+            size={250}
+            startAngle={-Math.PI}
+            hoveredIndex={hovered}
+            onHoverChange={setHovered}
+          >
+            <RingGrid />
+            {data.map((item, index) => (
+              <Ring index={index} key={item.label} />
+            ))}
+            <RingLabels colorByRing />
+            <RingCenter defaultLabel="Activity" />
           </RingChart>
         </div>
       )}

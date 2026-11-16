@@ -1,6 +1,5 @@
 import React from 'react';
-import { AreaSparkline } from '../../src/components/charts/sparkline';
-import { motion } from 'motion/react';
+import { LineSparkline } from '../../src/components/charts/sparkline';
 import {
   Cell,
   Column,
@@ -13,6 +12,7 @@ import {
 } from 'react-aria-components';
 import Icon from './Icon';
 import { Button } from './Actions';
+import { StatGauge } from './StatGauge';
 import { Checkbox } from './Fields';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { cn } from '../../lib/utils';
@@ -80,22 +80,32 @@ const smoothTrend = (data: { value: number }[]): { value: number }[] => {
   });
 };
 
-export const Sparkline: React.FC<{ data: { value: number }[]; isPositive: boolean; width?: number; height?: number; className?: string; preserveAspect?: boolean }> = ({ data: raw, isPositive, width = 96, height = 26, className, preserveAspect = true }) => {
-  const data = React.useMemo(() => smoothTrend(raw), [raw]);
+export const Sparkline: React.FC<{ data: { value: number }[]; isPositive: boolean; width?: number; height?: number; className?: string; preserveAspect?: boolean }> = ({ data: raw, isPositive, width = 120, height = 24, className, preserveAspect = true }) => {
+  const data = React.useMemo(() => smoothTrend(raw).map((point, i) => ({ day: `Day ${i + 1}`, value: point.value })), [raw]);
   if (data.length < 2) return null;
+  if (!preserveAspect) {
+    return (
+      <span aria-hidden="true" className={cn('block w-full', className)}>
+        <LineSparkline
+          curve="natural"
+          data={data}
+          dataKey="value"
+          height={48}
+          springConfig={{ stiffness: 600, damping: 45 }}
+        />
+      </span>
+    );
+  }
   return (
-    <span aria-hidden="true" className={cn('inline-block shrink-0', !preserveAspect && 'w-full', className)} style={preserveAspect ? { width, height } : { height }}>
-      <AreaSparkline
+    <span aria-hidden="true" className={cn('inline-block shrink-0', className)} style={{ width, height }}>
+      <LineSparkline
+        color={isPositive ? 'var(--chart-positive)' : 'var(--chart-negative)'}
+        curve="natural"
         data={data}
         dataKey="value"
-        width={preserveAspect ? width : undefined}
         height={height}
-        color={isPositive ? 'var(--money-in)' : 'var(--money-out)'}
-        curve="natural"
-        strokeWidth={2}
-        fillOpacity={0.18}
-        interactive={false}
-        crosshair={false}
+        strokeWidth={1.5}
+        width={width}
       />
     </span>
   );
@@ -133,37 +143,10 @@ export const Row: React.FC<{
   return onPress ? <button type="button" onClick={onPress} className={cn(styles, 'cursor-pointer active:bg-inset')}>{body}</button> : <div className={styles}>{body}</div>;
 };
 
-/** A progress ring that sweeps round on arrival, with its label in the middle. */
-export const ProgressRing: React.FC<{ value: number; size?: number; tone?: 'pine' | 'amber' | 'loss'; strokeColor?: string; label: string; caption?: string }> = ({ value, size = 128, tone = 'pine', strokeColor, label, caption }) => {
-  const radius = 44;
-  const length = 2 * Math.PI * radius;
-  const share = Math.min(100, Math.max(0, value)) / 100;
-  const stroke = strokeColor || { pine: 'var(--primary)', amber: 'var(--amber)', loss: 'var(--money-out)' }[tone];
-  return (
-    <div role="img" aria-label={`${label}${caption ? ` ${caption}` : ''}`} style={{ width: size, height: size }} className="relative shrink-0">
-      <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden="true">
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--inset)" strokeWidth="9" />
-        <motion.circle
-          cx="50"
-          cy="50"
-          r={radius}
-          fill="none"
-          stroke={stroke}
-          strokeWidth="9"
-          strokeLinecap="round"
-          strokeDasharray={length}
-          initial={{ strokeDashoffset: length }}
-          animate={{ strokeDashoffset: length * (1 - share) }}
-          transition={{ duration: 1.3, ease: [0.77, 0, 0.175, 1] }}
-        />
-      </svg>
-      <span aria-hidden="true" className="absolute inset-0 flex flex-col items-center justify-center text-ink">
-        <span className="text-[1.3125rem] font-semibold leading-none tracking-[-.01em]">{label}</span>
-        {caption && <span className="type-caption text-muted">{caption}</span>}
-      </span>
-    </div>
-  );
-};
+/** A progress ring powered by the standardized Bklit Gauge. */
+export const ProgressRing: React.FC<{ value: number; size?: number; tone?: 'pine' | 'amber' | 'loss'; strokeColor?: string; label: string; caption?: string }> = ({ value, size = 128, tone = 'pine', strokeColor, label, caption }) => (
+  <StatGauge fill={value} size={size} tone={tone} color={strokeColor} label={label} display={label} caption={caption} />
+);
 
 /** A clean section day heading in a phone list or table section. */
 export const DayGroup: React.FC<{ label: React.ReactNode; total?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ label, total, children, className }) => (

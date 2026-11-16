@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import type { Currency } from '../../types';
 import { formatCurrency } from '../../utils';
 import {
-  AreaSparkline,
   Bar,
   BarChart,
   BarXAxis,
@@ -12,12 +11,16 @@ import {
   Line,
   LineChart,
   LineSeriesTerminalMarker,
+  LineSparkline,
   PieCenter,
   PieChart,
-  PieSlice,
+  PieTicks,
   Ring,
   RingCenter,
   RingChart,
+  RingGrid,
+  RingLabels,
+  TrendLine,
   XAxis,
   YAxis,
   type ChartMarker,
@@ -120,9 +123,18 @@ export const Bars: React.FC<{
   <div className={cn(height === 'fill' ? 'flex h-full flex-col gap-3' : 'space-y-3')}>
     {bars.length > 1 && <Legend items={bars.map(bar => ({ label: bar.label, color: bar.color }))} />}
     <div className={height === 'fill' ? 'min-h-[180px] flex-1' : height}>
-      <BarChart data={data} xDataKey={xKey} stacked={stacked} aspectRatio="auto" margin={{ top: 12, right: 12, left: 12, bottom: 25 }}>
-        <Grid horizontal vertical={false} strokeOpacity={0.06} />
-        {bars.map(bar => <Bar key={bar.key} dataKey={bar.key} fill={bar.color} lineCap="round" />)}
+      <BarChart data={data} xDataKey={xKey} stacked={stacked} aspectRatio="auto" margin={{ top: 8, right: 8, bottom: 40, left: 56 }}>
+        <Grid horizontal />
+        {bars.map((bar, idx) => (
+          <Bar
+            key={bar.key}
+            dataKey={bar.key}
+            fill={bar.color || (idx === 0 ? undefined : 'var(--chart-3)')}
+            lineCap="round"
+          />
+        ))}
+        <YAxis yAxisId="left" tickFormatter={formatValue ?? compactTick} />
+        {bars[0] && <TrendLine dataKey={bars[0].key} stroke="var(--chart-1)" />}
         <BarXAxis />
         <ChartTooltip valueFormatter={(value: number) => (formatValue ? formatValue(value) : formatCurrency(value, currency))} />
       </BarChart>
@@ -132,24 +144,17 @@ export const Bars: React.FC<{
 
 export const PALETTE = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--muted)'];
 
-/** A donut with its total in the middle and a legend beside it. Hovering a slice shows its share. */
-export const Donut: React.FC<{ items: { label: string; value: number; color?: string }[]; currency: Currency; centerLabel: string; size?: number; onPick?: (label: string) => void; /** The legend goes under the ring, for a narrow card. */ stacked?: boolean }> = ({ items, currency, centerLabel, size = 180, onPick, stacked }) => {
+/** A donut with its share in the middle and a legend beside it. Hovering a slice highlights its ticks and shows its percentage. */
+export const Donut: React.FC<{ items: { label: string; value: number; color?: string }[]; currency: Currency; centerLabel: string; size?: number; onPick?: (label: string) => void; /** The legend goes under the ring, for a narrow card. */ stacked?: boolean }> = ({ items, currency, centerLabel: _centerLabel, size = 200, onPick, stacked }) => {
   const total = items.reduce((sum, item) => sum + item.value, 0);
   const data = items.map((item, index) => ({ label: item.label, value: item.value, color: item.color ?? PALETTE[index % PALETTE.length] }));
   if (total <= 0) return <p className="type-body text-muted">Nothing here yet.</p>;
   return (
     <div className={cn('flex items-center gap-6', stacked ? 'flex-col' : 'max-sm:flex-col')}>
       <div className="shrink-0" style={{ width: size }}>
-        <PieChart data={data} size={size} innerRadius={Math.round(size * 0.32)} cornerRadius={6} padAngle={data.length > 1 ? 0.04 : 0}>
-          {data.map((_, index) => <PieSlice key={index} index={index} />)}
-          <PieCenter defaultLabel={centerLabel}>
-            {({ value, label }) => (
-              <div className="flex flex-col items-center text-center">
-                <span className="type-caption text-muted">{label}</span>
-                <span className="type-figure-row text-ink"><Amount value={value} currency={currency} /></span>
-              </div>
-            )}
-          </PieCenter>
+        <PieChart data={data} innerRadius={Math.round(size * 0.35)} size={size}>
+          <PieTicks hoverEffect="tick" />
+          <PieCenter defaultLabel="Share" valueDisplay="percent" />
         </PieChart>
       </div>
       <ul className="w-full min-w-0 space-y-1.5">
@@ -176,15 +181,25 @@ export const Donut: React.FC<{ items: { label: string; value: number; color?: st
 };
 
 /** Concentric progress rings, such as goals held in an account. */
-export const ProgressRings: React.FC<{ items: { label: string; value: number; max: number }[]; currency: Currency; size?: number }> = ({ items, currency, size = 170 }) => {
+export const ProgressRings: React.FC<{ items: { label: string; value: number; max: number }[]; currency: Currency; size?: number }> = ({ items, currency, size = 250 }) => {
   const [hovered, setHovered] = useState<number | null>(null);
   const data = items.slice(0, 5).map((item, index) => ({ label: item.label, value: Math.max(0, item.value), maxValue: Math.max(1, item.max), color: PALETTE[index] }));
-  const stroke = Math.max(8, Math.round(size / 14));
   return (
     <div className="flex items-center gap-6 max-sm:flex-col">
-      <RingChart data={data} size={size} strokeWidth={stroke} ringGap={Math.round(stroke / 2)} baseInnerRadius={Math.round(size * 0.2)} hoveredIndex={hovered} onHoverChange={setHovered}>
-        {data.map((_, index) => <Ring key={index} index={index} />)}
-        <RingCenter defaultLabel="Saved" formatOptions={{ style: 'currency', currency: currency === 'BTC' ? 'EUR' : currency, notation: 'compact', maximumFractionDigits: 1 }} />
+      <RingChart
+        data={data}
+        endAngle={Math.PI / 2}
+        size={size}
+        startAngle={-Math.PI}
+        hoveredIndex={hovered}
+        onHoverChange={setHovered}
+      >
+        <RingGrid />
+        {data.map((item, index) => (
+          <Ring index={index} key={item.label} />
+        ))}
+        <RingLabels colorByRing />
+        <RingCenter defaultLabel="Activity" />
       </RingChart>
       <ul className="w-full min-w-0 space-y-2">
         {items.slice(0, 5).map((item, index) => (
@@ -200,10 +215,19 @@ export const ProgressRings: React.FC<{ items: { label: string; value: number; ma
   );
 };
 
-/** A small area sparkline, for figures on the coloured hero. */
+/** A small sparkline, for figures on the coloured hero. */
 export const HeroSpark: React.FC<{ values: number[] }> = ({ values }) => (
   values.length > 1
-    ? <AreaSparkline data={values.map((value, index) => ({ index, value }))} dataKey="value" height={28} curve="natural" color="var(--on-pine)" animationDuration={900} />
+    ? (
+      <LineSparkline
+        curve="natural"
+        data={values.map((value, i) => ({ day: `Day ${i + 1}`, value }))}
+        dataKey="value"
+        height={48}
+        color="var(--on-pine)"
+        springConfig={{ stiffness: 600, damping: 45 }}
+      />
+    )
     : null
 );
 

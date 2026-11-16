@@ -53,11 +53,21 @@ const Identity: React.FC<{ holding: HoldingSummary }> = ({ holding }) => (
   </span>
 );
 
-const Trend: React.FC<{ trend: { value: number }[] }> = ({ trend }) => (
-  trend.length > 1
-    ? <span className="block w-24"><LineSparkline data={trend.map((point, index) => ({ index, value: point.value }))} dataKey="value" height={28} curve="natural" color={trend[trend.length - 1].value >= trend[0].value ? 'var(--money-in)' : 'var(--money-out)'} /></span>
-    : <span className="type-caption text-muted">—</span>
-);
+const Trend: React.FC<{ trend: { value: number }[] }> = ({ trend }) => {
+  if (trend.length <= 1) return <span className="type-caption text-muted">—</span>;
+  const change = trend[trend.length - 1].value - trend[0].value;
+  return (
+    <LineSparkline
+      color={change >= 0 ? 'var(--chart-positive)' : 'var(--chart-negative)'}
+      curve="natural"
+      data={trend.map((point, i) => ({ day: `Day ${i + 1}`, value: point.value }))}
+      dataKey="value"
+      height={24}
+      strokeWidth={1.5}
+      width={120}
+    />
+  );
+};
 
 const SORTERS: Record<string, (row: TableRow) => number | string> = {
   holding: row => (row.holding.name || row.holding.symbol).toLowerCase(),

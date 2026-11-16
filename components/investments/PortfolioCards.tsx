@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Currency, HoldingSummary } from '../../types';
 import { formatHoldingType } from '../../utils/investments';
 import type { Diversification } from '../../utils/portfolioInsights';
-import { AreaSparkline, LineSparkline, Ring, RingChart } from '../../src/components/charts';
+import { LineSparkline, Ring, RingCenter, RingChart, RingGrid, RingLabels } from '../../src/components/charts';
 import { BrandMark } from '../ServiceCard';
 import { ShareBar } from '../accounts/charts';
 import { IconButton } from '../ui/Actions';
@@ -91,10 +91,20 @@ export const PositionStrip: React.FC<{ items: PositionCardData[]; currency: Curr
                   <span className="type-caption block text-muted">per unit</span>
                 </span>
               </span>
-              <span className="block h-10">
-                {trend.length > 1
-                  ? <AreaSparkline data={trend.map((value, index) => ({ index, value }))} dataKey="value" height={40} curve="natural" color={up ? 'var(--money-in)' : 'var(--money-out)'} interactive={false} />
-                  : <span className="type-caption flex h-full items-center text-muted">No recent prices</span>}
+              <span className="block">
+                {trend.length > 1 ? (
+                  <LineSparkline
+                    color={up ? 'var(--chart-positive)' : 'var(--chart-negative)'}
+                    curve="natural"
+                    data={trend.map((value, i) => ({ day: `Day ${i + 1}`, value }))}
+                    dataKey="value"
+                    height={24}
+                    strokeWidth={1.5}
+                    width={120}
+                  />
+                ) : (
+                  <span className="type-caption flex h-6 items-center text-muted">No recent prices</span>
+                )}
               </span>
               <span className="flex items-end justify-between gap-2">
                 <span className="min-w-0">
@@ -145,8 +155,18 @@ export const Movers: React.FC<{ rows: MoverRow[]; currency: Currency; onOpen: (s
                   <span className="type-caption block truncate text-muted"><Amount value={row.holding.currentPrice} currency={row.holding.currency ?? currency} /> per unit</span>
                   <span className="mt-1 block"><ShareBar value={(Math.abs(row.pct) / widest) * 100} label={`${row.holding.symbol} return`} tone={row.gain >= 0 ? 'ok' : 'bad'} /></span>
                 </span>
-                <span className="w-16 shrink-0">
-                  {row.trend.length > 1 && <LineSparkline data={row.trend.map((value, index) => ({ index, value }))} dataKey="value" height={28} curve="natural" color={row.trend[row.trend.length - 1] >= row.trend[0] ? 'var(--money-in)' : 'var(--money-out)'} interactive={false} />}
+                <span className="shrink-0">
+                  {row.trend.length > 1 && (
+                    <LineSparkline
+                      color={row.trend[row.trend.length - 1] - row.trend[0] >= 0 ? 'var(--chart-positive)' : 'var(--chart-negative)'}
+                      curve="natural"
+                      data={row.trend.map((value, i) => ({ day: `Day ${i + 1}`, value }))}
+                      dataKey="value"
+                      height={24}
+                      strokeWidth={1.5}
+                      width={120}
+                    />
+                  )}
                 </span>
                 <span className="w-24 shrink-0 text-right">
                   <span className={cn('type-figure-row block', row.gain >= 0 ? 'text-money-in' : 'text-money-out')}>{signedPct(row.pct)}</span>
@@ -187,17 +207,24 @@ export const WinRate: React.FC<{ wins: number; losses: number }> = ({ wins, loss
     { label: 'Winning', value: wins, maxValue: Math.max(1, total), color: 'var(--money-in)' },
     { label: 'Losing', value: losses, maxValue: Math.max(1, total), color: 'var(--money-out)' },
   ];
-  const active = hovered === null ? null : data[hovered];
   return (
     <div className="flex items-center gap-5">
       <div role="img" aria-label={`Win rate ${rate}%: ${wins} winning and ${losses} losing sales`} className="relative shrink-0">
-        <RingChart data={data} size={132} strokeWidth={12} ringGap={5} baseInnerRadius={36} hoveredIndex={hovered} onHoverChange={setHovered}>
-          {data.map((_, index) => <Ring key={index} index={index} />)}
+        <RingChart
+          data={data}
+          endAngle={Math.PI / 2}
+          size={250}
+          startAngle={-Math.PI}
+          hoveredIndex={hovered}
+          onHoverChange={setHovered}
+        >
+          <RingGrid />
+          {data.map((item, index) => (
+            <Ring index={index} key={item.label} />
+          ))}
+          <RingLabels colorByRing />
+          <RingCenter defaultLabel="Activity" />
         </RingChart>
-        <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="type-figure-row text-ink">{active ? active.value : `${rate}%`}</span>
-          <span className="type-caption text-muted">{active ? active.label : 'Win rate'}</span>
-        </span>
       </div>
       <ul className="space-y-2">
         {data.map((item, index) => (

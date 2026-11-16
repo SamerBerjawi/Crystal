@@ -3,7 +3,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { FinancialGoal } from '../types';
-import { convertToMain, currencyCode, getMainCurrency } from '../utils';
+import { convertToMain, getMainCurrency } from '../utils';
 import { sortAccountsByType } from '../utils/accountsModel';
 import GoalCard, { progressAccentColor } from '../components/GoalCard';
 import GoalScenarioModal from '../components/GoalScenarioModal';
@@ -23,7 +23,7 @@ import { AccountLogo, accountIcon } from '../components/AccountCard';
 import { LogoTile } from '../components/EntityIcon';
 import { buildEffectiveMerchantLogoOverrides, getAccountBrandfetchUrl, getMerchantLogoUrl } from '../utils/brandfetch';
 import { goalViews } from '../utils/budgetModel';
-import { RingChart, Ring, RingCenter } from '../src/components/charts';
+import { RingChart, Ring, RingCenter, RingGrid, RingLabels } from '../src/components/charts';
 import { goalCategoryOf } from '../utils/forecastModel';
 import { parseAmountInput } from '../utils/scheduleModel';
 import { accountCoverage, completionChanges, goalTree, isGoalDone, monthlyNeed, monthlyTargetGroups, moveGoal, summaryRings, type GoalNode } from '../utils/goalsModel';
@@ -185,10 +185,19 @@ const Goals: React.FC = () => {
           <section aria-label="Goals summary" className="surface-card rounded-[var(--radius-xl)] p-6 max-md:p-5">
             <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
               {ringData.length > 0 && (
-                <div className="mx-auto shrink-0 sm:mx-0" style={{ width: 150 }}>
-                  <RingChart data={ringData} size={150} strokeWidth={8} ringGap={4} baseInnerRadius={32}>
-                    {ringData.map((_, index) => <Ring key={index} index={index} />)}
-                    <RingCenter defaultLabel="Saved" formatOptions={{ style: 'currency', currency: currencyCode(getMainCurrency()), notation: 'compact', maximumFractionDigits: 1 }} />
+                <div className="mx-auto shrink-0 sm:mx-0" style={{ width: 250 }}>
+                  <RingChart
+                    data={ringData}
+                    endAngle={Math.PI / 2}
+                    size={250}
+                    startAngle={-Math.PI}
+                  >
+                    <RingGrid />
+                    {ringData.map((item, index) => (
+                      <Ring index={index} key={item.label} />
+                    ))}
+                    <RingLabels colorByRing />
+                    <RingCenter defaultLabel="Activity" />
                   </RingChart>
                 </div>
               )}
