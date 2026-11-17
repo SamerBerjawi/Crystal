@@ -1,16 +1,46 @@
-import React, { useContext, useState } from 'react';
-import { area as d3Area, curveNatural, line as d3Line } from 'd3-shape';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { area as d3Area, curveNatural } from 'd3-shape';
+import type { Currency } from '../types';
+import { formatCurrency } from '../utils';
+import { ChartTooltip, Grid, Line, LineChart, LineSeriesTerminalMarker, XAxis, YAxis } from '../src/components/charts';
+import { useChartHover, useChartStable, useYScale } from '../src/components/charts/chart-context';
+import { SpotlightIndicator } from '../src/components/charts/spotlight-indicator';
+import { HorizonArea } from './ForecastHorizonChart';
 import { Amount, PrivacyContext } from './ui/Money';
 import type { Cone } from '../utils/fireCone';
 
-const W = 640;
-const H = 240;
-const PAD = { top: 14, right: 14, bottom: 28, left: 54 };
-const innerW = W - PAD.left - PAD.right;
-const innerH = H - PAD.top - PAD.bottom;
-
 const compact = (value: number, currency: string) =>
   new Intl.NumberFormat(undefined, { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(value);
+
+const OddsHoverSync: React.FC<{ onHover: (years: number | null) => void }> = ({ onHover }) => {
+  const { tooltipData } = useChartHover();
+  const years = tooltipData?.point && typeof tooltipData.point.years === 'number' ? tooltipData.point.years : null;
+  useEffect(() => { onHover(years); }, [years, onHover]);
+  return null;
+};
+
+const OddsTargetAndChosenOverlay: React.FC<{ target: number; chosenDate: Date; chosenPct: number }> = ({ target, chosenDate, chosenPct }) => {
+  const { xScale, innerWidth, innerHeight } = useChartStable();
+  const yScale = useYScale();
+  const targetY = yScale(target * 100);
+  const chosenX = xScale(chosenDate);
+  const chosenY = yScale(chosenPct);
+
+  return (
+    <g pointerEvents="none">
+      {Number.isFinite(targetY) && innerWidth > 0 && (
+        <line x1={0} x2={innerWidth} y1={targetY} y2={targetY} stroke="var(--chart-positive)" strokeOpacity={0.55} strokeDasharray="4,4" />
+      )}
+      {Number.isFinite(chosenX) && Number.isFinite(chosenY) && (
+        <>
+          <line x1={chosenX} x2={chosenX} y1={0} y2={innerHeight} stroke="var(--ink)" strokeOpacity={0.4} strokeDasharray="3,3" />
+          <circle cx={chosenX} cy={chosenY} r={5.5} fill="var(--surface)" stroke="var(--chart-positive)" strokeWidth={2.5} />
+        </>
+      )}
+    </g>
+  );
+};
+(OddsTargetAndChosenOverlay as React.FC<{ target: number; chosenDate: Date; chosenPct: number }> & { __isPostOverlay?: boolean }).__isPostOverlay = true;
 
 /** For each year you could stop working, the share of futures in which the money lasts. Press a year to look at it. */
 export const OddsChart: React.FC<{ curve: Cone['curve']; target: number; chosen: number; onSelect: (years: number) => void }> = ({
@@ -20,67 +50,114 @@ export const OddsChart: React.FC<{ curve: Cone['curve']; target: number; chosen:
   onSelect,
 }) => {
   const [hoveredYear, setHoveredYear] = useState<number | null>(null);
-  const last = Math.max(1, curve.length - 1);
-  const x = (years: number) => PAD.left + (years / last) * innerW;
-  const y = (odds: number) => PAD.top + (1 - odds) * innerH;
-  const line = d3Line<Cone['curve'][number]>().x(p => x(p.years)).y(p => y(p.odds)).curve(curveNatural)(curve) ?? '';
-  const area = d3Area<Cone['curve'][number]>().x(p => x(p.years)).y0(y(0)).y1(p => y(p.odds)).curve(curveNatural)(curve) ?? '';
+  const baseYear = new Date().getFullYear();
+  const last = Math.max(0, curve.length - 1);
+  const rows = useMemo(
+    () => curve.map(p => ({ ...p, date: new Date(baseYear + p.years, 0, 1), pct: Math.round(p.odds * 100) })),
+    [curve, baseYear]
+  );
+
+  if (rows.length === 0) return null;
+
   const pick = curve[Math.min(chosen, last)];
   const hovered = hoveredYear !== null ? curve[Math.min(hoveredYear, last)] : null;
-  const xTicks = Array.from({ length: Math.floor(last / 5) + 1 }, (_, i) => i * 5);
-  const baseYear = new Date().getFullYear();
+  const shown = hovered ?? pick;
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border border-line bg-inset/50 px-3 py-1.5 text-xs">
         <span className="font-semibold text-ink">
-          {(hovered ?? pick).years === 0
+          {shown.years === 0
             ? `Stopping now (${baseYear})`
-            : `In ${(hovered ?? pick).years} years (${baseYear + (hovered ?? pick).years})`}
+            : `In ${shown.years} years (${baseYear + shown.years})`}
         </span>
-        <span className="font-bold text-primary">
-          {Math.round((hovered ?? pick).odds * 100)}% chance money lasts
+        <span className="font-bold" style={{ color: 'var(--chart-positive)' }}>
+          {Math.round(shown.odds * 100)}% chance money lasts
         </span>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label={`Chance the money lasts, for each year you could stop working. Stopping in ${pick.years} years: ${Math.round(pick.odds * 100)}%.`}>
-        {[0, 0.25, 0.5, 0.75, 1].map(v => (
-          <g key={v}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} className="stroke-line" strokeWidth={1} />
-            <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" className="fill-muted" fontSize={11}>{Math.round(v * 100)}%</text>
-          </g>
-        ))}
-        {xTicks.map(t => (
-          <text key={t} x={x(t)} y={H - 8} textAnchor="middle" className="fill-muted" fontSize={11}>
-            {t === 0 ? 'Now' : `${t}y`}
-          </text>
-        ))}
-        <path d={area} fill="var(--primary)" fillOpacity={0.12} />
-        <line x1={PAD.left} x2={W - PAD.right} y1={y(target)} y2={y(target)} stroke="var(--primary)" strokeOpacity={0.6} strokeDasharray="4 4" />
-        <path d={line} fill="none" stroke="var(--primary)" strokeWidth={2.5} strokeLinejoin="round" />
-        <line x1={x(pick.years)} x2={x(pick.years)} y1={PAD.top} y2={y(0)} stroke="var(--ink)" strokeOpacity={0.5} />
-        <circle cx={x(pick.years)} cy={y(pick.odds)} r={5} fill="var(--solid)" stroke="var(--primary)" strokeWidth={2.5} />
-        {hovered && hovered.years !== pick.years && (
-          <circle cx={x(hovered.years)} cy={y(hovered.odds)} r={4} fill="var(--amber)" stroke="var(--solid)" strokeWidth={1.5} />
-        )}
-        {curve.map(p => (
-          <rect
-            key={p.years}
-            x={x(p.years) - innerW / last / 2}
-            y={PAD.top}
-            width={innerW / last}
-            height={innerH}
-            fill="transparent"
-            className="cursor-pointer"
-            onMouseEnter={() => setHoveredYear(p.years)}
-            onMouseLeave={() => setHoveredYear(null)}
-            onClick={() => onSelect(p.years)}
-          >
-            <title>{`Stop in ${p.years} years: ${Math.round(p.odds * 100)}% chance it lasts`}</title>
-          </rect>
-        ))}
-      </svg>
+      <div
+        className="cursor-pointer"
+        role="region"
+        aria-label={`Chance the money lasts, for each year you could stop working. Stopping in ${pick.years} years: ${Math.round(pick.odds * 100)}%.`}
+        onClick={() => { if (hoveredYear !== null) onSelect(hoveredYear); }}
+      >
+        <LineChart
+          data={rows}
+          xDataKey="date"
+          yDomainTween
+          aspectRatio=""
+          className="h-[240px] w-full md:h-[260px]"
+          margin={{ top: 16, right: 16, bottom: 28, left: 48 }}
+        >
+          <Grid horizontal numTicksRows={4} stroke="var(--line)" />
+          <SpotlightIndicator seriesKey="pct" color="var(--chart-positive)" />
+          <HorizonArea seriesKey="pct" color="var(--chart-positive)" curve={curveNatural} />
+          <XAxis
+            numTicks={5}
+            tickMode="domain"
+            tickFormatter={d => {
+              const diff = (d instanceof Date ? d : new Date(d)).getFullYear() - baseYear;
+              return diff === 0 ? 'Now' : `${diff}y`;
+            }}
+          />
+          <YAxis numTicks={4} tickFormatter={v => `${Math.round(v)}%`} />
+          <Line dataKey="pct" label="Success rate" stroke="var(--chart-positive)" strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
+          <LineSeriesTerminalMarker dataKey="pct" stroke="var(--chart-positive)" fill="var(--chart-positive)" />
+          <OddsHoverSync onHover={setHoveredYear} />
+          <OddsTargetAndChosenOverlay target={target} chosenDate={new Date(baseYear + pick.years, 0, 1)} chosenPct={Math.round(pick.odds * 100)} />
+          <ChartTooltip
+            showCrosshair
+            rows={point => [{
+              color: 'var(--chart-positive)',
+              label: Number(point.years) === 0 ? `Stopping now (${baseYear})` : `In ${point.years} years (${baseYear + Number(point.years)})`,
+              value: `${point.pct}% chance money lasts`,
+            }]}
+          />
+        </LineChart>
+      </div>
     </div>
+  );
+};
+
+const FanHoverSync: React.FC<{ onHover: (index: number | null) => void }> = ({ onHover }) => {
+  const { tooltipData } = useChartHover();
+  const index = tooltipData ? tooltipData.index : null;
+  useEffect(() => { onHover(index); }, [index, onHover]);
+  return null;
+};
+
+const FanBandsOverlay: React.FC<{ baseYear: number; retireAt: number; maxYear: number }> = ({ baseYear, retireAt, maxYear }) => {
+  const { renderData, xAccessor, xScale, innerHeight } = useChartStable();
+  const yScale = useYScale();
+
+  const { outerBand, innerBand } = useMemo(() => {
+    const outer = d3Area<Record<string, unknown>>()
+      .x(row => xScale(xAccessor(row)))
+      .y0(row => yScale(Number(row.p10 ?? 0)))
+      .y1(row => yScale(Number(row.p90 ?? 0)))
+      .curve(curveNatural)(renderData) ?? '';
+    const inner = d3Area<Record<string, unknown>>()
+      .x(row => xScale(xAccessor(row)))
+      .y0(row => yScale(Number(row.p25 ?? 0)))
+      .y1(row => yScale(Number(row.p75 ?? 0)))
+      .curve(curveNatural)(renderData) ?? '';
+    return { outerBand: outer, innerBand: inner };
+  }, [renderData, xAccessor, xScale, yScale]);
+
+  const retireX = retireAt >= 0 && retireAt <= maxYear ? xScale(new Date(baseYear + retireAt, 0, 1)) : null;
+
+  return (
+    <g pointerEvents="none">
+      <path d={outerBand} fill="var(--primary)" fillOpacity={0.1} />
+      <path d={innerBand} fill="var(--primary)" fillOpacity={0.18} />
+      {retireX !== null && Number.isFinite(retireX) && (
+        <>
+          <line x1={retireX} x2={retireX} y1={0} y2={innerHeight} stroke="var(--muted)" strokeOpacity={0.65} strokeDasharray="3,3" />
+          <text x={retireX + 6} y={12} className="fill-muted" fontSize={11}>Stop working</text>
+        </>
+      )}
+    </g>
   );
 };
 
@@ -88,28 +165,25 @@ export const OddsChart: React.FC<{ curve: Cone['curve']; target: number; chosen:
 export const FanChart: React.FC<{ fan: Cone['chosen']['fan']; retireAt: number; currency: string }> = ({ fan, retireAt, currency }) => {
   const isPrivate = useContext(PrivacyContext);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const last = Math.max(1, fan.length - 1);
-  const max = Math.max(1, ...fan.map(p => p.p90)) * 1.05;
-  const x = (year: number) => PAD.left + (year / last) * innerW;
-  const y = (value: number) => PAD.top + (1 - value / max) * innerH;
-  const path = (pick: (p: Cone['chosen']['fan'][number]) => number) =>
-    d3Line<Cone['chosen']['fan'][number]>().x(p => x(p.year)).y(p => y(pick(p))).curve(curveNatural)(fan) ?? '';
-  const band = (hi: (p: Cone['chosen']['fan'][number]) => number, lo: (p: Cone['chosen']['fan'][number]) => number) =>
-    d3Area<Cone['chosen']['fan'][number]>().x(p => x(p.year)).y0(p => y(lo(p))).y1(p => y(hi(p))).curve(curveNatural)(fan) ?? '';
-  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(v => v * max);
-  const xTicks = Array.from({ length: Math.floor(last / 10) + 1 }, (_, i) => i * 10);
   const baseYear = new Date().getFullYear();
+  const rows = useMemo(
+    () =>
+      fan.map(p => ({
+        ...p,
+        date: new Date(baseYear + p.year, 0, 1),
+        p10: Math.max(0, p.p10),
+        p25: Math.max(0, p.p25),
+        p50: Math.max(0, p.p50),
+        p75: Math.max(0, p.p75),
+        p90: Math.max(0, p.p90),
+      })),
+    [fan, baseYear]
+  );
+
+  if (rows.length === 0) return null;
 
   const shown = hoverIdx !== null ? fan[Math.min(hoverIdx, fan.length - 1)] : fan[fan.length - 1];
-
-  const handleMove = (event: React.MouseEvent<SVGRectElement>) => {
-    const svg = event.currentTarget.ownerSVGElement;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const relX = ((event.clientX - rect.left) / rect.width) * W;
-    const ratio = Math.max(0, Math.min(1, (relX - PAD.left) / innerW));
-    setHoverIdx(Math.round(ratio * last));
-  };
+  const currencyTyped = currency as Currency;
 
   return (
     <div className="space-y-2">
@@ -124,48 +198,45 @@ export const FanChart: React.FC<{ fan: Cone['chosen']['fan']; retireAt: number; 
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label="Range of what the money could be worth over time: the middle outcome, and the spread from poor to good markets.">
-        {yTicks.map(v => (
-          <g key={v}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} className="stroke-line" strokeWidth={1} />
-            {!isPrivate && (
-              <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" className="fill-muted" fontSize={11}>
-                {compact(v, currency)}
-              </text>
-            )}
-          </g>
-        ))}
-        {xTicks.map(t => (
-          <text key={t} x={x(t)} y={H - 8} textAnchor="middle" className="fill-muted" fontSize={11}>
-            {t === 0 ? 'Now' : `${t}y`}
-          </text>
-        ))}
-        <path d={band(p => p.p90, p => p.p10)} fill="var(--primary)" fillOpacity={0.12} />
-        <path d={band(p => p.p75, p => p.p25)} fill="var(--primary)" fillOpacity={0.22} />
-        <path d={path(p => p.p50)} fill="none" stroke="var(--primary)" strokeWidth={2.5} strokeLinejoin="round" />
-        {retireAt <= last && (
-          <>
-            <line x1={x(retireAt)} x2={x(retireAt)} y1={PAD.top} y2={y(0)} stroke="var(--ink)" strokeOpacity={0.5} strokeDasharray="4 4" />
-            <text x={x(retireAt) + 6} y={PAD.top + 10} className="fill-muted" fontSize={11}>Stop working</text>
-          </>
-        )}
-        {hoverIdx !== null && (
-          <g className="pointer-events-none">
-            <line x1={x(shown.year)} x2={x(shown.year)} y1={PAD.top} y2={y(0)} stroke="var(--ink)" strokeOpacity={0.35} strokeDasharray="3 3" />
-            <circle cx={x(shown.year)} cy={y(shown.p50)} r={4.5} fill="var(--solid)" stroke="var(--primary)" strokeWidth={2.5} />
-          </g>
-        )}
-        <rect
-          x={PAD.left}
-          y={PAD.top}
-          width={innerW}
-          height={innerH}
-          fill="transparent"
-          className="cursor-crosshair"
-          onMouseMove={handleMove}
-          onMouseLeave={() => setHoverIdx(null)}
-        />
-      </svg>
+      <div role="region" aria-label="Range of what the money could be worth over time: the middle outcome, and the spread from poor to good markets.">
+        <LineChart
+          data={rows}
+          xDataKey="date"
+          yDomainTween
+          aspectRatio=""
+          className="h-[240px] w-full md:h-[260px]"
+          margin={{ top: 16, right: 16, bottom: 28, left: isPrivate ? 16 : 56 }}
+        >
+          <Grid horizontal numTicksRows={4} stroke="var(--line)" />
+          <SpotlightIndicator seriesKey="p50" color="var(--primary)" />
+          <HorizonArea seriesKey="p50" color="var(--primary)" curve={curveNatural} />
+          <FanBandsOverlay baseYear={baseYear} retireAt={retireAt} maxYear={Math.max(0, fan.length - 1)} />
+          <XAxis
+            numTicks={5}
+            tickMode="domain"
+            tickFormatter={d => {
+              const diff = (d instanceof Date ? d : new Date(d)).getFullYear() - baseYear;
+              return diff === 0 ? 'Now' : `${diff}y`;
+            }}
+          />
+          {!isPrivate && <YAxis numTicks={4} tickFormatter={v => compact(v, currency)} />}
+          <Line dataKey="p90" label="90th percentile" stroke="var(--primary)" strokeWidth={1} strokeDasharray="3,3" curve={curveNatural} fadeEdges={false} />
+          <Line dataKey="p75" label="75th percentile" stroke="var(--primary)" strokeWidth={1.25} strokeDasharray="2,2" curve={curveNatural} fadeEdges={false} />
+          <Line dataKey="p50" label="Median (50th)" stroke="var(--primary)" strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
+          <Line dataKey="p25" label="25th percentile" stroke="var(--chart-3)" strokeWidth={1.25} strokeDasharray="2,2" curve={curveNatural} fadeEdges={false} />
+          <Line dataKey="p10" label="10th percentile" stroke="var(--amber)" strokeWidth={1.25} strokeDasharray="4,4" curve={curveNatural} fadeEdges={false} />
+          <LineSeriesTerminalMarker dataKey="p50" stroke="var(--primary)" fill="var(--primary)" />
+          <FanHoverSync onHover={setHoverIdx} />
+          <ChartTooltip
+            showCrosshair
+            rows={point => [
+              { color: 'var(--primary)', label: '75th percentile', value: isPrivate ? '•••' : formatCurrency(Number(point.p75 ?? 0), currencyTyped, { compact: true }) },
+              { color: 'var(--primary)', label: 'Median (50th)', value: isPrivate ? '•••' : formatCurrency(Number(point.p50 ?? 0), currencyTyped) },
+              { color: 'var(--amber)', label: '10th percentile', value: isPrivate ? '•••' : formatCurrency(Number(point.p10 ?? 0), currencyTyped, { compact: true }) },
+            ]}
+          />
+        </LineChart>
+      </div>
     </div>
   );
 };

@@ -1,8 +1,12 @@
 import React, { useMemo } from 'react';
+import { curveNatural } from '@visx/curve';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import type { Currency, FinancialGoal } from '../types';
-import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, Line, LineChart, TrendLine, XAxis, YAxis } from '../src/components/charts';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, Line, LineChart, LineSeriesTerminalMarker, TrendLine, XAxis, YAxis } from '../src/components/charts';
+import { SpotlightIndicator } from '../src/components/charts/spotlight-indicator';
+import { HorizonArea } from './ForecastHorizonChart';
+import { spanTick } from './investments/PortfolioHero';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { IconButton } from './ui/Actions';
 import { cn } from '../lib/utils';
@@ -94,16 +98,20 @@ export const MonthlyBars: React.FC<{ data: Record<string, unknown>[]; currency: 
 );
 
 /** A value over time (holdings, portfolio). Rows carry a `date` as YYYY-MM-DD and the value under `dataKey`. */
-export const ValueChart: React.FC<{ data: Record<string, unknown>[]; currency: Currency; dataKey: string; trendKey?: string; fitValues?: boolean }> = ({ data, currency, dataKey, trendKey }) => {
+export const ValueChart: React.FC<{ data: Record<string, unknown>[]; currency: Currency; dataKey: string; trendKey?: string; fitValues?: boolean }> = ({ data, currency, dataKey, trendKey, fitValues }) => {
   const rows = useMemo(() => data.map(row => ({ ...row, date: typeof row.date === 'string' ? parseLocalDate(row.date) : row.date })), [data]);
+  const tick = useMemo(() => spanTick(rows as { date: Date }[]), [rows]);
   return (
-    <LineChart data={rows} xDataKey="date" yDomainTween aspectRatio="" className="h-[220px] w-full md:h-[280px]" margin={{ top: 16, right: 16, bottom: 24, left: 52 }}>
-      <Grid horizontal stroke="var(--line)" />
-      <XAxis />
-      <YAxis tickFormatter={(value: number) => (Math.abs(value) >= 1000 ? `${(value / 1000).toFixed(Math.abs(value) >= 10000 ? 0 : 1)}k` : String(Math.round(value)))} />
-      <Line dataKey={dataKey} stroke="var(--chart-1)" strokeWidth={2} />
-      {trendKey && <Line dataKey={trendKey} stroke="var(--chart-3)" strokeWidth={1.5} strokeDasharray="4,4" />}
-      <ChartTooltip rows={point => [{ color: 'var(--chart-1)', label: 'Value', value: formatCurrency(typeof point[dataKey] === 'number' ? (point[dataKey] as number) : 0, currency) }]} />
+    <LineChart data={rows} xDataKey="date" yDomainTween fitYDomain={fitValues} aspectRatio="" className="h-[220px] w-full md:h-[280px]" margin={{ top: 16, right: 16, bottom: 24, left: 52 }}>
+      <Grid horizontal numTicksRows={4} stroke="var(--line)" />
+      <SpotlightIndicator seriesKey={dataKey} color="var(--chart-1)" />
+      <HorizonArea seriesKey={dataKey} color="var(--chart-1)" curve={curveNatural} />
+      <XAxis numTicks={5} tickMode="domain" tickFormatter={tick} />
+      <YAxis numTicks={4} tickFormatter={(value: number) => (Math.abs(value) >= 1000 ? `${(value / 1000).toFixed(Math.abs(value) >= 10000 ? 0 : 1)}k` : String(Math.round(value)))} />
+      <Line dataKey={dataKey} stroke="var(--chart-1)" strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
+      {trendKey && <Line dataKey={trendKey} stroke="var(--chart-3)" strokeWidth={1.5} strokeDasharray="4,4" curve={curveNatural} fadeEdges={false} />}
+      <LineSeriesTerminalMarker dataKey={dataKey} stroke="var(--chart-1)" fill="var(--chart-1)" />
+      <ChartTooltip showCrosshair rows={point => [{ color: 'var(--chart-1)', label: 'Value', value: formatCurrency(typeof point[dataKey] === 'number' ? (point[dataKey] as number) : 0, currency) }]} />
     </LineChart>
   );
 };

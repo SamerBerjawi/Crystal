@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { curveNatural } from '@visx/curve';
 import type { Currency } from '../../types';
 import { formatCurrency } from '../../utils';
 import {
@@ -25,6 +26,8 @@ import {
   YAxis,
   type ChartMarker,
 } from '../../src/components/charts';
+import { SpotlightIndicator } from '../../src/components/charts/spotlight-indicator';
+import { HorizonArea } from '../ForecastHorizonChart';
 import { Amount } from '../ui/Money';
 import { cn } from '../../lib/utils';
 
@@ -79,28 +82,38 @@ export const TimeSeries: React.FC<{
     const date = value instanceof Date ? value : new Date(value);
     return veryLong ? String(date.getFullYear()) : long ? date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   };
+  const primary = series[0];
+  const resolvedTerminalKey = terminalKey ?? primary?.key;
+  const terminalColor = resolvedTerminalKey
+    ? (series.find(item => item.key === resolvedTerminalKey)?.color ?? 'var(--chart-1)')
+    : 'var(--chart-1)';
+
   return (
   <div className={cn(height === 'fill' ? 'flex h-full flex-col gap-3' : 'space-y-3')}>
     {showLegend && <Legend items={series.map(item => ({ label: item.label, color: item.color, dashed: item.dashed }))} />}
     <LineChart data={data} xDataKey="date" yDomainTween aspectRatio="" className={cn('w-full', height === 'fill' ? 'min-h-[200px] flex-1' : height)} margin={{ top: 16, right: 16, bottom: 24, left: 52 }}>
-      <Grid horizontal stroke="var(--line)" />
+      <Grid horizontal numTicksRows={4} stroke="var(--line)" />
+      {primary && <SpotlightIndicator seriesKey={primary.key} color={primary.color} />}
+      {primary && <HorizonArea seriesKey={primary.key} color={primary.color} curve={curveNatural} />}
       <XAxis tickFormatter={formatTick} />
-      <YAxis tickFormatter={compactTick} />
+      <YAxis numTicks={4} tickFormatter={compactTick} />
       {series.map(item => (
         <Line
           key={item.key}
           dataKey={item.key}
           stroke={item.color}
-          strokeWidth={item.width ?? 2}
+          strokeWidth={item.width ?? 2.25}
           dashFromIndex={item.dashFromIndex}
           dashArray="6,4"
           strokeDasharray={item.dashed ? '4,4' : undefined}
-          fadeEdges={item.dashFromIndex !== undefined}
+          curve={curveNatural}
+          fadeEdges={false}
         />
       ))}
-      {terminalKey && <LineSeriesTerminalMarker dataKey={terminalKey} stroke={series.find(item => item.key === terminalKey)?.color ?? 'var(--chart-1)'} />}
+      {resolvedTerminalKey && <LineSeriesTerminalMarker dataKey={resolvedTerminalKey} stroke={terminalColor} fill={terminalColor} />}
       {markers && markers.length > 0 && <ChartMarkers items={markers} />}
       <ChartTooltip
+        showCrosshair
         rows={point => series
           .filter(item => typeof point[item.key] === 'number')
           .map(item => ({ color: item.color, label: item.label, value: formatCurrency(point[item.key] as number, currency) }))}

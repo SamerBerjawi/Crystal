@@ -1,13 +1,15 @@
 import React, { useContext, useMemo, useState } from 'react';
-import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { curveNatural } from '@visx/curve';
 import type { Page, Transaction } from '../types';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { useAccountSelector } from '../contexts/DomainProviders';
 import { convertToMain, formatCurrency, parseLocalDate, getMainCurrency } from '../utils';
 import { getCategoryDetails } from '../utils/categories';
 import { reportInsights, type GroupBy, type Report, type ReportFilters, type ReportId } from '../utils/reportsModel';
-import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, PieCenter, PieChart, PieTicks, TrendLine, YAxis as BklitYAxis } from '../src/components/charts';
-import { LINE_MOTION } from '../src/components/charts/animation';
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid, Line, LineChart, LineSeriesTerminalMarker, PieCenter, PieChart, PieTicks, TrendLine, XAxis, YAxis } from '../src/components/charts';
+import { SpotlightIndicator } from '../src/components/charts/spotlight-indicator';
+import { HorizonArea } from './ForecastHorizonChart';
+import { spanTick } from './investments/PortfolioHero';
 import CashflowSankey from './CashflowSankey';
 import NetWorthBridgeWidget from './NetWorthBridgeWidget';
 import { EntityGlyph, MerchantLogo } from './EntityIcon';
@@ -26,8 +28,6 @@ const COMPARE = [{ id: 'now', label: 'This period' }, { id: 'compare', label: 'V
 
 const shortDate = (date: string, withYear = false) =>
   parseLocalDate(date).toLocaleDateString(undefined, withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' });
-const velocitySpansYears = (velocity: Report['velocity']) =>
-  velocity.length > 1 && velocity[0].date.slice(0, 4) !== velocity[velocity.length - 1].date.slice(0, 4);
 const share = (part: number, whole: number) => (whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : '0.0%');
 
 const useCategoryDetailsLookup = () => {
@@ -65,24 +65,46 @@ const Figure: React.FC<{ label: string; children: React.ReactNode }> = ({ label,
 
 const SpendingChart: React.FC<{ report: Report }> = ({ report }) => {
   const isPrivate = useContext(PrivacyContext);
-  const withYear = velocitySpansYears(report.velocity);
+  const mainCurrency = getMainCurrency();
+  const rows = useMemo(
+    () => report.velocity.map(point => ({ ...point, date: parseLocalDate(point.date) })),
+    [report.velocity]
+  );
+  const tick = useMemo(() => spanTick(rows), [rows]);
+
+  if (rows.length < 2) return <Empty>There is not enough spending history in this period.</Empty>;
+
   return (
     <>
       <ul className="mb-2 flex gap-4" aria-label="Legend">
         <li className="type-caption flex items-center gap-1.5 text-muted"><span className="h-0.5 w-4 rounded-full bg-chart-1" />This period</li>
-        <li className="type-caption flex items-center gap-1.5 text-muted"><span className="h-0.5 w-4 rounded-full bg-muted" />Period before</li>
+        <li className="type-caption flex items-center gap-1.5 text-muted"><span className="w-4 border-t-2 border-dashed border-muted" />Period before</li>
       </ul>
       <div className="h-[260px] md:h-[320px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={report.velocity.map(point => ({ ...point, label: shortDate(point.date, withYear) }))}>
-            <CartesianGrid vertical={false} stroke="var(--line)" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={48} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={48} />
-            <Tooltip contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 12 }} formatter={(value: number, name: string) => [isPrivate ? '•••' : formatCurrency(value, getMainCurrency()), name === 'current' ? 'This period' : 'Period before']} />
-            <Line {...LINE_MOTION} type="natural" dataKey="previous" stroke="var(--muted)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
-            <Line {...LINE_MOTION} type="natural" dataKey="current" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        <LineChart
+          data={rows}
+          xDataKey="date"
+          yDomainTween
+          aspectRatio=""
+          className="h-full w-full"
+          margin={{ top: 16, right: 16, bottom: 28, left: 56 }}
+        >
+          <Grid horizontal numTicksRows={4} stroke="var(--line)" />
+          <SpotlightIndicator seriesKey="current" color="var(--chart-1)" />
+          <HorizonArea seriesKey="current" color="var(--chart-1)" curve={curveNatural} />
+          <XAxis numTicks={5} tickMode="domain" tickFormatter={tick} />
+          <YAxis numTicks={4} tickFormatter={v => (isPrivate ? '•••' : formatCurrency(v, mainCurrency, { compact: true }))} />
+          <Line dataKey="previous" label="Period before" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="4,4" curve={curveNatural} fadeEdges={false} />
+          <Line dataKey="current" label="This period" stroke="var(--chart-1)" strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
+          <LineSeriesTerminalMarker dataKey="current" stroke="var(--chart-1)" fill="var(--chart-1)" />
+          <ChartTooltip
+            showCrosshair
+            rows={point => [
+              { color: 'var(--chart-1)', label: 'This period', value: isPrivate ? '•••' : formatCurrency(Number(point.current ?? 0), mainCurrency) },
+              { color: 'var(--muted)', label: 'Period before', value: isPrivate ? '•••' : formatCurrency(Number(point.previous ?? 0), mainCurrency) },
+            ]}
+          />
+        </LineChart>
       </div>
     </>
   );
@@ -228,7 +250,7 @@ const IncomeReport: React.FC<{ report: Report }> = ({ report }) => {
           >
             <Grid horizontal />
             <Bar dataKey="Money in" lineCap="round" />
-            <BklitYAxis yAxisId="left" tickFormatter={v => (isPrivate ? '•••' : formatCurrency(v, getMainCurrency(), { compact: true }))} />
+            <YAxis yAxisId="left" tickFormatter={v => (isPrivate ? '•••' : formatCurrency(v, getMainCurrency(), { compact: true }))} />
             <TrendLine dataKey="Money in" stroke="var(--chart-1)" />
             <BarXAxis />
             <ChartTooltip valueFormatter={(value: number) => (isPrivate ? '•••' : formatCurrency(value, getMainCurrency()))} />
@@ -417,22 +439,23 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
   const isPrivate = useContext(PrivacyContext);
   const insights = reportInsights(report);
 
+  const mainCurrency = getMainCurrency();
+
   // Cumulative spending velocity trajectory
   const cumulativeVelocity = useMemo(() => {
-    const withYear = velocitySpansYears(report.velocity);
     let cumCurrent = 0;
     let cumPrevious = 0;
     return report.velocity.map(pt => {
       cumCurrent += pt.current;
       cumPrevious += pt.previous;
       return {
-        date: pt.date,
-        label: shortDate(pt.date, withYear),
+        date: parseLocalDate(pt.date),
         current: Number(cumCurrent.toFixed(2)),
         previous: Number(cumPrevious.toFixed(2)),
       };
     });
   }, [report.velocity]);
+  const cumulativeTick = useMemo(() => spanTick(cumulativeVelocity), [cumulativeVelocity]);
 
   // Donut slices for top 4 categories + other
   const topCategories = report.categories.slice(0, 4);
@@ -574,56 +597,31 @@ const SummaryReport: React.FC<{ report: Report; setCurrentPage?: (page: Page) =>
                 Insufficient velocity data in this timeframe
               </div>
             ) : (
-              <div className="h-[210px] w-full pt-3">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={cumulativeVelocity}>
-                    <defs>
-                      <linearGradient id="summarySpendGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} stroke="var(--line)" />
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: 'var(--muted)', fontSize: 11 }}
-                      minTickGap={28}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: 'var(--muted)', fontSize: 11 }}
-                      width={44}
-                      tickFormatter={val => isPrivate ? '•••' : formatCurrency(val, getMainCurrency(), { compact: true })}
-                    />
-                    <Tooltip
-                      contentStyle={{ background: 'var(--solid)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 12 }}
-                      formatter={(val: number, name: string) => [
-                        isPrivate ? '•••' : formatCurrency(val, getMainCurrency()),
-                        name === 'current' ? 'This period' : 'Prior period'
-                      ]}
-                    />
-                    <Line
-                      type="natural"
-                      dataKey="previous"
-                      stroke="var(--muted)"
-                      strokeWidth={1.5}
-                      strokeDasharray="4 4"
-                      dot={false}
-                    />
-                    <Area
-                      type="natural"
-                      dataKey="current"
-                      stroke="var(--chart-1)"
-                      strokeWidth={2.5}
-                      fillOpacity={1}
-                      fill="url(#summarySpendGrad)"
-                      dot={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div className="h-[220px] w-full pt-3">
+                <LineChart
+                  data={cumulativeVelocity}
+                  xDataKey="date"
+                  yDomainTween
+                  aspectRatio=""
+                  className="h-full w-full"
+                  margin={{ top: 12, right: 16, bottom: 24, left: 56 }}
+                >
+                  <Grid horizontal numTicksRows={4} stroke="var(--line)" />
+                  <SpotlightIndicator seriesKey="current" color="var(--chart-1)" />
+                  <HorizonArea seriesKey="current" color="var(--chart-1)" curve={curveNatural} />
+                  <XAxis numTicks={5} tickMode="domain" tickFormatter={cumulativeTick} />
+                  <YAxis numTicks={4} tickFormatter={val => (isPrivate ? '•••' : formatCurrency(val, mainCurrency, { compact: true }))} />
+                  <Line dataKey="previous" label="Prior period" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="4,4" curve={curveNatural} fadeEdges={false} />
+                  <Line dataKey="current" label="This period" stroke="var(--chart-1)" strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
+                  <LineSeriesTerminalMarker dataKey="current" stroke="var(--chart-1)" fill="var(--chart-1)" />
+                  <ChartTooltip
+                    showCrosshair
+                    rows={point => [
+                      { color: 'var(--chart-1)', label: 'This period', value: isPrivate ? '•••' : formatCurrency(Number(point.current ?? 0), mainCurrency) },
+                      { color: 'var(--muted)', label: 'Prior period', value: isPrivate ? '•••' : formatCurrency(Number(point.previous ?? 0), mainCurrency) },
+                    ]}
+                  />
+                </LineChart>
               </div>
             )}
           </div>

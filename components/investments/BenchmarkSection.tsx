@@ -1,7 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { curveNatural } from '@visx/curve';
 import { buildBenchmark, type BenchmarkResult } from '../../utils/benchmark';
+import type { Currency } from '../../types';
 import type { Performance } from '../../utils/investmentMetrics';
 import { BENCHMARK_PRESETS, choiceKey, fetchBenchmarkHistory, parseChoice, type BenchmarkChoice, type BenchmarkSeries } from '../../src/services/benchmarkService';
+import { formatCurrency, parseLocalDate } from '../../utils';
+import { ChartTooltip, Grid, Line, LineChart, LineSeriesTerminalMarker, ProjectionLine, XAxis, YAxis } from '../../src/components/charts';
+import { useChartStable, useYScale } from '../../src/components/charts/chart-context';
+import { SpotlightIndicator } from '../../src/components/charts/spotlight-indicator';
+import { HorizonArea } from '../ForecastHorizonChart';
+import { spanTick } from './PortfolioHero';
 import { Amount } from '../ui/Money';
 import { Button } from '../ui/Actions';
 import { Banner, Spinner } from '../ui/States';
@@ -9,7 +17,7 @@ import { Banner, Spinner } from '../ui/States';
 const CARD = 'surface-card min-w-0 rounded-[var(--radius-xl)] p-5 border border-line';
 const MAX_PICKS = 3;
 const STORE = 'crystal.benchmarks';
-const COLORS = ['var(--amber)', 'var(--chart-positive)', 'var(--ink)'];
+const COLORS = ['var(--chart-1)', 'var(--chart-3)', 'var(--chart-4)'];
 const pct = (v: number, digits = 1) => `${v < 0 ? '−' : v > 0 ? '+' : ''}${Math.abs(v * 100).toFixed(digits)}%`;
 
 const loadPicks = (): BenchmarkChoice[] => {
@@ -22,34 +30,118 @@ const savePicks = (picks: BenchmarkChoice[]) => { try { localStorage.setItem(STO
 
 type Loaded = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; series: BenchmarkSeries };
 
-const W = 640, H = 240, PAD = { top: 12, right: 12, bottom: 28, left: 56 };
-const innerW = W - PAD.left - PAD.right, innerH = H - PAD.top - PAD.bottom;
 const compact = (value: number, currency: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(value);
-const monthLabel = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+
+/** Terminal ring showing what your own holdings are worth today, rendered on top of the series layers. */
+const YourHoldingsMarker: React.FC<{ yourValue: number }> = ({ yourValue }) => {
+  const { innerWidth } = useChartStable();
+  const yScale = useYScale();
+  const cy = yScale(yourValue);
+  if (!Number.isFinite(cy) || innerWidth <= 0) return null;
+  return (
+    <g pointerEvents="none">
+      <circle cx={innerWidth} cy={cy} r={5.5} fill="var(--surface)" stroke="var(--primary)" strokeWidth={2.5} />
+    </g>
+  );
+};
+(YourHoldingsMarker as React.FC<{ yourValue: number }> & { __isPostOverlay?: boolean }).__isPostOverlay = true;
 
 /** The money you put in, what each index would have made of it, and your own holdings' worth today. */
 const GrowthChart: React.FC<{ lines: { key: string; label: string; color: string; points: BenchmarkResult['points'] }[]; yourValue: number; currency: string; hideValues: boolean }> = ({ lines, yourValue, currency, hideValues }) => {
-  const base = lines[0].points;
-  const t0 = new Date(`${base[0].date}T00:00:00`).getTime();
-  const t1 = Math.max(...lines.map(l => new Date(`${l.points[l.points.length - 1].date}T00:00:00`).getTime()));
-  const max = Math.max(1, yourValue, ...lines.flatMap(l => l.points.map(p => Math.max(p.index, p.invested)))) * 1.05;
-  const x = (date: string) => PAD.left + ((new Date(`${date}T00:00:00`).getTime() - t0) / Math.max(1, t1 - t0)) * innerW;
-  const y = (v: number) => PAD.top + (1 - v / max) * innerH;
-  const path = (pts: { date: string; v: number }[]) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.date).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
-  const ticks = [0, 0.5, 1].map(f => new Date(t0 + f * (t1 - t0)).toISOString().slice(0, 10));
+  const chartData = useMemo(() => {
+    if (lines.length === 0) return [];
+    const dateSet = new Set<string>();
+    lines.forEach(l => l.points.forEach(p => dateSet.add(p.date)));
+    const sortedDates = Array.from(dateSet).sort((a, b) => a.localeCompare(b));
+    const cursors = lines.map(() => 0);
+
+    return sortedDates.map(isoDate => {
+      const row: Record<string, unknown> = {
+        date: parseLocalDate(isoDate),
+        invested: 0,
+      };
+      let investedSet = false;
+      lines.forEach((line, idx) => {
+        const pts = line.points;
+        if (pts.length === 0) return;
+        while (cursors[idx] + 1 < pts.length && pts[cursors[idx] + 1].date <= isoDate) {
+          cursors[idx] += 1;
+        }
+        const matched = pts[cursors[idx]];
+        row[line.key] = matched.index;
+        if (!investedSet) {
+          row.invested = matched.invested;
+          investedSet = true;
+        }
+      });
+      return row;
+    });
+  }, [lines]);
+
+  const tick = useMemo(() => spanTick(chartData as { date: Date }[]), [chartData]);
+  const primary = lines[0];
+  if (!primary || chartData.length < 2) return null;
+
+  const firstDate = chartData[0].date as Date;
+  const lastDate = chartData[chartData.length - 1].date as Date;
+  const currencyTyped = currency as Currency;
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label="What each index would have made of the same money, against the money you put in and what your holdings are worth now.">
-      {[0, 0.25, 0.5, 0.75, 1].map(f => (
-        <g key={f}>
-          <line x1={PAD.left} x2={W - PAD.right} y1={y(f * max)} y2={y(f * max)} className="stroke-line" strokeWidth={1} />
-          {!hideValues && <text x={PAD.left - 8} y={y(f * max) + 4} textAnchor="end" className="fill-muted" fontSize={11}>{compact(f * max, currency)}</text>}
-        </g>
-      ))}
-      {ticks.map((t, i) => <text key={t} x={x(t)} y={H - 8} textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'} className="fill-muted" fontSize={11}>{monthLabel(t)}</text>)}
-      <path d={path(base.map(p => ({ date: p.date, v: p.invested })))} fill="none" className="stroke-muted" strokeWidth={1.5} strokeDasharray="4 4" />
-      {lines.map(l => <path key={l.key} d={path(l.points.map(p => ({ date: p.date, v: p.index })))} fill="none" stroke={l.color} strokeWidth={2.5} strokeLinejoin="round" />)}
-      {yourValue > 0 && <circle cx={x(base[base.length - 1].date)} cy={y(yourValue)} r={6} fill="var(--surface)" stroke="var(--primary)" strokeWidth={3}><title>Your holdings today</title></circle>}
-    </svg>
+    <div aria-label="What each index would have made of the same money, against the money you put in and what your holdings are worth now." role="region">
+      <LineChart
+        data={chartData}
+        xDataKey="date"
+        revealSignature={`${lines.map(l => l.key).join('-')}-${chartData.length}`}
+        yDomainTween
+        aspectRatio=""
+        className="h-[240px] w-full md:h-[260px]"
+        margin={{ top: 16, right: 16, bottom: 28, left: hideValues ? 16 : 56 }}
+      >
+        <Grid horizontal numTicksRows={4} stroke="var(--line)" />
+        <SpotlightIndicator seriesKey={primary.key} color={primary.color} />
+        <HorizonArea seriesKey={primary.key} color={primary.color} curve={curveNatural} />
+        <XAxis numTicks={5} tickMode="domain" tickFormatter={tick} />
+        {!hideValues && <YAxis numTicks={4} tickFormatter={v => compact(v, currency)} />}
+        <Line dataKey="invested" label="Money put in" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="5,5" curve={curveNatural} fadeEdges={false} />
+        {lines.map(l => (
+          <Line key={l.key} dataKey={l.key} label={l.label} stroke={l.color} strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
+        ))}
+        <LineSeriesTerminalMarker dataKey={primary.key} stroke={primary.color} fill={primary.color} />
+        {yourValue > 0 && (
+          <ProjectionLine
+            data={[{ date: firstDate, value: yourValue }, { date: lastDate, value: yourValue }]}
+            stroke="var(--primary)"
+            strokeOpacity={0.35}
+            strokeDasharray="3,4"
+            strokeWidth={1.25}
+            showEndMarker={false}
+          />
+        )}
+        {yourValue > 0 && <YourHoldingsMarker yourValue={yourValue} />}
+        <ChartTooltip
+          showCrosshair
+          rows={point => [
+            ...lines.map(l => ({
+              color: l.color,
+              label: l.label,
+              value: hideValues ? '•••' : formatCurrency(Number(point[l.key] ?? 0), currencyTyped),
+            })),
+            {
+              color: 'var(--muted)',
+              label: 'Money put in',
+              value: hideValues ? '•••' : formatCurrency(Number(point.invested ?? 0), currencyTyped),
+            },
+            ...(yourValue > 0
+              ? [{
+                  color: 'var(--primary)',
+                  label: 'Your holdings today',
+                  value: hideValues ? '•••' : formatCurrency(yourValue, currencyTyped),
+                }]
+              : []),
+          ]}
+        />
+      </LineChart>
+    </div>
   );
 };
 
@@ -128,8 +220,8 @@ const BenchmarkSection: React.FC<{ performance: Performance; currency: string; a
               {drawn.length > 0 && <GrowthChart lines={drawn} yourValue={portfolio.value} currency={currency} hideValues={hideValues} />}
               <div className="flex flex-wrap gap-x-4 gap-y-1 type-caption text-muted">
                 <span className="flex items-center gap-1.5"><span className="inline-block h-0 w-4 border-t-2 border-dashed border-muted" />Money put in</span>
-                <span className="flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-full border-2 border-primary" />Your holdings today</span>
-                {results.map(r => <span key={choiceKey(r.choice)} className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4" style={{ background: r.color }} />{r.choice.label}</span>)}
+                <span className="flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-full border-2 border-primary bg-surface" />Your holdings today</span>
+                {results.map(r => <span key={choiceKey(r.choice)} className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 rounded-full" style={{ background: r.color }} />{r.choice.label}</span>)}
               </div>
               <ul className="divide-y divide-line">
                 {results.map(({ choice, state, result, seriesCurrency }) => (

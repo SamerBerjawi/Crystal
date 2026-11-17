@@ -1,7 +1,11 @@
 import React, { useMemo } from 'react';
+import { curveNatural } from '@visx/curve';
 import { MileageLog } from '../types';
 import { parseLocalDate } from '../utils';
-import { LineChart, Line, Grid, XAxis, ChartTooltip } from '../src/components/charts';
+import { LineChart, Line, Grid, XAxis, YAxis, ChartTooltip, LineSeriesTerminalMarker } from '../src/components/charts';
+import { SpotlightIndicator } from '../src/components/charts/spotlight-indicator';
+import { HorizonArea } from './ForecastHorizonChart';
+import { spanTick } from './investments/PortfolioHero';
 import { EmptyState } from './ui/States';
 
 interface VehicleMileageChartProps {
@@ -17,6 +21,7 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
         date: parseLocalDate(log.date),
       }));
   }, [logs]);
+  const tick = useMemo(() => spanTick(sortedLogs), [sortedLogs]);
 
   if (sortedLogs.length < 2) {
     return (
@@ -32,12 +37,19 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
         yDomainTween
         aspectRatio=""
         className="w-full h-full min-h-[200px]"
-        margin={{ top: 20, right: 10, bottom: 20, left: 10 }}
+        margin={{ top: 16, right: 16, bottom: 24, left: 52 }}
       >
-        <Grid horizontal stroke="rgba(255, 255, 255, 0.06)" />
-        <XAxis />
-        <Line dataKey="reading" stroke="var(--chart-1)" strokeWidth={3} fadeEdges />
-        <ChartTooltip />
+        <Grid horizontal numTicksRows={4} stroke="var(--line)" />
+        <SpotlightIndicator seriesKey="reading" color="var(--chart-1)" />
+        <HorizonArea seriesKey="reading" color="var(--chart-1)" curve={curveNatural} />
+        <XAxis numTicks={5} tickMode="domain" tickFormatter={tick} />
+        <YAxis numTicks={4} tickFormatter={v => v.toLocaleString()} />
+        <Line dataKey="reading" label="Odometer" stroke="var(--chart-1)" strokeWidth={2.25} curve={curveNatural} fadeEdges={false} />
+        <LineSeriesTerminalMarker dataKey="reading" stroke="var(--chart-1)" fill="var(--chart-1)" />
+        <ChartTooltip
+          showCrosshair
+          rows={point => [{ color: 'var(--chart-1)', label: 'Odometer', value: Number(point.reading ?? 0).toLocaleString() }]}
+        />
       </LineChart>
     </div>
   );
