@@ -10,6 +10,7 @@ import { useAccountsContext, usePreferencesSelector, useTransactionsContext } fr
 import { useCategoryContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useReview } from '../contexts/ReviewContext';
 import { accountIcon } from './AccountCard';
+import AddTransactionModal from './AddTransactionModal';
 import CategoryPicker from './CategoryPicker';
 import { MerchantLogo } from './EntityIcon';
 import TransactionDetailModal from './TransactionDetailModal';
@@ -44,6 +45,7 @@ const SyncedTransactionsDrawer: React.FC<SyncedTransactionsDrawerProps> = ({ set
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'uncategorised'>('all');
   const [inspectingTx, setInspectingTx] = useState<Transaction | null>(null);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
 
   const allCategories = useMemo(() => [...expenseCategories, ...incomeCategories], [expenseCategories, incomeCategories]);
   const summary = useMemo(
@@ -359,15 +361,31 @@ const SyncedTransactionsDrawer: React.FC<SyncedTransactionsDrawerProps> = ({ set
           transactions={[inspectingTx]}
           accounts={accounts}
           tags={tags}
-          onEdit={updated => {
-            saveTransaction([{ ...updated, needsReview: false }]);
+          onEdit={tx => {
             setInspectingTx(null);
-            toast.success('Transaction updated and reviewed');
+            setEditingTx(tx);
           }}
           onRecategorize={(tx, cat) => {
             fileTxCategory(tx, cat);
             setInspectingTx(null);
           }}
+        />
+      )}
+
+      {editingTx && (
+        <AddTransactionModal
+          onClose={() => setEditingTx(null)}
+          onSave={(toSave, toDelete) => {
+            saveTransaction(toSave, toDelete);
+            setEditingTx(null);
+            toast.success('Transaction updated');
+          }}
+          accounts={accounts}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          transactionToEdit={editingTx}
+          transactions={transactions}
+          tags={tags}
         />
       )}
     </>

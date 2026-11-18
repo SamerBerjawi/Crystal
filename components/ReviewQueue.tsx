@@ -12,6 +12,7 @@ import { parseLocalDate } from '../utils';
 import { suggestCategories } from '../utils/overviewSummary';
 import { setUrlTab } from '../hooks/useUrlTab';
 import BulkCategorizeModal from './BulkCategorizeModal';
+import AddTransactionModal from './AddTransactionModal';
 import CategoryPicker from './CategoryPicker';
 import { MatcherConfigPanel } from './MatcherConfigPanel';
 import PageHeader from './PageHeader';
@@ -191,6 +192,7 @@ const ReviewQueue: React.FC = () => {
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [isBulkOpen, setBulkOpen] = useState(false);
   const [detailModalTx, setDetailModalTx] = useState<Transaction | null>(null);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
 
   // O(1) Account Lookup Map for instant rendering
@@ -985,10 +987,9 @@ const ReviewQueue: React.FC = () => {
           transactions={[detailModalTx]}
           accounts={accounts}
           tags={tags}
-          onEdit={updated => {
-            saveTransaction([updated]);
+          onEdit={tx => {
             setDetailModalTx(null);
-            toast.success('Transaction updated');
+            setEditingTx(tx);
           }}
           onRecategorize={(tx, cat) => {
             saveTransaction([applyCategoryToTx(tx, cat)], [], { skipRules: true });
@@ -996,6 +997,23 @@ const ReviewQueue: React.FC = () => {
             setDetailModalTx(null);
             toast.success(`Filed as ${cat}`);
           }}
+        />
+      )}
+
+      {editingTx && (
+        <AddTransactionModal
+          onClose={() => setEditingTx(null)}
+          onSave={(toSave, toDelete) => {
+            saveTransaction(toSave, toDelete);
+            setEditingTx(null);
+            toast.success('Transaction updated');
+          }}
+          accounts={accounts}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          transactionToEdit={editingTx}
+          transactions={transactions}
+          tags={tags}
         />
       )}
     </div>
