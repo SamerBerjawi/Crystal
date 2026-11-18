@@ -976,7 +976,13 @@ const ReviewQueue: React.FC = () => {
 
       {/* Matcher Configuration Dialog */}
       <Dialog isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} title="Matching settings">
-        <MatcherConfigPanel config={review.config} onChange={review.updateConfig} onReset={review.resetConfig} />
+        <MatcherConfigPanel
+          config={review.config}
+          onChange={review.updateConfig}
+          onReset={review.resetConfig}
+          ignoredCount={review.ignoredCount}
+          onRestoreDismissed={review.clearIgnoredMatches}
+        />
       </Dialog>
 
       {/* Full Transaction Inspection Modal */}

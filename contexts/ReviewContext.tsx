@@ -22,6 +22,8 @@ interface ReviewContextValue {
   markAccountReviewed: (accountId: string) => void;
   markAllReviewed: () => void;
   likelyCount: number;
+  ignoredCount: number;
+  clearIgnoredMatches: () => void;
   confirmTransfer: (suggestion: Suggestion) => void;
   dismissTransfer: (suggestion: Suggestion) => void;
   confirmBill: (suggestion: SyncedBillMatchSuggestion) => void;
@@ -125,6 +127,16 @@ export const ReviewProvider: React.FC<{
     if (bills.length) dismissSelectedBillMatches(bills);
   }, [dismissSelectedMatches, dismissSelectedBillMatches]);
 
+  const ignoredCount = ignoredTransferMatches.length + ignoredBillMatches.length;
+
+  const clearIgnoredMatches = useCallback(() => {
+    setPreferences(prev => ({
+      ...prev,
+      ignoredTransferMatches: [],
+      ignoredBillMatches: [],
+    }));
+  }, [setPreferences]);
+
   const value = useMemo<ReviewContextValue>(() => {
     const likelyTransfers = transfers.filter(item => item.matchScore >= HIGH_CONFIDENCE);
     const likelyBills = billMatches.filter(item => item.matchScore >= HIGH_CONFIDENCE);
@@ -139,6 +151,8 @@ export const ReviewProvider: React.FC<{
       markAccountReviewed,
       markAllReviewed,
       likelyCount: likelyTransfers.length + likelyBills.length,
+      ignoredCount,
+      clearIgnoredMatches,
       confirmTransfer: confirmMatch,
       dismissTransfer: dismissSuggestion,
       confirmBill: confirmBillMatch,
@@ -151,7 +165,7 @@ export const ReviewProvider: React.FC<{
       updateConfig,
       resetConfig,
     };
-  }, [transfers, billMatches, toCategorise, newlySynced, isSyncReviewOpen, setSyncReviewOpen, markReviewed, markAccountReviewed, markAllReviewed, confirmMatch, dismissSuggestion, confirmBillMatch, dismissBillMatch, confirmMatches, dismissMatches, dismissAllSuggestions, dismissAllBillMatches, config, updateConfig, resetConfig]);
+  }, [transfers, billMatches, toCategorise, newlySynced, isSyncReviewOpen, setSyncReviewOpen, markReviewed, markAccountReviewed, markAllReviewed, ignoredCount, clearIgnoredMatches, confirmMatch, dismissSuggestion, confirmBillMatch, dismissBillMatch, confirmMatches, dismissMatches, dismissAllSuggestions, dismissAllBillMatches, config, updateConfig, resetConfig]);
 
   return <ReviewContext.Provider value={value}>{children}</ReviewContext.Provider>;
 };

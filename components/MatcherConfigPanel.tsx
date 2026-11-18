@@ -10,6 +10,8 @@ interface MatcherConfigPanelProps {
   config: MatcherConfig;
   onChange: (updates: Partial<MatcherConfig>) => void;
   onReset: () => void;
+  ignoredCount?: number;
+  onRestoreDismissed?: () => void;
 }
 
 const ScaleEnds: React.FC<{ low: string; high: string }> = ({ low, high }) => (
@@ -17,7 +19,13 @@ const ScaleEnds: React.FC<{ low: string; high: string }> = ({ low, high }) => (
 );
 
 /** Settings apply as they change. */
-export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({ config, onChange, onReset }) => (
+export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
+  config,
+  onChange,
+  onReset,
+  ignoredCount = 0,
+  onRestoreDismissed,
+}) => (
   <div className="space-y-4">
     <p className="type-body text-muted">How close a bank transaction has to be to count as a match.</p>
     <div>
@@ -31,7 +39,14 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({ config, 
       <ScaleEnds low="Shows more" high="Very strict" />
     </div>
     <Switch isSelected={config.requireNameMatch} onChange={requireNameMatch => onChange({ requireNameMatch })}>Names must be similar too</Switch>
-    <Button variant="ghost" size="sm" onPress={onReset}>Reset to defaults</Button>
+    <div className="flex flex-wrap items-center gap-2">
+      <Button variant="ghost" size="sm" onPress={onReset}>Reset to defaults</Button>
+      {ignoredCount > 0 && onRestoreDismissed && (
+        <Button variant="ghost" size="sm" onPress={onRestoreDismissed}>
+          Restore {ignoredCount} dismissed
+        </Button>
+      )}
+    </div>
   </div>
 );
 

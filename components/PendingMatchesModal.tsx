@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { Suggestion } from '../hooks/useTransactionMatcher';
 import type { SyncedBillMatchSuggestion } from '../hooks/useSyncedBillMatcher';
 import type { Account, Transaction } from '../types';
 import { parseLocalDate } from '../utils';
 import { useAccountsContext } from '../contexts/DomainProviders';
 import { useReview } from '../contexts/ReviewContext';
-import { Button, SelectionBar } from './ui/Actions';
+import MatcherConfigPanel from './MatcherConfigPanel';
+import { Button, IconButton, SelectionBar } from './ui/Actions';
 import { Badge } from './ui/Display';
 import { Checkbox, controlStyles } from './ui/Fields';
 import Icon from './ui/Icon';
@@ -66,6 +67,15 @@ export const PendingMatchesModal: React.FC<PendingMatchesModalProps> = ({
   const [confidenceFilter, setConfidenceFilter] = useState<'all' | 'likely' | 'possible'>('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [isSettingsOpen, setSettingsOpen] = useState(false);
+
+  // Sync the active filter whenever the modal opens so clicking "Bills to match" never leaves "Transfers" hidden later.
+  useEffect(() => {
+    if (isOpen) {
+      setFilter(initialFilter);
+      setSelected(new Set());
+    }
+  }, [isOpen, initialFilter]);
 
   const allItems = useMemo<MatchItem[]>(() => [
     ...review.transfers.map(match => ({ kind: 'transfer' as const, id: `transfer-${match.id}`, score: match.matchScore, match })),
@@ -136,6 +146,12 @@ export const PendingMatchesModal: React.FC<PendingMatchesModalProps> = ({
       footer={
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
+            <IconButton
+              icon="sliders-horizontal"
+              label="Matching settings"
+              tooltipPlacement="top"
+              onPress={() => setSettingsOpen(true)}
+            />
             {onOpenFullQueue && (
               <Button size="sm" variant="ghost" onPress={() => { onClose(); onOpenFullQueue(); }}>
                 Open full queue
@@ -202,8 +218,8 @@ export const PendingMatchesModal: React.FC<PendingMatchesModalProps> = ({
             icon="tick-02"
             title={search ? 'No matches found' : 'All caught up'}
             description={search ? `Nothing matches "${search}".` : 'No pending matches waiting for review.'}
-            actionLabel={search ? 'Clear search' : undefined}
-            onAction={search ? () => setSearch('') : undefined}
+            actionLabel={search ? 'Clear search' : review.ignoredCount > 0 ? `Restore ${review.ignoredCount} dismissed` : undefined}
+            onAction={search ? () => setSearch('') : review.ignoredCount > 0 ? review.clearIgnoredMatches : undefined}
           />
         ) : (
           <div className="space-y-3">
@@ -331,6 +347,16 @@ export const PendingMatchesModal: React.FC<PendingMatchesModalProps> = ({
           </SelectionBar>
         )}
       </div>
+
+      <Dialog isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} title="Matching settings">
+        <MatcherConfigPanel
+          config={review.config}
+          onChange={review.updateConfig}
+          onReset={review.resetConfig}
+          ignoredCount={review.ignoredCount}
+          onRestoreDismissed={review.clearIgnoredMatches}
+        />
+      </Dialog>
     </Dialog>
   );
 };

@@ -1,10 +1,13 @@
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import type { Category, DisplayTransaction, RecurringTransaction, Tag, Transaction } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+import type { Account, Category, DisplayTransaction, RecurringTransaction, Tag, Transaction } from '../types';
 import { arrayToCSV, downloadCSV, safeRound, toLocalISOString } from '../utils';
+import { buildTransferPairUpdates, resolveManualTransferPair } from '../utils/transferMatcher';
 import type { MenuAction } from '../components/ui/Menu';
 
 interface UseTransactionLedgerActionsParams {
+  accounts: Account[];
   transactions: Transaction[];
   displayTransactions: DisplayTransaction[];
   filteredTransactions: DisplayTransaction[];
@@ -51,6 +54,7 @@ function findCategoryByName(name: string, categories: Category[]): Category | un
 }
 
 export function useTransactionLedgerActions({
+  accounts,
   transactions,
   displayTransactions,
   filteredTransactions,
@@ -102,6 +106,12 @@ export function useTransactionLedgerActions({
     return !selectedTransactions.some(t => t.transferId || t.isSplitParent || t.isCombinedParent || t.parentTransactionId);
   }, [selectedTransactions]);
 
+  const manualTransferPair = useMemo(
+    () => resolveManualTransferPair(selectedTransactions),
+    [selectedTransactions],
+  );
+  const canMatchTransfer = Boolean(manualTransferPair);
+
   const canSplit = useMemo(() => {
     if (selectedTransactions.length !== 1) return false;
     const tx = selectedTransactions[0];
@@ -139,6 +149,21 @@ export function useTransactionLedgerActions({
     setTransactionsToCombine(selectedTransactions);
     setIsCombineModalOpen(true);
   }, [canCombine, selectedTransactions, setTransactionsToCombine, setIsCombineModalOpen]);
+
+  const handleMatchAsTransfer = useCallback(() => {
+    if (!manualTransferPair) return;
+    const { expenseTx, incomeTx } = manualTransferPair;
+    const originals: [Transaction, Transaction] = [{ ...expenseTx }, { ...incomeTx }];
+    const updates = buildTransferPairUpdates(expenseTx, incomeTx, accounts, `xfer-${uuidv4()}`);
+    saveTransaction(updates, [], { skipRules: true });
+    setSelectedIds(new Set());
+    toast.success('Matched as internal transfer', {
+      action: {
+        label: 'Undo',
+        onClick: () => saveTransaction(originals, [], { skipRules: true }),
+      },
+    });
+  }, [manualTransferPair, accounts, saveTransaction, setSelectedIds]);
 
   const handleOpenSplitModal = useCallback(() => {
     if (selectedIds.size !== 1) return;
@@ -534,11 +559,13 @@ export function useTransactionLedgerActions({
   return {
     selectedTransactions,
     canCombine,
+    canMatchTransfer,
     canSplit,
     canUnsplit,
     canUncombine,
     handleOpenCategorizeModal,
     handleOpenCombineModal,
+    handleMatchAsTransfer,
     handleOpenSplitModal,
     handleSaveSplits,
     handleSaveCombine,

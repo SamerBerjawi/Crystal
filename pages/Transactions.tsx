@@ -359,11 +359,13 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   const {
     selectedTransactions,
     canCombine,
+    canMatchTransfer,
     canSplit,
     canUnsplit,
     canUncombine,
     handleOpenCategorizeModal,
     handleOpenCombineModal,
+    handleMatchAsTransfer,
     handleOpenSplitModal,
     handleSaveSplits,
     handleSaveCombine,
@@ -381,6 +383,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
     handleExport,
     menuFor,
   } = useTransactionLedgerActions({
+    accounts,
     transactions,
     displayTransactions,
     filteredTransactions,
@@ -693,6 +696,7 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
   );
 
   const selectionMore: MenuAction[] = [
+    { id: 'match-transfer', label: 'Match as transfer', icon: 'arrow-data-transfer-horizontal', isDisabled: !canMatchTransfer, onAction: handleMatchAsTransfer },
     { id: 'combine', label: 'Combine', icon: 'git-merge', isDisabled: !canCombine, onAction: handleOpenCombineModal },
     { id: 'split', label: 'Split', icon: 'split', isDisabled: !canSplit, onAction: handleOpenSplitModal },
     { id: 'unsplit', label: 'Unsplit', icon: 'git-merge', isDisabled: !canUnsplit, onAction: () => handleUnsplit() },
@@ -933,6 +937,9 @@ const LedgerView: React.FC<TransactionsProps> = ({ user, initialAccountFilter, i
 
       {selectedIds.size > 0 && !isCategorizeModalOpen && (
         <SelectionBar count={selectedIds.size} onClear={clearSelection}>
+          {canMatchTransfer && (
+            <Button size="sm" variant="ghost" onPress={handleMatchAsTransfer}>Match as transfer</Button>
+          )}
           <Button size="sm" variant="ghost" onPress={handleOpenCategorizeModal}>Categorise</Button>
           <Button size="sm" variant="ghost" onPress={() => setBulkEditModalOpen(true)}>Edit</Button>
           <Menu title="More actions" placement="top" trigger={<IconButton icon="more-horizontal" label="More actions" />} items={selectionMore} />
