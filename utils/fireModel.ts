@@ -56,7 +56,7 @@ export const balanceHistory = (selected: Account[], transactions: Transaction[],
 
   const relevant = usable.filter(tx => ids.has(tx.accountId) && !(tx.transferId && internal.has(tx.transferId)));
   // Already "as of today": the balance of an account leaves out what is dated after today.
-  const nowValue = round2(calculateAccountTotals(selected, usable).netWorth);
+  const nowValue = round2(calculateAccountTotals(selected, usable, {}, { referenceDate: today }).netWorth);
 
   const delta = new Map<string, number>();
   relevant.forEach(tx => {
