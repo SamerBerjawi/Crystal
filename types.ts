@@ -860,6 +860,7 @@ export interface PaymentTerm {
   amount: number;
   dueDate: string;
   status: 'pending' | 'paid';
+  accountId?: string;
 }
 
 export interface Invoice {
@@ -1012,6 +1013,7 @@ export interface Warrant {
   taxType?: 'amount' | 'percentage';
   taxValue?: number;
   taxAmount?: number;
+  taxAccountId?: string;
   taxPayments?: PaymentTerm[];
 }
 

@@ -512,11 +512,15 @@ export const bufferSuggestions = (projection: Projection, cushion: number, limit
 };
 
 /**
- * Pending warrant tax instalments as one-off bills, so every forecast counts them. They're paid from the first selected
- * account, else the primary account, else the first account.
+ * Pending warrant tax instalments as one-off bills, so every forecast counts them. Each instalment uses its own
+ * account, else the warrant's tax account, else the first selected account, primary account, checking account, or first account.
  */
 export const warrantTaxBills = (warrants: Warrant[], selected: Account[], accounts: Account[]): BillPayment[] => {
-  const accountId = selected[0]?.id || accounts.find(a => a.isPrimary)?.id || accounts[0]?.id || '';
+  const fallbackAccountId = selected[0]?.id
+    || accounts.find(a => a.isPrimary)?.id
+    || accounts.find(a => a.type === 'Checking' && a.status !== 'closed')?.id
+    || accounts[0]?.id
+    || '';
   return warrants.flatMap(w =>
     (w.taxPayments || [])
       .filter(tp => tp.status === 'pending' && tp.amount > 0 && tp.dueDate)
@@ -527,10 +531,31 @@ export const warrantTaxBills = (warrants: Warrant[], selected: Account[], accoun
         type: 'payment' as const,
         dueDate: tp.dueDate,
         status: 'unpaid' as const,
-        accountId,
+        accountId: tp.accountId || w.taxAccountId || fallbackAccountId,
         currency: getMainCurrency() as BillPayment['currency'],
       }))
   );
+};
+
+/**
+ * Combines saved bills with derived pending warrant tax bills while stripping any legacy/stale warrant-linked bills
+ * for existing warrants so tax instalments are never double-counted or reverted to a default account.
+ */
+export const mergeWarrantTaxBills = (
+  bills: BillPayment[],
+  warrants: Warrant[],
+  selected: Account[],
+  accounts: Account[],
+): BillPayment[] => {
+  const warrantIds = new Set(warrants.map(w => w.id));
+  const filteredBills = bills.filter(b => {
+    if (b.warrantId && warrantIds.has(b.warrantId)) return false;
+    for (const wid of warrantIds) {
+      if (b.id.startsWith(`bill-tax-${wid}-`) || b.id.startsWith(`warrant-tax-${wid}-`)) return false;
+    }
+    return true;
+  });
+  return [...filteredBills, ...warrantTaxBills(warrants, selected, accounts)];
 };
 
 export type ForecastData = Pick<OccurrenceInput, 'recurring' | 'overrides' | 'bills' | 'accounts' | 'transactions' | 'loanPaymentOverrides'>;

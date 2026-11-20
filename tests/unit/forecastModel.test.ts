@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type { Account, BillPayment, FinancialGoal, RecurringTransaction, Warrant } from '../../types';
 import { buildOccurrences, iso, makeConverter, moveFuture, moveSeries } from '../../utils/scheduleModel';
 import {
-  accountForecast, warrantTaxBills, chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, bufferSuggestions, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
+  accountForecast, warrantTaxBills, mergeWarrantTaxBills, chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, bufferSuggestions, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
 } from '../../utils/forecastModel';
 import {
   accountCoverage, goalTree, monthlyTargetGroups, monthlyTargets, moveGoal, planGoal, projectGoal, summaryRings, emptyGoalDraft,
@@ -363,4 +363,42 @@ test('Overview tiles use the same periods and lows as Forecast', () => {
   assert.deepEqual(tiles.map(tile => [tile.lowestBalance, tile.date]), lows.map(low => [low.value, low.date]));
   assert.equal(tiles[1].lowestBalance, 1100);
   assert.equal(tiles[1].date, '2027-02-05');
+});
+
+test('warrant tax bills use the chosen instalment or warrant account and avoid legacy double-counting', () => {
+  const warrant: Warrant = {
+    id: 'w1', isin: 'BE0001', name: 'Grant', grantDate: '2026-01-01', quantity: 10, grantPrice: 1,
+    taxAccountId: 'chk',
+    taxPayments: [
+      { id: 't1', label: 'First', percentage: 50, amount: 400, dueDate: '2026-11-10', status: 'pending' },
+      { id: 't2', label: 'Second', percentage: 50, amount: 250, dueDate: '2026-11-15', status: 'pending', accountId: 'sav' },
+    ],
+  };
+
+  // Even when only Savings is selected, t1 still belongs to Checking (taxAccountId) and t2 to Savings (tp.accountId).
+  const derived = warrantTaxBills([warrant], [accounts[1]], accounts);
+  assert.equal(derived.length, 2);
+  assert.equal(derived[0].accountId, 'chk');
+  assert.equal(derived[1].accountId, 'sav');
+
+  // Legacy bill-tax-* / warrantId bills are stripped so they don't double-count or override accountId.
+  const legacyBill: BillPayment = {
+    id: 'bill-tax-w1-0', description: 'Tax Payment: Grant (BE0001)', amount: -400, type: 'payment',
+    currency: 'EUR', dueDate: '2026-11-10', status: 'unpaid', warrantId: 'w1',
+  };
+  const rentBill: BillPayment = {
+    id: 'other', description: 'Rent', amount: -50, type: 'payment',
+    currency: 'EUR', dueDate: '2026-11-12', status: 'unpaid', accountId: 'chk',
+  };
+  const merged = mergeWarrantTaxBills([legacyBill, rentBill], [warrant], accounts, accounts);
+  assert.equal(merged.length, 3);
+  assert.ok(!merged.some(b => b.id === 'bill-tax-w1-0'));
+
+  // Checking-only forecast only deducts t1 (400) + Rent (50), not t2 (250 on Savings).
+  const chkDays = forecastFromData({ recurring: [], overrides: [], bills: merged, accounts, transactions: [] }, [accounts[0]], [], [], TODAY, d('2026-11-30'), eur).days;
+  assert.equal(chkDays.at(-1)?.total, 550);
+
+  // Savings-only forecast only deducts t2 (250), not t1 (400 on Checking).
+  const savDays = forecastFromData({ recurring: [], overrides: [], bills: merged, accounts, transactions: [] }, [accounts[1]], [], [], TODAY, d('2026-11-30'), eur).days;
+  assert.equal(savDays.at(-1)?.total, 4750);
 });

@@ -6,7 +6,7 @@ import { computeOperatingAccountMetrics, computeSavingsAccountMetrics, isSavings
 import { dailyBalanceHistory, isoMonth, lastMonths, monthLabel, monthlyBalanceHistory, monthlyFlows, splitByLabel, statementPeriodFor } from '../../utils/accountPagesModel';
 import { transferPartners } from '../../utils/accountLinks';
 import { liveSeries } from '../../utils/scheduleModel';
-import { warrantTaxBills } from '../../utils/forecastModel';
+import { mergeWarrantTaxBills } from '../../utils/forecastModel';
 import { usePreferencesSelector, useWarrantsContext } from '../../contexts/DomainProviders';
 import { useScheduleContext } from '../../contexts/FinancialDataContext';
 import { useInsightsView } from '../../contexts/InsightsViewContext';
@@ -161,7 +161,7 @@ export const CheckingLayout: React.FC<AccountPanelProps> = props => {
     showBalanceAdjustments: props.showBalanceAdjustments,
     recurringTransactions,
     recurringTransactionOverrides,
-    billsAndPayments: [...billsAndPayments, ...warrantTaxBills(warrants, [], page.accounts)],
+    billsAndPayments: mergeWarrantTaxBills(billsAndPayments, warrants, [], page.accounts),
     financialGoals: page.goals,
     activeGoalIds,
     loanPaymentOverrides,

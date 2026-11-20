@@ -7,7 +7,7 @@ import {
 } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
 import { netWorthHistory } from './challengesModel';
-import { biggestAhead, forecastFromData, warrantTaxBills } from './forecastModel';
+import { biggestAhead, forecastFromData, mergeWarrantTaxBills } from './forecastModel';
 import { budgetAgainstActual, categoryMatches, expensesIn, groupedSpend, inScope, isCounted, type ReportFilters } from './reportsModel';
 import { computeSafeToSpend } from './safeToSpend';
 import { isDigitalOrService, serviceStatus, serviceTotals, services } from './subscriptionsModel';
@@ -161,7 +161,7 @@ export const buildAssistantTools = (data: AssistantData): AssistantTool[] => {
   const project = (end: Date) => {
     const selected = forecastAccounts();
     return forecastFromData(
-      { recurring: data.recurringTransactions, overrides: data.recurringOverrides, bills: [...data.bills, ...warrantTaxBills(data.warrants, selected, accounts)], accounts, transactions, loanPaymentOverrides: data.loanPaymentOverrides },
+      { recurring: data.recurringTransactions, overrides: data.recurringOverrides, bills: mergeWarrantTaxBills(data.bills, data.warrants, selected, accounts), accounts, transactions, loanPaymentOverrides: data.loanPaymentOverrides },
       selected, data.goals, [], today, end, convertToMain,
     );
   };

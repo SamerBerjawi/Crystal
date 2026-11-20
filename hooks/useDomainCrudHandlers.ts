@@ -613,27 +613,22 @@ export function useDomainCrudHandlers({
     }
 
     if (warrantId) {
-      setBillsAndPayments(prev => {
-        const otherBills = prev.filter(b => b.warrantId !== warrantId);
-        const newBills: BillPayment[] = (warrantData.taxPayments || []).map((tp, index) => ({
-          id: `bill-tax-${warrantId}-${index}`,
-          description: `Tax Payment: ${warrantData.name} (${warrantData.isin})`,
-          amount: -tp.amount,
-          type: 'payment',
-          currency: 'EUR',
-          dueDate: tp.dueDate,
-          status: 'unpaid',
-          warrantId: warrantId
-        }));
-        return [...otherBills, ...newBills];
-      });
+      setBillsAndPayments(prev =>
+        prev.filter(
+          b => b.warrantId !== warrantId && !b.id.startsWith(`bill-tax-${warrantId}-`) && !b.id.startsWith(`warrant-tax-${warrantId}-`)
+        )
+      );
     }
   }, [handleSaveAccount, setBillsAndPayments, setWarrants]);
 
   const handleDeleteWarrant = useCallback((warrantId: string) => {
     const warrantToDelete = warrantsRef.current.find(w => w.id === warrantId);
     setWarrants(prev => prev.filter(w => w.id !== warrantId));
-    setBillsAndPayments(prev => prev.filter(b => b.warrantId !== warrantId));
+    setBillsAndPayments(prev =>
+      prev.filter(
+        b => b.warrantId !== warrantId && !b.id.startsWith(`bill-tax-${warrantId}-`) && !b.id.startsWith(`warrant-tax-${warrantId}-`)
+      )
+    );
     if (warrantToDelete) {
       setManualWarrantPrices(prev => { const updated = { ...prev }; delete updated[warrantToDelete.isin]; return updated; });
     }
@@ -681,12 +676,46 @@ export function useDomainCrudHandlers({
   }, [setTags, setTransactions, transactionsViewFilters]);
 
   const handleSaveBillPayment = useCallback((billData: Omit<BillPayment, 'id'> & { id?: string }) => {
+    if (billData.id?.startsWith('warrant-tax-')) {
+      const billId = billData.id;
+      setWarrants(prev =>
+        prev.map(w => {
+          if (!billId.startsWith(`warrant-tax-${w.id}-`)) return w;
+          const termId = billId.slice(`warrant-tax-${w.id}-`.length);
+          const nextTaxPayments = (w.taxPayments || []).map(tp =>
+            tp.id === termId
+              ? {
+                  ...tp,
+                  accountId: billData.accountId || tp.accountId,
+                  dueDate: billData.dueDate,
+                  amount: Math.abs(billData.amount),
+                  status: (billData.status === 'paid' ? 'paid' : 'pending') as 'paid' | 'pending',
+                }
+              : tp
+          );
+          return { ...w, taxPayments: nextTaxPayments };
+        })
+      );
+      setBillsAndPayments(prev => prev.filter(b => b.id !== billId));
+      return;
+    }
     setBillsAndPayments(prev => upsertEntity(prev, billData, () => `bill-${uuidv4()}`));
-  }, [setBillsAndPayments]);
+  }, [setBillsAndPayments, setWarrants]);
 
   const handleDeleteBillPayment = useCallback((billId: string) => {
+    if (billId.startsWith('warrant-tax-')) {
+      setWarrants(prev =>
+        prev.map(w => {
+          if (!billId.startsWith(`warrant-tax-${w.id}-`)) return w;
+          const termId = billId.slice(`warrant-tax-${w.id}-`.length);
+          return { ...w, taxPayments: (w.taxPayments || []).filter(tp => tp.id !== termId) };
+        })
+      );
+      setBillsAndPayments(prev => prev.filter(b => b.id !== billId));
+      return;
+    }
     setBillsAndPayments(prev => removeEntityById(prev, billId));
-  }, [setBillsAndPayments]);
+  }, [setBillsAndPayments, setWarrants]);
 
   const handleMarkBillAsPaid = useCallback((billId: string, paymentAccountId: string, paymentDate: string) => {
     const bill = billsAndPaymentsRef.current.find(b => b.id === billId);

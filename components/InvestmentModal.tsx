@@ -55,6 +55,15 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
   const isEditingGrant = !!warrantToEdit;
   const today = toLocalISOString(new Date());
   const startSymbol = transactionToEdit?.symbol ?? initialSymbol ?? '';
+  const openCashAccounts = useMemo(() => cashAccounts.filter(a => a.status !== 'closed'), [cashAccounts]);
+  const defaultTaxAccountId =
+    warrantToEdit?.taxAccountId
+    ?? warrantToEdit?.taxPayments?.find(tp => tp.accountId)?.accountId
+    ?? openCashAccounts.find(a => a.isPrimary)?.id
+    ?? openCashAccounts.find(a => a.type === 'Checking')?.id
+    ?? openCashAccounts[0]?.id
+    ?? cashAccounts[0]?.id
+    ?? '';
 
   const initial = useRef({
     mode: (warrantToEdit ? 'grant' : transactionToEdit ? 'trade' : initialMode ?? 'trade') as 'trade' | 'grant',
@@ -67,7 +76,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
     currency: (transactionToEdit?.currency ?? configs[startSymbol]?.currency ?? 'EUR') as Currency,
     exchange: configs[startSymbol]?.exchange ?? '',
     createCash: !isEditingTrade,
-    cashAccountId: cashAccounts[0]?.id ?? '',
+    cashAccountId: openCashAccounts[0]?.id ?? cashAccounts[0]?.id ?? '',
     subType: 'Stock' as InvestmentSubType,
     isin: warrantToEdit?.isin ?? '',
     grantName: warrantToEdit?.name ?? '',
@@ -76,9 +85,11 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
     grantPrice: warrantToEdit ? String(warrantToEdit.grantPrice) : '10.00',
     taxType: warrantToEdit?.taxType ?? ('percentage' as 'amount' | 'percentage'),
     taxValue: String(warrantToEdit?.taxValue ?? 0),
+    taxAccountId: defaultTaxAccountId,
   });
   const [draft, setDraft] = useState(initial.current);
   const [taxPayments, setTaxPayments] = useState<PaymentTerm[]>(warrantToEdit?.taxPayments || []);
+  const initialTaxPayments = useRef(JSON.stringify(warrantToEdit?.taxPayments || []));
   const [isCheckingSale, setCheckingSale] = useState(false);
   const update = (patch: Partial<typeof draft>) => setDraft(prev => ({ ...prev, ...patch }));
 
@@ -200,14 +211,27 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
       toast.error(`Tax instalments are ${formatCurrency(Math.abs(taxLeft), getMainCurrency())} ${taxLeft > 0 ? 'short' : 'over'}`);
       return;
     }
+    const resolvedTaxAccountId = draft.taxAccountId || undefined;
+    const resolvedTaxPayments = taxPayments.map(tp => ({
+      ...tp,
+      accountId: tp.accountId || resolvedTaxAccountId,
+    }));
     save({
       id: warrantToEdit?.id, isin, name: draft.grantName.trim() || isin, grantDate: draft.grantDate, quantity: num(draft.grantQuantity), grantPrice: num(draft.grantPrice),
-      taxType: draft.taxType, taxValue: num(draft.taxValue), taxAmount, taxPayments,
+      taxType: draft.taxType, taxValue: num(draft.taxValue), taxAmount, taxAccountId: resolvedTaxAccountId, taxPayments: resolvedTaxPayments,
     }, undefined, undefined, true);
   };
 
   const updatePayment = (id: string, changes: Partial<PaymentTerm>) => setTaxPayments(items => items.map(item => (item.id === id ? { ...item, ...changes } : item)));
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(initial.current) || taxPayments !== (warrantToEdit?.taxPayments || taxPayments);
+  const cashAccountOptions = (selectedId?: string): PickerOption[] =>
+    cashAccounts
+      .filter(account => account.status !== 'closed' || account.id === selectedId)
+      .map(account => ({
+        id: account.id,
+        label: account.name,
+        description: formatCurrency(account.balance, account.currency),
+      }));
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(initial.current) || JSON.stringify(taxPayments) !== initialTaxPayments.current;
 
   const title = isEditingTrade ? 'Edit trade' : isEditingGrant ? 'Edit grant' : draft.mode === 'trade' ? 'New trade' : 'New equity grant';
 
@@ -348,10 +372,24 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
                 <SmoothTab fullWidth className="w-full" items={TAX_TYPES} value={draft.taxType} onChange={taxType => update({ taxType: taxType as 'amount' | 'percentage' })} label="Tax calculation type" />
               </div>
               <TextInput label={draft.taxType === 'percentage' ? 'Tax rate (%)' : 'Tax amount'} inputMode="decimal" value={draft.taxValue} onChange={taxValue => update({ taxValue })} help={`Tax comes to ${formatCurrency(taxAmount, getMainCurrency())}.`} />
+              {cashAccounts.length > 0 && (
+                <Select
+                  label="Pay tax from"
+                  options={cashAccountOptions(draft.taxAccountId)}
+                  value={draft.taxAccountId}
+                  onChange={taxAccountId => {
+                    const prevAccountId = draft.taxAccountId;
+                    update({ taxAccountId });
+                    setTaxPayments(items => items.map(item => (
+                      !item.accountId || item.accountId === prevAccountId ? { ...item, accountId: taxAccountId } : item
+                    )));
+                  }}
+                />
+              )}
               <section aria-label="Tax instalments" className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-4">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="type-label text-ink">Instalments</h3>
-                  <Button variant="secondary" size="sm" icon="add-01" onPress={() => setTaxPayments(items => [...items, { id: uuidv4(), label: `Tax payment ${items.length + 1}`, percentage: 0, amount: taxLeft > 0 ? taxLeft : 0, dueDate: today, status: 'pending' }])}>Add</Button>
+                  <Button variant="secondary" size="sm" icon="add-01" onPress={() => setTaxPayments(items => [...items, { id: uuidv4(), label: `Tax payment ${items.length + 1}`, percentage: 0, amount: taxLeft > 0 ? taxLeft : 0, dueDate: today, status: 'pending', accountId: draft.taxAccountId || undefined }])}>Add</Button>
                 </div>
                 {taxPayments.map(payment => (
                   <div key={payment.id} className="space-y-2 border-t border-line pt-3">
@@ -363,6 +401,14 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ onClose, onSaveTrade,
                       <AmountInput label="Amount" currency={getMainCurrency()} value={String(payment.amount)} onChange={value => updatePayment(payment.id, { amount: num(value) })} />
                       <DateInput label="Due" value={payment.dueDate} onChange={dueDate => updatePayment(payment.id, { dueDate })} />
                     </div>
+                    {cashAccounts.length > 0 && (
+                      <Select
+                        label="Account"
+                        options={cashAccountOptions(payment.accountId || draft.taxAccountId)}
+                        value={payment.accountId || draft.taxAccountId}
+                        onChange={accountId => updatePayment(payment.id, { accountId })}
+                      />
+                    )}
                     <Switch isSelected={payment.status === 'paid'} onChange={isPaid => updatePayment(payment.id, { status: isPaid ? 'paid' : 'pending' })}>Paid</Switch>
                   </div>
                 ))}

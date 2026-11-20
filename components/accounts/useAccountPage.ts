@@ -3,7 +3,7 @@ import type { Account, Transaction } from '../../types';
 import { convertCurrency } from '../../utils';
 import { accountLinks } from '../../utils/accountLinks';
 import { dailyBalanceHistory, isoDay, toDatedAmounts, type DatedAmount } from '../../utils/accountPagesModel';
-import { forecastFromData, warrantTaxBills, type ForecastEvent } from '../../utils/forecastModel';
+import { forecastFromData, mergeWarrantTaxBills, type ForecastEvent } from '../../utils/forecastModel';
 import { makeConverter } from '../../utils/scheduleModel';
 import { resolveRealTodayBalance } from '../../utils/accountDetailModel';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext, useWarrantsContext } from '../../contexts/DomainProviders';
@@ -68,7 +68,7 @@ export function useAccountProjection(account: Account, todayBalance: number, day
       {
         recurring: recurringTransactions,
         overrides: recurringTransactionOverrides,
-        bills: [...billsAndPayments, ...warrantTaxBills(warrants, [], accounts)],
+        bills: mergeWarrantTaxBills(billsAndPayments, warrants, [], accounts),
         accounts: accounts.length ? accounts : [account],
         transactions,
         loanPaymentOverrides,

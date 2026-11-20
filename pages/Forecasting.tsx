@@ -28,7 +28,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { cn } from '../lib/utils';
 import {
-  FORECAST_RANGES, NO_ASSUMPTIONS, warrantTaxBills, WEEKLY_AFTER_DAYS, biggestAhead, bufferSuggestions, drivers, isDerivedBill, forecastBubbles, forecastFromData, hasAssumptions, horizonSummary, lowestPoints, rangeEnd, rangeFromDuration,
+  FORECAST_RANGES, NO_ASSUMPTIONS, mergeWarrantTaxBills, WEEKLY_AFTER_DAYS, biggestAhead, bufferSuggestions, drivers, isDerivedBill, forecastBubbles, forecastFromData, hasAssumptions, horizonSummary, lowestPoints, rangeEnd, rangeFromDuration,
   type Assumptions, type BufferSuggestion, type Bubble, type ForecastEvent, type ForecastRange,
 } from '../utils/forecastModel';
 import { iso, moveFuture, moveSeries, parseAmountInput, scheduledItemOf } from '../utils/scheduleModel';
@@ -94,7 +94,7 @@ const Forecasting: React.FC = () => {
   const end = useMemo(() => rangeEnd(range, today), [range, today]);
 
   const allBills = useMemo<BillPayment[]>(
-    () => [...billsAndPayments, ...warrantTaxBills(warrants, selectedAccounts, accounts)],
+    () => mergeWarrantTaxBills(billsAndPayments, warrants, selectedAccounts, accounts),
     [billsAndPayments, warrants, selectedAccounts, accounts]
   );
 

@@ -26,7 +26,7 @@ import { useInsightsView } from '../contexts/InsightsViewContext';
 import { useAccountsContext, useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { goalMovements } from '../utils/forecastModel';
+import { goalMovements, mergeWarrantTaxBills } from '../utils/forecastModel';
 import {
   addDays, buildOccurrences, cadenceLabel, dailyCommitted, emptyFilters, filterOccurrences, groupUpcoming, iso, moveFuture, monthGrid, nextDueAfterPosting, oldUnpaidBills, OVERDUE_DAYS,
   postDetails, scheduledItemOf, seriesGroups, summarize, syntheticSeries, type Flow, type Occurrence, type OccurrenceSource, type SeriesRow,
@@ -110,24 +110,10 @@ const SchedulePage: React.FC = () => {
     return monthStart < today ? monthStart : today;
   }, [month, today]);
 
-  const allBills = useMemo<BillPayment[]>(() => {
-    const primaryAccountId = accounts.find(a => a.isPrimary)?.id || accounts[0]?.id || '';
-    const warrantTaxBills: BillPayment[] = warrants.flatMap(w =>
-      (w.taxPayments || [])
-        .filter(tp => tp.status === 'pending' && tp.amount > 0 && tp.dueDate)
-        .map(tp => ({
-          id: `warrant-tax-${w.id}-${tp.id}`,
-          description: `${w.name || w.isin} tax instalment`,
-          amount: -Math.abs(tp.amount),
-          type: 'payment' as const,
-          dueDate: tp.dueDate,
-          status: 'unpaid' as const,
-          accountId: primaryAccountId,
-          currency: getMainCurrency() as BillPayment['currency'],
-        }))
-    ).filter(wtb => !billsAndPayments.some(b => b.id === wtb.id));
-    return [...billsAndPayments, ...warrantTaxBills];
-  }, [billsAndPayments, warrants, accounts]);
+  const allBills = useMemo<BillPayment[]>(
+    () => mergeWarrantTaxBills(billsAndPayments, warrants, [], accounts),
+    [billsAndPayments, warrants, accounts],
+  );
 
   const occurrences = useMemo(() => buildOccurrences({
     recurring: recurringTransactions, overrides: recurringTransactionOverrides, bills: allBills, accounts, transactions, loanPaymentOverrides,

@@ -36,7 +36,7 @@ import {
 import {
   forecastFromData,
   horizonTiles,
-  warrantTaxBills,
+  mergeWarrantTaxBills,
 } from './forecastModel';
 import { nextDueAfterPaying } from './scheduleModel';
 import { resolveTransferInfo } from './transferDetails';
@@ -246,7 +246,7 @@ export const computeDashboardForecast = (params: {
     {
       recurring: recurringTransactions,
       overrides: recurringTransactionOverrides,
-      bills: [...billsAndPayments, ...warrantTaxBills(warrants, selectedAccounts, accounts)],
+      bills: mergeWarrantTaxBills(billsAndPayments, warrants, selectedAccounts, accounts),
       accounts,
       transactions,
       loanPaymentOverrides,
