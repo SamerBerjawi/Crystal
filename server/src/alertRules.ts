@@ -244,11 +244,13 @@ const lowBalanceAlerts = (data: Json, now: Date, rules: AlertRules): AlertCandid
             });
         });
         bills.forEach(b => {
-            if (b.accountId !== account.id || String(b.currency || currency) !== currency) return;
+            if (String(b.currency || currency) !== currency) return;
+            if (b.accountId !== account.id && !(b.type === 'transfer' && b.toAccountId === account.id)) return;
             const due = dateOf(b.dueDate);
             const mag = Math.abs(num(b.amount) ?? 0);
             if (!due || due <= today || due > horizon || mag === 0) return;
-            moves.push({ day: due, delta: b.type === 'deposit' ? mag : -mag });
+            const delta = b.type === 'deposit' || (b.type === 'transfer' && b.toAccountId === account.id) ? mag : -mag;
+            moves.push({ day: due, delta });
         });
         moves.sort((a, b) => a.day.getTime() - b.day.getTime());
         let running = balance;

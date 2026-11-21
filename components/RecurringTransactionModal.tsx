@@ -65,7 +65,6 @@ const RECURRING_TYPES: SwipeTabItem[] = [
     activeTextColor: 'text-on-pill',
   },
 ];
-const BILL_TYPES = RECURRING_TYPES.slice(0, 2);
 const NONE = 'none';
 
 const initialDraft = (props: RecurringTransactionModalProps): SeriesDraft => {
@@ -177,7 +176,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = prop
   const accountOptions = (exclude?: string, selected?: string): PickerOption[] => {
     const filtered = accounts.filter(item =>
       item.id !== exclude &&
-      (isBill ? LIQUID_ACCOUNT_TYPES.includes(item.type) : item.status !== 'closed' || item.id === selected || item.id === draft.accountId || item.id === draft.toAccountId)
+      (isBill && !isTransfer ? LIQUID_ACCOUNT_TYPES.includes(item.type) : item.status !== 'closed' || item.id === selected || item.id === draft.accountId || item.id === draft.toAccountId)
     );
     const open = filtered.filter(a => a.status !== 'closed').sort((a, b) => rank(a.type) - rank(b.type));
     const closed = filtered.filter(a => a.status === 'closed');
@@ -196,7 +195,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = prop
       };
     });
 
-    if (isBill) {
+    if (isBill && !isTransfer) {
       return [
         {
           id: NONE,
@@ -223,7 +222,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = prop
     activeRule?.category
   )), [draft.type, draft.merchant, draft.description, transactions, activeRule?.category]);
 
-  const setKind = (kind: string) => update({ kind: kind as SeriesDraft['kind'], type: draft.type === 'transfer' ? 'expense' : draft.type });
+  const setKind = (kind: string) => update({ kind: kind as SeriesDraft['kind'] });
 
   const handleSave = () => {
     const num = parseFloat(draft.amount);
@@ -303,7 +302,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = prop
         <SmoothTab
           fullWidth
           className="w-full"
-          items={isBill ? BILL_TYPES : RECURRING_TYPES}
+          items={RECURRING_TYPES}
           value={draft.type}
           onChange={type => update({ type: type as SeriesDraft['type'], ...(isEditing ? {} : { category: '' }) })}
           label="Transaction type"

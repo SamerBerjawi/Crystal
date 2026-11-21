@@ -277,7 +277,7 @@ const SchedulePage: React.FC = () => {
 
   const postAs = (bill: BillPayment): Occurrence => ({
     key: bill.id, source: 'bill', sourceId: bill.id, originalDate: bill.dueDate, date: bill.dueDate, amount: Math.abs(bill.amount), currency: bill.currency,
-    flow: bill.type === 'deposit' ? 'in' : 'out', type: bill.type, description: bill.description, accountId: bill.accountId, status: 'overdue', isOverride: false, isReadOnly: false, bill,
+    flow: bill.type === 'deposit' ? 'in' : bill.type === 'transfer' ? 'move' : 'out', type: bill.type, description: bill.description, accountId: bill.accountId, toAccountId: bill.toAccountId, status: 'overdue', isOverride: false, isReadOnly: false, bill,
   });
 
   const dayPanel = (

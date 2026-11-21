@@ -1,5 +1,6 @@
 import React from 'react';
 import { parseLocalDate, getMainCurrency } from '../utils';
+import { addDays, iso } from '../utils/scheduleModel';
 import type { ForecastEvent } from '../utils/forecastModel';
 import { Button } from './ui/Actions';
 import { Badge } from './ui/Display';
@@ -16,9 +17,12 @@ interface ForecastDayPanelProps {
   balance?: number;
   /** Set when the panel opened on a group of bubbles, which can span a week. */
   title?: string;
+  /** Day after the next expected income, for quick-rescheduling a payment. */
+  nextIncomeDate?: string;
   onClose: () => void;
   onEdit: (event: ForecastEvent) => void;
   onMove: (event: ForecastEvent, toDate: string) => void;
+  onSkip?: (event: ForecastEvent) => void;
   onAdd: () => void;
 }
 
@@ -26,7 +30,7 @@ const fullDate = (date: string) => parseLocalDate(date).toLocaleDateString(undef
 const movable = (event: ForecastEvent) => (event.kind === 'recurring' || event.kind === 'bill') && !event.occurrence?.isReadOnly;
 
 /** A day or a bubble: what happens, what it leaves you with, and a date field to move it (FCT-05). */
-const ForecastDayPanel: React.FC<ForecastDayPanelProps> = ({ date, events, balance, title, onClose, onEdit, onMove, onAdd }) => {
+const ForecastDayPanel: React.FC<ForecastDayPanelProps> = ({ date, events, balance, title, nextIncomeDate, onClose, onEdit, onMove, onSkip, onAdd }) => {
   const net = events.reduce((sum, event) => sum + event.amount, 0);
   return (
     <SidePanel
@@ -59,9 +63,38 @@ const ForecastDayPanel: React.FC<ForecastDayPanelProps> = ({ date, events, balan
                 </div>
               </div>
               {movable(event) ? (
-                <div className="mt-3 flex items-end gap-2">
-                  <DateInput className="min-w-0 flex-1" label="Date" value={event.date} onChange={value => { if (value && value !== event.date) onMove(event, value); }} />
-                  <Button variant="secondary" onPress={() => onEdit(event)}>Edit</Button>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-end gap-2">
+                    <DateInput className="min-w-0 flex-1" label="Date" value={event.date} onChange={value => { if (value && value !== event.date) onMove(event, value); }} />
+                    <Button variant="secondary" onPress={() => onEdit(event)}>Edit</Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onMove(event, iso(addDays(parseLocalDate(event.date), 7)))}
+                      className="type-caption cursor-pointer rounded-full border border-line bg-solid px-2.5 py-1 font-medium text-ink transition-colors hover:border-line-strong hover:bg-surface"
+                    >
+                      +1 week
+                    </button>
+                    {nextIncomeDate && nextIncomeDate > event.date && event.amount < 0 && (
+                      <button
+                        type="button"
+                        onClick={() => onMove(event, nextIncomeDate)}
+                        className="type-caption cursor-pointer rounded-full border border-line bg-solid px-2.5 py-1 font-medium text-ink transition-colors hover:border-line-strong hover:bg-surface"
+                      >
+                        After next income
+                      </button>
+                    )}
+                    {onSkip && (
+                      <button
+                        type="button"
+                        onClick={() => onSkip(event)}
+                        className="type-caption cursor-pointer rounded-full border border-line bg-solid px-2.5 py-1 font-medium text-muted transition-colors hover:border-line-strong hover:text-ink"
+                      >
+                        Skip this one
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : event.kind === 'goal' ? (
                 <Button className="mt-3" variant="secondary" onPress={() => onEdit(event)}>Edit goal</Button>

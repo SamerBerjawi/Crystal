@@ -17,7 +17,7 @@ import { AmountInput, Switch } from '../components/ui/Fields';
 import Icon from '../components/ui/Icon';
 import { Badge } from '../components/ui/Display';
 import { Amount } from '../components/ui/Money';
-import { ConfirmDialog } from '../components/ui/Overlays';
+import { ConfirmDialog, Popover } from '../components/ui/Overlays';
 import { MultiSelect } from '../components/ui/Pickers';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { EmptyState } from '../components/ui/States';
@@ -28,10 +28,10 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { cn } from '../lib/utils';
 import {
-  FORECAST_RANGES, NO_ASSUMPTIONS, mergeWarrantTaxBills, WEEKLY_AFTER_DAYS, biggestAhead, bufferSuggestions, drivers, isDerivedBill, forecastBubbles, forecastFromData, hasAssumptions, horizonSummary, lowestPoints, rangeEnd, rangeFromDuration,
-  type Assumptions, type BufferSuggestion, type Bubble, type ForecastEvent, type ForecastRange,
+  FORECAST_RANGES, NO_ASSUMPTIONS, mergeWarrantTaxBills, WEEKLY_AFTER_DAYS, biggestAhead, bufferSuggestions, drivers, isDerivedBill, forecastBubbles, forecastFromData, hasAssumptions, horizonSummary, lowestPoints, nextIncomeAfter, rangeEnd, rangeFromDuration, transferSuggestions,
+  type Assumptions, type BufferSuggestion, type Bubble, type ForecastEvent, type ForecastRange, type TransferSuggestion,
 } from '../utils/forecastModel';
-import { iso, moveFuture, moveSeries, parseAmountInput, scheduledItemOf } from '../utils/scheduleModel';
+import { addDays, iso, moveFuture, moveSeries, parseAmountInput, scheduledItemOf } from '../utils/scheduleModel';
 
 const VIEWS = [{ id: 'chart', label: 'Chart' }, { id: 'list', label: 'List' }];
 const LEGEND = [
@@ -57,13 +57,14 @@ const Forecasting: React.FC = () => {
   const { preferences, setPreferences } = usePreferencesContext();
   const {
     recurringTransactions, recurringTransactionOverrides, billsAndPayments, loanPaymentOverrides,
-    saveRecurringTransaction, saveRecurringOverride, deleteRecurringOverride, saveBillPayment,
+    saveRecurringTransaction, saveRecurringOverride, deleteRecurringOverride, saveBillPayment, deleteBillPayment,
   } = useScheduleContext();
   const isPhone = useIsMobile();
 
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
-    const primary = accounts.find(account => account.isPrimary);
-    return primary ? [primary.id] : accounts.filter(account => LIQUID_ACCOUNT_TYPES.includes(account.type)).map(account => account.id);
+    const open = accounts.filter(account => account.status !== 'closed');
+    const primaries = open.filter(account => account.isPrimary);
+    return (primaries.length > 0 ? primaries : open.filter(account => LIQUID_ACCOUNT_TYPES.includes(account.type))).map(account => account.id);
   });
   const [range, setRange] = useState<ForecastRange>(rangeFromDuration(preferences.defaultForecastPeriod));
   const [view, setView] = useState('chart');
@@ -113,7 +114,10 @@ const Forecasting: React.FC = () => {
   const lows = useMemo(() => lowestPoints(projection.days, today), [projection.days, today]);
   const allSuggestions = useMemo(() => bufferSuggestions(projection, cushion, 12), [projection, cushion]);
   const suggestions = useMemo(() => allSuggestions.filter(item => !dismissed.includes(item.id)).slice(0, 4), [allSuggestions, dismissed]);
-  const dismissedCount = allSuggestions.length - allSuggestions.filter(item => !dismissed.includes(item.id)).length;
+  const allTransferFixes = useMemo(() => transferSuggestions(projection, selectedAccounts, 3), [projection, selectedAccounts]);
+  const transferFixes = useMemo(() => allTransferFixes.filter(item => !dismissed.includes(item.id)), [allTransferFixes, dismissed]);
+  const dismissedCount = (allSuggestions.length - allSuggestions.filter(item => !dismissed.includes(item.id)).length)
+    + (allTransferFixes.length - transferFixes.length);
 
   const markers = useMemo(() => (showGoals ? financialGoals
     .filter(goal => !goal.isBucket && goal.date && !goal.completed && !goal.disabled && activeGoalIds.includes(goal.id))
@@ -200,9 +204,53 @@ const Forecasting: React.FC = () => {
   const goalName = (item: BufferSuggestion) => financialGoals.find(goal => goal.id === item.goalId)?.name ?? item.event.description;
   const suggestionTitle = (item: BufferSuggestion) => (item.action === 'pause-goal' ? `Pause ${goalName(item)}` : `Move ${item.event.description} to ${shortDay(item.toDate!)}`);
 
-  const dismissSuggestion = (item: BufferSuggestion) => {
-    setDismissed(prev => [...prev, item.id]);
-    toast('Suggestion dismissed', { action: { label: 'Undo', onClick: () => setDismissed(prev => prev.filter(id => id !== item.id)) } });
+  const dismissId = (id: string) => {
+    setDismissed(prev => [...prev, id]);
+    toast('Suggestion dismissed', { action: { label: 'Undo', onClick: () => setDismissed(prev => prev.filter(item => item !== id)) } });
+  };
+
+  const dismissSuggestion = (item: BufferSuggestion) => dismissId(item.id);
+
+  const applyTransferSuggestion = (item: TransferSuggestion) => {
+    const id = `bill-transfer-${Date.now()}`;
+    const toName = accountName(item.toAccountId) ?? 'account';
+    const fromName = accountName(item.fromAccountId) ?? 'account';
+    saveBillPayment({
+      id,
+      description: `Transfer from ${fromName} to ${toName}`,
+      amount: -item.amount,
+      type: 'transfer',
+      currency: getMainCurrency() as BillPayment['currency'],
+      dueDate: item.byDate,
+      status: 'unpaid',
+      accountId: item.fromAccountId,
+      toAccountId: item.toAccountId,
+    });
+    toast.success(`Planned transfer to ${toName} on ${shortDay(item.byDate)}`, {
+      action: { label: 'Undo', onClick: () => deleteBillPayment(id) },
+    });
+  };
+
+  const skipEvent = (event: ForecastEvent) => {
+    setPanel(null);
+    if (isDerivedBill(event)) {
+      toast.error('Change this instalment from its warrant');
+      return;
+    }
+    if (event.kind === 'bill' && event.occurrence?.bill) {
+      const previous = event.occurrence.bill;
+      saveBillPayment({ ...previous, status: 'expired' });
+      toast.success(`${event.description} skipped`, { action: { label: 'Undo', onClick: () => saveBillPayment(previous) } });
+      return;
+    }
+    const occurrence = event.occurrence;
+    if (occurrence?.source === 'recurring') {
+      const existing = recurringTransactionOverrides.find(item => item.recurringTransactionId === occurrence.sourceId && item.originalDate === occurrence.originalDate);
+      saveRecurringOverride({ ...existing, recurringTransactionId: occurrence.sourceId, originalDate: occurrence.originalDate, isSkipped: true });
+      toast.success(`${event.description} skipped`, {
+        action: { label: 'Undo', onClick: () => (existing ? saveRecurringOverride(existing) : deleteRecurringOverride(occurrence.sourceId, occurrence.originalDate)) },
+      });
+    }
   };
 
   const applySuggestion = (item: BufferSuggestion) => {
@@ -394,22 +442,17 @@ const Forecasting: React.FC = () => {
     { label: 'Downturn', values: { incomeChange: -10, inflation: 4, marketReturn: -5 } },
   ];
 
-  const assumptionCard = (
-    <section aria-label="What-if assumptions" className="surface-card rounded-[var(--radius-xl)] p-5">
+  const assumptionControls = (
+    <div className="w-72 max-w-full space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <h2 className="type-card-title text-ink">Assumptions</h2>
-          {hasAssumptions(assumptions) && (
-            <Badge tone="blue">Active</Badge>
-          )}
-        </div>
+        <span className="type-body-strong text-ink">What-if assumptions</span>
         {hasAssumptions(assumptions) && (
           <Button variant="ghost" size="sm" onPress={() => setAssumptions(NO_ASSUMPTIONS)}>Reset</Button>
         )}
       </div>
       <p className="type-caption text-muted">Test how income changes, inflation, or market returns affect your horizon.</p>
 
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5">
         {PRESET_ASSUMPTIONS.map(preset => {
           const isActive =
             assumptions.incomeChange === preset.values.incomeChange &&
@@ -433,7 +476,7 @@ const Forecasting: React.FC = () => {
         })}
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <label className="block">
           <span className="type-caption text-muted">Income</span>
           <div className="relative mt-1 flex items-center">
@@ -474,31 +517,66 @@ const Forecasting: React.FC = () => {
           </div>
         </label>
       </div>
-    </section>
+    </div>
   );
+
+  const openAccounts = accounts.filter(account => account.status !== 'closed');
+  const primaryAccountIds = openAccounts.filter(account => account.isPrimary).map(account => account.id);
+  const cashAccountIds = openAccounts.filter(account => LIQUID_ACCOUNT_TYPES.includes(account.type)).map(account => account.id);
+  const sameSelection = (ids: string[]) => ids.length === selectedAccountIds.length && ids.every(id => selectedAccountIds.includes(id));
 
   return (
     <div className="space-y-6 pb-8 max-md:space-y-4">
       <PageHeader
         title="Forecast"
         stats={pageStats}
-        actions={<Button icon="add-01" onPress={() => { setFormDate(undefined); setFormMode('one-time'); }}>Add bill</Button>}
+        actions={<Button icon="add-01" onPress={() => { setFormDate(undefined); setFormMode('one-time'); }}>Plan item</Button>}
       />
 
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <MultiSelect
-          className="w-64 max-sm:w-full"
-          label="Accounts"
-          options={sortAccountsByType(accounts.filter(account => account.status !== 'closed')).map(account => ({
-            id: account.id,
-            label: account.name,
-            description: account.type,
-            group: account.type,
-          }))}
-          value={selectedAccountIds}
-          onChange={setSelectedAccountIds}
-          placeholder="Choose accounts"
-        />
+        <div className="flex flex-wrap items-end gap-2 max-sm:w-full">
+          <MultiSelect
+            className="w-64 max-sm:w-full"
+            label="Accounts"
+            options={sortAccountsByType(openAccounts).map(account => ({
+              id: account.id,
+              label: account.name,
+              description: account.type,
+              group: account.type,
+            }))}
+            value={selectedAccountIds}
+            onChange={setSelectedAccountIds}
+            placeholder="Choose accounts"
+          />
+          {(primaryAccountIds.length > 0 || cashAccountIds.length > 0) && (
+            <div className="flex flex-wrap gap-1.5 pb-1" role="group" aria-label="Account scope presets">
+              {primaryAccountIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedAccountIds(primaryAccountIds)}
+                  className={cn(
+                    'type-caption cursor-pointer rounded-full px-2.5 py-1 font-medium transition-colors',
+                    sameSelection(primaryAccountIds) ? 'bg-pill text-on-pill' : 'bg-inset text-muted hover:bg-line/40 hover:text-ink'
+                  )}
+                >
+                  Primary
+                </button>
+              )}
+              {cashAccountIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedAccountIds(cashAccountIds)}
+                  className={cn(
+                    'type-caption cursor-pointer rounded-full px-2.5 py-1 font-medium transition-colors',
+                    sameSelection(cashAccountIds) ? 'bg-pill text-on-pill' : 'bg-inset text-muted hover:bg-line/40 hover:text-ink'
+                  )}
+                >
+                  All cash
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
           {!isPhone && <SegmentedControl items={VIEWS} activeId={view} onChange={setView} />}
           <SegmentedControl items={FORECAST_RANGES} activeId={range} onChange={id => setRange(id as ForecastRange)} scrollable />
@@ -519,10 +597,21 @@ const Forecasting: React.FC = () => {
                       {isPhone ? 'Select a row below to change a date.' : isWeekly ? 'Bubbles are grouped by week on this range. Choose 90 days or fewer to drag them.' : 'Drag a bill to another day. Loans, cards and goals are fixed.'}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-x-4">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     <Switch isSelected={showHistory} onChange={setShowHistory}>Past 30d</Switch>
                     <Switch isSelected={showGoals} onChange={setShowGoals}>Goals</Switch>
                     {selectedAccounts.length > 1 && <Switch isSelected={splitAccounts} onChange={setSplitAccounts}>By account</Switch>}
+                    <Popover
+                      title="What-if assumptions"
+                      placement="bottom end"
+                      trigger={
+                        <Button size="sm" variant={hasAssumptions(assumptions) ? 'primary' : 'secondary'}>
+                          What-if{hasAssumptions(assumptions) ? ' · On' : ''}
+                        </Button>
+                      }
+                    >
+                      {assumptionControls}
+                    </Popover>
                   </div>
                 </div>
                 <ForecastHorizonChart
@@ -566,45 +655,27 @@ const Forecasting: React.FC = () => {
             {showList && (
               <>
                 {lowCard}
-                <ForecastList days={projection.days} accountName={accountName} onOpen={event => setPanel({ date: event.date, events: [event] })} />
+                <ForecastList days={projection.days} cushion={cushion} accountName={accountName} onOpen={event => setPanel({ date: event.date, events: [event] })} onMove={requestMove} />
               </>
             )}
           </div>
 
           <aside className="min-w-0 space-y-4">
-            <section aria-label="What moves the line" className="surface-card rounded-[var(--radius-xl)] p-5">
-              <h2 className="type-card-title text-ink">What moves the line</h2>
-              <p className="type-caption text-muted">Today to {shortDay(iso(end))}</p>
-              <dl className="mt-3 space-y-1.5">
-                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Today</dt><dd className="type-figure-row text-ink"><Amount value={summary.today} currency={getMainCurrency()} /></dd></div>
-                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Expected in</dt><dd className="type-figure-row"><Amount value={summary.expectedIn} currency={getMainCurrency()} tone="flow" /></dd></div>
-                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Going out</dt><dd className="type-figure-row text-ink"><Amount value={summary.goingOut} currency={getMainCurrency()} /></dd></div>
-                <div className="flex justify-between gap-3 border-t border-line pt-1.5"><dt className="type-body-strong text-ink">On {shortDay(iso(end))}</dt><dd className="type-figure-row text-ink"><Amount value={summary.end} currency={getMainCurrency()} /></dd></div>
-                {summary.lowest && <div className="flex justify-between gap-3"><dt className="type-body text-muted">Lowest, {shortDay(summary.lowest.date)}</dt><dd className="type-figure-row text-ink"><Amount value={summary.lowest.value} currency={getMainCurrency()} /></dd></div>}
-                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Days under buffer</dt><dd className="type-figure-row text-ink">{summary.below.count}</dd></div>
-              </dl>
-              {movers.length > 0 && (
-                <ul className="mt-3 space-y-1 border-t border-line pt-3">
-                  {movers.map(mover => (
-                    <li key={mover.key} className="flex justify-between gap-3">
-                      <span className="type-body min-w-0 truncate text-ink">{mover.label}{mover.count > 1 ? ` × ${mover.count}` : ''}</span>
-                      <span className="type-figure-row shrink-0"><Amount value={mover.total} currency={getMainCurrency()} tone="flow" /></span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section aria-label="Buffer status" className="surface-card rounded-[var(--radius-xl)] p-5">
+            <section aria-label="Buffer & health" className="surface-card rounded-[var(--radius-xl)] p-5">
               <div className="flex items-start gap-3">
-                <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]', dipsBelow ? 'bg-amber-soft text-attention-text' : 'bg-primary-soft text-primary')}>
-                  <Icon name={dipsBelow ? 'alert-02' : 'checkmark-circle-02'} size={20} />
+                <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]', dipsBelow || transferFixes.length > 0 ? 'bg-amber-soft text-attention-text' : 'bg-primary-soft text-primary')}>
+                  <Icon name={dipsBelow || transferFixes.length > 0 ? 'alert-02' : 'checkmark-circle-02'} size={20} />
                 </span>
                 <div className="min-w-0 flex-1">
                   {dipsBelow ? (
                     <>
                       <h2 className="type-body-strong text-ink">Under your buffer for {summary.below.count} {summary.below.count === 1 ? 'day' : 'days'}</h2>
                       <p className="type-caption mt-0.5 text-muted">From {shortDay(summary.below.first!)}. The lowest point is {summary.lowest && <span className="whitespace-nowrap font-medium text-ink"><Amount value={summary.lowest.value} currency={getMainCurrency()} /></span>}.</p>
+                    </>
+                  ) : transferFixes.length > 0 ? (
+                    <>
+                      <h2 className="type-body-strong text-ink">An account dips below zero</h2>
+                      <p className="type-caption mt-0.5 text-muted">Your combined total stays above buffer, but one account needs a transfer.</p>
                     </>
                   ) : (
                     <>
@@ -615,10 +686,39 @@ const Forecasting: React.FC = () => {
                 </div>
               </div>
 
-              {dipsBelow && suggestions.length > 0 && (
+              <div className="mt-4 border-t border-line pt-3">
+                <div className="flex items-end gap-1">
+                  <IconButton icon="minus-sign" label="Lower the buffer" isDisabled={cushion <= 0} onPress={() => setCushion(cushion - BUFFER_STEP)} />
+                  <AmountInput key={cushion} className="min-w-0 flex-1" label="Cash buffer" currency={getMainCurrency()} defaultValue={cushion ? String(cushion) : ''} onBlur={e => { const v = parseAmountInput((e.target as HTMLInputElement).value); setCushion(Number.isFinite(v) ? v : 0); }} />
+                  <IconButton icon="add-01" label="Raise the buffer" onPress={() => setCushion(cushion + BUFFER_STEP)} />
+                </div>
+                <p className="type-caption mt-1 text-muted">The least you want to keep. Safe to spend uses the same number.</p>
+              </div>
+
+              {(transferFixes.length > 0 || (dipsBelow && suggestions.length > 0)) && (
                 <div className="-mx-5 mt-4 border-t border-line">
                   <ul aria-label="Ways to stay above your buffer" className="divide-y divide-line">
-                    {suggestions.map(item => (
+                    {transferFixes.map(item => (
+                      <li key={item.id} className="px-5 py-3 transition-colors hover:bg-inset/30">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="type-body-strong text-ink">
+                              Transfer <Amount value={item.amount} currency={getMainCurrency()} /> to {accountName(item.toAccountId) ?? 'account'}
+                            </p>
+                            <p className="type-caption mt-0.5 text-muted">
+                              From {accountName(item.fromAccountId) ?? 'account'} by {shortDay(item.byDate)} to avoid a{' '}
+                              <span className="whitespace-nowrap font-semibold text-ink"><Amount value={item.lowestBalance} currency={getMainCurrency()} /></span> dip.
+                            </p>
+                          </div>
+                          <Badge className="shrink-0" tone="blue">Transfer</Badge>
+                        </div>
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <Button size="sm" variant="primary" onPress={() => applyTransferSuggestion(item)}>Plan transfer</Button>
+                          <Button size="sm" variant="ghost" onPress={() => dismissId(item.id)}>Dismiss</Button>
+                        </div>
+                      </li>
+                    ))}
+                    {dipsBelow && suggestions.map(item => (
                       <li key={item.id} className="px-5 py-3 transition-colors hover:bg-inset/30">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
@@ -641,45 +741,62 @@ const Forecasting: React.FC = () => {
                 </div>
               )}
 
-              {dipsBelow && dismissedCount > 0 && (
+              {dismissedCount > 0 && (dipsBelow || allTransferFixes.length > 0) && (
                 <div className="mt-3 border-t border-line pt-3">
                   <Button size="sm" variant="ghost" onPress={() => setDismissed([])}>Show {dismissedCount} dismissed</Button>
                 </div>
               )}
             </section>
 
-            <section aria-label="Cash buffer" className="surface-card rounded-[var(--radius-xl)] p-5">
-              <h2 className="type-card-title text-ink">Cash buffer</h2>
-              <p className="type-caption text-muted">The least you want to keep. Safe to spend uses the same number.</p>
-              <div className="mt-3 flex items-end gap-1">
-                <IconButton icon="minus-sign" label="Lower the buffer" isDisabled={cushion <= 0} onPress={() => setCushion(cushion - BUFFER_STEP)} />
-                <AmountInput key={cushion} className="min-w-0 flex-1" label="Buffer" currency={getMainCurrency()} defaultValue={cushion ? String(cushion) : ''} onBlur={e => { const v = parseAmountInput((e.target as HTMLInputElement).value); setCushion(Number.isFinite(v) ? v : 0); }} />
-                <IconButton icon="add-01" label="Raise the buffer" onPress={() => setCushion(cushion + BUFFER_STEP)} />
-              </div>
+            <section aria-label="What moves the line" className="surface-card rounded-[var(--radius-xl)] p-5">
+              <h2 className="type-card-title text-ink">What moves the line</h2>
+              <p className="type-caption text-muted">Today to {shortDay(iso(end))}</p>
+              <dl className="mt-3 space-y-1.5">
+                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Today</dt><dd className="type-figure-row text-ink"><Amount value={summary.today} currency={getMainCurrency()} /></dd></div>
+                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Expected in</dt><dd className="type-figure-row"><Amount value={summary.expectedIn} currency={getMainCurrency()} tone="flow" /></dd></div>
+                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Going out</dt><dd className="type-figure-row text-ink"><Amount value={summary.goingOut} currency={getMainCurrency()} /></dd></div>
+                <div className="flex justify-between gap-3 border-t border-line pt-1.5"><dt className="type-body-strong text-ink">On {shortDay(iso(end))}</dt><dd className="type-figure-row text-ink"><Amount value={summary.end} currency={getMainCurrency()} /></dd></div>
+                {summary.lowest && <div className="flex justify-between gap-3"><dt className="type-body text-muted">Lowest, {shortDay(summary.lowest.date)}</dt><dd className="type-figure-row text-ink"><Amount value={summary.lowest.value} currency={getMainCurrency()} /></dd></div>}
+                <div className="flex justify-between gap-3"><dt className="type-body text-muted">Days under buffer</dt><dd className="type-figure-row text-ink">{summary.below.count}</dd></div>
+              </dl>
+              {movers.length > 0 && (
+                <ul className="mt-3 space-y-1 border-t border-line pt-3">
+                  {movers.map(mover => (
+                    <li key={mover.key} className="flex justify-between gap-3">
+                      <span className="type-body min-w-0 truncate text-ink">{mover.label}{mover.count > 1 ? ` × ${mover.count}` : ''}</span>
+                      <span className="type-figure-row shrink-0"><Amount value={mover.total} currency={getMainCurrency()} tone="flow" /></span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
             {!showChart && biggestCard}
-            {assumptionCard}
           </aside>
         </div>
       )}
 
-      {panel && (
-        <ForecastDayPanel
-          date={panel.date}
-          events={panel.events}
-          title={panel.title}
-          balance={dayOf(panel.date)?.total}
-          onClose={() => setPanel(null)}
-          onEdit={editEvent}
-          onMove={requestMove}
-          onAdd={() => {
-            setFormDate(panel.date);
-            setPanel(null);
-            setEditingRecurring(null);
-            setFormMode('recurring');
-          }}
-        />
-      )}
+      {panel && (() => {
+        const nextIncome = nextIncomeAfter(projection.events, panel.date);
+        return (
+          <ForecastDayPanel
+            date={panel.date}
+            events={panel.events}
+            title={panel.title}
+            balance={dayOf(panel.date)?.total}
+            nextIncomeDate={nextIncome ? iso(addDays(parseLocalDate(nextIncome.date), 1)) : undefined}
+            onClose={() => setPanel(null)}
+            onEdit={editEvent}
+            onMove={requestMove}
+            onSkip={skipEvent}
+            onAdd={() => {
+              setFormDate(panel.date);
+              setPanel(null);
+              setEditingRecurring(null);
+              setFormMode('recurring');
+            }}
+          />
+        );
+      })()}
 
       {confirming && (
         <ConfirmDialog

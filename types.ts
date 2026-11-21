@@ -805,11 +805,12 @@ export interface BillPayment {
   id: string;
   description: string;
   amount: number; // positive for deposit, negative for payment
-  type: 'deposit' | 'payment';
+  type: 'deposit' | 'payment' | 'transfer';
   currency: Currency;
   dueDate: string;
   status: BillPaymentStatus;
   accountId?: string; // The account it was paid from/to
+  toAccountId?: string; // Destination account when type === 'transfer'
   warrantId?: string;
   merchant?: string;
   category?: string;

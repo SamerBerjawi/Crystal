@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { parseLocalDate, getMainCurrency } from '../utils';
+import { addDays, iso } from '../utils/scheduleModel';
 import type { ForecastDay, ForecastEvent } from '../utils/forecastModel';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../lib/utils';
@@ -10,10 +11,25 @@ import { Amount } from './ui/Money';
 const PAGE = 60;
 const KIND_LABEL = { recurring: 'Recurring', bill: 'One-time', loan: 'Loan', card: 'Card', property: 'Property', goal: 'Goal' };
 
+type ListFilter = 'all' | 'income' | 'expenses' | 'goals' | 'overdue' | 'dips';
+
+const FILTERS: { id: ListFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'income', label: 'Income' },
+  { id: 'expenses', label: 'Expenses' },
+  { id: 'goals', label: 'Goals' },
+  { id: 'overdue', label: 'Overdue' },
+  { id: 'dips', label: 'Under buffer' },
+];
+
+const canMove = (event: ForecastEvent) => (event.kind === 'recurring' || event.kind === 'bill') && !event.occurrence?.isReadOnly;
+
 interface ForecastListProps {
   days: ForecastDay[];
+  cushion?: number;
   accountName: (id?: string) => string | undefined;
   onOpen: (event: ForecastEvent) => void;
+  onMove?: (event: ForecastEvent, toDate: string) => void;
 }
 
 const shortDate = (date: string) => parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -33,9 +49,10 @@ const MARK_STYLE: Record<Exclude<Mark, null>, string> = {
  * The forecast as a ledger, grouped by month: date, where it comes from, what it is, the amount, the balance after
  * it, and what kind of item it is. The lowest balance overall and in each month are marked (FCT-07).
  */
-const ForecastList: React.FC<ForecastListProps> = ({ days, accountName, onOpen }) => {
+const ForecastList: React.FC<ForecastListProps> = ({ days, cushion = 0, accountName, onOpen, onMove }) => {
   const isPhone = useIsMobile();
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<ListFilter>('all');
   const [limit, setLimit] = useState(PAGE);
 
   const { months, overall } = useMemo(() => {
@@ -48,9 +65,17 @@ const ForecastList: React.FC<ForecastListProps> = ({ days, accountName, onOpen }
       if (!current || day.total < current.total) lows.set(key, day);
     }
     const text = search.trim().toLowerCase();
+    const matchesFilter = (event: ForecastEvent) => {
+      if (filter === 'income') return event.amount > 0;
+      if (filter === 'expenses') return event.amount < 0 && event.kind !== 'goal';
+      if (filter === 'goals') return event.kind === 'goal';
+      if (filter === 'overdue') return event.overdue;
+      if (filter === 'dips') return event.balanceAfter < cushion;
+      return true;
+    };
     const grouped = new Map<string, Month>();
     for (const day of days) {
-      const events = day.events.filter(event => !text || event.description.toLowerCase().includes(text));
+      const events = day.events.filter(event => matchesFilter(event) && (!text || event.description.toLowerCase().includes(text)));
       if (events.length === 0) continue;
       const key = day.date.slice(0, 7);
       const low = lows.get(key)!;
@@ -64,7 +89,7 @@ const ForecastList: React.FC<ForecastListProps> = ({ days, accountName, onOpen }
       grouped.set(key, month);
     }
     return { months: [...grouped.values()], overall: global };
-  }, [days, search]);
+  }, [days, search, filter, cushion]);
 
   let remaining = limit;
   const visible = months.map(month => {
@@ -94,7 +119,26 @@ const ForecastList: React.FC<ForecastListProps> = ({ days, accountName, onOpen }
 
   return (
     <section aria-label="Forecast list" className="surface-card rounded-[var(--radius-xl)] p-5 max-md:p-4">
-      <TextInput className="mb-4 max-w-sm" label="Search the forecast" value={search} onChange={value => { setSearch(value); setLimit(PAGE); }} />
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <TextInput className="w-full max-w-sm" label="Search the forecast" value={search} onChange={value => { setSearch(value); setLimit(PAGE); }} />
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter forecast items">
+          {FILTERS.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => { setFilter(item.id); setLimit(PAGE); }}
+              className={cn(
+                'type-caption cursor-pointer rounded-full px-3 py-1 font-medium transition-colors',
+                filter === item.id
+                  ? 'bg-pill text-on-pill'
+                  : 'bg-inset text-muted hover:bg-line/40 hover:text-ink'
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
       {visible.length === 0 ? (
         <p className="type-body text-muted">Nothing matches.</p>
       ) : (
@@ -160,7 +204,21 @@ const ForecastList: React.FC<ForecastListProps> = ({ days, accountName, onOpen }
                           <span className="type-figure-row block whitespace-nowrap text-ink"><Amount value={event.balanceAfter} currency={getMainCurrency()} /></span>
                           {mark && <span className="mt-0.5 inline-flex">{markBadge(mark)}</span>}
                         </td>
-                        <td className="h-14 border-t border-line px-3 type-caption text-muted">{KIND_LABEL[event.kind]}</td>
+                        <td className="h-14 border-t border-line px-3 type-caption text-muted">
+                          <div className="flex items-center justify-between gap-2">
+                            <span>{KIND_LABEL[event.kind]}</span>
+                            {onMove && canMove(event) && (
+                              <button
+                                type="button"
+                                title="Move 1 week later"
+                                onClick={e => { e.stopPropagation(); onMove(event, iso(addDays(parseLocalDate(event.date), 7))); }}
+                                className="type-caption cursor-pointer rounded-full border border-line bg-solid px-2 py-0.5 font-medium text-ink opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:border-line-strong"
+                              >
+                                +1w
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -380,12 +380,13 @@ export const buildOccurrences = (input: OccurrenceInput): Occurrence[] => {
       date: bill.dueDate,
       amount: Math.abs(bill.amount),
       currency: bill.currency,
-      flow: classifyFlow(bill.type, bill.accountId, undefined, accountsById),
+      flow: classifyFlow(bill.type, bill.accountId, bill.toAccountId, accountsById),
       type: bill.type,
       description: bill.description,
       merchant: bill.merchant,
       category: bill.category,
       accountId: bill.accountId,
+      toAccountId: bill.toAccountId,
       status: bill.status === 'paid' ? 'paid' : statusFor(bill.dueDate, todayStr),
       isOverride: false,
       isReadOnly: false,
@@ -756,8 +757,8 @@ export const draftFromSeries = (rt: RecurringTransaction): SeriesDraft => ({
 });
 
 export const draftFromBill = (bill: BillPayment): SeriesDraft => ({
-  kind: 'bill', type: bill.type === 'deposit' ? 'income' : 'expense', amount: String(Math.abs(bill.amount)), currency: bill.currency,
-  description: bill.description, merchant: bill.merchant ?? '', category: bill.category ?? '', accountId: bill.accountId ?? '', toAccountId: '', startDate: bill.dueDate,
+  kind: 'bill', type: bill.type === 'deposit' ? 'income' : bill.type === 'transfer' ? 'transfer' : 'expense', amount: String(Math.abs(bill.amount)), currency: bill.currency,
+  description: bill.description, merchant: bill.merchant ?? '', category: bill.category ?? '', accountId: bill.accountId ?? '', toAccountId: bill.toAccountId ?? '', startDate: bill.dueDate,
   frequency: 'monthly', frequencyInterval: '1', dueDateOfMonth: '', weekendAdjustment: 'on', endDate: '',
   autopay: false, paymentUrl: '', notifyDaysBefore: '', overdueGraceDays: '', trialEndsOn: '',
 });
@@ -808,6 +809,28 @@ export const planSeries = (draft: SeriesDraft, existingId?: string, existingBill
   if (!draft.description.trim() && !draft.merchant.trim()) return { ok: false, error: 'Add a name' };
   if (!draft.startDate) return { ok: false, error: 'Choose a date' };
   if (draft.kind === 'bill') {
+    if (draft.type === 'transfer') {
+      if (!draft.accountId) return { ok: false, error: 'Choose an account to transfer from' };
+      if (!draft.toAccountId) return { ok: false, error: 'Choose the account it goes to' };
+      if (draft.toAccountId === draft.accountId) return { ok: false, error: 'Choose two different accounts' };
+      return {
+        ok: true, kind: 'bill',
+        bill: {
+          ...(existingBill ?? {}),
+          id: existingId,
+          description: draft.description.trim() || draft.merchant.trim(),
+          merchant: draft.merchant.trim() || undefined,
+          category: undefined,
+          amount: -amount,
+          type: 'transfer',
+          currency: draft.currency,
+          dueDate: draft.startDate,
+          status: existingBill?.status ?? 'unpaid',
+          accountId: draft.accountId,
+          toAccountId: draft.toAccountId,
+        },
+      };
+    }
     const deposit = draft.type === 'income';
     return {
       ok: true, kind: 'bill',
@@ -823,6 +846,7 @@ export const planSeries = (draft: SeriesDraft, existingId?: string, existingBill
         dueDate: draft.startDate,
         status: existingBill?.status ?? 'unpaid',
         accountId: draft.accountId || undefined,
+        toAccountId: undefined,
       },
     };
   }

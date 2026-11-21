@@ -333,7 +333,7 @@ export const buildInitialPostedModalData = (
     }
   } else {
     const bill = item as BillPayment;
-    type = bill.type === 'deposit' ? 'income' : 'expense';
+    type = bill.type === 'deposit' ? 'income' : bill.type === 'transfer' ? 'transfer' : 'expense';
     category = type === 'income' ? 'Income' : 'Bills & Utilities';
     merchant = (bill as unknown as { merchant?: string; biller?: string }).merchant ||
       (bill as unknown as { biller?: string }).biller;

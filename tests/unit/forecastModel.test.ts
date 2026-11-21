@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Account, BillPayment, FinancialGoal, RecurringTransaction, Warrant } from '../../types';
-import { buildOccurrences, iso, makeConverter, moveFuture, moveSeries } from '../../utils/scheduleModel';
+import { buildOccurrences, draftFromBill, iso, makeConverter, moveFuture, moveSeries, planSeries } from '../../utils/scheduleModel';
 import {
-  accountForecast, warrantTaxBills, mergeWarrantTaxBills, chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, bufferSuggestions, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
+  accountForecast, warrantTaxBills, mergeWarrantTaxBills, chartSeries, daysBelow, forecastBubbles, forecastFromData, horizonSummary, horizonTiles, moveSuggestion, bufferSuggestions, transferSuggestions, rangeEnd, rangeFromDuration, type ForecastDay, type ForecastEvent, drivers, goalMovements, horizonEnd, lowestPoint, lowestPoints, projectBalances, type Assumptions,
 } from '../../utils/forecastModel';
 import {
   accountCoverage, goalTree, monthlyTargetGroups, monthlyTargets, moveGoal, planGoal, projectGoal, summaryRings, emptyGoalDraft,
@@ -401,4 +401,59 @@ test('warrant tax bills use the chosen instalment or warrant account and avoid l
   // Savings-only forecast only deducts t2 (250), not t1 (400 on Checking).
   const savDays = forecastFromData({ recurring: [], overrides: [], bills: merged, accounts, transactions: [] }, [accounts[1]], [], [], TODAY, d('2026-11-30'), eur).days;
   assert.equal(savDays.at(-1)?.total, 4750);
+});
+
+test('one-time transfer bill moves money between accounts and round-trips through planSeries', () => {
+  const plan = planSeries({
+    kind: 'bill',
+    type: 'transfer',
+    amount: '400',
+    currency: 'EUR',
+    description: 'Top up checking',
+    merchant: '',
+    category: '',
+    accountId: 'sav',
+    toAccountId: 'chk',
+    startDate: '2026-11-05',
+    frequency: 'monthly',
+    frequencyInterval: '1',
+    dueDateOfMonth: '',
+    weekendAdjustment: 'on',
+    endDate: '',
+    autopay: false,
+    paymentUrl: '',
+    notifyDaysBefore: '',
+    overdueGraceDays: '',
+    trialEndsOn: '',
+  });
+  assert.equal(plan.ok, true);
+  if (!plan.ok || plan.kind !== 'bill') return;
+  assert.equal(plan.bill.type, 'transfer');
+  assert.equal(plan.bill.toAccountId, 'chk');
+
+  const bill: BillPayment = { ...plan.bill, id: 'bt1' };
+  const draft = draftFromBill(bill);
+  assert.equal(draft.type, 'transfer');
+  assert.equal(draft.toAccountId, 'chk');
+
+  const p = project({ bills: [bill], selected: ['chk', 'sav'], end: '2026-11-10' });
+  const day = p.days.find(item => item.date === '2026-11-05')!;
+  assert.equal(day.byAccount.chk, 1400);
+  assert.equal(day.byAccount.sav, 4600);
+  assert.equal(day.total, 6000);
+});
+
+test('transferSuggestions recommends transferring from surplus cash account when another dips below zero', () => {
+  const bigBill: BillPayment = {
+    id: 'b1', description: 'Car repair', amount: -1350, type: 'payment',
+    currency: 'EUR', dueDate: '2026-11-08', status: 'unpaid', accountId: 'chk',
+  };
+  const p = project({ bills: [bigBill], selected: ['chk', 'sav'], end: '2026-11-20' });
+  const tips = transferSuggestions(p, accounts);
+  assert.equal(tips.length, 1);
+  assert.equal(tips[0].fromAccountId, 'sav');
+  assert.equal(tips[0].toAccountId, 'chk');
+  assert.equal(tips[0].amount, 350);
+  assert.equal(tips[0].byDate, '2026-11-08');
+  assert.equal(tips[0].lowestBalance, -350);
 });

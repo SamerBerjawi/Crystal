@@ -511,6 +511,73 @@ export const bufferSuggestions = (projection: Projection, cushion: number, limit
   return [...found.values()].sort((a, b) => a.tier - b.tier || b.frees - a.frees).slice(0, limit);
 };
 
+export interface TransferSuggestion {
+  id: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  byDate: string;
+  lowestBalance: number;
+  surplusAfter: number;
+}
+
+const isCashAccount = (a: Account) => a.type === 'Checking' || a.type === 'Savings';
+
+/**
+ * Recommends a one-time transfer from a surplus cash account when another selected cash account is projected
+ * to fall below 0, picking the donor with the highest minimum balance across the horizon.
+ */
+export const transferSuggestions = (projection: Projection, accounts: Account[], limit = 3): TransferSuggestion[] => {
+  const cash = accounts.filter(isCashAccount);
+  if (cash.length < 2 || projection.days.length === 0) return [];
+
+  const minByAccount = new Map<string, number>();
+  for (const a of cash) {
+    let min = Infinity;
+    for (const day of projection.days) {
+      const bal = day.byAccount[a.id] ?? 0;
+      if (bal < min) min = bal;
+    }
+    minByAccount.set(a.id, round2(min));
+  }
+
+  const out: TransferSuggestion[] = [];
+  for (const recipient of cash) {
+    const minRecipient = minByAccount.get(recipient.id) ?? 0;
+    if (minRecipient >= 0) continue;
+    const needed = round2(Math.abs(minRecipient));
+    if (needed < 1) continue;
+
+    const firstNegDay = projection.days.find(d => (d.byAccount[recipient.id] ?? 0) < 0);
+    if (!firstNegDay) continue;
+
+    let bestDonor: Account | undefined;
+    let bestDonorMin = 0;
+    for (const donor of cash) {
+      if (donor.id === recipient.id) continue;
+      const donorMin = minByAccount.get(donor.id) ?? 0;
+      if (donorMin > bestDonorMin) {
+        bestDonor = donor;
+        bestDonorMin = donorMin;
+      }
+    }
+    if (!bestDonor || bestDonorMin < 1) continue;
+
+    const amount = round2(Math.min(needed, bestDonorMin));
+    out.push({
+      id: `transfer:${bestDonor.id}:${recipient.id}:${firstNegDay.date}`,
+      fromAccountId: bestDonor.id,
+      toAccountId: recipient.id,
+      amount,
+      byDate: firstNegDay.date,
+      lowestBalance: minRecipient,
+      surplusAfter: round2(bestDonorMin - amount),
+    });
+  }
+
+  return out.sort((a, b) => a.lowestBalance - b.lowestBalance).slice(0, limit);
+};
+
 /**
  * Pending warrant tax instalments as one-off bills, so every forecast counts them. Each instalment uses its own
  * account, else the warrant's tax account, else the first selected account, primary account, checking account, or first account.
